@@ -1,0 +1,11 @@
+.list-panel{
+     
+     width: 240px;
+     min-width: 220px;
+
+}
+.panel-items{
+     gap: 18px;
+     display: flex;
+     flex-direction: column;
+}

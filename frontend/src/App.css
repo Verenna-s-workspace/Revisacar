@@ -1,0 +1,10 @@
+.h1krlh{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+p{
+    width: 950px;
+    text-align: center;
+}

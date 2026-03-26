@@ -1,0 +1,21 @@
+ label {
+      display: block;
+      font-Size: 12px;
+      font-Weight: 600;
+      color: #64748b;
+      text-Transform: uppercase;
+      letter-Spacing: "0.6px";
+      margin-Bottom: "8px";
+    }
+    input {
+      width: 80%;
+      background: #0c0e14;
+      border: 1px solid #1e2235;
+      border-Radius: 10px;
+      padding: 12px 14px;
+      color: #e2e8f0;
+      font-Size: 14px;
+      outline: none;
+      box-Sizing: border-box;
+      transition: border color 0.2s;
+    }
