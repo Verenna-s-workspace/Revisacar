@@ -1,0 +1,32 @@
+.Checklist {
+  display: grid;
+  grid-template-columns: 0.5fr;
+  grid-template-areas:
+    "name "
+    "telefone "
+    "cpf "
+    "email ";
+    gap: 20px;
+}
+.nome-input {
+  grid-area: name;
+    grid-column: span 1;
+}
+
+.telefone-input {
+  grid-area: telefone;
+  
+
+}
+
+.cpf-input {
+  grid-area: cpf;
+
+}
+
+.email-input {
+  grid-area: email;
+  
+     
+  
+}

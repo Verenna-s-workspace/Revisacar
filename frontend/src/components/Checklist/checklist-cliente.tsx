@@ -14,7 +14,7 @@ const [email, setEmail] = useState("");
         
         <div className='Checklist'>
             
-            <Input 
+           <div className="nome-input"> <Input 
                 label='Nome completo'
                 name='nome'
                 placeholder='Ex: Maria Farias Gomes'
@@ -22,7 +22,8 @@ const [email, setEmail] = useState("");
                 onlyText
                 onChangeValue={setNome}
             />
-              <Input 
+            </div>
+              <div className="telefone-input"><Input 
                 label='Telefone / Whatsapp'
                 name='telefone'
                 placeholder='(00) 0000-00000'
@@ -32,7 +33,8 @@ const [email, setEmail] = useState("");
                 error={telefone.length > 11 ?  'Número inválido' : ''}
                 
             />
-               <Input 
+            </div> 
+               <div className="cpf-input"><Input 
                 label='CPF (opcional)'
                 name='cpf'
                 placeholder='000.000.000-00'
@@ -42,7 +44,8 @@ const [email, setEmail] = useState("");
                 error={cpf && cpf.length !==  11 ?  'Cpf inválido' : ''}
                 
             />
-             <Input 
+            </div>
+            <div className="email-input"> <Input 
                 label='E-mail (opcional)'
                 name='email'
                 placeholder='email@exemplo.com'
@@ -51,7 +54,7 @@ const [email, setEmail] = useState("");
                 error={ email && !email.includes('@')  ? 'Email inválido' : ''}
                 
             />
-    
+    </div>
         </div>
     )
 }

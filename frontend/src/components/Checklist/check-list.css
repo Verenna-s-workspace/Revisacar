@@ -1,6 +1,11 @@
 .Checklist{
+    background-color: #252523;
+    padding: 30px 30px;
     display: grid;
-        
-    max-width: 50%;
+    border-radius: 25px;
+     border: 2px solid rgba(255,255,255,0.08);
+ 
 
+    max-width: 100%;
+    
 }

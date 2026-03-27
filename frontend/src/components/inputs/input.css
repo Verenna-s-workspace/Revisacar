@@ -2,15 +2,15 @@
       display: block;
       font-Size: 12px;
       font-Weight: 600;
-      color: #64748b;
+      color: #9e9e9e;
       text-Transform: uppercase;
       letter-Spacing: "0.6px";
       margin-Bottom: "8px";
     }
     input {
       width: 80%;
-      background: #0c0e14;
-      border: 1px solid #1e2235;
+      background:#181717;
+      border: 1px solid #9e9e9eb6;
       border-Radius: 10px;
       padding: 12px 14px;
       color: #e2e8f0;
