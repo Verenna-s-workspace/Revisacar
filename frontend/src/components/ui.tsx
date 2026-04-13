@@ -118,12 +118,11 @@ export function FormBlock({ title, children, noBorder }: FormBlockProps) {
 interface FieldProps {
   label: string;
   span?: number;
-  error?: boolean;
   hint?: string;
   children: ReactNode;
 }
 
-export function Field({ label, span, error, hint, children }: FieldProps) {
+export function Field({ label, span, hint, children }: FieldProps) {
   return (
     <div style={{
       display: 'flex',
@@ -137,22 +136,12 @@ export function Field({ label, span, error, hint, children }: FieldProps) {
         fontWeight: 500,
         letterSpacing: '0.09em',
         textTransform: 'uppercase',
-        color: error ? tokens.color.crit : tokens.color.muted,
       }}>
         {label}
       </label>
       {children}
-      {error && (
-        <span style={{
-          fontFamily: tokens.fontMono,
-          fontSize: '0.58rem',
-          color: tokens.color.crit,
-          letterSpacing: '0.04em',
-        }}>
-          Campo obrigatório
-        </span>
-      )}
-      {hint && !error && (
+     
+      {hint && (
         <span style={{
           fontFamily: tokens.fontMono,
           fontSize: '0.58rem',

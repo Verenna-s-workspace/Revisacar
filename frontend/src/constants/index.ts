@@ -198,7 +198,15 @@ export const SECTIONS: Section[] = [
       'Tapetes e revestimentos',
       'Limpeza interna geral',
     ],
-  },
+    
+  },{
+  id: 'adicionais',
+  label: 'Inspeção Personalizada',
+  icon: 'adicionais',
+  items: [],
+  isDynamic: true
+
+  }
 ];
 
 // ── Status Config ─────────────────────────────────────────────────────────────

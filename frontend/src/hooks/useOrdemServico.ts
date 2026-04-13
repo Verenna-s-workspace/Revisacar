@@ -24,7 +24,7 @@ const INITIAL_OS_HEADER = (): OSHeader => ({
 const INITIAL_CLIENTE: Cliente  = { nome: '', doc: '', tel: '', email: '' };
 const INITIAL_VEICULO: Veiculo  = {
   placa: '', modelo: '', ano: '', cor: '',
-  combustivel: '', nivel_combustivel: '', chassi: '', obs_entrada: '',
+  combustivel: '', nivel_combustivel: '', chassi: '', obs_entrada: '', obs_cliente: '',
 };
 const INITIAL_TECNICO: Tecnico  = {
   nome: '', registro: '', data_saida: '', hora_saida: '', km_saida: '', parecer_geral: '',
@@ -49,6 +49,34 @@ export function useOrdemServico() {
   const [photos, setPhotos]       = useState<Photo[]>([]);
   const [lightbox, setLightbox]   = useState<string | null>(null);
   const [tecnico, setTecnico]     = useState<Tecnico>(INITIAL_TECNICO);
+
+  // ── Itens dinâmicos (seção "adicionais") ──────────────────────────────────
+  // Estado fica aqui para que checklist e stats sempre enxerguem os itens
+  const [itensAdicionais, setItensAdicionais] = useState<string[]>([]);
+
+  const addDynamicItem = useCallback((name: string) => {
+    setItensAdicionais((prev) => [...prev, name]);
+    // Inicializa a entry no checklist para que onSetStatus funcione imediatamente
+    const key = `adicionais:${name}`;
+    setChecklist((prev) => ({
+      ...prev,
+      [key]: prev[key] ?? { status: null, obs: '' },
+    }));
+  }, []);
+
+  const removeDynamicItem = useCallback((index: number) => {
+    setItensAdicionais((prev) => {
+      const name    = prev[index];
+      const newList = prev.filter((_, i) => i !== index);
+      // Limpa a entry do checklist ao remover
+      setChecklist((c) => {
+        const next = { ...c };
+        delete next[`adicionais:${name}`];
+        return next;
+      });
+      return newList;
+    });
+  }, []);
 
   // Signature canvas
   const sigRef     = useRef<HTMLCanvasElement>(null);
@@ -78,17 +106,23 @@ export function useOrdemServico() {
   // ── Checklist ──────────────────────────────────────────────────────────────
 
   const setChecklistStatus = useCallback((key: string, val: string) => {
-    setChecklist((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        status: prev[key].status === val ? null : val,
-      },
-    }));
+    setChecklist((prev) => {
+      const current = prev[key] ?? { status: null, obs: '' };
+      return {
+        ...prev,
+        [key]: {
+          ...current,
+          status: current.status === val ? null : val,
+        },
+      };
+    });
   }, []);
 
   const setChecklistObs = useCallback((key: string, val: string) => {
-    setChecklist((prev) => ({ ...prev, [key]: { ...prev[key], obs: val } }));
+    setChecklist((prev) => {
+      const current = prev[key] ?? { status: null, obs: '' };
+      return { ...prev, [key]: { ...current, obs: val } };
+    });
   }, []);
 
   // ── Photos ─────────────────────────────────────────────────────────────────
@@ -120,6 +154,18 @@ export function useOrdemServico() {
     if (canvas && sigCtxRef.current) {
       sigCtxRef.current.clearRect(0, 0, canvas.width, canvas.height);
     }
+  }, []);
+
+  // Lê o canvas e retorna dataURL — null se estiver em branco
+  const getSigImage = useCallback((): string | null => {
+    const canvas = sigRef.current;
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Verifica canal alpha: se todos forem 0 o canvas está vazio
+    const hasContent = data.some((v, i) => i % 4 === 3 && v > 0);
+    return hasContent ? canvas.toDataURL('image/png') : null;
   }, []);
 
   const sigHandlers = {
@@ -177,11 +223,12 @@ export function useOrdemServico() {
       checklist: Object.fromEntries(
         Object.entries(checklist).map(([k, v]) => [k, { status: v.status, obs: v.obs }])
       ),
+      itens_adicionais: itensAdicionais,
       fotos_base64: photos.map((p) => p.src),
       tecnico,
       status: 'rascunho',
     }),
-    [osHeader, cliente, veiculo, selected, checklist, photos, tecnico]
+    [osHeader, cliente, veiculo, selected, checklist, itensAdicionais, photos, tecnico]
   );
 
   const saveOrder = useCallback(async () => {
@@ -240,6 +287,7 @@ export function useOrdemServico() {
     setVeiculo(INITIAL_VEICULO);
     setSelected(new Set());
     setChecklist(initChecklist());
+    setItensAdicionais([]);
     setPhotos([]);
     setTecnico(INITIAL_TECNICO);
     setOrderId(null);
@@ -252,8 +300,8 @@ export function useOrdemServico() {
 
   // ── Derived state ──────────────────────────────────────────────────────────
 
-  const stats     = getChecklistStats(selected, checklist);
-  const critItems = getCritItems(selected, checklist);
+  const stats     = getChecklistStats(selected, checklist, itensAdicionais);
+  const critItems = getCritItems(selected, checklist, itensAdicionais);
   const hasErr    = (k: string) => showErrors && !!errors[k];
 
   return {
@@ -264,11 +312,14 @@ export function useOrdemServico() {
     veiculo, setVeiculo,
     selected,
     checklist,
+    itensAdicionais,
+    addDynamicItem,
+    removeDynamicItem,
     photos, setPhotos,
     lightbox, setLightbox,
     tecnico, setTecnico,
     stats, critItems,
-    sigRef, sigCtxRef, sigHandlers, clearSig,
+    sigRef, sigCtxRef, sigHandlers, clearSig, getSigImage,
     goStep,
     toggleSection,
     toggleAllSections,

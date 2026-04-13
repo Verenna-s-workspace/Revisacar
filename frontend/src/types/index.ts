@@ -23,6 +23,7 @@ export interface Veiculo {
   nivel_combustivel: string;
   chassi: string;
   obs_entrada: string;
+  obs_cliente: string;
 }
 
 export interface ChecklistItemData {
@@ -51,6 +52,7 @@ export interface Section {
   label: string;
   icon: string;
   items: string[];
+  isDynamic?: boolean;
 }
 
 export interface StatusConfig {

@@ -51,7 +51,6 @@ export const validateStep1 = (
   if (!osHeader.os_time)        errors.os_time = 'Obrigatório';
   if (!cliente.nome?.trim())    errors.cli_nome = 'Obrigatório';
   if (!cliente.tel?.trim())     errors.cli_tel = 'Obrigatório';
-  if (!veiculo.placa?.trim())   errors.vei_placa = 'Obrigatório';
   if (!veiculo.modelo?.trim())  errors.vei_modelo = 'Obrigatório';
   return errors;
 };
@@ -66,13 +65,21 @@ export const validateStep5 = (tecnico: Tecnico): ValidationErrors => {
 
 export const getChecklistStats = (
   selected: Set<string>,
-  checklist: Record<string, { status: string | null; obs: string }>
+  checklist: Record<string, { status: string | null; obs: string }>,
+  itensAdicionais: string[] = [],
 ): ChecklistStats => {
-  const activeKeys = SECTIONS
-    .filter((s) => selected.has(s.id))
+  // Gera as keys das seções estáticas normalmente
+  const staticKeys = SECTIONS
+    .filter((s) => selected.has(s.id) && !s.isDynamic)
     .flatMap((s) => s.items.map((n) => `${s.id}:${n}`));
 
-  const statuses = activeKeys.map((k) => checklist[k]?.status);
+  // Para a seção dinâmica, usa os itens reais adicionados pelo usuário
+  const dynamicKeys = selected.has('adicionais') && itensAdicionais.length > 0
+    ? itensAdicionais.map((n) => `adicionais:${n}`)
+    : [];
+
+  const activeKeys = [...staticKeys, ...dynamicKeys];
+  const statuses   = activeKeys.map((k) => checklist[k]?.status ?? null);
 
   return {
     activeKeys,
@@ -87,19 +94,30 @@ export const getChecklistStats = (
 
 export const getCritItems = (
   selected: Set<string>,
-  checklist: Record<string, { status: string | null; obs: string }>
-): CritItem[] =>
+  checklist: Record<string, { status: string | null; obs: string }>,
+  itensAdicionais: string[] = [],
+): CritItem[] => {
+  const result: CritItem[] = [];
+
   SECTIONS
     .filter((s) => selected.has(s.id))
-    .flatMap((s) =>
-      s.items
+    .forEach((s) => {
+      // Itens reais da seção: estáticas usam s.items, dinâmica usa itensAdicionais
+      const items = s.isDynamic ? itensAdicionais : s.items;
+
+      items
         .filter((n) => checklist[`${s.id}:${n}`]?.status === 'crit')
-        .map((n) => ({
-          sec:  s.label,
-          name: n,
-          obs:  checklist[`${s.id}:${n}`]?.obs ?? '',
-        }))
-    );
+        .forEach((n) =>
+          result.push({
+            sec:  s.label,
+            name: n,
+            obs:  checklist[`${s.id}:${n}`]?.obs ?? '',
+          })
+        );
+    });
+
+  return result;
+};
 
 // ── HTML escape ───────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { STATUS_CONFIG, tokens } from '../constants';
 import { SectionIcon } from './ui';
 
@@ -12,15 +12,22 @@ interface ChecklistItemProps {
   onSetObs: (key: string, val: string) => void;
 }
 
-export function ChecklistItem({ sid, name, data, onSetStatus, onSetObs }: ChecklistItemProps) {
+export function ChecklistItem({
+  sid,
+  name,
+  data,
+  onSetStatus,
+  onSetObs,
+}: ChecklistItemProps) {
   const [obsOpen, setObsOpen] = useState(false);
   const key           = `${sid}:${name}`;
   const currentStatus = data?.status ?? null;
 
   const accentColor =
-    currentStatus === 'ok'   ? tokens.color.ok :
-    currentStatus === 'warn' ? tokens.color.warn :
-    currentStatus === 'crit' ? tokens.color.crit :
+    currentStatus === 'ok'   ? tokens.color.ok   :
+    currentStatus === 'warn' ? tokens.color.warn  :
+    currentStatus === 'crit' ? tokens.color.crit  :
+    currentStatus === 'na'   ? tokens.color.na    :
     tokens.color.border;
 
   return (
@@ -55,7 +62,9 @@ export function ChecklistItem({ sid, name, data, onSetStatus, onSetObs }: Checkl
           title={data?.obs ? 'Ver observação' : 'Adicionar observação'}
           style={{
             background: data?.obs ? tokens.color.warnBg : 'none',
-            border: data?.obs ? `1px solid ${tokens.color.warnBorder}` : '1px solid transparent',
+            border: data?.obs
+              ? `1px solid ${tokens.color.warnBorder}`
+              : '1px solid transparent',
             cursor: 'pointer',
             fontFamily: tokens.fontMono,
             fontSize: '0.58rem',
@@ -72,8 +81,12 @@ export function ChecklistItem({ sid, name, data, onSetStatus, onSetObs }: Checkl
           }}
           aria-label="Abrir/fechar observação"
         >
-          <svg width={9} height={9} viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round">
-            <path d="M1 1.5h7M1 4.5h5M1 7.5h6"/>
+          <svg
+            width={9} height={9} viewBox="0 0 9 9"
+            fill="none" stroke="currentColor"
+            strokeWidth={1.3} strokeLinecap="round"
+          >
+            <path d="M1 1.5h7M1 4.5h5M1 7.5h6" />
           </svg>
           {data?.obs ? 'Nota' : 'Obs.'}
         </button>
@@ -132,11 +145,189 @@ export function ChecklistItem({ sid, name, data, onSetStatus, onSetObs }: Checkl
               outline: 'none',
               resize: 'none',
               lineHeight: 1.5,
+              boxSizing: 'border-box',
               transition: 'border-color 0.18s, box-shadow 0.18s',
             }}
+            onFocus={(e) => (e.target.style.borderColor = tokens.color.ferrari)}
+            onBlur={(e)  => (e.target.style.borderColor = tokens.color.border)}
           />
         </div>
       )}
+    </div>
+  );
+}
+
+// ── AddItemRow ────────────────────────────────────────────────────────────────
+
+interface AddItemRowProps {
+  onAdd: (name: string) => void;
+}
+
+function AddItemRow({ onAdd }: AddItemRowProps) {
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function commit() {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onAdd(trimmed);
+    setValue('');
+    inputRef.current?.focus();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    }
+  }
+
+  const hasValue = value.trim().length > 0;
+
+  return (
+    <div style={{
+      background: tokens.color.surface,
+      padding: '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      borderTop: `1px dashed ${tokens.color.border}`,
+    }}>
+      {/* + icon */}
+      <span style={{
+        width: 28,
+        height: 28,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: hasValue ? tokens.color.accentDim : tokens.color.bgAlt,
+        border: `1px solid ${hasValue ? tokens.color.ferrari : tokens.color.border}`,
+        borderRadius: tokens.radius.sm,
+        flexShrink: 0,
+        transition: tokens.transition.fast,
+      }}>
+        <svg
+          width={11} height={11} viewBox="0 0 11 11"
+          fill="none" stroke={hasValue ? tokens.color.ferrari : tokens.color.subtle}
+          strokeWidth={1.8} strokeLinecap="round"
+          style={{ transition: tokens.transition.fast }}
+        >
+          <path d="M5.5 1v9M1 5.5h9" />
+        </svg>
+      </span>
+
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Nome da peça — pressione Enter para adicionar"
+        style={{
+          flex: 1,
+          fontFamily: tokens.fontSans,
+          fontSize: '0.83rem',
+          color: tokens.color.text,
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
+          padding: '4px 0',
+          lineHeight: 1.5,
+        }}
+      />
+
+      <button
+        onClick={commit}
+        disabled={!hasValue}
+        style={{
+          fontFamily: tokens.fontMono,
+          fontSize: '0.6rem',
+          fontWeight: 600,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase',
+          padding: '5px 14px',
+          background: hasValue ? tokens.color.ferrari : 'transparent',
+          color: hasValue ? '#fff' : tokens.color.ghost,
+          border: `1px solid ${hasValue ? tokens.color.ferrari : tokens.color.border}`,
+          borderRadius: tokens.radius.sm,
+          cursor: hasValue ? 'pointer' : 'default',
+          transition: tokens.transition.fast,
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Adicionar
+      </button>
+    </div>
+  );
+}
+
+// ── DynamicItem ───────────────────────────────────────────────────────────────
+
+interface DynamicItemProps {
+  sid: string;
+  name: string;
+  index: number;
+  data: { status: string | null; obs: string } | undefined;
+  onSetStatus: (key: string, val: string) => void;
+  onSetObs: (key: string, val: string) => void;
+  onRemove: (index: number) => void;
+}
+
+function DynamicItem({
+  sid,
+  name,
+  index,
+  data,
+  onSetStatus,
+  onSetObs,
+  onRemove,
+}: DynamicItemProps) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <ChecklistItem
+          sid={sid}
+          name={name}
+          data={data}
+          onSetStatus={onSetStatus}
+          onSetObs={onSetObs}
+        />
+      </div>
+
+      {/* Remove button */}
+      <button
+        onClick={() => onRemove(index)}
+        title="Remover item"
+        style={{
+          background: tokens.color.surface,
+          border: 'none',
+          borderLeft: `1px solid ${tokens.color.border}`,
+          cursor: 'pointer',
+          padding: '0 14px',
+          color: tokens.color.subtle,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: tokens.transition.fast,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color      = tokens.color.crit;
+          e.currentTarget.style.background = tokens.color.critBg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color      = tokens.color.subtle;
+          e.currentTarget.style.background = tokens.color.surface;
+        }}
+      >
+        <svg
+          width={12} height={12} viewBox="0 0 12 12"
+          fill="none" stroke="currentColor"
+          strokeWidth={1.7} strokeLinecap="round"
+        >
+          <path d="M2 2l8 8M10 2l-8 8" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -148,6 +339,7 @@ interface Section {
   label: string;
   icon: string;
   items: string[];
+  isDynamic?: boolean;
 }
 
 interface ChecklistSectionProps {
@@ -155,18 +347,35 @@ interface ChecklistSectionProps {
   checklist: Record<string, { status: string | null; obs: string }>;
   onSetStatus: (key: string, val: string) => void;
   onSetObs: (key: string, val: string) => void;
+  // Props exclusivos de seções dinâmicas — opcionais para seções estáticas
+  itensAdicionais?: string[];
+  onAddItem?: (name: string) => void;
+  onRemoveItem?: (index: number) => void;
 }
 
-export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: ChecklistSectionProps) {
+export function ChecklistSection({
+  sec,
+  checklist,
+  onSetStatus,
+  onSetObs,
+  itensAdicionais = [],
+  onAddItem,
+  onRemoveItem,
+}: ChecklistSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const filled = sec.items.filter(
+  // Seções estáticas usam sec.items; dinâmicas usam itensAdicionais
+  const allItems = sec.isDynamic ? itensAdicionais : sec.items;
+
+  const filled = allItems.filter(
     (n) => checklist[`${sec.id}:${n}`]?.status != null
   ).length;
 
-  const isComplete = filled === sec.items.length;
-  const hasCrit    = sec.items.some((n) => checklist[`${sec.id}:${n}`]?.status === 'crit');
-  const progress   = sec.items.length ? (filled / sec.items.length) * 100 : 0;
+  const isComplete = allItems.length > 0 && filled === allItems.length;
+  const hasCrit    = allItems.some(
+    (n) => checklist[`${sec.id}:${n}`]?.status === 'crit'
+  );
+  const progress = allItems.length ? (filled / allItems.length) * 100 : 0;
 
   return (
     <div style={{
@@ -178,7 +387,8 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
       background: tokens.color.surface,
       boxShadow: tokens.shadow.xs,
     }}>
-      {/* Section header */}
+
+      {/* ── Section header ── */}
       <button
         onClick={() => setCollapsed((c) => !c)}
         style={{
@@ -186,23 +396,34 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
           display: 'flex',
           alignItems: 'center',
           padding: '13px 18px',
-          background: isComplete ? tokens.color.okBg : tokens.color.surfaceHigh,
+          background: isComplete
+            ? tokens.color.okBg
+            : tokens.color.surfaceHigh,
           border: 'none',
           cursor: 'pointer',
           gap: 11,
-          borderBottom: collapsed ? 'none' : `1px solid ${tokens.color.border}`,
+          borderBottom: collapsed
+            ? 'none'
+            : `1px solid ${tokens.color.border}`,
           transition: 'background 0.15s',
         }}
       >
-        {/* Section icon */}
+        {/* Icon */}
         <span style={{
-          color: hasCrit ? tokens.color.crit : isComplete ? tokens.color.ok : tokens.color.muted,
-          display: 'flex', alignItems: 'center', flexShrink: 0,
+          color: hasCrit
+            ? tokens.color.crit
+            : isComplete
+              ? tokens.color.ok
+              : tokens.color.muted,
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0,
           transition: 'color 0.15s',
         }}>
           <SectionIcon id={sec.id} size={15} />
         </span>
 
+        {/* Label */}
         <span style={{
           fontFamily: tokens.fontMono,
           fontSize: '0.7rem',
@@ -215,6 +436,23 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
           transition: 'color 0.15s',
         }}>
           {sec.label}
+          {sec.isDynamic && (
+            <span style={{
+              marginLeft: 8,
+              fontFamily: tokens.fontMono,
+              fontSize: '0.55rem',
+              letterSpacing: '0.08em',
+              color: tokens.color.subtle,
+              textTransform: 'uppercase',
+              background: tokens.color.bgAlt,
+              border: `1px solid ${tokens.color.border}`,
+              borderRadius: tokens.radius.full,
+              padding: '1px 7px',
+              verticalAlign: 'middle',
+            }}>
+              dinâmico
+            </span>
+          )}
         </span>
 
         {/* Progress pill */}
@@ -224,23 +462,32 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
           padding: '2px 9px',
           borderRadius: tokens.radius.full,
           background: isComplete ? tokens.color.okBg : tokens.color.bg,
-          border: `1px solid ${isComplete ? tokens.color.okBorder : tokens.color.border}`,
+          border: `1px solid ${
+            isComplete ? tokens.color.okBorder : tokens.color.border
+          }`,
           color: isComplete ? tokens.color.ok : tokens.color.muted,
           transition: 'all 0.18s',
         }}>
-          {filled}/{sec.items.length}
+          {filled}/{allItems.length}
         </span>
 
         {/* Mini progress bar */}
         <div style={{
-          width: 52, height: 2,
+          width: 52,
+          height: 2,
           background: tokens.color.border,
-          borderRadius: 1, overflow: 'hidden', flexShrink: 0,
+          borderRadius: 1,
+          overflow: 'hidden',
+          flexShrink: 0,
         }}>
           <div style={{
             height: '100%',
             width: `${progress}%`,
-            background: hasCrit ? tokens.color.crit : isComplete ? tokens.color.ok : tokens.color.warn,
+            background: hasCrit
+              ? tokens.color.crit
+              : isComplete
+                ? tokens.color.ok
+                : tokens.color.warn,
             borderRadius: 1,
             transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
           }} />
@@ -248,15 +495,20 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
 
         {/* Collapse chevron */}
         <svg
-          width={13} height={13} viewBox="0 0 13 13" fill="none"
-          stroke={tokens.color.subtle} strokeWidth={1.5} strokeLinecap="round"
-          style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.18s ease', flexShrink: 0 }}
+          width={13} height={13} viewBox="0 0 13 13"
+          fill="none" stroke={tokens.color.subtle}
+          strokeWidth={1.5} strokeLinecap="round"
+          style={{
+            transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)',
+            transition: 'transform 0.18s ease',
+            flexShrink: 0,
+          }}
         >
           <path d="M2.5 4.5l4 4 4-4" />
         </svg>
       </button>
 
-      {/* Items */}
+      {/* ── Items ── */}
       {!collapsed && (
         <div style={{
           background: tokens.color.border,
@@ -265,7 +517,40 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
           gap: 1,
           animation: 'fadeUp 0.18s ease forwards',
         }}>
-          {sec.items.map((name) => (
+
+          {/* Empty state para seções dinâmicas sem itens */}
+          {allItems.length === 0 && sec.isDynamic && (
+            <div style={{
+              background: tokens.color.surface,
+              padding: '22px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <svg
+                width={28} height={28} viewBox="0 0 28 28"
+                fill="none" stroke={tokens.color.ghost}
+                strokeWidth={1.2} strokeLinecap="round"
+              >
+                <rect x={4} y={6} width={20} height={16} rx={2} />
+                <path d="M9 11h10M9 15h6" />
+                <path d="M19 19l4 4" strokeWidth={1.5} />
+              </svg>
+              <span style={{
+                fontFamily: tokens.fontMono,
+                fontSize: '0.65rem',
+                color: tokens.color.ghost,
+                textAlign: 'center',
+                letterSpacing: '0.04em',
+              }}>
+                Nenhuma peça adicionada
+              </span>
+            </div>
+          )}
+
+          {/* Static section items */}
+          {!sec.isDynamic && allItems.map((name) => (
             <ChecklistItem
               key={name}
               sid={sec.id}
@@ -275,6 +560,25 @@ export function ChecklistSection({ sec, checklist, onSetStatus, onSetObs }: Chec
               onSetObs={onSetObs}
             />
           ))}
+
+          {/* Dynamic section items com botão de remover */}
+          {sec.isDynamic && allItems.map((name, index) => (
+            <DynamicItem
+              key={`${name}-${index}`}
+              sid={sec.id}
+              name={name}
+              index={index}
+              data={checklist[`${sec.id}:${name}`]}
+              onSetStatus={onSetStatus}
+              onSetObs={onSetObs}
+              onRemove={(i) => onRemoveItem?.(i)}
+            />
+          ))}
+
+          {/* Input para adicionar — só em seções dinâmicas */}
+          {sec.isDynamic && (
+            <AddItemRow onAdd={(name) => onAddItem?.(name)} />
+          )}
         </div>
       )}
     </div>
