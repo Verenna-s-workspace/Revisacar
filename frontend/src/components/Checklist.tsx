@@ -217,6 +217,7 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
       </span>
 
       <input
+      
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -387,7 +388,7 @@ export function ChecklistSection({
       background: tokens.color.surface,
       boxShadow: tokens.shadow.xs,
     }}>
-
+      
       {/* ── Section header ── */}
       <button
         onClick={() => setCollapsed((c) => !c)}

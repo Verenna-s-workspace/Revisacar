@@ -30,7 +30,7 @@ export function Topbar({ saveStatus, savedAt, onReset, onExportPDF }: TopbarProp
       }}
     >
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexDirection: 'row'  }}>
         {/* Wordmark with brand line */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
           <div style={{
@@ -38,21 +38,25 @@ export function Topbar({ saveStatus, savedAt, onReset, onExportPDF }: TopbarProp
             height: 28,
             background: tokens.color.ferrari,
             borderRadius: 1.5,
-            marginRight: 11,
+            marginRight: 0,
             flexShrink: 0,
           }} />
+          <img width="70" height="70" src="./src/public/Logorevisavermelha.svg" alt="Logo RevisaCar"></img>
           <div>
             <div style={{
-              fontFamily: tokens.fontDisplay,
+              marginLeft: -10,
+              fontFamily: tokens.fontLogo,
               fontSize: '1.02rem',
-              fontWeight: 600,
+              fontWeight: 500,
               color: tokens.color.text,
               letterSpacing: '-0.02em',
               lineHeight: 1.1,
             }}>
-              Revisa<span style={{ color: tokens.color.ferrari }}>Car</span>
+             Revisa<span style={{ color: tokens.color.ferrari, fontFamily: tokens.fontLogo }}>Car</span>
             </div>
             <div style={{
+              marginLeft: -10,
+              whiteSpace: 'nowrap ',
               fontFamily: tokens.fontMono,
               fontSize: '0.54rem',
               color: tokens.color.ghost,

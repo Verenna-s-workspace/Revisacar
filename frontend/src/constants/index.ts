@@ -8,6 +8,7 @@ export const tokens = {
   fontMono:    "'DM Mono', 'JetBrains Mono', monospace",
   fontSans:    "'DM Sans', sans-serif",
   fontDisplay: "'DM Sans', sans-serif",
+  fontLogo:    "'Fredoka', cursive",
 
   color: {
     // Brand red

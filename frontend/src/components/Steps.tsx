@@ -2,6 +2,7 @@ import { CSSProperties } from "react";
 import { useState } from "react";
 import { Input } from "./inputs/input";
 import { Textarea } from "./inputs/textarea";
+import { Select } from "./inputs/select";
 import {
   SECTIONS,
   COMBUSTIVEL_OPTIONS,
@@ -18,8 +19,6 @@ import {
   SectionIcon,
   ValidationBanner,
   StatBadge,
-  inpStyle,
-  inp,
   grid3,
   grid4,
   btnSolid,
@@ -137,7 +136,9 @@ export function Step1({
               placeholder="000001"
               value={osHeader.os_num}
               error={hasErr("os_num") ? "Campo obrigatório" : undefined}
-              onChangeValue={(value) => setOsHeader((p) => ({ ...p, os_num: value }))}
+              onChangeValue={(value) =>
+                setOsHeader((p) => ({ ...p, os_num: value }))
+              }
             />
           </Field>
           <Field label="Data de entrada *">
@@ -146,7 +147,9 @@ export function Step1({
               type="date"
               value={osHeader.os_date}
               error={hasErr("os_date") ? "Campo obrigatório" : undefined}
-              onChangeValue={(value) => setOsHeader((p) => ({ ...p, os_date: value }))}
+              onChangeValue={(value) =>
+                setOsHeader((p) => ({ ...p, os_date: value }))
+              }
             />
           </Field>
           <Field label="Hora de entrada *">
@@ -155,7 +158,9 @@ export function Step1({
               type="time"
               value={osHeader.os_time}
               error={hasErr("os_time") ? "Campo obrigatório" : undefined}
-              onChangeValue={(value) => setOsHeader((p) => ({ ...p, os_time: value }))}
+              onChangeValue={(value) =>
+                setOsHeader((p) => ({ ...p, os_time: value }))
+              }
             />
           </Field>
           <Field label="Km atual" hint="ex: 87.450">
@@ -164,7 +169,9 @@ export function Step1({
               onlyNumbers
               placeholder="87.450"
               value={osHeader.os_km}
-              onChangeValue={(value) => setOsHeader((p) => ({ ...p, os_km: value }))}
+              onChangeValue={(value) =>
+                setOsHeader((p) => ({ ...p, os_km: value }))
+              }
             />
           </Field>
         </div>
@@ -179,7 +186,9 @@ export function Step1({
               onlyText
               error={hasErr("cli_nome") ? "Campo obrigatório" : undefined}
               value={cliente.nome}
-              onChangeValue={(value) => setCliente((p) => ({ ...p, nome: value }))}
+              onChangeValue={(value) =>
+                setCliente((p) => ({ ...p, nome: value }))
+              }
             />
           </Field>
           <Field label="CPF / CNPJ">
@@ -201,7 +210,9 @@ export function Step1({
               mask="(99) 99999-9999"
               value={cliente.tel}
               error={hasErr("cli_tel") ? "Campo obrigatório" : undefined}
-              onChangeValue={(value) => setCliente((p) => ({ ...p, tel: value }))}
+              onChangeValue={(value) =>
+                setCliente((p) => ({ ...p, tel: value }))
+              }
             />
           </Field>
           <Field label="E-mail" span={2}>
@@ -209,7 +220,9 @@ export function Step1({
               name="cliente_email"
               placeholder="cliente@email.com"
               value={cliente.email}
-              onChangeValue={(value) => setCliente((p) => ({ ...p, email: value }))}
+              onChangeValue={(value) =>
+                setCliente((p) => ({ ...p, email: value }))
+              }
             />
           </Field>
         </div>
@@ -223,7 +236,9 @@ export function Step1({
               placeholder="ABC1C34 / ABC-1234"
               value={veiculo.placa}
               maxLength={8}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, placa: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, placa: value }))
+              }
               error={validatePlaca(veiculo.placa)}
             />
           </Field>
@@ -232,7 +247,9 @@ export function Step1({
               name="veiculo_modelo"
               placeholder="ex: Toyota Corolla"
               value={veiculo.modelo}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, modelo: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, modelo: value }))
+              }
               error={hasErr("vei_modelo") ? "Campo obrigatório" : undefined}
             />
           </Field>
@@ -241,7 +258,9 @@ export function Step1({
               name="veiculo_ano"
               placeholder="2014"
               value={veiculo.ano}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, ano: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, ano: value }))
+              }
               maxLength={4}
             />
           </Field>
@@ -250,35 +269,44 @@ export function Step1({
               name="veiculo_cor"
               placeholder="Prata"
               value={veiculo.cor}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, cor: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, cor: value }))
+              }
             />
           </Field>
           <Field label="Combustível">
-            <select
-              style={inp}
+            <Select
+              name="combustivel"
               value={veiculo.combustivel}
-              onChange={(e) => setVeiculo((p) => ({ ...p, combustivel: e.target.value }))}
-            >
-              <option value="">—</option>
-              {COMBUSTIVEL_OPTIONS.map((o) => <option key={o}>{o}</option>)}
-            </select>
+              options={COMBUSTIVEL_OPTIONS}
+              placeholder="Selecione..."
+              error={errors.combustivel}
+              onChangeValue={(val) =>
+                setVeiculo((p) => ({ ...p, combustivel: val }))
+              }
+            />
           </Field>
+          
           <Field label="Nível combustível">
-            <select
-              style={inp}
+            <Select
+              name="nivel_combustivel"
               value={veiculo.nivel_combustivel}
-              onChange={(e) => setVeiculo((p) => ({ ...p, nivel_combustivel: e.target.value }))}
-            >
-              <option value="">—</option>
-              {NIVEL_COMBUSTIVEL_OPTIONS.map((o) => <option key={o}>{o}</option>)}
-            </select>
+              options={NIVEL_COMBUSTIVEL_OPTIONS}
+              placeholder="Selecione..."
+              error={errors.nivel_combustivel}
+              onChangeValue={(val) =>
+                setVeiculo((p) => ({ ...p, nivel_combustivel: val }))
+              }
+            />
           </Field>
           <Field label="Chassi" span={2} hint="17 caracteres">
             <Input
               name="veiculo_chassi"
               placeholder="ex: 9BWZZZ377VT004251"
               value={veiculo.chassi}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, chassi: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, chassi: value }))
+              }
               maxLength={17}
             />
           </Field>
@@ -286,7 +314,9 @@ export function Step1({
             <Textarea
               name="veiculo_obs_entrada"
               value={veiculo.obs_entrada}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, obs_entrada: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, obs_entrada: value }))
+              }
               placeholder="Riscos, amassados, itens faltantes..."
             />
           </Field>
@@ -294,7 +324,9 @@ export function Step1({
             <Textarea
               name="veiculo_obs_cliente"
               value={veiculo.obs_cliente}
-              onChangeValue={(value) => setVeiculo((p) => ({ ...p, obs_cliente: value }))}
+              onChangeValue={(value) =>
+                setVeiculo((p) => ({ ...p, obs_cliente: value }))
+              }
               placeholder="Descreva o que o cliente relatou sobre o problema do veículo..."
             />
           </Field>
@@ -311,13 +343,28 @@ export function Step1({
       </FormBlock>
 
       <PanelFooter
-        left={<span style={pfNote}>{savedAt ? `Salvo às ${savedAt}` : "Rascunho não salvo"}</span>}
+        left={
+          <span style={pfNote}>
+            {savedAt ? `Salvo às ${savedAt}` : "Rascunho não salvo"}
+          </span>
+        }
         right={
           <>
-            <button onClick={onSave} style={btnGhost}>Salvar rascunho</button>
+            <button onClick={onSave} style={btnGhost}>
+              Salvar rascunho
+            </button>
             <button onClick={onNext} style={btnAccent}>
               Próximo
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M2 5h6M5.5 2l3 3-3 3" />
               </svg>
             </button>
@@ -339,24 +386,53 @@ interface Step2Props {
   stepDir: "forward" | "back";
 }
 
-export function Step2({ selected, onToggle, onToggleAll, onBack, onNext, stepDir }: Step2Props) {
+export function Step2({
+  selected,
+  onToggle,
+  onToggleAll,
+  onBack,
+  onNext,
+  stepDir,
+}: Step2Props) {
   const allSelected = selected.size === SECTIONS.length;
 
   return (
     <StepWrapper direction={stepDir}>
       <FormBlock title="Selecionar Sistemas para Inspeção">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <p style={{ fontFamily: tokens.fontMono, fontSize: "0.72rem", color: tokens.color.muted }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 20,
+          }}
+        >
+          <p
+            style={{
+              fontFamily: tokens.fontMono,
+              fontSize: "0.72rem",
+              color: tokens.color.muted,
+            }}
+          >
             {selected.size === 0
               ? "Selecione ao menos um sistema"
               : `${selected.size} de ${SECTIONS.length} sistemas selecionados`}
           </p>
-          <button onClick={onToggleAll} style={{ ...btnGhost, fontSize: "0.65rem", padding: "6px 14px" }}>
+          <button
+            onClick={onToggleAll}
+            style={{ ...btnGhost, fontSize: "0.65rem", padding: "6px 14px" }}
+          >
             {allSelected ? "Desmarcar todos" : "Selecionar todos"}
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: 10,
+          }}
+        >
           {SECTIONS.map((sec) => {
             const active = selected.has(sec.id);
             return (
@@ -368,38 +444,86 @@ export function Step2({ selected, onToggle, onToggleAll, onBack, onNext, stepDir
                   alignItems: "center",
                   gap: 12,
                   padding: "13px 16px",
-                  background: active ? tokens.color.accentDim : tokens.color.bgAlt,
+                  background: active
+                    ? tokens.color.accentDim
+                    : tokens.color.bgAlt,
                   border: `1.5px solid ${active ? tokens.color.ferrari : tokens.color.border}`,
                   borderRadius: tokens.radius.lg,
                   cursor: "pointer",
                   textAlign: "left",
                   transition: tokens.transition.base,
-                  boxShadow: active ? "0 1px 4px rgba(204,20,0,0.12)" : tokens.shadow.xs,
+                  boxShadow: active
+                    ? "0 1px 4px rgba(204,20,0,0.12)"
+                    : tokens.shadow.xs,
                 }}
               >
-                <span style={{
-                  width: 18, height: 18, flexShrink: 0,
-                  border: `1.5px solid ${active ? tokens.color.ferrari : tokens.color.borderMd}`,
-                  borderRadius: 4,
-                  background: active ? tokens.color.ferrari : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: tokens.transition.fast,
-                }}>
+                <span
+                  style={{
+                    width: 18,
+                    height: 18,
+                    flexShrink: 0,
+                    border: `1.5px solid ${active ? tokens.color.ferrari : tokens.color.borderMd}`,
+                    borderRadius: 4,
+                    background: active ? tokens.color.ferrari : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: tokens.transition.fast,
+                  }}
+                >
                   {active && (
-                    <svg width={9} height={9} viewBox="0 0 9 9" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width={9}
+                      height={9}
+                      viewBox="0 0 9 9"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <polyline points="1.5,4.5 3.5,6.5 7.5,2.5" />
                     </svg>
                   )}
                 </span>
-                <span style={{ color: active ? tokens.color.ferrari : tokens.color.muted, display: "flex", alignItems: "center", flexShrink: 0, transition: "color 0.15s" }}>
+                <span
+                  style={{
+                    color: active ? tokens.color.ferrari : tokens.color.muted,
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    transition: "color 0.15s",
+                  }}
+                >
                   <SectionIcon id={sec.id} size={15} />
                 </span>
                 <div>
-                  <div style={{ fontFamily: tokens.fontMono, fontSize: "0.7rem", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase", color: active ? tokens.color.text : tokens.color.textSecond, transition: "color 0.15s" }}>
+                  <div
+                    style={{
+                      fontFamily: tokens.fontMono,
+                      fontSize: "0.7rem",
+                      fontWeight: 500,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      color: active
+                        ? tokens.color.text
+                        : tokens.color.textSecond,
+                      transition: "color 0.15s",
+                    }}
+                  >
                     {sec.label}
                   </div>
-                  <div style={{ fontFamily: tokens.fontMono, fontSize: "0.58rem", color: tokens.color.subtle, marginTop: 2 }}>
-                    {sec.isDynamic ? "itens variáveis" : `${sec.items.length} itens`}
+                  <div
+                    style={{
+                      fontFamily: tokens.fontMono,
+                      fontSize: "0.58rem",
+                      color: tokens.color.subtle,
+                      marginTop: 2,
+                    }}
+                  >
+                    {sec.isDynamic
+                      ? "itens variáveis"
+                      : `${sec.items.length} itens`}
                   </div>
                 </div>
               </button>
@@ -409,18 +533,46 @@ export function Step2({ selected, onToggle, onToggleAll, onBack, onNext, stepDir
       </FormBlock>
 
       <PanelFooter
-        left={<span style={pfNote}>{selected.size > 0 ? `${selected.size} sistema${selected.size > 1 ? "s" : ""} selecionado${selected.size > 1 ? "s" : ""}` : "Nenhum sistema selecionado"}</span>}
+        left={
+          <span style={pfNote}>
+            {selected.size > 0
+              ? `${selected.size} sistema${selected.size > 1 ? "s" : ""} selecionado${selected.size > 1 ? "s" : ""}`
+              : "Nenhum sistema selecionado"}
+          </span>
+        }
         right={
           <>
             <button onClick={onBack} style={btnGhost}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M8 5H2M4.5 2l-3 3 3 3" />
               </svg>
               Voltar
             </button>
-            <button onClick={onNext} disabled={selected.size === 0} style={selected.size === 0 ? btnDisabled : btnAccent}>
+            <button
+              onClick={onNext}
+              disabled={selected.size === 0}
+              style={selected.size === 0 ? btnDisabled : btnAccent}
+            >
               Ir para checklist
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M2 5h6M5.5 2l3 3-3 3" />
               </svg>
             </button>
@@ -471,40 +623,72 @@ export function Step3({
   return (
     <StepWrapper direction={stepDir}>
       {/* Progress panel */}
-      <div style={{
-        background: tokens.color.surface,
-        borderBottom: `1px solid ${tokens.color.border}`,
-        padding: "18px 40px",
-        display: "flex",
-        alignItems: "center",
-        gap: 40,
-        boxShadow: tokens.shadow.xs,
-      }}>
+      <div
+        style={{
+          background: tokens.color.surface,
+          borderBottom: `1px solid ${tokens.color.border}`,
+          padding: "18px 40px",
+          display: "flex",
+          alignItems: "center",
+          gap: 40,
+          boxShadow: tokens.shadow.xs,
+        }}
+      >
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
-            <span style={{ fontFamily: tokens.fontMono, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", color: tokens.color.subtle }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 7,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: tokens.fontMono,
+                fontSize: "0.62rem",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: tokens.color.subtle,
+              }}
+            >
               Progresso da inspeção
             </span>
-            <span style={{ fontFamily: tokens.fontMono, fontSize: "0.62rem", color: tokens.color.muted }}>
+            <span
+              style={{
+                fontFamily: tokens.fontMono,
+                fontSize: "0.62rem",
+                color: tokens.color.muted,
+              }}
+            >
               {done} / {total} itens
             </span>
           </div>
-          <div style={{ height: 3, background: tokens.color.border, overflow: "hidden", borderRadius: 2 }}>
-            <div style={{
-              height: "100%",
-              background: crit > 0
-                ? `linear-gradient(90deg, ${tokens.color.crit}, ${tokens.color.ferrariDark})`
-                : `linear-gradient(90deg, ${tokens.color.ok}, #15803d)`,
-              width: `${progress}%`,
-              transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
+          <div
+            style={{
+              height: 3,
+              background: tokens.color.border,
+              overflow: "hidden",
               borderRadius: 2,
-            }} />
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background:
+                  crit > 0
+                    ? `linear-gradient(90deg, ${tokens.color.crit}, ${tokens.color.ferrariDark})`
+                    : `linear-gradient(90deg, ${tokens.color.ok}, #15803d)`,
+                width: `${progress}%`,
+                transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
+                borderRadius: 2,
+              }}
+            />
           </div>
         </div>
         <div style={{ display: "flex", gap: 28 }}>
-          <StatBadge value={ok}   label="OK"      color={tokens.color.ok}   />
-          <StatBadge value={warn} label="Atenção"  color={tokens.color.warn} />
-          <StatBadge value={crit} label="Crítico"  color={tokens.color.crit} />
+          <StatBadge value={ok} label="OK" color={tokens.color.ok} />
+          <StatBadge value={warn} label="Atenção" color={tokens.color.warn} />
+          <StatBadge value={crit} label="Crítico" color={tokens.color.crit} />
         </div>
       </div>
 
@@ -524,19 +708,43 @@ export function Step3({
       </div>
 
       <PanelFooter
-        left={<span style={pfNote}>{savedAt ? `Salvo às ${savedAt}` : "Rascunho não salvo"}</span>}
+        left={
+          <span style={pfNote}>
+            {savedAt ? `Salvo às ${savedAt}` : "Rascunho não salvo"}
+          </span>
+        }
         right={
           <>
             <button onClick={onBack} style={btnGhost}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M8 5H2M4.5 2l-3 3 3 3" />
               </svg>
               Voltar
             </button>
-            <button onClick={onSave} style={btnSolid}>Salvar</button>
+            <button onClick={onSave} style={btnSolid}>
+              Salvar
+            </button>
             <button onClick={onNext} style={btnAccent}>
               Fotos
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M2 5h6M5.5 2l3 3-3 3" />
               </svg>
             </button>
@@ -559,12 +767,28 @@ interface Step4Props {
   stepDir: "forward" | "back";
 }
 
-export function Step4({ photos, handlePhotos, removePhoto, setLightbox, onBack, onNext, stepDir }: Step4Props) {
+export function Step4({
+  photos,
+  handlePhotos,
+  removePhoto,
+  setLightbox,
+  onBack,
+  onNext,
+  stepDir,
+}: Step4Props) {
   return (
     <StepWrapper direction={stepDir}>
       <FormBlock title="Registro Fotográfico da Inspeção">
-        <p style={{ fontFamily: tokens.fontMono, fontSize: "0.65rem", color: tokens.color.muted, marginBottom: 18 }}>
-          Fotografe pontos de atenção, defeitos e condições do veículo. As fotos serão incluídas no relatório PDF.
+        <p
+          style={{
+            fontFamily: tokens.fontMono,
+            fontSize: "0.65rem",
+            color: tokens.color.muted,
+            marginBottom: 18,
+          }}
+        >
+          Fotografe pontos de atenção, defeitos e condições do veículo. As fotos
+          serão incluídas no relatório PDF.
         </p>
         <PhotoGrid
           photos={photos}
@@ -579,14 +803,32 @@ export function Step4({ photos, handlePhotos, removePhoto, setLightbox, onBack, 
         right={
           <>
             <button onClick={onBack} style={btnGhost}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M8 5H2M4.5 2l-3 3 3 3" />
               </svg>
               Voltar
             </button>
             <button onClick={onNext} style={btnAccent}>
               Encerramento
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M2 5h6M5.5 2l3 3-3 3" />
               </svg>
             </button>
@@ -626,10 +868,24 @@ interface Step5Props {
 }
 
 export function Step5({
-  veiculo, cliente, selected, stats, critItems, photos,
-  tecnico, setTecnico, showErrors, errors,
-  sigRef, sigHandlers, onClearSig,
-  savedAt, onSave, onBack, onExport, stepDir,
+  veiculo,
+  cliente,
+  selected,
+  stats,
+  critItems,
+  photos,
+  tecnico,
+  setTecnico,
+  showErrors,
+  errors,
+  sigRef,
+  sigHandlers,
+  onClearSig,
+  savedAt,
+  onSave,
+  onBack,
+  onExport,
+  stepDir,
 }: Step5Props) {
   const hasErr = (k: string) => showErrors && !!errors[k];
   const { done, total, ok, warn, crit, na } = stats;
@@ -638,9 +894,19 @@ export function Step5({
   const nowTime = () => new Date().toTimeString().slice(0, 5);
 
   const summaryRows: [string, string | number, string?][] = [
-    ["Veículo", [veiculo.placa, veiculo.modelo, veiculo.ano].filter(Boolean).join(" · ") || "—", undefined],
+    [
+      "Veículo",
+      [veiculo.placa, veiculo.modelo, veiculo.ano]
+        .filter(Boolean)
+        .join(" · ") || "—",
+      undefined,
+    ],
     ["Cliente", cliente.nome || "—", undefined],
-    ["Sistemas inspecionados", selectedSections.map((s) => s.label).join(", ") || "—", undefined],
+    [
+      "Sistemas inspecionados",
+      selectedSections.map((s) => s.label).join(", ") || "—",
+      undefined,
+    ],
     ["Itens avaliados", `${done} / ${total}`, undefined],
     ["OK", ok, tokens.color.ok],
     ["Atenção", warn, tokens.color.warn],
@@ -652,13 +918,56 @@ export function Step5({
   return (
     <StepWrapper direction={stepDir}>
       {/* Resumo */}
-      <div style={{ background: tokens.color.surface, borderBottom: `1px solid ${tokens.color.border}`, padding: "26px 40px" }}>
+      <div
+        style={{
+          background: tokens.color.surface,
+          borderBottom: `1px solid ${tokens.color.border}`,
+          padding: "26px 40px",
+        }}
+      >
         <SectionTitle>Resumo da OS</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: tokens.color.border, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.md, overflow: "hidden" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 1,
+            background: tokens.color.border,
+            border: `1px solid ${tokens.color.border}`,
+            borderRadius: tokens.radius.md,
+            overflow: "hidden",
+          }}
+        >
           {summaryRows.map(([k, v, c]) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "11px 16px", background: tokens.color.surface, fontSize: "0.85rem" }}>
-              <span style={{ color: tokens.color.muted, fontFamily: tokens.fontMono, fontSize: "0.72rem" }}>{k}</span>
-              <span style={{ fontWeight: 600, color: c || tokens.color.text, fontFamily: tokens.fontMono, fontSize: "0.8rem" }}>{String(v)}</span>
+            <div
+              key={k}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                padding: "11px 16px",
+                background: tokens.color.surface,
+                fontSize: "0.85rem",
+              }}
+            >
+              <span
+                style={{
+                  color: tokens.color.muted,
+                  fontFamily: tokens.fontMono,
+                  fontSize: "0.72rem",
+                }}
+              >
+                {k}
+              </span>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: c || tokens.color.text,
+                  fontFamily: tokens.fontMono,
+                  fontSize: "0.8rem",
+                }}
+              >
+                {String(v)}
+              </span>
             </div>
           ))}
         </div>
@@ -668,12 +977,56 @@ export function Step5({
             <SectionTitle>Itens Críticos</SectionTitle>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               {critItems.map((ci, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 16px", background: tokens.color.critBg, border: `1px solid ${tokens.color.critBorder}`, borderRadius: tokens.radius.md, borderLeft: `2.5px solid ${tokens.color.crit}` }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: tokens.color.crit, marginTop: 6, flexShrink: 0, display: "block" }} />
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    padding: "11px 16px",
+                    background: tokens.color.critBg,
+                    border: `1px solid ${tokens.color.critBorder}`,
+                    borderRadius: tokens.radius.md,
+                    borderLeft: `2.5px solid ${tokens.color.crit}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: tokens.color.crit,
+                      marginTop: 6,
+                      flexShrink: 0,
+                      display: "block",
+                    }}
+                  />
                   <div style={{ fontSize: "0.85rem" }}>
-                    <span style={{ fontFamily: tokens.fontMono, fontSize: "0.58rem", color: tokens.color.crit, textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 2 }}>{ci.sec}</span>
+                    <span
+                      style={{
+                        fontFamily: tokens.fontMono,
+                        fontSize: "0.58rem",
+                        color: tokens.color.crit,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.07em",
+                        display: "block",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {ci.sec}
+                    </span>
                     <span style={{ color: tokens.color.text }}>{ci.name}</span>
-                    {ci.obs && <div style={{ fontSize: "0.78rem", color: tokens.color.muted, marginTop: 3 }}>{ci.obs}</div>}
+                    {ci.obs && (
+                      <div
+                        style={{
+                          fontSize: "0.78rem",
+                          color: tokens.color.muted,
+                          marginTop: 3,
+                        }}
+                      >
+                        {ci.obs}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -685,57 +1038,176 @@ export function Step5({
       {/* Técnico */}
       <FormBlock title="Dados do Técnico">
         {showErrors && errors.tec_nome && (
-          <div style={{ background: tokens.color.critBg, border: `1px solid ${tokens.color.critBorder}`, borderLeft: `2.5px solid ${tokens.color.crit}`, padding: "10px 14px", marginBottom: 18, fontSize: "0.82rem", color: tokens.color.crit, borderRadius: tokens.radius.md, fontFamily: tokens.fontMono }}>
+          <div
+            style={{
+              background: tokens.color.critBg,
+              border: `1px solid ${tokens.color.critBorder}`,
+              borderLeft: `2.5px solid ${tokens.color.crit}`,
+              padding: "10px 14px",
+              marginBottom: 18,
+              fontSize: "0.82rem",
+              color: tokens.color.crit,
+              borderRadius: tokens.radius.md,
+              fontFamily: tokens.fontMono,
+            }}
+          >
             Preencha o nome do técnico para gerar o PDF.
           </div>
         )}
         <div style={grid4}>
           <Field label="Nome do técnico *" span={2}>
-            <input style={inpStyle(hasErr("tec_nome"))} value={tecnico.nome} onChange={(e) => setTecnico((p) => ({ ...p, nome: e.target.value }))} placeholder="Nome completo" />
+            <Input
+              name="tec_nome"
+              placeholder="Nome completo"
+              value={tecnico.nome}
+              onlyText
+              onChangeValue={(value) =>
+                setTecnico((p) => ({ ...p, nome: value }))
+              }
+              error={hasErr("tec_nome") ? "Campo obrigatório" : undefined}
+            />
           </Field>
           <Field label="Registro / CREA">
-            <input style={inp} value={tecnico.registro} onChange={(e) => setTecnico((p) => ({ ...p, registro: e.target.value }))} placeholder="000000" />
+            <Input
+              name="tec_registro"
+              placeholder="000000"
+              value={tecnico.registro}
+              onChangeValue={(value) =>
+                setTecnico((p) => ({ ...p, registro: value }))
+              }
+            />
           </Field>
           <Field label="Km saída">
-            <input style={inp} value={tecnico.km_saida} onChange={(e) => setTecnico((p) => ({ ...p, km_saida: e.target.value }))} />
+            <Input
+              name="tec_km_saida"
+              onlyNumbers
+              placeholder="97.550"
+              value={tecnico.km_saida}
+              onChangeValue={(value) =>
+                setTecnico((p) => ({ ...p, km_saida: value }))
+              }
+            />
           </Field>
           <Field label="Data de saída">
-            <input style={inp} type="date" value={tecnico.data_saida || nowDate()} onChange={(e) => setTecnico((p) => ({ ...p, data_saida: e.target.value }))} />
+            <Input
+              name="tec_data_saida"
+              type="date"
+              value={tecnico.data_saida || nowDate()}
+              onChangeValue={(value) =>
+                setTecnico((p) => ({ ...p, data_saida: value }))
+              }
+            />
           </Field>
           <Field label="Hora de saída">
-            <input style={inp} type="time" value={tecnico.hora_saida || nowTime()} onChange={(e) => setTecnico((p) => ({ ...p, hora_saida: e.target.value }))} />
+            <Input
+              name="tec_hora_saida"
+              type="time"
+              value={tecnico.hora_saida || nowTime()}
+              onChangeValue={(value) =>
+                setTecnico((p) => ({ ...p, hora_saida: value }))
+              }
+            />
           </Field>
           <Field label="Parecer geral" span={4}>
-            <textarea style={{ ...inp, minHeight: 88, resize: "vertical" } as CSSProperties} value={tecnico.parecer_geral} onChange={(e) => setTecnico((p) => ({ ...p, parecer_geral: e.target.value }))} placeholder="Descreva o estado geral do veículo e recomendações..." />
+            <Textarea
+              name="tec_parecer_geral"
+              value={tecnico.parecer_geral}
+              onChangeValue={(value) =>
+                setTecnico((p) => ({ ...p, parecer_geral: value }))
+              }
+              placeholder="Descreva o estado geral do veículo e recomendações..."
+            />
           </Field>
         </div>
       </FormBlock>
 
       {/* Assinatura */}
-      <div style={{ background: tokens.color.surface, borderBottom: `1px solid ${tokens.color.border}`, padding: "26px 40px" }}>
+      <div
+        style={{
+          background: tokens.color.surface,
+          borderBottom: `1px solid ${tokens.color.border}`,
+          padding: "26px 40px",
+        }}
+      >
         <SectionTitle>Assinatura do Técnico</SectionTitle>
-        <canvas ref={sigRef} className="sig-canvas" style={{ display: "block", width: "100%", height: 140 }} {...sigHandlers} />
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 9 }}>
-          <span style={{ fontFamily: tokens.fontMono, fontSize: "0.6rem", color: tokens.color.subtle }}>Assine com o mouse ou o dedo</span>
-          <button onClick={onClearSig} style={{ fontFamily: tokens.fontMono, fontSize: "0.6rem", color: tokens.color.subtle, background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.07em", textDecoration: "underline", transition: tokens.transition.fast }}>
+        <canvas
+          ref={sigRef}
+          className="sig-canvas"
+          style={{ display: "block", width: "100%", height: 140 }}
+          {...sigHandlers}
+        />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: 9,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: tokens.fontMono,
+              fontSize: "0.6rem",
+              color: tokens.color.subtle,
+            }}
+          >
+            Assine com o mouse ou o dedo
+          </span>
+          <button
+            onClick={onClearSig}
+            style={{
+              fontFamily: tokens.fontMono,
+              fontSize: "0.6rem",
+              color: tokens.color.subtle,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              textDecoration: "underline",
+              transition: tokens.transition.fast,
+            }}
+          >
             Limpar
           </button>
         </div>
       </div>
 
       <PanelFooter
-        left={<span style={pfNote}>{savedAt ? `Salvo às ${savedAt}` : "Rascunho não salvo"}</span>}
+        left={
+          <span style={pfNote}>
+            {savedAt ? `Salvo às ${savedAt}` : "Rascunho não salvo"}
+          </span>
+        }
         right={
           <>
             <button onClick={onBack} style={btnGhost}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={10}
+                height={10}
+                viewBox="0 0 10 10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M8 5H2M4.5 2l-3 3 3 3" />
               </svg>
               Voltar
             </button>
-            <button onClick={onSave} style={btnSolid}>Salvar</button>
+            <button onClick={onSave} style={btnSolid}>
+              Salvar
+            </button>
             <button onClick={onExport} style={btnAccent}>
-              <svg width={11} height={11} viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+              <svg
+                width={11}
+                height={11}
+                viewBox="0 0 11 11"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+              >
                 <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
               </svg>
               Gerar PDF da OS
