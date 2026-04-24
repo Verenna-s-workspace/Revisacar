@@ -7,11 +7,13 @@ interface TopbarProps {
   savedAt: string | null;
   onReset: () => void;
   onExportPDF: () => void;
+  onBackToStart?: () => void;
 }
 
-export function Topbar({ saveStatus, savedAt, onReset, onExportPDF }: TopbarProps) {
+export function Topbar({ saveStatus, savedAt, onReset, onExportPDF, onBackToStart }: TopbarProps) {
   const [resetHover, setResetHover] = useState(false);
   const [exportHover, setExportHover] = useState(false);
+  const [backHover, setBackHover] = useState(false);
 
   return (
     <nav
@@ -108,10 +110,34 @@ export function Topbar({ saveStatus, savedAt, onReset, onExportPDF }: TopbarProp
                 <line x1="5.5" y1="3.5" x2="5.5" y2="5.8" />
                 <circle cx="5.5" cy="7.5" r="0.5" fill={tokens.color.crit} stroke="none" />
               </svg>
-              <span style={{ color: tokens.color.crit }}>erro ao salvar</span>
+              <span style={{ color: tokens.color.crit }}>erro ao fazer envio para o db</span>
             </>
           )}
         </div>
+
+        {onBackToStart && (
+          <button
+            onClick={onBackToStart}
+            onMouseEnter={() => setBackHover(true)}
+            onMouseLeave={() => setBackHover(false)}
+            style={{
+              fontFamily: tokens.fontMono,
+              fontSize: '0.64rem',
+              fontWeight: 500,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '7px 15px',
+              borderRadius: tokens.radius.md,
+              border: `1px solid ${backHover ? tokens.color.borderHigh : tokens.color.border}`,
+              background: backHover ? tokens.color.surfaceHigh : 'transparent',
+              color: backHover ? tokens.color.textSecond : tokens.color.subtle,
+              cursor: 'pointer',
+              transition: tokens.transition.fast,
+            }}
+          >
+            ← Voltar
+          </button>
+        )}
 
         <button
           onClick={onReset}
