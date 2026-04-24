@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from dotenv import load_dotenv
 from supabase import create_client
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +19,8 @@ if not supabase_url or not supabase_key:
 
 supabase = create_client(supabase_url, supabase_key)
 
+BUCKET = "baldeuuid"
+
 app = FastAPI(
     title="RevisaCar API",
     version="4.0.0",
@@ -31,14 +33,15 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
+    "https://bucket-funcionando1.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
@@ -137,6 +140,7 @@ class OrdemServico(BaseModel):
     servicos_selecionados: list[str] = []
     checklist: dict[str, ChecklistItem] = {}
     fotos_base64: list[str] = []
+    fotos_paths: list[str] = []
     tecnico: Optional[Tecnico] = None
     status: str = "rascunho"
 
@@ -161,6 +165,7 @@ def criar_ordem(ordem: OrdemServico):
         "modelo": ordem.veiculo.modelo,
         "cliente": ordem.cliente.nome,
         "status": ordem.status,
+        "fotos_paths": ordem.fotos_paths,
         "payload": ordem.model_dump(),
     }
 
@@ -194,6 +199,9 @@ def obter_ordem(ordem_id: str):
 def atualizar_ordem(ordem_id: str, ordem: OrdemServico):
     now = datetime.now().isoformat()
 
+    existing = supabase.table("ordens").select("fotos_paths").eq("id", ordem_id).execute()
+    existing_paths = existing.data[0].get("fotos_paths", []) if existing.data else []
+
     update = {
         "updated_at": now,
         "os_num": ordem.os_header.os_num,
@@ -201,6 +209,7 @@ def atualizar_ordem(ordem_id: str, ordem: OrdemServico):
         "modelo": ordem.veiculo.modelo,
         "cliente": ordem.cliente.nome,
         "status": ordem.status,
+        "fotos_paths": existing_paths,
         "payload": ordem.model_dump(),
     }
 
@@ -210,6 +219,71 @@ def atualizar_ordem(ordem_id: str, ordem: OrdemServico):
         raise HTTPException(404, "Não encontrada")
 
     return res.data[0]
+
+
+@app.post("/ordens/{ordem_id}/fotos")
+async def upload_fotos_ordem(ordem_id: str, files: list[UploadFile] = File(...)):
+
+    res = supabase.table("ordens").select("*").eq("id", ordem_id).execute()
+    if not res.data:
+        raise HTTPException(404, "Ordem não encontrada")
+
+    existing_paths = res.data[0].get("fotos_paths", []) or []
+
+    new_paths = []
+    for file in files:
+        if not file.filename or len(file.filename.split(".")) < 2:
+            raise HTTPException(400, f"Arquivo {file.filename} sem extensão válida")
+
+        extension = file.filename.split(".")[-1]
+        unique_name = f"{ordem_id}/{uuid.uuid4()}.{extension}"
+        contents = await file.read()
+
+        if len(contents) > MAX_FOTO_SIZE_BYTES:
+            raise HTTPException(413, f"Arquivo {file.filename} muito grande (máx {MAX_FOTO_SIZE_BYTES} bytes)")
+
+        supabase.storage.from_(BUCKET).upload(unique_name, contents)
+        new_paths.append(unique_name)
+
+    all_paths = list(set(existing_paths + new_paths))
+
+    now = datetime.now().isoformat()
+    supabase.table("ordens").update({
+        "fotos_paths": all_paths,
+        "updated_at": now
+    }).eq("id", ordem_id).execute()
+
+    return {"paths": all_paths}
+
+
+@app.delete("/ordens/{ordem_id}/fotos/{foto_path:path}")
+def delete_foto(ordem_id: str, foto_path: str):
+    """Delete a specific photo from the order"""
+    import urllib.parse
+    foto_path = urllib.parse.unquote(foto_path)
+    
+    res = supabase.table("ordens").select("fotos_paths").eq("id", ordem_id).execute()
+    if not res.data:
+        raise HTTPException(404, "Ordem não encontrada")
+    
+    existing_paths = res.data[0].get("fotos_paths", []) or []
+    
+    if foto_path not in existing_paths:
+        raise HTTPException(404, "Foto não encontrada")
+    
+    try:
+        supabase.storage.from_(BUCKET).remove([foto_path])
+    except Exception as e:
+        print(f"Erro ao deletar do storage: {e}")
+    
+    new_paths = [p for p in existing_paths if p != foto_path]
+    now = datetime.now().isoformat()
+    supabase.table("ordens").update({
+        "fotos_paths": new_paths,
+        "updated_at": now
+    }).eq("id", ordem_id).execute()
+    
+    return {"message": "Foto deletada", "paths": new_paths}
 
 
 @app.patch("/ordens/{ordem_id}/status")
@@ -229,9 +303,58 @@ def atualizar_status(ordem_id: str, status: str):
 
 @app.delete("/ordens/{ordem_id}")
 def deletar_ordem(ordem_id: str):
-    res = supabase.table("ordens").delete().eq("id", ordem_id).execute()
+
+    res = supabase.table("ordens").select("id").eq("id", ordem_id).execute()
 
     if not res.data:
         raise HTTPException(404, "Não encontrada")
 
+    files = supabase.storage.from_(BUCKET).list(path=ordem_id)
+
+    paths = []
+    for file in files:
+        paths.append(f"{ordem_id}/{file['name']}")
+
+    if paths:
+        supabase.storage.from_(BUCKET).remove(paths)
+
+    supabase.table("ordens").delete().eq("id", ordem_id).execute()
+
     return {"message": "Deletada"}
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    contents = await file.read()
+
+    extension = file.filename.split(".")[-1]
+
+    unique_name = f"{uuid.uuid4()}.{extension}"
+    file_path = f"{unique_name}"
+
+    response = supabase.storage.from_(BUCKET).upload(
+        file_path,
+        contents
+    )
+
+    return {
+        "path": file_path,
+        "status": str(response)
+    }
+
+@app.get("/list")
+def list_files():
+    files = supabase.storage.from_(BUCKET).list()
+    return {"files": files}
+
+@app.get("/fotos/{path:path}")
+def get_foto(path: str):
+    try:
+        file_data = supabase.storage.from_(BUCKET).download(path)
+        if file_data is None:
+            raise HTTPException(404, "Foto não encontrada")
+        
+        import base64
+        encoded = base64.b64encode(file_data).decode('utf-8')
+        return {"data": encoded, "filename": path}
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao baixar foto: {str(e)}")
