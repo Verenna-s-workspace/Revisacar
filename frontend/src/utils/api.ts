@@ -25,6 +25,17 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handleResponse),
 
+  uploadFotos: (orderId: string, formData: FormData) =>
+    fetch(`${API_BASE}/ordens/${orderId}/fotos`, {
+      method: 'POST',
+      body: formData,
+    }).then(handleResponse),
+
+  deleteFoto: (orderId: string, fotoPath: string) =>
+    fetch(`${API_BASE}/ordens/${orderId}/fotos/${encodeURIComponent(fotoPath)}`, {
+      method: 'DELETE',
+    }).then(handleResponse),
+
   listarOrdens: () =>
     fetch(`${API_BASE}/ordens`).then(handleResponse),
 
@@ -33,4 +44,7 @@ export const api = {
 
   deletarOrdem: (id: string) =>
     fetch(`${API_BASE}/ordens/${id}`, { method: 'DELETE' }).then(handleResponse),
+
+  baixarFoto: (filename: string) =>
+    fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
 };
