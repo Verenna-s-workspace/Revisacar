@@ -1,13 +1,25 @@
-from fastapi import FastAPI, HTTPException
+import os
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from dotenv import load_dotenv
+from supabase import create_client
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 from typing import Optional
 import uuid
-import sqlite3
-import json
 import re
 from datetime import datetime
-from contextlib import contextmanager
+
+load_dotenv()
+
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+
+if not supabase_url or not supabase_key:
+    raise ValueError("Env não carregou")
+
+supabase = create_client(supabase_url, supabase_key)
+
+BUCKET = "baldeuuid"
 
 app = FastAPI(
     title="RevisaCar API",
@@ -21,120 +33,86 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
+    "https://bucket-funcionando1.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 
-DB_PATH          = "revisacar.db"
-MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024   # 5 MB
-MAX_FOTOS        = 30
-
-# ── DATABASE ──────────────────────────────────────────────────────────────────
-
-def init_db() -> None:
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS ordens (
-                id         TEXT PRIMARY KEY,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                os_num     TEXT,
-                placa      TEXT,
-                modelo     TEXT,
-                cliente    TEXT,
-                status     TEXT DEFAULT 'rascunho',
-                payload    TEXT NOT NULL
-            )
-        """)
-        conn.commit()
-
-
-init_db()
-
-
-@contextmanager
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
-
+MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024
+MAX_FOTOS = 30
 
 # ── MODELS ────────────────────────────────────────────────────────────────────
 
 class OSHeader(BaseModel):
-    os_num:  str
+    os_num: str
     os_date: str
     os_time: str
-    os_km:   str = ""
+    os_km: str = ""
 
     @field_validator("os_num")
     @classmethod
-    def os_num_not_empty(cls, v: str) -> str:
-        v = v.strip()
-        if not v:
+    def os_num_not_empty(cls, v: str):
+        if not v.strip():
             raise ValueError("os_num não pode ser vazio")
-        return v
+        return v.strip()
 
     @field_validator("os_date")
     @classmethod
-    def valid_date(cls, v: str) -> str:
+    def valid_date(cls, v: str):
         if v and not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
-            raise ValueError("os_date deve estar no formato AAAA-MM-DD")
+            raise ValueError("os_date inválido")
         return v
 
     @field_validator("os_time")
     @classmethod
-    def valid_time(cls, v: str) -> str:
+    def valid_time(cls, v: str):
         if v and not re.match(r"^\d{2}:\d{2}$", v):
-            raise ValueError("os_time deve estar no formato HH:MM")
+            raise ValueError("os_time inválido")
         return v
 
 
 class Cliente(BaseModel):
-    nome:  str
-    doc:   str = ""
-    tel:   str
+    nome: str
+    doc: str = ""
+    tel: str
     email: str = ""
 
     @field_validator("nome", "tel")
     @classmethod
-    def not_empty(cls, v: str) -> str:
+    def not_empty(cls, v: str):
         if not v.strip():
             raise ValueError("Campo obrigatório")
         return v.strip()
 
 
 class Veiculo(BaseModel):
-    placa:              str
-    modelo:             str
-    ano:                str = ""
-    cor:                str = ""
-    combustivel:        str = ""
-    nivel_combustivel:  str = ""
-    chassi:             str = ""
-    obs_entrada:        str = ""
+    placa: str
+    modelo: str
+    ano: str = ""
+    cor: str = ""
+    combustivel: str = ""
+    nivel_combustivel: str = ""
+    chassi: str = ""
+    obs_entrada: str = ""
 
     @field_validator("placa", "modelo")
     @classmethod
-    def not_empty(cls, v: str) -> str:
+    def not_empty(cls, v: str):
         if not v.strip():
             raise ValueError("Campo obrigatório")
         return v.strip()
 
     @field_validator("placa")
     @classmethod
-    def valid_placa(cls, v: str) -> str:
+    def valid_placa(cls, v: str):
         v = v.upper().strip()
         if not re.match(r"^[A-Z]{3}[-]?\d{4}$|^[A-Z]{3}\d[A-Z]\d{2}$", v):
             raise ValueError("Placa inválida")
@@ -143,236 +121,240 @@ class Veiculo(BaseModel):
 
 class ChecklistItem(BaseModel):
     status: Optional[str] = None
-    obs:    str = ""
-
-    @field_validator("status")
-    @classmethod
-    def valid_status(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in ("ok", "warn", "crit", "na"):
-            raise ValueError("status inválido")
-        return v
+    obs: str = ""
 
 
 class Tecnico(BaseModel):
-    nome:          str = ""
-    registro:      str = ""
-    data_saida:    str = ""
-    hora_saida:    str = ""
-    km_saida:      str = ""
+    nome: str = ""
+    registro: str = ""
+    data_saida: str = ""
+    hora_saida: str = ""
+    km_saida: str = ""
     parecer_geral: str = ""
 
 
 class OrdemServico(BaseModel):
-    os_header:             OSHeader
-    cliente:               Cliente
-    veiculo:               Veiculo
+    os_header: OSHeader
+    cliente: Cliente
+    veiculo: Veiculo
     servicos_selecionados: list[str] = []
-    checklist:             dict[str, ChecklistItem] = {}
-    fotos_base64:          list[str] = []
-    tecnico:               Optional[Tecnico] = None
-    status:                str = "rascunho"
-
-    @field_validator("fotos_base64")
-    @classmethod
-    def validate_fotos(cls, v: list[str]) -> list[str]:
-        if len(v) > MAX_FOTOS:
-            raise ValueError(f"Máximo de {MAX_FOTOS} fotos permitidas")
-        for foto in v:
-            if not foto.startswith("data:image/"):
-                raise ValueError("Foto inválida: deve ser um data URL de imagem")
-            if len(foto.encode("utf-8")) > MAX_FOTO_SIZE_BYTES * 1.4:
-                raise ValueError("Uma ou mais fotos excedem o tamanho máximo de 5 MB")
-        return v
-
-    @field_validator("status")
-    @classmethod
-    def valid_status(cls, v: str) -> str:
-        if v not in ("rascunho", "concluido", "cancelado"):
-            raise ValueError("status inválido")
-        return v
-
-
-# ── HELPERS ───────────────────────────────────────────────────────────────────
-
-def ordem_row_to_dict(row: sqlite3.Row) -> dict:
-    d = dict(row)
-    if "payload" in d:
-        d["data"] = json.loads(d.pop("payload"))
-    return d
-
-
-def validate_uuid(ordem_id: str) -> None:
-    try:
-        uuid.UUID(ordem_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="ID inválido")
-
+    checklist: dict[str, ChecklistItem] = {}
+    fotos_base64: list[str] = []
+    fotos_paths: list[str] = []
+    tecnico: Optional[Tecnico] = None
+    status: str = "rascunho"
 
 # ── ROUTES ────────────────────────────────────────────────────────────────────
 
-@app.get("/", tags=["status"])
+@app.get("/")
 def root():
-    return {"app": "RevisaCar", "version": "3.0.0", "status": "online"}
+    return {"status": "online"}
 
 
-@app.get("/health", tags=["status"])
-def health():
-    return {"status": "ok", "timestamp": datetime.now().isoformat()}
-
-
-@app.post("/ordens", status_code=201, tags=["ordens"])
+@app.post("/ordens", status_code=201)
 def criar_ordem(ordem: OrdemServico):
     ordem_id = str(uuid.uuid4())
-    now      = datetime.now().isoformat()
-    payload  = ordem.model_dump_json()
+    now = datetime.now().isoformat()
 
-    with get_db() as conn:
-        conn.execute(
-            "INSERT INTO ordens VALUES (?,?,?,?,?,?,?,?,?)",
-            (
-                ordem_id, now, now,
-                ordem.os_header.os_num,
-                ordem.veiculo.placa,
-                ordem.veiculo.modelo,
-                ordem.cliente.nome,
-                ordem.status,
-                payload,
-            ),
-        )
-        conn.commit()
+    data = {
+        "id": ordem_id,
+        "created_at": now,
+        "updated_at": now,
+        "os_num": ordem.os_header.os_num,
+        "placa": ordem.veiculo.placa,
+        "modelo": ordem.veiculo.modelo,
+        "cliente": ordem.cliente.nome,
+        "status": ordem.status,
+        "fotos_paths": ordem.fotos_paths,
+        "payload": ordem.model_dump(),
+    }
 
-    return {"id": ordem_id, "created_at": now, "updated_at": now, "data": ordem}
+    supabase.table("ordens").insert(data).execute()
+
+    return data
 
 
-@app.get("/ordens", tags=["ordens"])
+@app.get("/ordens")
 def listar_ordens(status: Optional[str] = None):
-    query = (
-        "SELECT id, created_at, updated_at, os_num, placa, modelo, cliente, status"
-        " FROM ordens"
-    )
-    params: tuple = ()
+    query = supabase.table("ordens").select("*").order("created_at", desc=True)
 
     if status:
-        query += " WHERE status = ?"
-        params = (status,)
+        query = query.eq("status", status)
 
-    query += " ORDER BY created_at DESC"
-
-    with get_db() as conn:
-        rows = conn.execute(query, params).fetchall()
-
-    return [dict(r) for r in rows]
+    res = query.execute()
+    return res.data
 
 
-@app.get("/ordens/{ordem_id}", tags=["ordens"])
+@app.get("/ordens/{ordem_id}")
 def obter_ordem(ordem_id: str):
-    validate_uuid(ordem_id)
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT * FROM ordens WHERE id = ?", (ordem_id,)
-        ).fetchone()
+    res = supabase.table("ordens").select("*").eq("id", ordem_id).execute()
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Ordem não encontrada")
+    if not res.data:
+        raise HTTPException(404, "Não encontrada")
 
-    return ordem_row_to_dict(row)
+    return res.data[0]
 
 
-@app.put("/ordens/{ordem_id}", tags=["ordens"])
+@app.put("/ordens/{ordem_id}")
 def atualizar_ordem(ordem_id: str, ordem: OrdemServico):
-    validate_uuid(ordem_id)
-    now     = datetime.now().isoformat()
-    payload = ordem.model_dump_json()
+    now = datetime.now().isoformat()
 
-    with get_db() as conn:
-        result = conn.execute(
-            """UPDATE ordens
-               SET updated_at = ?, os_num = ?, placa = ?, modelo = ?,
-                   cliente = ?, status = ?, payload = ?
-               WHERE id = ?""",
-            (
-                now,
-                ordem.os_header.os_num,
-                ordem.veiculo.placa,
-                ordem.veiculo.modelo,
-                ordem.cliente.nome,
-                ordem.status,
-                payload,
-                ordem_id,
-            ),
-        )
-        conn.commit()
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Ordem não encontrada")
+    existing = supabase.table("ordens").select("fotos_paths").eq("id", ordem_id).execute()
+    existing_paths = existing.data[0].get("fotos_paths", []) if existing.data else []
 
-    return {"id": ordem_id, "updated_at": now, "data": ordem}
+    update = {
+        "updated_at": now,
+        "os_num": ordem.os_header.os_num,
+        "placa": ordem.veiculo.placa,
+        "modelo": ordem.veiculo.modelo,
+        "cliente": ordem.cliente.nome,
+        "status": ordem.status,
+        "fotos_paths": existing_paths,
+        "payload": ordem.model_dump(),
+    }
+
+    res = supabase.table("ordens").update(update).eq("id", ordem_id).execute()
+
+    if not res.data:
+        raise HTTPException(404, "Não encontrada")
+
+    return res.data[0]
 
 
-@app.patch("/ordens/{ordem_id}/status", tags=["ordens"])
-def atualizar_status(ordem_id: str, status: str):
-    validate_uuid(ordem_id)
-    if status not in ("rascunho", "concluido", "cancelado"):
-        raise HTTPException(status_code=400, detail="Status inválido")
+@app.post("/ordens/{ordem_id}/fotos")
+async def upload_fotos_ordem(ordem_id: str, files: list[UploadFile] = File(...)):
+
+    res = supabase.table("ordens").select("*").eq("id", ordem_id).execute()
+    if not res.data:
+        raise HTTPException(404, "Ordem não encontrada")
+
+    existing_paths = res.data[0].get("fotos_paths", []) or []
+
+    new_paths = []
+    for file in files:
+        if not file.filename or len(file.filename.split(".")) < 2:
+            raise HTTPException(400, f"Arquivo {file.filename} sem extensão válida")
+
+        extension = file.filename.split(".")[-1]
+        unique_name = f"{ordem_id}/{uuid.uuid4()}.{extension}"
+        contents = await file.read()
+
+        if len(contents) > MAX_FOTO_SIZE_BYTES:
+            raise HTTPException(413, f"Arquivo {file.filename} muito grande (máx {MAX_FOTO_SIZE_BYTES} bytes)")
+
+        supabase.storage.from_(BUCKET).upload(unique_name, contents)
+        new_paths.append(unique_name)
+
+    all_paths = list(set(existing_paths + new_paths))
 
     now = datetime.now().isoformat()
-    with get_db() as conn:
-        result = conn.execute(
-            "UPDATE ordens SET status = ?, updated_at = ? WHERE id = ?",
-            (status, now, ordem_id),
-        )
-        conn.commit()
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Ordem não encontrada")
+    supabase.table("ordens").update({
+        "fotos_paths": all_paths,
+        "updated_at": now
+    }).eq("id", ordem_id).execute()
 
-    return {"id": ordem_id, "status": status, "updated_at": now}
+    return {"paths": all_paths}
 
 
-@app.delete("/ordens/{ordem_id}", tags=["ordens"])
+@app.delete("/ordens/{ordem_id}/fotos/{foto_path:path}")
+def delete_foto(ordem_id: str, foto_path: str):
+    """Delete a specific photo from the order"""
+    import urllib.parse
+    foto_path = urllib.parse.unquote(foto_path)
+    
+    res = supabase.table("ordens").select("fotos_paths").eq("id", ordem_id).execute()
+    if not res.data:
+        raise HTTPException(404, "Ordem não encontrada")
+    
+    existing_paths = res.data[0].get("fotos_paths", []) or []
+    
+    if foto_path not in existing_paths:
+        raise HTTPException(404, "Foto não encontrada")
+    
+    try:
+        supabase.storage.from_(BUCKET).remove([foto_path])
+    except Exception as e:
+        print(f"Erro ao deletar do storage: {e}")
+    
+    new_paths = [p for p in existing_paths if p != foto_path]
+    now = datetime.now().isoformat()
+    supabase.table("ordens").update({
+        "fotos_paths": new_paths,
+        "updated_at": now
+    }).eq("id", ordem_id).execute()
+    
+    return {"message": "Foto deletada", "paths": new_paths}
+
+
+@app.patch("/ordens/{ordem_id}/status")
+def atualizar_status(ordem_id: str, status: str):
+    now = datetime.now().isoformat()
+
+    res = supabase.table("ordens").update({
+        "status": status,
+        "updated_at": now
+    }).eq("id", ordem_id).execute()
+
+    if not res.data:
+        raise HTTPException(404, "Não encontrada")
+
+    return res.data[0]
+
+
+@app.delete("/ordens/{ordem_id}")
 def deletar_ordem(ordem_id: str):
-    validate_uuid(ordem_id)
-    with get_db() as conn:
-        result = conn.execute(
-            "DELETE FROM ordens WHERE id = ?", (ordem_id,)
-        )
-        conn.commit()
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Ordem não encontrada")
 
-    return {"message": "Ordem deletada com sucesso"}
+    res = supabase.table("ordens").select("id").eq("id", ordem_id).execute()
 
+    if not res.data:
+        raise HTTPException(404, "Não encontrada")
 
-@app.get("/ordens/{ordem_id}/resumo", tags=["ordens"])
-def resumo_ordem(ordem_id: str):
-    validate_uuid(ordem_id)
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT * FROM ordens WHERE id = ?", (ordem_id,)
-        ).fetchone()
+    files = supabase.storage.from_(BUCKET).list(path=ordem_id)
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Ordem não encontrada")
+    paths = []
+    for file in files:
+        paths.append(f"{ordem_id}/{file['name']}")
 
-    d       = ordem_row_to_dict(row)
-    payload = d.get("data", {})
-    checklist = payload.get("checklist", {})
+    if paths:
+        supabase.storage.from_(BUCKET).remove(paths)
 
-    statuses = [v.get("status") for v in checklist.values() if isinstance(v, dict)]
-    resumo = {
-        "id":         d["id"],
-        "os_num":     d["os_num"],
-        "placa":      d["placa"],
-        "modelo":     d["modelo"],
-        "cliente":    d["cliente"],
-        "status":     d["status"],
-        "created_at": d["created_at"],
-        "updated_at": d["updated_at"],
-        "checklist_stats": {
-            "total": len(statuses),
-            "ok":    statuses.count("ok"),
-            "warn":  statuses.count("warn"),
-            "crit":  statuses.count("crit"),
-            "na":    statuses.count("na"),
-        },
-        "fotos": len(payload.get("fotos_base64", [])),
+    supabase.table("ordens").delete().eq("id", ordem_id).execute()
+
+    return {"message": "Deletada"}
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    contents = await file.read()
+
+    extension = file.filename.split(".")[-1]
+
+    unique_name = f"{uuid.uuid4()}.{extension}"
+    file_path = f"{unique_name}"
+
+    response = supabase.storage.from_(BUCKET).upload(
+        file_path,
+        contents
+    )
+
+    return {
+        "path": file_path,
+        "status": str(response)
     }
-    return resumo
+
+@app.get("/list")
+def list_files():
+    files = supabase.storage.from_(BUCKET).list()
+    return {"files": files}
+
+@app.get("/fotos/{path:path}")
+def get_foto(path: str):
+    try:
+        file_data = supabase.storage.from_(BUCKET).download(path)
+        if file_data is None:
+            raise HTTPException(404, "Foto não encontrada")
+        
+        import base64
+        encoded = base64.b64encode(file_data).decode('utf-8')
+        return {"data": encoded, "filename": path}
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao baixar foto: {str(e)}")

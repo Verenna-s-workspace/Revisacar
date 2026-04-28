@@ -45,6 +45,7 @@ export interface Tecnico {
 export interface Photo {
   src: string;
   name: string;
+  path?: string;
 }
 
 export interface Section {
@@ -80,5 +81,18 @@ export interface CritItem {
 }
 
 export type SaveStatus = '' | 'saving' | 'saved' | 'error';
+
+export interface OrdemServico {
+  os_header: OSHeader;
+  cliente: Cliente;
+  veiculo: Veiculo;
+  servicos_selecionados: string[];
+  checklist: Record<string, ChecklistItemData>;
+  itens_adicionais: string[];
+  fotos_base64: string[];
+  fotos_paths: string[];
+  tecnico?: Tecnico;
+  status: string;
+}
 
 export type ValidationErrors = Record<string, string>;

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
@@ -5,9 +6,22 @@ import { StepTabs } from '../components/StepTabs';
 import { Lightbox } from '../components/ui';
 import { Step1, Step2, Step3, Step4, Step5 } from '../components/Steps';
 import { tokens } from '../constants';
+import type { OrdemServico } from '../types';
 
-export default function Home() {
+interface HomeProps {
+  initialOrdem?: OrdemServico & { id: string } | null;
+  onBackToStart?: () => void;
+}
+
+export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
   const os = useOrdemServico();
+
+  // Carregar ordem se houver
+  useEffect(() => {
+    if (initialOrdem) {
+      os.loadOrder(initialOrdem);
+    }
+  }, [initialOrdem, os.loadOrder]);
 
   const handleExportPDF = () => {
     exportPDF(
@@ -35,6 +49,7 @@ export default function Home() {
         savedAt={os.savedAt}
         onReset={os.resetAll}
         onExportPDF={handleExportPDF}
+        onBackToStart={onBackToStart}
       />
       <StepTabs step={os.step} onGoStep={(n) => os.goStep(n, os.step)} />
 

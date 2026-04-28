@@ -1196,7 +1196,7 @@ export function Step5({
               Voltar
             </button>
             <button onClick={onSave} style={btnSolid}>
-              Salvar
+              enviar para o banco de dados
             </button>
             <button onClick={onExport} style={btnAccent}>
               <svg

@@ -47,6 +47,7 @@ export function useOrdemServico() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [checklist, setChecklist] = useState(initChecklist);
   const [photos, setPhotos]       = useState<Photo[]>([]);
+  const [newPhotos, setNewPhotos] = useState<Photo[]>([]);
   const [lightbox, setLightbox]   = useState<string | null>(null);
   const [tecnico, setTecnico]     = useState<Tecnico>(INITIAL_TECNICO);
 
@@ -131,16 +132,34 @@ export function useOrdemServico() {
     Array.from(e.target.files ?? []).forEach((file) => {
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
-      reader.onload = (ev) =>
-        setPhotos((prev) => [...prev, { src: (ev.target?.result as string), name: file.name }]);
+      reader.onload = (ev) => {
+        const photo = { src: (ev.target?.result as string), name: file.name, path: undefined };
+        setPhotos((prev) => [...prev, photo]);
+        setNewPhotos((prev) => [...prev, photo]);
+      };
       reader.readAsDataURL(file);
     });
     e.target.value = '';
   }, []);
 
-  const removePhoto = useCallback((index: number) => {
+  const removePhoto = useCallback(async (index: number) => {
+    const foto = photos[index];
+    
+    if (!foto) return;
+
+    if (foto.path && orderId) {
+      try {
+        console.log('Deletando foto do banco:', foto.path);
+        await api.deleteFoto(orderId, foto.path);
+        console.log('Foto deletada com sucesso');
+      } catch (error) {
+        console.error('Erro ao deletar foto:', error);
+      }
+    }
+    
     setPhotos((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+    setNewPhotos((prev) => prev.filter((_, i) => i !== index));
+  }, [orderId, photos]);
 
   // ── Signature ──────────────────────────────────────────────────────────────
 
@@ -214,6 +233,16 @@ export function useOrdemServico() {
 
   // ── Persistence ────────────────────────────────────────────────────────────
 
+  const base64ToBlob = useCallback((base64: string, mimeType: string) => {
+    const byteCharacters = atob(base64.split(',')[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  }, []);
+
   const buildPayload = useCallback(
     () => ({
       os_header: osHeader,
@@ -224,22 +253,55 @@ export function useOrdemServico() {
         Object.entries(checklist).map(([k, v]) => [k, { status: v.status, obs: v.obs }])
       ),
       itens_adicionais: itensAdicionais,
-      fotos_base64: photos.map((p) => p.src),
       tecnico,
-      status: 'rascunho',
     }),
-    [osHeader, cliente, veiculo, selected, checklist, itensAdicionais, photos, tecnico]
+    [osHeader, cliente, veiculo, selected, checklist, itensAdicionais, tecnico]
   );
 
   const saveOrder = useCallback(async () => {
     setSaveStatus('saving');
     try {
-      const payload = buildPayload();
-      const data = orderId
-        ? await api.atualizarOrdem(orderId, payload)
-        : await api.criarOrdem(payload);
+      // Determine status
+      const isComplete = !!(
+        osHeader.os_num &&
+        osHeader.os_date &&
+        osHeader.os_time &&
+        cliente.nome &&
+        cliente.tel &&
+        veiculo.placa &&
+        veiculo.modelo &&
+        tecnico?.nome
+      );
+      const status = isComplete ? 'finalizada' : 'rascunho';
 
-      if (!orderId) setOrderId(data.id);
+      // Create/update order without photos first
+      const payload = {
+        ...buildPayload(),
+        fotos_base64: [],
+        fotos_paths: [],
+        status,
+      };
+
+      let data;
+      if (orderId) {
+        data = await api.atualizarOrdem(orderId, payload);
+      } else {
+        data = await api.criarOrdem(payload);
+        setOrderId(data.id);
+      }
+
+      // Upload only NEW photos
+      if (newPhotos.length > 0) {
+        const formData = new FormData();
+        newPhotos.forEach((photo) => {
+          const mimeType = photo.src.split(';')[0].split(':')[1] || 'image/jpeg';
+          const blob = base64ToBlob(photo.src, mimeType);
+          formData.append('files', blob, photo.name);
+        });
+        await api.uploadFotos(data.id, formData);
+        setNewPhotos([]); // Clear new photos after upload
+      }
+
       setSavedAt(nowTime());
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(''), 2500);
@@ -248,7 +310,7 @@ export function useOrdemServico() {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(''), 3000);
     }
-  }, [buildPayload, orderId]);
+  }, [buildPayload, orderId, photos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
 
   // ── Step handlers ──────────────────────────────────────────────────────────
 
@@ -280,6 +342,71 @@ export function useOrdemServico() {
     [tecnico, saveOrder]
   );
 
+  const loadOrder = useCallback(async (ordem: any) => {
+    // Se payload é string, parsear para objeto
+    let payload = ordem.payload;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch (e) {
+        console.error('Erro ao parsear payload:', e);
+        payload = ordem;
+      }
+    }
+    
+    setOrderId(ordem.id);
+    setOsHeader(payload.os_header || INITIAL_OS_HEADER());
+    setCliente(payload.cliente || INITIAL_CLIENTE);
+    setVeiculo(payload.veiculo || INITIAL_VEICULO);
+    setSelected(new Set(payload.servicos_selecionados || []));
+    setChecklist(payload.checklist || initChecklist());
+    setItensAdicionais(payload.itens_adicionais || []);
+    setTecnico(payload.tecnico || INITIAL_TECNICO);
+    setSavedAt(nowTime());
+    setErrors({});
+    setShowErrors(false);
+    setStep(1);
+    clearSig();
+    
+    // Carregar fotos existentes se houver paths
+    if (ordem.fotos_paths && ordem.fotos_paths.length > 0) {
+      console.log('Carregando fotos existentes:', ordem.fotos_paths);
+      try {
+        const fotosPromises = ordem.fotos_paths.map(async (path: string) => {
+          try {
+            console.log('Baixando foto:', path);
+            const response = await api.baixarFoto(path);
+            console.log('Foto baixada:', response.filename);
+            const src = `data:image/jpeg;base64,${response.data}`;
+            const filename = response.filename.split('/').pop() || 'foto.jpg';
+            return { src, name: filename };
+          } catch (error) {
+            console.error(`Erro ao carregar foto ${path}:`, error);
+            return null;
+          }
+        });
+        
+        const fotosCarregadas = (await Promise.all(fotosPromises)).filter(Boolean);
+        console.log('Fotos carregadas no frontend:', fotosCarregadas.length);
+        // Add path to each photo for deletion later
+        const fotosComPath = fotosCarregadas.map((foto: any, index: number) => ({
+          ...foto,
+          path: ordem.fotos_paths[index]
+        }));
+        setPhotos(fotosComPath);
+        setNewPhotos([]); // Clear new photos when loading from DB
+      } catch (error) {
+        console.error('Erro geral ao carregar fotos:', error);
+        setPhotos([]);
+        setNewPhotos([]);
+      }
+    } else {
+      console.log('Nenhuma foto para carregar');
+      setPhotos([]);
+      setNewPhotos([]);
+    }
+  }, [clearSig]);
+
   const resetAll = useCallback(() => {
     if (!window.confirm('Limpar toda a OS e começar do zero?')) return;
     setOsHeader(INITIAL_OS_HEADER());
@@ -289,6 +416,7 @@ export function useOrdemServico() {
     setChecklist(initChecklist());
     setItensAdicionais([]);
     setPhotos([]);
+    setNewPhotos([]);
     setTecnico(INITIAL_TECNICO);
     setOrderId(null);
     setSavedAt(null);
@@ -316,6 +444,7 @@ export function useOrdemServico() {
     addDynamicItem,
     removeDynamicItem,
     photos, setPhotos,
+    newPhotos, setNewPhotos,
     lightbox, setLightbox,
     tecnico, setTecnico,
     stats, critItems,
@@ -331,6 +460,7 @@ export function useOrdemServico() {
     handleNextStep1,
     handleExport,
     resetAll,
+    loadOrder,
     buildPayload,
   };
 }
