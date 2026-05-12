@@ -4,8 +4,9 @@ import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
 import { StepTabs } from '../components/StepTabs';
 import { Lightbox } from '../components/ui';
-import { Step1, Step2, Step3, Step4, Step5 } from '../components/Steps';
+import { Step1, Step2, Step3 } from '../components/Steps';
 import { tokens } from '../constants';
+
 import type { OrdemServico } from '../types';
 
 interface HomeProps {
@@ -16,7 +17,6 @@ interface HomeProps {
 export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
   const os = useOrdemServico();
 
-  // Carregar ordem se houver
   useEffect(() => {
     if (initialOrdem) {
       os.loadOrder(initialOrdem);
@@ -29,10 +29,7 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
       os.cliente,
       os.veiculo,
       os.tecnico,
-      os.selected,
-      os.checklist,
       os.photos,
-      os.itensAdicionais,
       os.getSigImage(),
     );
   };
@@ -73,9 +70,11 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
 
       {os.step === 2 && (
         <Step2
-          selected={os.selected}
-          onToggle={os.toggleSection}
-          onToggleAll={os.toggleAllSections}
+          photos={os.photos}
+          onAddPhoto={os.addPhotoFromCamera}
+          handlePhotos={os.handlePhotos}
+          removePhoto={os.removePhoto}
+          setLightbox={os.setLightbox}
           onBack={() => os.goStep(1, os.step)}
           onNext={() => os.goStep(3, os.step)}
           stepDir={os.stepDir}
@@ -84,42 +83,8 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
 
       {os.step === 3 && (
         <Step3
-          selected={os.selected}
-          checklist={os.checklist}
-          stats={os.stats}
-          onSetStatus={os.setChecklistStatus}
-          onSetObs={os.setChecklistObs}
-          // ↓ itens dinâmicos agora vêm do hook
-          itensAdicionais={os.itensAdicionais}
-          onAddItem={os.addDynamicItem}
-          onRemoveItem={os.removeDynamicItem}
-          savedAt={os.savedAt}
-          onSave={os.saveOrder}
-          onBack={() => os.goStep(2, os.step)}
-          onNext={() => os.goStep(4, os.step)}
-          stepDir={os.stepDir}
-        />
-      )}
-
-      {os.step === 4 && (
-        <Step4
-          photos={os.photos}
-          handlePhotos={os.handlePhotos}
-          removePhoto={os.removePhoto}
-          setLightbox={os.setLightbox}
-          onBack={() => os.goStep(3, os.step)}
-          onNext={() => os.goStep(5, os.step)}
-          stepDir={os.stepDir}
-        />
-      )}
-
-      {os.step === 5 && (
-        <Step5
           veiculo={os.veiculo}
           cliente={os.cliente}
-          selected={os.selected}
-          stats={os.stats}
-          critItems={os.critItems}
           photos={os.photos}
           tecnico={os.tecnico}
           setTecnico={os.setTecnico}
@@ -130,7 +95,7 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
           onClearSig={os.clearSig}
           savedAt={os.savedAt}
           onSave={os.saveOrder}
-          onBack={() => os.goStep(4, os.step)}
+          onBack={() => os.goStep(2, os.step)}
           onExport={() => os.handleExport(handleExportPDF)}
           stepDir={os.stepDir}
         />

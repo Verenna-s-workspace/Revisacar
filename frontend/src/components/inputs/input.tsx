@@ -12,6 +12,7 @@ type InputProps = {
   onChangeValue?: (value: string) => void;
   maxLength?: number;
   mask?: string;
+  uppercase?: boolean;
 };
 
 export function Input({
@@ -24,7 +25,8 @@ export function Input({
   placeholder,
   onlyText,
   maxLength,
-  mask
+  mask,
+  uppercase
 }: InputProps) {
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     let value = e.target.value;
@@ -34,6 +36,9 @@ export function Input({
     }
     if (onlyText) {
       value = value.replace(/[^\p{L}\s]/gu, "");
+    }
+    if (uppercase) {
+      value = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     }
     if (mask) {
        onChangeValue?.(e.target.value);

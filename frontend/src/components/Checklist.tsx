@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+/* import { useState, useRef, useEffect } from 'react';
 import { STATUS_CONFIG, tokens } from '../constants';
 import { SectionIcon } from './ui';
 
@@ -56,7 +56,7 @@ export function ChecklistItem({
           {name}
         </span>
 
-        {/* Note toggle */}
+        {/* Note toggle /}
         <button
           onClick={() => setObsOpen((o) => !o)}
           title={data?.obs ? 'Ver observação' : 'Adicionar observação'}
@@ -91,7 +91,7 @@ export function ChecklistItem({
           {data?.obs ? 'Nota' : 'Obs.'}
         </button>
 
-        {/* Status buttons */}
+        {/* Status buttons /}
         <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
           {Object.entries(STATUS_CONFIG).map(([val, cfg]) => {
             const active = currentStatus === val;
@@ -121,7 +121,7 @@ export function ChecklistItem({
         </div>
       </div>
 
-      {/* Obs textarea */}
+      {/* Obs textarea /}
       {(obsOpen || data?.obs) && (
         <div style={{
           padding: '0 16px 11px 19px',
@@ -193,7 +193,7 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
       gap: 8,
       borderTop: `1px dashed ${tokens.color.border}`,
     }}>
-      {/* + icon */}
+      {/* + icon /}
       <span style={{
         width: 28,
         height: 28,
@@ -295,7 +295,7 @@ function DynamicItem({
         />
       </div>
 
-      {/* Remove button */}
+      {/* Remove button /}
       <button
         onClick={() => onRemove(index)}
         title="Remover item"
@@ -389,7 +389,7 @@ export function ChecklistSection({
       boxShadow: tokens.shadow.xs,
     }}>
       
-      {/* ── Section header ── */}
+      {/* ── Section header ── /}
       <button
         onClick={() => setCollapsed((c) => !c)}
         style={{
@@ -409,7 +409,7 @@ export function ChecklistSection({
           transition: 'background 0.15s',
         }}
       >
-        {/* Icon */}
+        {/* Icon /}
         <span style={{
           color: hasCrit
             ? tokens.color.crit
@@ -424,7 +424,7 @@ export function ChecklistSection({
           <SectionIcon id={sec.id} size={15} />
         </span>
 
-        {/* Label */}
+        {/* Label /}
         <span style={{
           fontFamily: tokens.fontMono,
           fontSize: '0.7rem',
@@ -456,7 +456,7 @@ export function ChecklistSection({
           )}
         </span>
 
-        {/* Progress pill */}
+        {/* Progress pill /}
         <span style={{
           fontFamily: tokens.fontMono,
           fontSize: '0.6rem',
@@ -472,7 +472,7 @@ export function ChecklistSection({
           {filled}/{allItems.length}
         </span>
 
-        {/* Mini progress bar */}
+        {/* Mini progress bar /}
         <div style={{
           width: 52,
           height: 2,
@@ -494,7 +494,7 @@ export function ChecklistSection({
           }} />
         </div>
 
-        {/* Collapse chevron */}
+        {/* Collapse chevron /}
         <svg
           width={13} height={13} viewBox="0 0 13 13"
           fill="none" stroke={tokens.color.subtle}
@@ -509,7 +509,7 @@ export function ChecklistSection({
         </svg>
       </button>
 
-      {/* ── Items ── */}
+      {/* ── Items ── /}
       {!collapsed && (
         <div style={{
           background: tokens.color.border,
@@ -519,7 +519,7 @@ export function ChecklistSection({
           animation: 'fadeUp 0.18s ease forwards',
         }}>
 
-          {/* Empty state para seções dinâmicas sem itens */}
+          {/* Empty state para seções dinâmicas sem itens /}
           {allItems.length === 0 && sec.isDynamic && (
             <div style={{
               background: tokens.color.surface,
@@ -550,7 +550,7 @@ export function ChecklistSection({
             </div>
           )}
 
-          {/* Static section items */}
+          {/* Static section items /}
           {!sec.isDynamic && allItems.map((name) => (
             <ChecklistItem
               key={name}
@@ -562,7 +562,7 @@ export function ChecklistSection({
             />
           ))}
 
-          {/* Dynamic section items com botão de remover */}
+          {/* Dynamic section items com botão de remover /}
           {sec.isDynamic && allItems.map((name, index) => (
             <DynamicItem
               key={`${name}-${index}`}
@@ -576,7 +576,7 @@ export function ChecklistSection({
             />
           ))}
 
-          {/* Input para adicionar — só em seções dinâmicas */}
+          {/* Input para adicionar — só em seções dinâmicas /}
           {sec.isDynamic && (
             <AddItemRow onAdd={(name) => onAddItem?.(name)} />
           )}
@@ -585,3 +585,4 @@ export function ChecklistSection({
     </div>
   );
 }
+  */
