@@ -1,5 +1,5 @@
-import { SECTIONS } from '../constants';
-import type { OSHeader, Cliente, Veiculo, Tecnico, ChecklistStats, CritItem, ValidationErrors } from '../types';
+
+import type { OSHeader, Cliente, Veiculo, Tecnico, ValidationErrors } from '../types';
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -26,17 +26,6 @@ export const formatDate = (dateStr: string): string => {
 
 export const formatTime = (timeStr: string): string => timeStr || '—';
 
-// ── Checklist ─────────────────────────────────────────────────────────────────
-
-export const initChecklist = (): Record<string, { status: string | null; obs: string }> => {
-  const c: Record<string, { status: string | null; obs: string }> = {};
-  SECTIONS.forEach((s) =>
-    s.items.forEach((name) => {
-      c[`${s.id}:${name}`] = { status: null, obs: '' };
-    })
-  );
-  return c;
-};
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
@@ -61,63 +50,7 @@ export const validateStep5 = (tecnico: Tecnico): ValidationErrors => {
   return errors;
 };
 
-// ── Checklist stats ───────────────────────────────────────────────────────────
 
-export const getChecklistStats = (
-  selected: Set<string>,
-  checklist: Record<string, { status: string | null; obs: string }>,
-  itensAdicionais: string[] = [],
-): ChecklistStats => {
-  // Gera as keys das seções estáticas normalmente
-  const staticKeys = SECTIONS
-    .filter((s) => selected.has(s.id) && !s.isDynamic)
-    .flatMap((s) => s.items.map((n) => `${s.id}:${n}`));
-
-  // Para a seção dinâmica, usa os itens reais adicionados pelo usuário
-  const dynamicKeys = selected.has('adicionais') && itensAdicionais.length > 0
-    ? itensAdicionais.map((n) => `adicionais:${n}`)
-    : [];
-
-  const activeKeys = [...staticKeys, ...dynamicKeys];
-  const statuses   = activeKeys.map((k) => checklist[k]?.status ?? null);
-
-  return {
-    activeKeys,
-    total: activeKeys.length,
-    ok:    statuses.filter((v) => v === 'ok').length,
-    warn:  statuses.filter((v) => v === 'warn').length,
-    crit:  statuses.filter((v) => v === 'crit').length,
-    na:    statuses.filter((v) => v === 'na').length,
-    done:  statuses.filter(Boolean).length,
-  };
-};
-
-export const getCritItems = (
-  selected: Set<string>,
-  checklist: Record<string, { status: string | null; obs: string }>,
-  itensAdicionais: string[] = [],
-): CritItem[] => {
-  const result: CritItem[] = [];
-
-  SECTIONS
-    .filter((s) => selected.has(s.id))
-    .forEach((s) => {
-      // Itens reais da seção: estáticas usam s.items, dinâmica usa itensAdicionais
-      const items = s.isDynamic ? itensAdicionais : s.items;
-
-      items
-        .filter((n) => checklist[`${s.id}:${n}`]?.status === 'crit')
-        .forEach((n) =>
-          result.push({
-            sec:  s.label,
-            name: n,
-            obs:  checklist[`${s.id}:${n}`]?.obs ?? '',
-          })
-        );
-    });
-
-  return result;
-};
 
 // ── HTML escape ───────────────────────────────────────────────────────────────
 

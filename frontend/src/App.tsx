@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Home from '../src/pages/home';
-import { StartScreen } from '../src/components/StartScreen';
+import { StartScreen } from './pages/StartScreen';
 import type { OrdemServico } from '../src/types';
 
 export default function App() {

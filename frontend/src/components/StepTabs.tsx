@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { STEP_LABELS, tokens } from '../constants';
 
-// SVG icons for each step — no emojis
 const STEP_ICONS = [
   // 1 — Identificação
   <svg key="1" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
@@ -10,23 +9,14 @@ const STEP_ICONS = [
     <line x1="4" y1="6.5" x2="9" y2="6.5"/>
     <line x1="4" y1="8.5" x2="7" y2="8.5"/>
   </svg>,
-  // 2 — Serviços
+  // 2 — Fotos
   <svg key="2" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
-    <path d="M2 10.5l2.5-2.5 1.5 1.5L9.5 6l1 1M10 2l1 3-2.5 1"/>
-    <circle cx="9.5" cy="3.5" r="2"/>
-  </svg>,
-  // 3 — Checklist
-  <svg key="3" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="2,6.5 5,9.5 11,3.5"/>
-  </svg>,
-  // 4 — Fotos
-  <svg key="4" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
     <rect x="1.5" y="3.5" width="10" height="7.5" rx="1.5"/>
     <circle cx="6.5" cy="7.2" r="2"/>
     <path d="M4.5 3.5l1-1.5h2l1 1.5"/>
   </svg>,
-  // 5 — Encerramento
-  <svg key="5" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
+  // 3 — Encerramento
+  <svg key="3" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
     <path d="M6.5 1.5v5.2M4 3l2.5 3.5L9 3"/>
     <path d="M2 9.5h9a1 1 0 0 1 0 2H2a1 1 0 0 1 0-2z"/>
   </svg>,
@@ -82,15 +72,14 @@ export function StepTabs({ step, onGoStep }: StepTabsProps) {
               position: 'relative',
             }}
           >
-            {/* Step badge */}
             <span
               className="step-badge"
               style={{
                 width: 22, height: 22,
                 borderRadius: '50%',
                 border: `1.5px solid ${
-                  done   ? tokens.color.ok :
-                  active ? tokens.color.ferrari :
+                  done    ? tokens.color.ok :
+                  active  ? tokens.color.ferrari :
                   isHover ? tokens.color.borderHigh :
                   tokens.color.border
                 }`,
@@ -115,7 +104,6 @@ export function StepTabs({ step, onGoStep }: StepTabsProps) {
               )}
             </span>
 
-            {/* Label */}
             <span style={{
               fontSize: '0.83rem',
               fontWeight: active ? 500 : 400,
@@ -125,14 +113,8 @@ export function StepTabs({ step, onGoStep }: StepTabsProps) {
               {label}
             </span>
 
-            {/* Step icon shown only on active */}
             {active && (
-              <span style={{
-                color: tokens.color.ferrari,
-                opacity: 0.7,
-                display: 'flex',
-                alignItems: 'center',
-              }}>
+              <span style={{ color: tokens.color.ferrari, opacity: 0.7, display: 'flex', alignItems: 'center' }}>
                 {STEP_ICONS[i]}
               </span>
             )}
