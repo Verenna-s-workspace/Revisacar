@@ -631,6 +631,7 @@ export function Step3({
         background: tokens.color.surface,
         borderBottom: `1px solid ${tokens.color.border}`,
         padding: "26px 40px",
+        
       }}>
         <SectionTitle>Assinatura do Técnico</SectionTitle>
         <canvas
@@ -639,7 +640,7 @@ export function Step3({
           style={{ display: "block", width: "100%", height: 140 }}
           {...sigHandlers}
         />
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 9 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 9, }}>
           <span style={{ fontFamily: tokens.fontMono, fontSize: "0.6rem", color: tokens.color.subtle }}>
             Assine com o mouse ou o dedo
           </span>
