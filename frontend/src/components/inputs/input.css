@@ -1,0 +1,56 @@
+/* Classe base do input */
+.inp {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 9px 13px;
+  outline: none;
+  width: 100%;
+  appearance: none;           
+  -webkit-appearance: none;  
+  transition:var(--transition-base);
+}
+
+/* Estado de erro */
+.inp.error {
+  border-color: var(--color-crit);
+  background: var(--color-crit-bg);
+}
+.inp:focus {
+  border-color: #666;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+.inp:hover {
+  box-shadow: 0 0 0 0.7px rgba(0,0,0,0.1);
+  transition: var(--transition-spring);
+}
+
+.inp.error:focus {
+  border-color: var(--color-crit);
+  box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.15);
+}
+span{
+   font-Family: var(--font-mono);
+          font-Size: 0.58rem;
+          color: var(--color-crit);
+          letter-Spacing: 0.04em;
+}
+textarea{
+      resize: vertical;
+      min-height: 72;
+       width: 100%;
+      font-Family:var(--font-sans);
+              font-Size: 0.83rem;
+              color:var(--color-text);
+              background: var(--color-bg-alt);
+              border: 1px solid var(--color-border);
+              border-Radius: var(--radius-sm);
+              padding: 7px 11px;
+              outline: none;
+              line-Height: 1.5;
+              transition: var(--transition-base);
+    }
+
