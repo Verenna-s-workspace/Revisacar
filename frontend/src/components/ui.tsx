@@ -1,5 +1,36 @@
-import { useState, CSSProperties, ReactNode } from 'react';
+import { useState, useEffect, CSSProperties, ReactNode } from 'react';
 import { tokens } from '../constants';
+
+// ── useResponsive hook ────────────────────────────────────────────────────────
+
+type Breakpoint = 'xs' | 'sm' | 'md' | 'lg';
+
+function getBreakpoint(w: number): Breakpoint {
+  if (w < 480)  return 'xs';
+  if (w < 640)  return 'sm';
+  if (w < 980)  return 'md';   // desktop layout kicks in at exactly 980 px
+  return 'lg';
+}
+
+export function useResponsive() {
+  const [bp, setBp] = useState<Breakpoint>(() =>
+    typeof window !== 'undefined' ? getBreakpoint(window.innerWidth) : 'lg'
+  );
+
+  useEffect(() => {
+    const handler = () => setBp(getBreakpoint(window.innerWidth));
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  return {
+    bp,
+    isMobile:  bp === 'xs' || bp === 'sm',
+    isTablet:  bp === 'md',
+    isDesktop: bp === 'lg',
+  };
+}
+
 
 // ── Shared input styles ───────────────────────────────────────────────────────
 
@@ -15,6 +46,7 @@ export const inp: CSSProperties = {
   width: '100%',
   WebkitAppearance: 'none',
   transition: 'border-color 0.18s, box-shadow 0.18s',
+  boxSizing: 'border-box',
 };
 
 export const inpError: CSSProperties = {
@@ -26,17 +58,56 @@ export const inpError: CSSProperties = {
 export const inpStyle = (hasError: boolean): CSSProperties =>
   hasError ? inpError : inp;
 
+// ── Responsive grid helpers ───────────────────────────────────────────────────
+
+/**
+ * Returns a responsive 3-column grid style.
+ * lg → 3 cols | md → 2 cols | xs/sm → 1 col
+ */
+export function useGrid3(): CSSProperties {
+  const { bp } = useResponsive();
+  // lg (≥980px) → original 3 cols | md (640–979px) → 2 cols | mobile → 1 col
+  const cols = bp === 'lg' ? 3 : bp === 'md' ? 2 : 1;
+  return {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    gap: '14px 18px',
+  };
+}
+
+/**
+ * Returns a responsive 4-column grid style.
+ * lg → 4 cols | md → 2 cols | xs/sm → 1 col
+ */
+export function useGrid4(): CSSProperties {
+  const { bp } = useResponsive();
+  const cols = bp === 'lg' ? 4 : bp === 'md' ? 2 : 1;
+  return {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    gap: '14px 18px',
+  };
+}
+
+/**
+ * Static fallbacks (for use outside components that can't call hooks).
+ * These still work but won't be reactive. Prefer useGrid3 / useGrid4 inside
+ * React components.
+ */
+
 export const grid3: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 2fr))',
   gap: '14px 18px',
 };
 
 export const grid4: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, 1fr)',
+  gridTemplateColumns: 'auto-fill, minmax(250px, 1fr))',
   gap: '14px 18px',
 };
+
+// ── Button styles ─────────────────────────────────────────────────────────────
 
 const baseBtn: CSSProperties = {
   fontFamily: tokens.fontMono,
@@ -54,22 +125,17 @@ const baseBtn: CSSProperties = {
   alignItems: 'center',
   gap: 6,
 };
-
 export const btnSolid: CSSProperties    = { ...baseBtn, background: tokens.color.surfaceHigh, color: tokens.color.textSecond, border: `1px solid ${tokens.color.border}` };
 export const btnAccent: CSSProperties   = { ...baseBtn, background: tokens.color.ferrari,    color: '#fff', boxShadow: '0 1px 4px rgba(204,20,0,0.3)' };
 export const btnGhost: CSSProperties    = { ...baseBtn, background: 'transparent', color: tokens.color.muted, border: `1px solid ${tokens.color.border}` };
 export const btnDisabled: CSSProperties = { ...baseBtn, background: tokens.color.surfaceHigh, color: tokens.color.ghost, cursor: 'not-allowed', border: `1px solid ${tokens.color.border}` };
-
 export const pfNote: CSSProperties = {
   fontFamily: tokens.fontMono,
   fontSize: '0.67rem',
   color: tokens.color.subtle,
 };
-
 // ── SectionTitle ──────────────────────────────────────────────────────────────
-
 interface SectionTitleProps { children: ReactNode; }
-
 export function SectionTitle({ children }: SectionTitleProps) {
   return (
     <div style={{
@@ -95,17 +161,20 @@ export function SectionTitle({ children }: SectionTitleProps) {
     </div>
   );
 }
-
 // ── FormBlock ─────────────────────────────────────────────────────────────────
-
 interface FormBlockProps { title?: string; children: ReactNode; noBorder?: boolean; }
 
 export function FormBlock({ title, children, noBorder }: FormBlockProps) {
+  const { isMobile, isTablet } = useResponsive();
+  // Preserve original 40px padding on desktop (≥980px)
+  const px = isMobile ? 16 : isTablet ? 24 : 40;
+  const py = isMobile ? 18 : 26;
+
   return (
     <div style={{
       background: tokens.color.surface,
       borderBottom: noBorder ? 'none' : `1px solid ${tokens.color.border}`,
-      padding: '26px 40px',
+      padding: `${py}px ${px}px`,
     }}>
       {title && <SectionTitle>{title}</SectionTitle>}
       {children}
@@ -117,18 +186,24 @@ export function FormBlock({ title, children, noBorder }: FormBlockProps) {
 
 interface FieldProps {
   label: string;
+  /**
+   * `span` is respected only on desktop. On mobile every field takes full width.
+   */
   span?: number;
   hint?: string;
   children: ReactNode;
 }
 
 export function Field({ label, span, hint, children }: FieldProps) {
+  const { isMobile } = useResponsive();
+
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       gap: 5,
-      gridColumn: span ? `span ${span}` : undefined,
+      // Collapse span on mobile so nothing overflows the single-column grid
+      gridColumn: (!isMobile && span) ? `span ${span}` : undefined,
     }}>
       <label style={{
         fontFamily: tokens.fontMono,
@@ -159,22 +234,36 @@ export function Field({ label, span, hint, children }: FieldProps) {
 interface PanelFooterProps { left?: ReactNode; right?: ReactNode; }
 
 export function PanelFooter({ left, right }: PanelFooterProps) {
+  const { isMobile, isTablet } = useResponsive();
+  const px = isMobile ? 16 : isTablet ? 24 : 40;
+
   return (
     <div style={{
-      padding: '14px 40px',
+      padding: `14px ${px}px`,
       background: 'rgba(247,246,243,0.92)',
       borderTop: `1px solid ${tokens.color.border}`,
       display: 'flex',
-      alignItems: 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      alignItems: isMobile ? 'stretch' : 'center',
       justifyContent: 'space-between',
+      gap: isMobile ? 10 : 0,
       position: 'sticky',
       bottom: 0,
       zIndex: 100,
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
     }}>
-      {left || <div />}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{right}</div>
+      {left || (!isMobile && <div />)}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        // On mobile, stack buttons full-width
+        flexDirection: isMobile ? 'column' : 'row',
+        width: isMobile ? '100%' : undefined,
+      }}>
+        {right}
+      </div>
     </div>
   );
 }
@@ -184,22 +273,37 @@ export function PanelFooter({ left, right }: PanelFooterProps) {
 interface ValidationBannerProps { show: boolean; children: ReactNode; }
 
 export function ValidationBanner({ show, children }: ValidationBannerProps) {
+  const { isMobile, isTablet } = useResponsive();
+  const px = isMobile ? 16 : isTablet ? 24 : 40;
+
   if (!show) return null;
   return (
     <div style={{
       background: tokens.color.critBg,
       borderBottom: `1px solid ${tokens.color.critBorder}`,
-      padding: '11px 40px',
+      padding: `11px ${px}px`,
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: 10,
       animation: 'fadeUp 0.2s ease forwards',
     }}>
-      <svg width={14} height={14} viewBox="0 0 14 14" fill="none" stroke={tokens.color.crit} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 1L13 12H1L7 1z" /><line x1="7" y1="5.5" x2="7" y2="8.5" /><circle cx="7" cy="10.5" r="0.5" fill={tokens.color.crit} />
+      <svg
+        width={14} height={14}
+        viewBox="0 0 14 14"
+        fill="none"
+        stroke={tokens.color.crit}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ flexShrink: 0, marginTop: 1 }}
+      >
+        <path d="M7 1L13 12H1L7 1z" />
+        <line x1="7" y1="5.5" x2="7" y2="8.5" />
+        <circle cx="7" cy="10.5" r="0.5" fill={tokens.color.crit} />
       </svg>
-      <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.crit }}>{children}</span>
-    </div>
+      <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.crit }}>
+        {children}
+      </span>    </div>
   );
 }
 
@@ -215,12 +319,16 @@ interface PhotoGridProps {
 }
 
 export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGridProps) {
+    const { isMobile } = useResponsive();
+  // Slightly larger thumb on desktop, compact on mobile
+  const thumbSize = isMobile ? 72 : 88;
   return (
     <>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+         {/* Upload trigger */}
         <label
           style={{
-            width: 88, height: 88,
+            width: thumbSize, height: thumbSize,
             border: `1.5px dashed ${tokens.color.borderMd}`,
             background: tokens.color.bgAlt,
             cursor: 'pointer',
@@ -258,13 +366,12 @@ export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGr
           </span>
           <input type="file" accept="image/*" multiple onChange={handlePhotos} style={{ display: 'none' }} />
         </label>
-
+        {/* Thumbnails */}
         {photos.map((photo, i) => (
           <div
             key={i}
-            className="photo-thumb"
             style={{
-              width: 88, height: 88,
+              width: thumbSize, height: thumbSize,
               overflow: 'hidden',
               position: 'relative',
               borderRadius: tokens.radius.md,
@@ -304,7 +411,9 @@ export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGr
       </div>
 
       <p style={{ fontFamily: tokens.fontMono, fontSize: '0.62rem', color: tokens.color.subtle, marginTop: 10 }}>
-        {photos.length === 0 ? 'Nenhuma foto adicionada' : `${photos.length} foto${photos.length > 1 ? 's' : ''} adicionada${photos.length > 1 ? 's' : ''}`}
+        {photos.length === 0
+          ? 'Nenhuma foto adicionada'
+          : `${photos.length} foto${photos.length > 1 ? 's' : ''} adicionada${photos.length > 1 ? 's' : ''}`}
       </p>
     </>
   );
@@ -315,6 +424,15 @@ export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGr
 interface LightboxProps { src: string | null; onClose: () => void; }
 
 export function Lightbox({ src, onClose }: LightboxProps) {
+   // Close on Escape key
+  useEffect(() => {
+    if (!src) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [src, onClose]);
+
+
   if (!src) return null;
   return (
     <div
@@ -326,6 +444,7 @@ export function Lightbox({ src, onClose }: LightboxProps) {
         zIndex: 9999,
         alignItems: 'center',
         justifyContent: 'center',
+        padding: 16,           // breathing room on small screens
         animation: 'fadeIn 0.18s ease forwards',
         backdropFilter: 'blur(6px)',
       }}
@@ -333,7 +452,7 @@ export function Lightbox({ src, onClose }: LightboxProps) {
       <button
         onClick={onClose}
         style={{
-          position: 'absolute', top: 22, right: 26,
+          position: 'absolute', top: 16, right: 16,
           background: 'rgba(255,255,255,0.12)',
           border: '1px solid rgba(255,255,255,0.2)',
           color: 'rgba(255,255,255,0.8)',
@@ -353,7 +472,7 @@ export function Lightbox({ src, onClose }: LightboxProps) {
         src={src}
         alt="Pré-visualização"
         style={{
-          maxWidth: '88vw', maxHeight: '88vh',
+          maxWidth: '100%', maxHeight: '90vh',   // safe on all screen sizes
           display: 'block',
           borderRadius: tokens.radius.lg,
           boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
@@ -398,7 +517,7 @@ export function StatBadge({ value, label, color }: StatBadgeProps) {
   );
 }
 
-// ── Tag (section icon replacement) ───────────────────────────────────────────
+// ── SectionIcon ─────────────────────
 
 interface SectionIconProps { id: string; size?: number; }
 
