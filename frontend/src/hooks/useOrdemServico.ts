@@ -53,7 +53,7 @@ export function useOrdemServico() {
   const sigDrawing = useRef(false);
 
   useEffect(() => {
-    if (step !== 5) return;
+    if (step !== 3) return;
     const canvas = sigRef.current;
     if (!canvas || (canvas as HTMLCanvasElement & { _init?: boolean })._init) return;
     (canvas as HTMLCanvasElement & { _init?: boolean })._init = true;
