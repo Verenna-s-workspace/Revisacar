@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Home from '../src/pages/home';
+import Check from './pages/InitialChecklist';
 import { StartScreen } from './pages/StartScreen';
 import { AuthScreen } from './pages/AuthScreen';
 import type { AdminUser, OrdemServico } from '../src/types';
@@ -49,5 +49,40 @@ export default function App() {
     return <StartScreen adminNome={admin.nome} onLogout={() => setAdmin(null)} onStartNew={handleStartNew} onLoadRascunho={handleLoadRascunho} />;
   }
 
+  return <div><Check initialOrdem={selectedOrdem} onBackToStart={handleBackToStart} /></div>;
+}
+
+
+
+
+/* --- IGNORE ---
+
+import { useState } from 'react';
+import Home from '../src/pages/home';
+import { StartScreen } from './pages/StartScreen';
+import type { OrdemServico } from '../src/types';
+
+export default function App() {
+  const [showStart, setShowStart] = useState(true);
+  const [selectedOrdem, setSelectedOrdem] = useState<OrdemServico & { id: string } | null>(null);
+
+  const handleStartNew = () => {
+    setSelectedOrdem(null);
+    setShowStart(false);
+  };
+
+  const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => {
+    setSelectedOrdem(ordem);
+    setShowStart(false);
+  };
+
+  const handleBackToStart = () => {
+    setShowStart(true);
+    setSelectedOrdem(null);
+  };
+
+
   return <div><Home initialOrdem={selectedOrdem} onBackToStart={handleBackToStart} /></div>;
 }
+
+*/
