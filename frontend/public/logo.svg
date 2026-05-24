@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#0c0c0e" stroke="#e01500" stroke-width="8"/>
+  <!-- Metallic shield outline -->
+  <path d="M256 60 L390 140 L390 320 C390 410 256 460 256 460 C256 460 122 410 122 320 L122 140 Z" fill="#16161a" stroke="url(#metalGradient)" stroke-width="12" stroke-linejoin="round"/>
+  <!-- Inner red glow shield -->
+  <path d="M256 80 L370 150 L370 310 C370 380 256 430 256 430 C256 430 142 380 142 310 L142 150 Z" fill="none" stroke="#e01500" stroke-width="4" opacity="0.6" filter="url(#glow)"/>
+  
+  <!-- Car Silhouette and Wrench Concept -->
+  <!-- Wrench -->
+  <path d="M190 270 L240 220 M230 210 L210 190 A25 25 0 0 0 170 230 L190 250 A10 10 0 0 1 190 270 Z" fill="none" stroke="#e01500" stroke-width="12" stroke-linecap="round"/>
+  <path d="M322 242 L272 292 M282 302 L302 322 A25 25 0 0 0 342 282 L322 262 A10 10 0 0 1 322 242 Z" fill="none" stroke="#e01500" stroke-width="12" stroke-linecap="round"/>
+  
+  <!-- Sleek Car Lines -->
+  <path d="M160 300 Q256 220 352 300" fill="none" stroke="white" stroke-width="16" stroke-linecap="round"/>
+  <path d="M190 260 Q256 200 322 260" fill="none" stroke="#e01500" stroke-width="10" stroke-linecap="round"/>
+  
+  <!-- Text inside Logo: RC -->
+  <text x="256" y="365" font-family="'Fredoka', sans-serif" font-weight="bold" font-size="70" fill="white" text-anchor="middle" letter-spacing="2">RC</text>
+
+  <!-- Definitions for gradients and filters -->
+  <defs>
+    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#8a8a93"/>
+      <stop offset="70%" stop-color="#3a3a3c"/>
+      <stop offset="100%" stop-color="#1c1c1e"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <blur stdDeviation="8" xmlns="http://www.w3.org/2000/svg"/>
+    </filter>
+  </defs>
+</svg>

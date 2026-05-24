@@ -1,7 +1,7 @@
 {
   "name": "revisacar-frontend",
   "private": true,
-  "version": "4.0.0",
+  "version": "5.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-input-mask": "^2.0.4",
-    "react-webcam": "^7.2.0"
+    "react-webcam": "^7.2.0",
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@types/react": "^18.3.1",
