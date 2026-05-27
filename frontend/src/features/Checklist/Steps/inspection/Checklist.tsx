@@ -1,6 +1,7 @@
- import { useState, useRef, useEffect } from 'react';
-import { STATUS_CONFIG, tokens } from '../../../../constants';
-import { SectionIcon } from '../../../../components/ui';
+import { useState, useRef } from 'react';
+import { STATUS_CONFIG, tokens } from '../constants';
+import type { StatusConfig } from '../types';
+import { SectionIcon } from './ui';
 
 // ── ChecklistItem ─────────────────────────────────────────────────────────────
 
@@ -41,13 +42,15 @@ export function ChecklistItem({
     >
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
         padding: '11px 16px',
-        gap: 12,
+        gap: 10,
         minHeight: 50,
       }}>
         <span style={{
-          flex: 1,
+          flex: '1 1 220px',
+          minWidth: 0,
           fontSize: '0.86rem',
           color: currentStatus ? tokens.color.text : tokens.color.textSecond,
           transition: 'color 0.12s',
@@ -92,8 +95,8 @@ export function ChecklistItem({
         </button>
 
         {/* Status buttons */}
-        <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-          {Object.entries(STATUS_CONFIG).map(([val, cfg]) => {
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flexShrink: 0 }}>
+          {(Object.entries(STATUS_CONFIG) as [string, StatusConfig][]).map(([val, cfg]) => {
             const active = currentStatus === val;
             return (
               <button
@@ -189,7 +192,8 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
       background: tokens.color.surface,
       padding: '10px 16px',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'stretch',
+      flexWrap: 'wrap',
       gap: 8,
       borderTop: `1px dashed ${tokens.color.border}`,
     }}>
@@ -225,6 +229,7 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
         placeholder="Nome da peça — pressione Enter para adicionar"
         style={{
           flex: 1,
+          minWidth: 0,
           fontFamily: tokens.fontSans,
           fontSize: '0.83rem',
           color: tokens.color.text,
@@ -284,7 +289,9 @@ function DynamicItem({
   onRemove,
 }: DynamicItemProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+    <div className="checklist-dynamic-row" style={{ display: 'flex', alignItems: 'stretch', flexWrap: 'wrap', gap: 8 }}>
+      {/* Ensure remove controls wrap cleanly on smaller widths */}
+      <div style={{ display: 'flex', flex: 1, minWidth: 0, flexWrap: 'wrap', gap: 6 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <ChecklistItem
           sid={sid}
@@ -294,9 +301,11 @@ function DynamicItem({
           onSetObs={onSetObs}
         />
       </div>
+      </div>
 
       {/* Remove button */}
       <button
+        className="checklist-remove-button"
         onClick={() => onRemove(index)}
         title="Remover item"
         style={{
@@ -307,6 +316,7 @@ function DynamicItem({
           padding: '0 14px',
           color: tokens.color.subtle,
           flexShrink: 0,
+          alignSelf: 'center',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -494,7 +504,7 @@ export function ChecklistSection({
           }} />
         </div>
 
-        {/* Collapse chevron*/}
+        {/* Collapse chevron */}
         <svg
           width={13} height={13} viewBox="0 0 13 13"
           fill="none" stroke={tokens.color.subtle}
@@ -585,3 +595,4 @@ export function ChecklistSection({
     </div>
   );
 }
+ 

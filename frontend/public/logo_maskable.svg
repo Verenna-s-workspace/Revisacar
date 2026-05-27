@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Solid background for cropping safety (minimum 10% outer padding) -->
+  <rect width="512" height="512" fill="#0c0c0e"/>
+  <!-- Glowing central aura -->
+  <circle cx="256" cy="256" r="180" fill="url(#radialGlow)" opacity="0.4"/>
+  
+  <!-- Shield and brand inside safe zone -->
+  <g transform="translate(51, 51) scale(0.8)">
+    <!-- Metallic shield outline -->
+    <path d="M256 60 L390 140 L390 320 C390 410 256 460 256 460 C256 460 122 410 122 320 L122 140 Z" fill="#16161a" stroke="url(#metalGradient)" stroke-width="14" stroke-linejoin="round"/>
+    <!-- Inner red glow shield -->
+    <path d="M256 80 L370 150 L370 310 C370 380 256 430 256 430 C256 430 142 380 142 310 L142 150 Z" fill="none" stroke="#e01500" stroke-width="6" opacity="0.8"/>
+    
+    <!-- Sleek Car Lines -->
+    <path d="M160 300 Q256 220 352 300" fill="none" stroke="white" stroke-width="18" stroke-linecap="round"/>
+    <path d="M190 260 Q256 200 322 260" fill="none" stroke="#e01500" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Text inside Logo: RC -->
+    <text x="256" y="375" font-family="'Fredoka', sans-serif" font-weight="bold" font-size="80" fill="white" text-anchor="middle" letter-spacing="2">RC</text>
+  </g>
+
+  <!-- Definitions -->
+  <defs>
+    <radialGradient id="radialGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e01500"/>
+      <stop offset="100%" stop-color="#0c0c0e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#8a8a93"/>
+      <stop offset="70%" stop-color="#3a3a3c"/>
+      <stop offset="100%" stop-color="#1c1c1e"/>
+    </linearGradient>
+  </defs>
+</svg>
