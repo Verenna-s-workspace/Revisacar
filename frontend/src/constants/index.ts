@@ -84,7 +84,7 @@ export const tokens = {
 
 // ── Sections ──────────────────────────────────────────────────────────────────
 
-/* export const SECTIONS: Section[] = [
+export const SECTIONS: Section[] = [
   {
     id: 'motor',
     label: 'Motor',
@@ -209,7 +209,6 @@ export const tokens = {
 
   }
 ];
-*/
 
 // ── Status Config ─────────────────────────────────────────────────────────────
 
