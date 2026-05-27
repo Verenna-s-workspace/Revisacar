@@ -84,7 +84,7 @@ export const tokens = {
 
 // ── Sections ──────────────────────────────────────────────────────────────────
 
- export const SECTIONS: Section[] = [
+/* export const SECTIONS: Section[] = [
   {
     id: 'motor',
     label: 'Motor',
@@ -218,7 +218,7 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
   crit: { label: 'Crítico', color: tokens.color.crit, bg: tokens.color.critBg, border: tokens.color.critBorder, dot: tokens.color.crit },
   na:   { label: 'N/A',     color: tokens.color.na,   bg: tokens.color.naBg,   border: tokens.color.naBorder,   dot: tokens.color.na },
 };
-
+*/
 // ── Options ───────────────────────────────────────────────────────────────────
 
 export const COMBUSTIVEL_OPTIONS = ['Gasolina', 'Etanol', 'Flex', 'Diesel', 'Elétrico', 'Híbrido', 'GNV'];
