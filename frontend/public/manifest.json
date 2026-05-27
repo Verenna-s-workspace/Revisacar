@@ -1,0 +1,25 @@
+{
+  "short_name": "RevisaCar",
+  "name": "RevisaCar — Inspeção Veicular e Gestão",
+  "description": "Sistema profissional de inspeção veicular, ordens de serviço e gestão de oficina.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c0c0e",
+  "theme_color": "#e01500",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo_maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}
