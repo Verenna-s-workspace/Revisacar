@@ -1,41 +1,30 @@
 ﻿import { useState } from 'react';
-import { STEP_LABELS } from '../constants';
 import '../styles/steptabs.css';
 
-const STEP_ICONS = [
-  <svg key="1" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
-    <rect x="1.5" y="1.5" width="10" height="10" rx="2" />
-    <line x1="4" y1="4.5" x2="9" y2="4.5" />
-    <line x1="4" y1="6.5" x2="9" y2="6.5" />
-    <line x1="4" y1="8.5" x2="7" y2="8.5" />
-  </svg>,
-  <svg key="2" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
-    <rect x="1.5" y="3.5" width="10" height="7.5" rx="1.5" />
-    <circle cx="6.5" cy="7.2" r="2" />
-    <path d="M4.5 3.5l1-1.5h2l1 1.5" />
-  </svg>,
-  <svg key="3" width={13} height={13} viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round">
-    <path d="M6.5 1.5v5.2M4 3l2.5 3.5L9 3" />
-    <path d="M2 9.5h9a1 1 0 0 1 0 2H2a1 1 0 0 1 0-2z" />
-  </svg>,
-];
+interface StepItem {
+  id: number;
+  label: string;
+  icon?: React.ReactNode;
+}
 
 interface StepTabsProps {
   step: number;
   onGoStep: (n: number) => void;
+  steps: StepItem[];
 }
 
-export function StepTabs({ step, onGoStep }: StepTabsProps) {
+export function StepTabs({ step, onGoStep, steps }: StepTabsProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
     <div className="step-tabs">
-      {STEP_LABELS.map((label, i) => {
-        const n = i + 1;
+      {steps.map((item) => {
+        const n = item.id;
         const active = step === n;
         const done = step > n;
         const isHover = hovered === n;
 
+       
         const tabClasses = [
           'step-tab',
           active ? 'step-tab--active' : undefined,
@@ -71,8 +60,12 @@ export function StepTabs({ step, onGoStep }: StepTabsProps) {
                 <span>{n}</span>
               )}
             </span>
-            <span className="step-tab__label">{label}</span>
-            {active && <span className="step-tab__icon">{STEP_ICONS[i]}</span>}
+            <span className="step-tab__label">{item.label}</span>
+            {active && item.icon && (
+  <span className="step-tab__icon">
+    {item.icon}
+  </span>
+)}
           </button>
         );
       })}
