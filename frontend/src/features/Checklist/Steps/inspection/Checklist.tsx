@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
-import { STATUS_CONFIG, tokens } from '../constants';
-import type { StatusConfig } from '../types';
-import { SectionIcon } from './ui';
+import { STATUS_CONFIG, tokens } from '../../../../constants';
+import type { StatusConfig } from '../../../../types';
+import { SectionIcon } from '../../../../components/ui';
 
 // ── ChecklistItem ─────────────────────────────────────────────────────────────
 
@@ -11,6 +11,8 @@ interface ChecklistItemProps {
   data: { status: string | null; obs: string } | undefined;
   onSetStatus: (key: string, val: string) => void;
   onSetObs: (key: string, val: string) => void;
+  trocaSet?: Set<string>;
+  onToggleTroca?: (key: string, pecaNome: string) => void;
 }
 
 export function ChecklistItem({
@@ -19,10 +21,13 @@ export function ChecklistItem({
   data,
   onSetStatus,
   onSetObs,
+  trocaSet,
+  onToggleTroca,
 }: ChecklistItemProps) {
   const [obsOpen, setObsOpen] = useState(false);
   const key           = `${sid}:${name}`;
   const currentStatus = data?.status ?? null;
+  const isTroca       = trocaSet?.has(key) ?? false;
 
   const accentColor =
     currentStatus === 'ok'   ? tokens.color.ok   :
@@ -122,6 +127,51 @@ export function ChecklistItem({
             );
           })}
         </div>
+
+        {/* Trocar button */}
+        {onToggleTroca && (
+          <>
+            <div style={{
+              width: 1,
+              alignSelf: 'stretch',
+              background: tokens.color.border,
+              flexShrink: 0,
+            }} />
+            <button
+              onClick={() => onToggleTroca(key, name)}
+              title={isTroca ? 'Remover da lista de troca' : 'Marcar para troca'}
+              style={{
+                fontFamily: tokens.fontMono,
+                fontSize: '0.58rem',
+                fontWeight: isTroca ? 600 : 500,
+                letterSpacing: '0.06em',
+                padding: '4px 10px',
+                border: `1px solid ${isTroca ? tokens.color.ferrari : tokens.color.border}`,
+                background: isTroca ? tokens.color.accentDim : 'transparent',
+                color: isTroca ? tokens.color.ferrari : tokens.color.subtle,
+                cursor: 'pointer',
+                borderRadius: tokens.radius.sm,
+                transition: 'all 0.12s cubic-bezier(0.4,0,0.2,1)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              {isTroca ? (
+                <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke={tokens.color.ferrari} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1,4 3,6 7,2" />
+                </svg>
+              ) : (
+                <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1.5 4h4.5M4 2l2 2-2 2" />
+                </svg>
+              )}
+              Trocar
+            </button>
+          </>
+        )}
       </div>
 
       {/* Obs textarea */}
@@ -277,6 +327,8 @@ interface DynamicItemProps {
   onSetStatus: (key: string, val: string) => void;
   onSetObs: (key: string, val: string) => void;
   onRemove: (index: number) => void;
+  trocaSet?: Set<string>;
+  onToggleTroca?: (key: string, pecaNome: string) => void;
 }
 
 function DynamicItem({
@@ -287,6 +339,8 @@ function DynamicItem({
   onSetStatus,
   onSetObs,
   onRemove,
+  trocaSet,
+  onToggleTroca,
 }: DynamicItemProps) {
   return (
     <div className="checklist-dynamic-row" style={{ display: 'flex', alignItems: 'stretch', flexWrap: 'wrap', gap: 8 }}>
@@ -299,6 +353,8 @@ function DynamicItem({
           data={data}
           onSetStatus={onSetStatus}
           onSetObs={onSetObs}
+          trocaSet={trocaSet}
+          onToggleTroca={onToggleTroca}
         />
       </div>
       </div>
@@ -362,6 +418,9 @@ interface ChecklistSectionProps {
   itensAdicionais?: string[];
   onAddItem?: (name: string) => void;
   onRemoveItem?: (index: number) => void;
+  // Trocar
+  trocaSet?: Set<string>;
+  onToggleTroca?: (key: string, pecaNome: string) => void;
 }
 
 export function ChecklistSection({
@@ -372,6 +431,8 @@ export function ChecklistSection({
   itensAdicionais = [],
   onAddItem,
   onRemoveItem,
+  trocaSet,
+  onToggleTroca,
 }: ChecklistSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -569,6 +630,8 @@ export function ChecklistSection({
               data={checklist[`${sec.id}:${name}`]}
               onSetStatus={onSetStatus}
               onSetObs={onSetObs}
+              trocaSet={trocaSet}
+              onToggleTroca={onToggleTroca}
             />
           ))}
 
@@ -583,6 +646,8 @@ export function ChecklistSection({
               onSetStatus={onSetStatus}
               onSetObs={onSetObs}
               onRemove={(i) => onRemoveItem?.(i)}
+              trocaSet={trocaSet}
+              onToggleTroca={onToggleTroca}
             />
           ))}
 

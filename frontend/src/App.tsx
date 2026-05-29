@@ -1,18 +1,36 @@
 import { useState } from 'react';
-import Home from './pages/home';
+import Check  from './pages/InitialChecklist';
+import Check2 from './pages/InspectionChecklist';
 import { Dashboard } from './pages/Dashboard';
 import { api } from './utils/api';
 import type { OrdemServico } from './types';
 
-type View = 'dashboard' | 'os';
+type View = 'dashboard' | 'os' | 'os2';
 
 export default function App() {
-  const [view, setView] = useState<View>('dashboard');
-  const [selectedOrdem, setSelectedOrdem] = useState<OrdemServico & { id: string } | null>(null);
+  const [view, setView]                 = useState<View>('dashboard');
+  const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
 
-  const handleStartNew = () => { setSelectedOrdem(null); setView('os'); };
-  const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => { setSelectedOrdem(ordem); setView('os'); };
-  const handleBackToStart = () => { setView('dashboard'); setSelectedOrdem(null); };
+  // ── Navegação ──────────────────────────────────────────────────────────────
+
+  const handleStartNew = () => {
+    setSelectedOrdem(null);
+    setView('os');            // sempre abre o Check (fluxo de entrada)
+  };
+
+  const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => {
+    setSelectedOrdem(ordem);
+    setView('os');
+  };
+
+  const handleBackToDashboard = () => {
+    setView('dashboard');
+    setSelectedOrdem(null);
+  };
+
+  const handleGoToCheck2 = () => {
+    setView('os2');           // chamado pelo botão "Próxima etapa" do Step3
+  };
 
   const handleLoadOS = async (id: string) => {
     try {
@@ -23,9 +41,32 @@ export default function App() {
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   if (view === 'dashboard') {
-    return <Dashboard onNewOS={handleStartNew} onLoadOS={handleLoadOS} />;
+    return (
+      <Dashboard
+        onNewOS={handleStartNew}
+        onLoadOS={handleLoadOS}
+      />
+    );
   }
 
-  return <div><Home initialOrdem={selectedOrdem} onBackToStart={handleBackToStart} /></div>;
+  if (view === 'os2') {
+    return (
+      <Check2
+        initialOrdem={selectedOrdem}
+        onBackToStart={handleBackToDashboard}
+      />
+    );
+  }
+
+  
+  return (
+    <Check
+      initialOrdem={selectedOrdem}
+      onBackToStart={handleBackToDashboard}
+      onNextChecklist={handleGoToCheck2}   // ← permite ir para Check2
+    />
+  );
 }

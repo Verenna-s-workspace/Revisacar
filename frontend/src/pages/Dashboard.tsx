@@ -7,20 +7,20 @@ import { formatBRL, HEAT_DAYS } from '../utils/dashboard';
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 // Components
-import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../components/dashboard/Navigation';
-import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../components/dashboard/Primitives';
-import { Icons, SVC_ICON } from '../components/dashboard/Icons';
-import { FaturamentoChart } from '../components/dashboard/FaturamentoChart';
-import { OSRow, OSModal, OrdensPage } from '../components/dashboard/OrdensPage';
+import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../features/Dashboard/Navigation';
+import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../features/Dashboard/Primitives';
+import { Icons, SVC_ICON } from '../features/Dashboard/Icons';
+import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
+import { OSRow, OSModal, OrdensPage } from '../features/Dashboard/OrdensPage';
 
 // High-fidelity Sub-pages
-import { ClientesPage } from '../components/dashboard/ClientesPage';
-import { VeiculosPage } from '../components/dashboard/VeiculosPage';
-import { EstoquePage } from '../components/dashboard/EstoquePage';
-import { FinanceiroPage } from '../components/dashboard/FinanceiroPage';
-import { ConfiguracoesPage } from '../components/dashboard/ConfiguracoesPage';
-import { AgendamentosPage } from '../components/dashboard/AgendamentosPage';
-import { ServicosPage } from '../components/dashboard/ServicosPage';
+import { ClientesPage } from '../features/Dashboard/ClientesPage';
+import { VeiculosPage } from '../features/Dashboard/VeiculosPage';
+import { EstoquePage } from '../features/Dashboard/EstoquePage';
+import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
+import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
+import { AgendamentosPage } from '../features/Dashboard/AgendamentosPage';
+import { ServicosPage } from '../features/Dashboard/ServicosPage';
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';

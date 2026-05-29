@@ -5,86 +5,86 @@ export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 
 export const tokens = {
-  fontMono:    "var(--font-mono)",
-  fontSans:    "var(--font-sans)",
-  fontDisplay: "var(--font-display)",
+  fontMono:    "'DM Mono', 'JetBrains Mono', monospace",
+  fontSans:    "'DM Sans', sans-serif",
+  fontDisplay: "'DM Sans', sans-serif",
   fontLogo:    "'Fredoka', cursive",
 
   color: {
     // Brand red
-    ferrari:     'var(--color-ferrari)',
-    ferrariDark: 'var(--color-ferrari-dark)',
-    ferrariDeep: 'var(--color-ferrari-deep)',
-    ferrariGlow: 'var(--color-ferrari-glow)',
-    ferrariMid:  'var(--color-ferrari-mid)',
+    ferrari:     '#CC1400',
+    ferrariDark: '#A01000',
+    ferrariDeep: '#740C00',
+    ferrariGlow: 'rgba(204,20,0,0.14)',
+    ferrariMid:  'rgba(204,20,0,0.06)',
 
     // Backgrounds — warm light
-    bg:          'var(--color-bg)',
-    bgAlt:       'var(--color-bg-alt)',
-    surface:     'var(--color-surface)',
-    surfaceHigh: 'var(--color-surface-high)',
-    card:        'var(--color-card)',
+    bg:          '#F7F6F3',
+    bgAlt:       '#FAFAF8',
+    surface:     '#FFFFFF',
+    surfaceHigh: '#F3F1EC',
+    card:        '#FFFFFF',
 
     // Borders
-    border:      'var(--color-border)',
-    borderMd:    'var(--color-border-md)',
-    borderHigh:  'var(--color-border-high)',
+    border:      '#E5E2DA',
+    borderMd:    '#D6D2C8',
+    borderHigh:  '#C4C0B5',
 
     // Text
-    text:        'var(--color-text)',
-    textSecond:  'var(--color-text-second)',
-    muted:       'var(--color-muted)',
-    subtle:      'var(--color-subtle)',
-    ghost:       'var(--color-ghost)',
+    text:        '#1A1A1A',
+    textSecond:  '#3D3B37',
+    muted:       '#6B6760',
+    subtle:      '#9A958C',
+    ghost:       '#C8C4BB',
 
     // Status
-    ok:          'var(--color-ok)',
-    okBg:        'var(--color-ok-bg)',
-    okBorder:    'var(--color-ok-border)',
-    warn:        'var(--color-warn)',
-    warnBg:      'var(--color-warn-bg)',
-    warnBorder:  'var(--color-warn-border)',
-    crit:        'var(--color-crit)',
-    critBg:      'var(--color-crit-bg)',
-    critBorder:  'var(--color-crit-border)',
-    na:          'var(--color-na)',
-    naBg:        'var(--color-na-bg)',
-    naBorder:    'var(--color-na-border)',
+    ok:          '#1A7F4B',
+    okBg:        'rgba(26,127,75,0.08)',
+    okBorder:    'rgba(26,127,75,0.2)',
+    warn:        '#B35C00',
+    warnBg:      'rgba(179,92,0,0.08)',
+    warnBorder:  'rgba(179,92,0,0.2)',
+    crit:        '#CC1400',
+    critBg:      'rgba(204,20,0,0.06)',
+    critBorder:  'rgba(204,20,0,0.2)',
+    na:          '#8A8580',
+    naBg:        'rgba(138,133,128,0.08)',
+    naBorder:    'rgba(138,133,128,0.2)',
 
     // Accent
-    accent:      'var(--color-accent)',
-    accentHover: 'var(--color-accent-hover)',
-    accentDim:   'var(--color-accent-dim)',
+    accent:      '#CC1400',
+    accentHover: '#E01500',
+    accentDim:   'rgba(204,20,0,0.1)',
   },
 
   radius: {
-    sm:   'var(--radius-sm)',
-    md:   'var(--radius-md)',
-    lg:   'var(--radius-lg)',
-    xl:   'var(--radius-xl)',
-    full: 'var(--radius-full)',
+    sm:   '4px',
+    md:   '7px',
+    lg:   '10px',
+    xl:   '16px',
+    full: '9999px',
   },
 
   shadow: {
-    xs:     'var(--shadow-xs)',
-    sm:     'var(--shadow-sm)',
-    md:     'var(--shadow-md)',
-    lg:     'var(--shadow-lg)',
-    ferrari:'var(--shadow-ferrari)',
-    inset:  'var(--shadow-inset)',
+    xs:     '0 1px 2px rgba(0,0,0,0.06)',
+    sm:     '0 1px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
+    md:     '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+    lg:     '0 12px 32px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.05)',
+    ferrari:'0 0 16px rgba(204,20,0,0.25)',
+    inset:  'inset 0 1px 0 rgba(255,255,255,0.8)',
   },
 
   transition: {
-    fast:   'var(--transition-fast)',
-    base:   'var(--transition-base)',
-    spring: 'var(--transition-spring)',
-    smooth: 'var(--transition-smooth)',
+    fast:   'all 0.13s cubic-bezier(0.4,0,0.2,1)',
+    base:   'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+    spring: 'all 0.32s cubic-bezier(0.34,1.56,0.64,1)',
+    smooth: 'all 0.36s cubic-bezier(0.25,0.46,0.45,0.94)',
   },
 } as const;
 
 // ── Sections ──────────────────────────────────────────────────────────────────
 
-/* export const SECTIONS: Section[] = [
+ export const SECTIONS: Section[] = [
   {
     id: 'motor',
     label: 'Motor',
@@ -209,7 +209,6 @@ export const tokens = {
 
   }
 ];
-*/
 
 // ── Status Config ─────────────────────────────────────────────────────────────
 
@@ -219,8 +218,9 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
   crit: { label: 'Crítico', color: tokens.color.crit, bg: tokens.color.critBg, border: tokens.color.critBorder, dot: tokens.color.crit },
   na:   { label: 'N/A',     color: tokens.color.na,   bg: tokens.color.naBg,   border: tokens.color.naBorder,   dot: tokens.color.na },
 };
+
 // ── Options ───────────────────────────────────────────────────────────────────
 
 export const COMBUSTIVEL_OPTIONS = ['Gasolina', 'Etanol', 'Flex', 'Diesel', 'Elétrico', 'Híbrido', 'GNV'];
 export const NIVEL_COMBUSTIVEL_OPTIONS = ['Reserva', '1/4', '1/2', '3/4', 'Cheio'];
-export const STEP_LABELS = ['Identificação','Fotos', 'Encerramento'];
+ 
