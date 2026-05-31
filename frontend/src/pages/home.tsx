@@ -1,3 +1,4 @@
+/* import { useEffect } from 'react';
 import { useEffect } from 'react';
 import '../styles/screens.css';
 import { useOrdemServico } from '../hooks/useOrdemServico';
@@ -100,3 +101,4 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
     </div>
   );
 }
+  */

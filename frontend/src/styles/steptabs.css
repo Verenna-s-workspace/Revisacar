@@ -61,12 +61,13 @@
 
 .step-tab__label {
   font-size: 0.83rem;
+  color: var(--color-text-second);
   transition: color 0.15s ease;
 }
 
 .step-tab--active .step-tab__label {
   font-weight: 500;
-  color: var(--color-text);
+  color: var(--color-text-high);
 }
 
 .step-tab--hover .step-badge {
@@ -74,7 +75,7 @@
 }
 
 .step-tab--hover .step-tab__label {
-  color: var(--color-text-second);
+  color: var(--color-ferrari);
 }
 
 .step-tab__icon {

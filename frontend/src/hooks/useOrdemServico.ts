@@ -1,18 +1,20 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { SECTIONS } from '../constants';
 import {
   nowDate, nowTime, randomOsNum,
   initChecklist,
-  validateStep1, validateStep5,
+  validateStep1,
   getChecklistStats, getCritItems,
 } from '../utils';
 import { api } from '../utils/api';
 import type {
   OSHeader, Cliente, Veiculo, Tecnico, Photo,
-  SaveStatus, ValidationErrors,
+  SaveStatus, ValidationErrors, TabelaPeca,
 } from '../types';
 
 // ── Initial state ─────────────────────────────────────────────────────────────
+
+const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const INITIAL_OS_HEADER = (): OSHeader => ({
   os_num:  randomOsNum(),
@@ -32,6 +34,8 @@ const INITIAL_TECNICO: Tecnico = {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
+// Sem parâmetros: o hook não conhece qual step tem assinatura.
+// Cada step que precisar de canvas chama os.initSig() no seu próprio useEffect.
 export function useOrdemServico() {
   const [step, setStep]             = useState(1);
   const [stepDir, setStepDir]       = useState<'forward' | 'back'>('forward');
@@ -54,15 +58,19 @@ export function useOrdemServico() {
   const [checklist,       setChecklist]       = useState(initChecklist);
   const [itensAdicionais, setItensAdicionais] = useState<string[]>([]);
 
+  // ── Partes / Trocar state ─────────────────────────────────────────────────
+  const [trocaSet,    setTrocaSet]    = useState<Set<string>>(new Set());
+  const [tabelaPecas, setTabelaPecas] = useState<TabelaPeca[]>([]);
+
   // ── Signature canvas ──────────────────────────────────────────────────────
   const sigRef     = useRef<HTMLCanvasElement>(null);
   const sigCtxRef  = useRef<CanvasRenderingContext2D | null>(null);
   const sigDrawing = useRef(false);
 
-  useEffect(() => {
-    // Compatível com fluxo de 3 steps (entrada) e 5 steps (inspeção)
-    const sigStep = step === 3 || step === 5;
-    if (!sigStep) return;
+  // Chamado pelo step component que contém o canvas, no seu próprio useEffect.
+  // Funciona em qualquer fluxo com qualquer número de steps — o hook não precisa
+  // saber em qual step a assinatura fica.
+  const initSig = useCallback(() => {
     const canvas = sigRef.current;
     if (!canvas || (canvas as HTMLCanvasElement & { _init?: boolean })._init) return;
     (canvas as HTMLCanvasElement & { _init?: boolean })._init = true;
@@ -79,7 +87,7 @@ export function useOrdemServico() {
     ctx.lineCap     = 'round';
     ctx.lineJoin    = 'round';
     sigCtxRef.current = ctx;
-  }, [step]);
+  }, []);
 
   // ── Photos ────────────────────────────────────────────────────────────────
 
@@ -151,7 +159,7 @@ export function useOrdemServico() {
     });
   }, []);
 
-  const addChecklistItem  = useCallback((name: string) => {
+  const addChecklistItem = useCallback((name: string) => {
     setItensAdicionais((prev) => [...prev, name]);
     const key = `adicionais:${name}`;
     setChecklist((prev) => ({
@@ -170,6 +178,63 @@ export function useOrdemServico() {
         return next;
       });
       return newList;
+    });
+  }, []);
+
+  // ── Partes / Trocar actions ───────────────────────────────────────────────
+
+  const toggleTroca = useCallback((key: string, pecaNome: string) => {
+    setTrocaSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        // Remove from set and remove the corresponding auto row from table
+        next.delete(key);
+        setTabelaPecas((prevTable) =>
+          prevTable.filter((row) => !(row.isAuto && row.sourceKey === key))
+        );
+      } else {
+        // Add to set; add row only if no item with same name already exists
+        next.add(key);
+        setTabelaPecas((prevTable) => {
+          const alreadyExists = prevTable.some(
+            (row) => row.peca.toLowerCase() === pecaNome.toLowerCase()
+          );
+          if (alreadyExists) return prevTable;
+          return [
+            ...prevTable,
+            { id: genId(), peca: pecaNome, modelo: '', marca: '', codigo: '', quantidade: '', isAuto: true, sourceKey: key },
+          ];
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const updateTabelaPeca = useCallback((id: string, field: string, value: string) => {
+    setTabelaPecas((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  }, []);
+
+  const addTabelaPecaManual = useCallback(() => {
+    setTabelaPecas((prev) => [
+      ...prev,
+      { id: genId(), peca: '', modelo: '', marca: '', codigo: '', quantidade: '', isAuto: false },
+    ]);
+  }, []);
+
+  const removeTabelaPeca = useCallback((id: string) => {
+    setTabelaPecas((prev) => {
+      const row = prev.find((r) => r.id === id);
+      // If it's an auto-added row, also uncheck the Trocar toggle
+      if (row?.isAuto && row.sourceKey) {
+        setTrocaSet((prevSet) => {
+          const newSet = new Set(prevSet);
+          newSet.delete(row.sourceKey!);
+          return newSet;
+        });
+      }
+      return prev.filter((r) => r.id !== id);
     });
   }, []);
 
@@ -242,14 +307,15 @@ export function useOrdemServico() {
       cliente,
       veiculo,
       tecnico,
-      // Checklist — presentes apenas quando o fluxo de inspeção os utiliza
       servicos_selecionados: Array.from(selected),
       checklist: Object.fromEntries(
         Object.entries(checklist).map(([k, v]) => [k, { status: v.status, obs: v.obs }])
       ),
       itens_adicionais: itensAdicionais,
+      troca_set:   Array.from(trocaSet),
+      tabela_pecas: tabelaPecas,
     }),
-    [osHeader, cliente, veiculo, tecnico, selected, checklist, itensAdicionais]
+    [osHeader, cliente, veiculo, tecnico, selected, checklist, itensAdicionais, trocaSet, tabelaPecas]
   );
 
   const saveOrder = useCallback(async () => {
@@ -299,6 +365,7 @@ export function useOrdemServico() {
 
   // ── Step handlers ─────────────────────────────────────────────────────────
 
+  // Validação do step 1 (identificação) — comum a todos os fluxos.
   const handleNextStep1 = useCallback(() => {
     const errs = validateStep1(osHeader, cliente, veiculo);
     if (Object.keys(errs).length > 0) {
@@ -311,8 +378,11 @@ export function useOrdemServico() {
     goStep(2, 1);
   }, [osHeader, cliente, veiculo, goStep]);
 
+  // Validação do step de encerramento — genérica, só exige nome do técnico.
+  // Cada fluxo pode ter esse step em posições diferentes (3, 4, 5...).
   const handleExport = useCallback((onExport: () => void) => {
-    const errs = validateStep5(tecnico);
+    const errs: ValidationErrors = {};
+    if (!tecnico.nome?.trim()) errs.tec_nome = 'Campo obrigatório';
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       setShowErrors(true);
@@ -339,14 +409,24 @@ export function useOrdemServico() {
     setVeiculo(payload.veiculo    || INITIAL_VEICULO);
     setTecnico(payload.tecnico    || INITIAL_TECNICO);
 
-    // Checklist — restaura se existir no payload, senão mantém estado limpo
     setSelected(new Set(payload.servicos_selecionados || []));
-    setChecklist(payload.checklist     || initChecklist());
+    setChecklist(payload.checklist || initChecklist());
     setItensAdicionais(payload.itens_adicionais || []);
+    setTrocaSet(new Set(payload.troca_set || []));
+    setTabelaPecas(payload.tabela_pecas || []);
 
     setSavedAt(nowTime());
     setErrors({});
     setShowErrors(false);
+
+    // Limpa a flag _init do canvas para que initSig() possa re-inicializar
+    // corretamente quando o step com assinatura for montado novamente.
+    const canvas = sigRef.current;
+    if (canvas) {
+      (canvas as HTMLCanvasElement & { _init?: boolean })._init = false;
+      sigCtxRef.current = null;
+    }
+
     setStep(1);
     clearSig();
 
@@ -387,12 +467,22 @@ export function useOrdemServico() {
     setSelected(new Set());
     setChecklist(initChecklist());
     setItensAdicionais([]);
+    setTrocaSet(new Set());
+    setTabelaPecas([]);
     setPhotos([]);
     setNewPhotos([]);
     setOrderId(null);
     setSavedAt(null);
     setErrors({});
     setShowErrors(false);
+
+    // Reseta canvas da mesma forma que loadOrder
+    const canvas = sigRef.current;
+    if (canvas) {
+      (canvas as HTMLCanvasElement & { _init?: boolean })._init = false;
+      sigCtxRef.current = null;
+    }
+
     setStep(1);
     clearSig();
   }, [clearSig]);
@@ -422,8 +512,9 @@ export function useOrdemServico() {
     removePhoto,
     addPhotoFromCamera,
 
-    // Signature
-    sigRef, sigCtxRef, sigHandlers, clearSig, getSigImage,
+    // Signature — initSig é chamado pelo step component que tem o canvas
+    sigRef, sigCtxRef, sigHandlers,
+    initSig, clearSig, getSigImage,
 
     // Navigation
     goStep,
@@ -440,6 +531,14 @@ export function useOrdemServico() {
     setChecklistObs,
     addChecklistItem,
     removeChecklistItem,
+
+    // Partes / Trocar
+    trocaSet,
+    tabelaPecas,
+    toggleTroca,
+    updateTabelaPeca,
+    addTabelaPecaManual,
+    removeTabelaPeca,
 
     // Actions
     saveOrder,
