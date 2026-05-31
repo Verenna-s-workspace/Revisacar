@@ -31,6 +31,7 @@
 
   /* Colors — Text */
   --color-text: #1A1A1A;
+  --color-text-high: #0D0D0D;
   --color-text-second: #3D3B37;
   --color-muted: #6B6760;
   --color-subtle: #9A958C;
@@ -93,6 +94,7 @@ body.dark {
   --color-border-high: rgba(255, 255, 255, 0.22);
 
   --color-text: #f4f4f5;
+  --color-text-high: #ffffff;
   --color-text-second: #d4d4d8;
   --color-muted: #9ca3af;
   --color-subtle: #71717a;

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
@@ -8,17 +8,22 @@ import { DiagnosticoConfig } from '../features/Checklist/configs/inspection';
 import { tokens } from '../constants';
 import type { OrdemServico } from '../types';
 
-interface CheckProps {
+interface Check2Props {
   initialOrdem?: (OrdemServico & { id: string }) | null;
   onBackToStart?: () => void;
 }
 
-export default function Check({ initialOrdem, onBackToStart }: CheckProps) {
+export default function Check2({ initialOrdem, onBackToStart }: Check2Props) {
   const os = useOrdemServico();
 
+  // Auto-scroll active tab into view when step changes
+  const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (initialOrdem) os.loadOrder(initialOrdem);
-  }, [initialOrdem]);
+    const activeBtn = tabsRef.current?.querySelector('.step-tab--active') as HTMLElement | null;
+    activeBtn?.scrollIntoView({ inline: 'nearest', behavior: 'smooth', block: 'nearest' });
+  }, [os.step]);
+
+  const currentStep = DiagnosticoConfig.find((s) => s.id === os.step);
 
   const handleExportPDF = () => {
     exportPDF(
@@ -31,7 +36,6 @@ export default function Check({ initialOrdem, onBackToStart }: CheckProps) {
     );
   };
 
-  const currentStep = DiagnosticoConfig.find((s) => s.id === os.step);
   const CurrentComponent = currentStep?.component;
 
   return (
@@ -48,7 +52,13 @@ export default function Check({ initialOrdem, onBackToStart }: CheckProps) {
         onExportPDF={handleExportPDF}
         onBackToStart={onBackToStart}
       />
-      <StepTabs step={os.step} onGoStep={(n) => os.goStep(n, os.step)} />
+      <div ref={tabsRef}>
+        <StepTabs
+          step={os.step}
+          onGoStep={(n) => os.goStep(n, os.step)}
+          steps={DiagnosticoConfig}
+        />
+      </div>
 
       {CurrentComponent && (
         <CurrentComponent os={os} onExportPDF={handleExportPDF} />

@@ -222,4 +222,4 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
 
 export const COMBUSTIVEL_OPTIONS = ['Gasolina', 'Etanol', 'Flex', 'Diesel', 'Elétrico', 'Híbrido', 'GNV'];
 export const NIVEL_COMBUSTIVEL_OPTIONS = ['Reserva', '1/4', '1/2', '3/4', 'Cheio'];
-export const STEP_LABELS = ['Identificação','Fotos', 'Encerramento'];
+ 

@@ -1,4 +1,4 @@
-﻿import { useResponsive } from "./ui";
+import { useResponsive } from "./ui";
 import type { SaveStatus } from "../types";
 import "../styles/topbar.css";
 

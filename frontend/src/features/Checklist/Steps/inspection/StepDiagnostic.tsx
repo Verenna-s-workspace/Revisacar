@@ -35,6 +35,8 @@ export function Step2({ os }: StepProps) {
     itensAdicionais,
     addChecklistItem,
     removeChecklistItem,
+    trocaSet,
+    toggleTroca,
     savedAt,
     saveOrder,
     goStep, step, stepDir,
@@ -109,6 +111,8 @@ export function Step2({ os }: StepProps) {
             itensAdicionais={itensAdicionais}
             onAddItem={addChecklistItem}
             onRemoveItem={removeChecklistItem}
+            trocaSet={trocaSet}
+            onToggleTroca={toggleTroca}
           />
         ))}
       </div>
@@ -131,7 +135,7 @@ export function Step2({ os }: StepProps) {
               Salvar
             </button>
             <button onClick={() => goStep(step + 1, step)} style={btnAccent}>
-              Fotos
+              Peças
               <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 5h6M5.5 2l3 3-3 3" />
               </svg>

@@ -101,3 +101,16 @@ export interface AdminUser {
 }
 
 export type ValidationErrors = Record<string, string>;
+
+// ── Tabela de Peças (Step 3 & 4) ─────────────────────────────────────────────
+
+export interface TabelaPeca {
+  id: string;
+  peca: string;
+  modelo: string;
+  marca: string;
+  codigo: string;
+  quantidade: string;
+  isAuto: boolean;
+  sourceKey?: string; // checklist key (e.g. "motor:Filtro de ar") for auto-added rows
+}

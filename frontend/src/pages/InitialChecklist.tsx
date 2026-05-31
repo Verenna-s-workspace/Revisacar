@@ -11,14 +11,20 @@ import type { OrdemServico } from '../types';
 interface CheckProps {
   initialOrdem?: (OrdemServico & { id: string }) | null;
   onBackToStart?: () => void;
+  onNextChecklist?: () => void;
 }
 
-export default function Check({ initialOrdem, onBackToStart }: CheckProps) {
+export default function Check({ initialOrdem, onBackToStart, onNextChecklist }: CheckProps) {
   const os = useOrdemServico();
 
+  const currentStep = entradaConfig.find((s) => s.id === os.step);
+
+  // Chama initSig automaticamente sempre que o step ativo tiver hasSignature
   useEffect(() => {
-    if (initialOrdem) os.loadOrder(initialOrdem);
-  }, [initialOrdem]);
+    if (currentStep?.hasSignature) os.initSig();
+  }, [os.step]);
+
+  // ... resto igual
 
   const handleExportPDF = () => {
     exportPDF(
@@ -31,7 +37,6 @@ export default function Check({ initialOrdem, onBackToStart }: CheckProps) {
     );
   };
 
-  const currentStep = entradaConfig.find((s) => s.id === os.step);
   const CurrentComponent = currentStep?.component;
 
   return (
@@ -48,10 +53,19 @@ export default function Check({ initialOrdem, onBackToStart }: CheckProps) {
         onExportPDF={handleExportPDF}
         onBackToStart={onBackToStart}
       />
-      <StepTabs step={os.step} onGoStep={(n) => os.goStep(n, os.step)} />
+     
+<StepTabs
+  step={os.step}
+  onGoStep={(n) => os.goStep(n, os.step)}
+  steps={entradaConfig}
+/>
 
       {CurrentComponent && (
-        <CurrentComponent os={os} onExportPDF={handleExportPDF} />
+        <CurrentComponent
+      os={os}
+      onExportPDF={handleExportPDF}
+      onNextChecklist={onNextChecklist}  // ← new
+    />
       )}
 
       <Lightbox src={os.lightbox} onClose={() => os.setLightbox(null)} />

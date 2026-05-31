@@ -149,12 +149,6 @@ export function Step1({ os }: StepProps) {
         }
         right={
           <>
-            <button onClick={() => goStep(step - 1, step)} style={btnGhost}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 5H2M4.5 2l-3 3 3 3" />
-              </svg>
-              Voltar
-            </button>
             <button
               onClick={() => goStep(step + 1, step)}
               disabled={selected.size === 0}
