@@ -21,6 +21,11 @@ import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
 import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
 import { AgendamentosPage } from '../features/Dashboard/AgendamentosPage';
 import { ServicosPage } from '../features/Dashboard/ServicosPage';
+import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../components/dashboard/Navigation';
+import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../components/dashboard/Primitives';
+import { Icons, SVC_ICON } from '../components/dashboard/Icons';
+import { FaturamentoChart } from '../components/dashboard/FaturamentoChart';
+import { OSRow, OSModal, OrdensPage } from '../components/dashboard/OrdensPage';
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
