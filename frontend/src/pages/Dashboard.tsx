@@ -21,11 +21,7 @@ import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
 import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
 import { AgendamentosPage } from '../features/Dashboard/AgendamentosPage';
 import { ServicosPage } from '../features/Dashboard/ServicosPage';
-import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../components/dashboard/Navigation';
-import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../components/dashboard/Primitives';
-import { Icons, SVC_ICON } from '../components/dashboard/Icons';
-import { FaturamentoChart } from '../components/dashboard/FaturamentoChart';
-import { OSRow, OSModal, OrdensPage } from '../components/dashboard/OrdensPage';
+
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
@@ -299,7 +295,7 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
       </div>
       {!isMobile && (
         <button
-          onClick={onNewOS}
+          
           style={{ width: '100%', marginTop: 14, padding: '12px', background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           Ver Todos os Alertas →

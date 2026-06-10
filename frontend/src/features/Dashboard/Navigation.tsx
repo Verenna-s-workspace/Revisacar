@@ -1,7 +1,7 @@
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import type { NavPage } from '../../types/dashboard';
-
+import '../../styles/dashboard.css';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,   label: 'Visão Geral' },
   { id: 'ordens',       icon: Icons.orders, label: 'Ordens de Serviço' },
@@ -37,12 +37,12 @@ export function Sidebar({ active, onNav }: { active: NavPage; onNav: (p: NavPage
             src="/Logorevisavermelha.svg"
             alt=""
             className="dashboard-sidebar__brand-logo-image"
-            style={{ filter: 'brightness(0) invert(1)', width: 36, height: 36 }}
+            style={{ filter: 'brightness(0) invert(1)', width: 56, height: 56 }}
           />
         </div>
         <div className="dashboard-sidebar__brand-copy">
           <div className="dashboard-sidebar__brand-inner">
-            revisa<span>car</span>
+            Revisa<span>car</span>
           </div>
           <div className="dashboard-sidebar__brand-subtitle">
             sistema de gestão automotiva

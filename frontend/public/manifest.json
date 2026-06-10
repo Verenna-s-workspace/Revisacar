@@ -10,13 +10,13 @@
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "/revisaLogoBG.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "any"
     },
     {
-      "src": "/logo_maskable.svg",
+      "src": "/revisaLogoBG.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "maskable"

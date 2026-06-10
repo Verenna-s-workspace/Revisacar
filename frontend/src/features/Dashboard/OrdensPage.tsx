@@ -295,7 +295,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
           onClick={onNewOS}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
         >
-          <span style={{ display: 'flex' }}>{Icons.plus}</span> Nova OS
+          <span style={{ display: 'flex' }}></span>Nova OS
         </button>
       </div>
 

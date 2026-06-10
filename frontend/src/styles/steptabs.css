@@ -23,14 +23,29 @@
   transition: border-color 0.18s ease, color 0.15s ease;
   position: relative;
 }
+.step-tab__icon {
+  color: #b91d1d;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
 
-.step-tab:hover {
-  border-bottom-color: var(--color-border-high);
+.step-tab:hover .step-tab__icon {
+  color: var(--color-ferrari);
 }
 
 .step-tab--active {
-  border-bottom-color: var(--color-ferrari);
+  color: var(--color-ferrari);
+  opacity: 1;
 }
+
+.step-tab--active .step-tab__icon{
+  color: var(--color-text-second);
+  opacity: 1;
+}
+
+
 
 .step-badge {
   width: 22px;
@@ -65,7 +80,7 @@
   transition: color 0.15s ease;
 }
 
-.step-tab--active .step-tab__label {
+.step-tab--active .step-tab__label  {
   font-weight: 500;
   color: var(--color-text-high);
 }
