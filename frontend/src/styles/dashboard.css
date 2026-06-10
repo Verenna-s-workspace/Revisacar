@@ -65,6 +65,7 @@
 
 .dashboard-sidebar__brand-inner span {
   opacity: 0.82;
+  color: white;
 }
 
 .dashboard-sidebar__brand-subtitle {
