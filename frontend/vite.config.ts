@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    allowedHosts: ['deploydofms.onrender.com'],
+    allowedHosts: ['revisacar-1.onrender.com'],
   },
   preview: {
-    allowedHosts: ['deploydofms.onrender.com'],
+    allowedHosts: ['revisacar-1.onrender.com'],
   },
   build: {
     chunkSizeWarningLimit: 600,
