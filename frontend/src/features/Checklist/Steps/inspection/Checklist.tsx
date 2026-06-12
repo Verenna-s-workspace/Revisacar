@@ -1,6 +1,7 @@
-/* import { useState, useRef, useEffect } from 'react';
-import { STATUS_CONFIG, tokens } from '../constants';
-import { SectionIcon } from './ui';
+import { useState, useRef } from 'react';
+import { STATUS_CONFIG, tokens } from '../../../../constants';
+import type { StatusConfig } from '../../../../types';
+import { SectionIcon } from '../../../../components/ui';
 
 // ── ChecklistItem ─────────────────────────────────────────────────────────────
 
@@ -10,6 +11,8 @@ interface ChecklistItemProps {
   data: { status: string | null; obs: string } | undefined;
   onSetStatus: (key: string, val: string) => void;
   onSetObs: (key: string, val: string) => void;
+  trocaSet?: Set<string>;
+  onToggleTroca?: (key: string, pecaNome: string) => void;
 }
 
 export function ChecklistItem({
@@ -18,10 +21,13 @@ export function ChecklistItem({
   data,
   onSetStatus,
   onSetObs,
+  trocaSet,
+  onToggleTroca,
 }: ChecklistItemProps) {
   const [obsOpen, setObsOpen] = useState(false);
   const key           = `${sid}:${name}`;
   const currentStatus = data?.status ?? null;
+  const isTroca       = trocaSet?.has(key) ?? false;
 
   const accentColor =
     currentStatus === 'ok'   ? tokens.color.ok   :
@@ -41,13 +47,15 @@ export function ChecklistItem({
     >
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
         padding: '11px 16px',
-        gap: 12,
+        gap: 10,
         minHeight: 50,
       }}>
         <span style={{
-          flex: 1,
+          flex: '1 1 220px',
+          minWidth: 0,
           fontSize: '0.86rem',
           color: currentStatus ? tokens.color.text : tokens.color.textSecond,
           transition: 'color 0.12s',
@@ -56,7 +64,7 @@ export function ChecklistItem({
           {name}
         </span>
 
-        {/* Note toggle /}
+        {/* Note toggle */}
         <button
           onClick={() => setObsOpen((o) => !o)}
           title={data?.obs ? 'Ver observação' : 'Adicionar observação'}
@@ -91,9 +99,9 @@ export function ChecklistItem({
           {data?.obs ? 'Nota' : 'Obs.'}
         </button>
 
-        {/* Status buttons /}
-        <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-          {Object.entries(STATUS_CONFIG).map(([val, cfg]) => {
+        {/* Status buttons */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flexShrink: 0 }}>
+          {(Object.entries(STATUS_CONFIG) as [string, StatusConfig][]).map(([val, cfg]) => {
             const active = currentStatus === val;
             return (
               <button
@@ -119,9 +127,54 @@ export function ChecklistItem({
             );
           })}
         </div>
+
+        {/* Trocar button */}
+        {onToggleTroca && (
+          <>
+            <div style={{
+              width: 1,
+              alignSelf: 'stretch',
+              background: tokens.color.border,
+              flexShrink: 0,
+            }} />
+            <button
+              onClick={() => onToggleTroca(key, name)}
+              title={isTroca ? 'Remover da lista de troca' : 'Marcar para troca'}
+              style={{
+                fontFamily: tokens.fontMono,
+                fontSize: '0.58rem',
+                fontWeight: isTroca ? 600 : 500,
+                letterSpacing: '0.06em',
+                padding: '4px 10px',
+                border: `1px solid ${isTroca ? tokens.color.ferrari : tokens.color.border}`,
+                background: isTroca ? tokens.color.accentDim : 'transparent',
+                color: isTroca ? tokens.color.ferrari : tokens.color.subtle,
+                cursor: 'pointer',
+                borderRadius: tokens.radius.sm,
+                transition: 'all 0.12s cubic-bezier(0.4,0,0.2,1)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              {isTroca ? (
+                <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke={tokens.color.ferrari} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1,4 3,6 7,2" />
+                </svg>
+              ) : (
+                <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1.5 4h4.5M4 2l2 2-2 2" />
+                </svg>
+              )}
+              Trocar
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Obs textarea /}
+      {/* Obs textarea */}
       {(obsOpen || data?.obs) && (
         <div style={{
           padding: '0 16px 11px 19px',
@@ -189,11 +242,12 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
       background: tokens.color.surface,
       padding: '10px 16px',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'stretch',
+      flexWrap: 'wrap',
       gap: 8,
       borderTop: `1px dashed ${tokens.color.border}`,
     }}>
-      {/* + icon /}
+      {/* + icon */}
       <span style={{
         width: 28,
         height: 28,
@@ -225,6 +279,7 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
         placeholder="Nome da peça — pressione Enter para adicionar"
         style={{
           flex: 1,
+          minWidth: 0,
           fontFamily: tokens.fontSans,
           fontSize: '0.83rem',
           color: tokens.color.text,
@@ -272,6 +327,8 @@ interface DynamicItemProps {
   onSetStatus: (key: string, val: string) => void;
   onSetObs: (key: string, val: string) => void;
   onRemove: (index: number) => void;
+  trocaSet?: Set<string>;
+  onToggleTroca?: (key: string, pecaNome: string) => void;
 }
 
 function DynamicItem({
@@ -282,9 +339,13 @@ function DynamicItem({
   onSetStatus,
   onSetObs,
   onRemove,
+  trocaSet,
+  onToggleTroca,
 }: DynamicItemProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+    <div className="checklist-dynamic-row" style={{ display: 'flex', alignItems: 'stretch', flexWrap: 'wrap', gap: 8 }}>
+      {/* Ensure remove controls wrap cleanly on smaller widths */}
+      <div style={{ display: 'flex', flex: 1, minWidth: 0, flexWrap: 'wrap', gap: 6 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <ChecklistItem
           sid={sid}
@@ -292,11 +353,15 @@ function DynamicItem({
           data={data}
           onSetStatus={onSetStatus}
           onSetObs={onSetObs}
+          trocaSet={trocaSet}
+          onToggleTroca={onToggleTroca}
         />
       </div>
+      </div>
 
-      {/* Remove button /}
+      {/* Remove button */}
       <button
+        className="checklist-remove-button"
         onClick={() => onRemove(index)}
         title="Remover item"
         style={{
@@ -307,6 +372,7 @@ function DynamicItem({
           padding: '0 14px',
           color: tokens.color.subtle,
           flexShrink: 0,
+          alignSelf: 'center',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -352,6 +418,9 @@ interface ChecklistSectionProps {
   itensAdicionais?: string[];
   onAddItem?: (name: string) => void;
   onRemoveItem?: (index: number) => void;
+  // Trocar
+  trocaSet?: Set<string>;
+  onToggleTroca?: (key: string, pecaNome: string) => void;
 }
 
 export function ChecklistSection({
@@ -362,6 +431,8 @@ export function ChecklistSection({
   itensAdicionais = [],
   onAddItem,
   onRemoveItem,
+  trocaSet,
+  onToggleTroca,
 }: ChecklistSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -389,7 +460,7 @@ export function ChecklistSection({
       boxShadow: tokens.shadow.xs,
     }}>
       
-      {/* ── Section header ── /}
+      {/* ── Section header ── */}
       <button
         onClick={() => setCollapsed((c) => !c)}
         style={{
@@ -409,7 +480,7 @@ export function ChecklistSection({
           transition: 'background 0.15s',
         }}
       >
-        {/* Icon /}
+        {/* Icon */}
         <span style={{
           color: hasCrit
             ? tokens.color.crit
@@ -424,7 +495,7 @@ export function ChecklistSection({
           <SectionIcon id={sec.id} size={15} />
         </span>
 
-        {/* Label /}
+        {/* Label */}
         <span style={{
           fontFamily: tokens.fontMono,
           fontSize: '0.7rem',
@@ -456,7 +527,7 @@ export function ChecklistSection({
           )}
         </span>
 
-        {/* Progress pill /}
+        {/* Progress pill */}
         <span style={{
           fontFamily: tokens.fontMono,
           fontSize: '0.6rem',
@@ -472,7 +543,7 @@ export function ChecklistSection({
           {filled}/{allItems.length}
         </span>
 
-        {/* Mini progress bar /}
+        {/* Mini progress bar */}
         <div style={{
           width: 52,
           height: 2,
@@ -494,7 +565,7 @@ export function ChecklistSection({
           }} />
         </div>
 
-        {/* Collapse chevron /}
+        {/* Collapse chevron */}
         <svg
           width={13} height={13} viewBox="0 0 13 13"
           fill="none" stroke={tokens.color.subtle}
@@ -509,7 +580,7 @@ export function ChecklistSection({
         </svg>
       </button>
 
-      {/* ── Items ── /}
+      {/* ── Items ── */}
       {!collapsed && (
         <div style={{
           background: tokens.color.border,
@@ -519,7 +590,7 @@ export function ChecklistSection({
           animation: 'fadeUp 0.18s ease forwards',
         }}>
 
-          {/* Empty state para seções dinâmicas sem itens /}
+          {/* Empty state para seções dinâmicas sem itens */}
           {allItems.length === 0 && sec.isDynamic && (
             <div style={{
               background: tokens.color.surface,
@@ -550,7 +621,7 @@ export function ChecklistSection({
             </div>
           )}
 
-          {/* Static section items /}
+          {/* Static section items */}
           {!sec.isDynamic && allItems.map((name) => (
             <ChecklistItem
               key={name}
@@ -559,10 +630,12 @@ export function ChecklistSection({
               data={checklist[`${sec.id}:${name}`]}
               onSetStatus={onSetStatus}
               onSetObs={onSetObs}
+              trocaSet={trocaSet}
+              onToggleTroca={onToggleTroca}
             />
           ))}
 
-          {/* Dynamic section items com botão de remover /}
+          {/* Dynamic section items com botão de remover */}
           {sec.isDynamic && allItems.map((name, index) => (
             <DynamicItem
               key={`${name}-${index}`}
@@ -573,10 +646,12 @@ export function ChecklistSection({
               onSetStatus={onSetStatus}
               onSetObs={onSetObs}
               onRemove={(i) => onRemoveItem?.(i)}
+              trocaSet={trocaSet}
+              onToggleTroca={onToggleTroca}
             />
           ))}
 
-          {/* Input para adicionar — só em seções dinâmicas /}
+          {/* Input para adicionar — só em seções dinâmicas */}
           {sec.isDynamic && (
             <AddItemRow onAdd={(name) => onAddItem?.(name)} />
           )}
@@ -585,4 +660,4 @@ export function ChecklistSection({
     </div>
   );
 }
-  */
+ 

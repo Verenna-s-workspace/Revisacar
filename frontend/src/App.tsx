@@ -1,53 +1,72 @@
-import { useEffect, useState } from 'react';
-import Home from '../src/pages/home';
-import { StartScreen } from './pages/StartScreen';
-import { AuthScreen } from './pages/AuthScreen';
-import type { AdminUser, OrdemServico } from '../src/types';
+import { useState } from 'react';
+import Check  from './pages/InitialChecklist';
+import Check2 from './pages/InspectionChecklist';
+import { Dashboard } from './pages/Dashboard';
+import { api } from './utils/api';
+import type { OrdemServico } from './types';
 
-const STORAGE_KEY = 'revisacar-admin';
+type View = 'dashboard' | 'os' | 'os2';
 
 export default function App() {
-  const [admin, setAdmin] = useState<AdminUser | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) as AdminUser : null;
-  });
-  const [showStart, setShowStart] = useState(true);
-  const [selectedOrdem, setSelectedOrdem] = useState<OrdemServico & { id: string } | null>(null);
+  const [view, setView]                 = useState<View>('dashboard');
+  const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
 
-  useEffect(() => {
-    if (admin) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(admin));
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [admin]);
+  // ── Navegação ──────────────────────────────────────────────────────────────
 
   const handleStartNew = () => {
     setSelectedOrdem(null);
-    setShowStart(false);
+    setView('os');            // sempre abre o Check (fluxo de entrada)
   };
 
   const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => {
     setSelectedOrdem(ordem);
-    setShowStart(false);
+    setView('os');
   };
 
-  const handleBackToStart = () => {
-    setShowStart(true);
+  const handleBackToDashboard = () => {
+    setView('dashboard');
     setSelectedOrdem(null);
   };
 
-  if (!admin) {
-    return <AuthScreen onAuthenticated={(user) => {
-      setAdmin(user);
-      setShowStart(true);
-    }} />;
+  const handleGoToCheck2 = () => {
+    setView('os2');           // chamado pelo botão "Próxima etapa" do Step3
+  };
+
+  const handleLoadOS = async (id: string) => {
+    try {
+      const ordem = await api.obterOrdem(id);
+      handleLoadRascunho(ordem);
+    } catch (e) {
+      console.error('Erro ao carregar OS:', e);
+    }
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (view === 'dashboard') {
+    return (
+      <Dashboard
+        onNewOS={handleStartNew}
+        onLoadOS={handleLoadOS}
+      />
+    );
   }
 
-  if (showStart) {
-    return <StartScreen adminNome={admin.nome} onLogout={() => setAdmin(null)} onStartNew={handleStartNew} onLoadRascunho={handleLoadRascunho} />;
+  if (view === 'os2') {
+    return (
+      <Check2
+        initialOrdem={selectedOrdem}
+        onBackToStart={handleBackToDashboard}
+      />
+    );
   }
 
-  return <div><Home initialOrdem={selectedOrdem} onBackToStart={handleBackToStart} /></div>;
+  
+  return (
+    <Check
+      initialOrdem={selectedOrdem}
+      onBackToStart={handleBackToDashboard}
+      onNextChecklist={handleGoToCheck2}   // ← permite ir para Check2
+    />
+  );
 }
