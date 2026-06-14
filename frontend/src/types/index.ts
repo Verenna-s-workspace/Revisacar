@@ -100,6 +100,13 @@ export interface AdminUser {
   doc: string;
 }
 
+export interface AuthResult {
+  nome: string;
+  doc: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
 export type ValidationErrors = Record<string, string>;
 
 // ── Tabela de Peças (Step 3 & 4) ─────────────────────────────────────────────
