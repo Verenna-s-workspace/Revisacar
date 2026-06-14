@@ -2,6 +2,8 @@ import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import type { NavPage } from '../../types/dashboard';
 import '../../styles/dashboard.css';
+import { useAuth } from '../../context/AuthContext';
+import { useState } from 'react';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,   label: 'Visão Geral' },
   { id: 'ordens',       icon: Icons.orders, label: 'Ordens de Serviço' },
@@ -64,40 +66,76 @@ export function Sidebar({ active, onNav }: { active: NavPage; onNav: (p: NavPage
           </button>
         ))}
       </nav>
-
-      <div className="dashboard-sidebar__footer">
-        <button className="dashboard-sidebar__footer-button">
-          {Icons.logout} Sair
-        </button>
-      </div>
     </aside>
   );
 }
 
-// ── Desktop Header ────────────────────────────────────────────────────────────
+// ── Desktop Header ─────────────────────────────────────────────────────────────
 
 export function DesktopHeader() {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="dashboard-header">
       <div>
-        <h1 className="dashboard-header__title">Olá, Lucas Andrelo 👋</h1>
+        <h1 className="dashboard-header__title">Olá, {user?.nome ?? 'Lucas Andrelo'} 👋</h1>
         <p className="dashboard-header__subtitle">Aqui está o desempenho da sua oficina hoje.</p>
       </div>
-      <div className="dashboard-header__actions">
+      <div className="dashboard-header__actions" style={{ position: 'relative' }}>
         <div className="dashboard-header__indicator">
           <button className="dashboard-button">{Icons.bell}</button>
           <span className="dashboard-header__badge">3</span>
         </div>
         <button className="dashboard-button">{Icons.cal}</button>
         <div className="dashboard-header__separator" />
-        <div className="dashboard-header__profile">
+        <div
+          className="dashboard-header__profile"
+          onClick={() => setOpen(!open)}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="dashboard-header__avatar">{Icons.user}</div>
           <div>
-            <div className="dashboard-header__name">Lucas Andrelo</div>
+            <div className="dashboard-header__name">{user?.nome ?? 'Lucas Andrelo'}</div>
             <div className="dashboard-header__role">Administrador</div>
           </div>
-          <span className="dashboard-header__chevron">{Icons.chevD}</span>
         </div>
+        {open && (
+          <div className="dashboard-header__dropdown" style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: 8,
+            background: 'white',
+            border: `1px solid ${tokens.color.border}`,
+            borderRadius: 8,
+            boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 1000,
+            minWidth: 160,
+            padding: 8,
+          }}>
+            <button
+              onClick={() => { logout(); setOpen(false); }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                background: 'transparent',
+                padding: '8px 12px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#CC1400',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              {Icons.logout}
+              Sair
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -106,6 +144,8 @@ export function DesktopHeader() {
 // ── Mobile Topbar ─────────────────────────────────────────────────────────────
 
 export function MobileTopbar() {
+  const { user } = useAuth();
+
   return (
     <div className="dashboard-mobile-topbar">
       <button className="dashboard-mobile-topbar__button">{Icons.menu}</button>

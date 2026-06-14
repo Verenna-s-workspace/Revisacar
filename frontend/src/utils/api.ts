@@ -1,6 +1,11 @@
 import { API_BASE } from '../constants';
 
-const headers = { 'Content-Type': 'application/json' };
+let accessToken = '';
+let refreshToken = '';
+
+const baseHeaders: Record<string, string> = {
+  'Content-Type': 'application/json',
+};
 
 const handleResponse = async (res: Response) => {
   if (!res.ok) {
@@ -10,55 +15,132 @@ const handleResponse = async (res: Response) => {
   return res.json();
 };
 
+const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
+  const headers = {
+    ...baseHeaders,
+    ...(init.headers as Record<string, string> | undefined),
+  };
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch(input, {
+    ...init,
+    headers,
+  });
+
+  if (response.status === 401 && refreshToken) {
+    try {
+      const refreshResponse = await api.refreshToken(refreshToken);
+      if (refreshResponse.accessToken) {
+        accessToken = refreshResponse.accessToken;
+        refreshToken = refreshResponse.refreshToken;
+
+        const retryHeaders = {
+          ...baseHeaders,
+          ...(init.headers as Record<string, string> | undefined),
+          Authorization: `Bearer ${accessToken}`
+        };
+
+        const retryResponse = await fetch(input, {
+          ...init,
+          headers: retryHeaders,
+        });
+        return handleResponse(retryResponse);
+      }
+    } catch (refreshError) {
+      accessToken = '';
+      refreshToken = '';
+      throw refreshError;
+    }
+  }
+
+  return handleResponse(response);
+};
+
 export const api = {
+  setAuthTokens: (access: string, refresh: string) => {
+    accessToken = access;
+    refreshToken = refresh;
+  },
+
+  clearAuthTokens: () => {
+    accessToken = '';
+    refreshToken = '';
+  },
+
   criarOrdem: (payload: unknown) =>
-    fetch(`${API_BASE}/ordens`, {
+    authFetch(`${API_BASE}/ordens`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(payload),
-    }).then(handleResponse),
+    }),
 
   atualizarOrdem: (id: string, payload: unknown) =>
-    fetch(`${API_BASE}/ordens/${id}`, {
+    authFetch(`${API_BASE}/ordens/${id}`, {
       method: 'PUT',
-      headers,
       body: JSON.stringify(payload),
-    }).then(handleResponse),
+    }),
 
   uploadFotos: (orderId: string, formData: FormData) =>
-    fetch(`${API_BASE}/ordens/${orderId}/fotos`, {
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos`, {
       method: 'POST',
       body: formData,
-    }).then(handleResponse),
+      headers: {},
+    }),
 
   deleteFoto: (orderId: string, fotoPath: string) =>
-    fetch(`${API_BASE}/ordens/${orderId}/fotos/${encodeURIComponent(fotoPath)}`, {
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos/${encodeURIComponent(fotoPath)}`, {
       method: 'DELETE',
-    }).then(handleResponse),
+    }),
 
-  listarOrdens: () =>
-    fetch(`${API_BASE}/ordens`).then(handleResponse),
+  listarOrdens: () => authFetch(`${API_BASE}/ordens`),
 
-  obterOrdem: (id: string) =>
-    fetch(`${API_BASE}/ordens/${id}`).then(handleResponse),
+  obterOrdem: (id: string) => authFetch(`${API_BASE}/ordens/${id}`),
 
-  deletarOrdem: (id: string) =>
-    fetch(`${API_BASE}/ordens/${id}`, { method: 'DELETE' }).then(handleResponse),
+  deletarOrdem: (id: string) => authFetch(`${API_BASE}/ordens/${id}`, { method: 'DELETE' }),
 
   criarAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/signup`, {
       method: 'POST',
-      headers,
+      headers: baseHeaders,
       body: JSON.stringify(payload),
     }).then(handleResponse),
 
   loginAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/login`, {
       method: 'POST',
-      headers,
+      headers: baseHeaders,
       body: JSON.stringify(payload),
     }).then(handleResponse),
 
-  baixarFoto: (filename: string) =>
-    fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
+  refreshToken: (refresh: string) =>
+    fetch(`${API_BASE}/admin/refresh`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ refreshToken: refresh }),
+    }).then(handleResponse),
+
+  logout: (refresh: string) =>
+    fetch(`${API_BASE}/admin/logout`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ refreshToken: refresh }),
+    }).then(handleResponse),
+
+  forgotPassword: (payload: { email: string }) =>
+    fetch(`${API_BASE}/admin/forgot-password`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  resetPassword: (payload: { token: string; senha: string }) =>
+    fetch(`${API_BASE}/admin/reset-password`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  baixarFoto: (filename: string) => fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
 };

@@ -5,6 +5,7 @@ import { useResponsive } from '../components/ui';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatBRL, HEAT_DAYS } from '../utils/dashboard';
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { useAuth } from '../context/AuthContext';
 
 // Components
 import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../features/Dashboard/Navigation';
@@ -22,10 +23,8 @@ import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
 import { AgendamentosPage } from '../features/Dashboard/AgendamentosPage';
 import { ServicosPage } from '../features/Dashboard/ServicosPage';
 
-
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
-
 
 // ── PlaceholderPage ───────────────────────────────────────────────────────────
 
@@ -55,6 +54,7 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS?: (id: string) => void }) {
+  const { user } = useAuth();
   const { isMobile } = useResponsive();
   const { loading, data } = useDashboard();
   const [page, setPage] = useState<NavPage>('dashboard');
@@ -291,11 +291,11 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
               <span style={{ color: tokens.color.muted, flexShrink: 0, display: 'flex' }}>{Icons.arrow}</span>
             </div>
           );
-        })}
+      })};
       </div>
       {!isMobile && (
         <button
-          
+
           style={{ width: '100%', marginTop: 14, padding: '12px', background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           Ver Todos os Alertas →
@@ -335,7 +335,9 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
     <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 90 }}>
       <MobileTopbar />
       <div style={{ padding: '16px 14px 0' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: tokens.color.text, margin: '0 0 2px' }}>Olá, Lucas Andrelo 👋</h2>
+        <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: tokens.color.text, margin: '0 0 2px' }}>
+          Olá, {user?.nome ?? 'Lucas Andrelo'} 👋
+        </h2>
         <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '0 0 16px' }}>Aqui está o desempenho da sua oficina hoje.</p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '0 14px' }}>

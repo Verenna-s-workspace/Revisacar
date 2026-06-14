@@ -1,44 +1,77 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
 import { tokens } from '../constants';
-import type { AdminUser } from '../types';
+import type { AdminUser, AuthResult } from '../types';
 
 interface AuthScreenProps {
-  onAuthenticated: (admin: AdminUser) => void;
+  onAuthenticated: (result: AuthResult) => void;
 }
 
-const normalizeDoc = (value: string) => value.replace(/\D/g, '');
+type AuthMode = 'login' | 'register' | 'forgot';
+
+const normalizeDoc = (value: string) => value.replace(/\D/g, '').slice(0, 14);
+
+const formatCNPJ = (value: string) => {
+  const digits = normalizeDoc(value);
+  const part1 = digits.slice(0, 2);
+  const part2 = digits.slice(2, 5);
+  const part3 = digits.slice(5, 8);
+  const part4 = digits.slice(8, 12);
+  const part5 = digits.slice(12, 14);
+
+  return [
+    part1,
+    part2 ? `.${part2}` : '',
+    part3 ? `.${part3}` : '',
+    part4 ? `/${part4}` : '',
+    part5 ? `-${part5}` : '',
+  ].join('');
+};
 
 export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<AuthMode>('login');
   const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
   const [doc, setDoc] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const formattedDoc = normalizeDoc(doc).replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  const label = mode === 'login' ? 'Login de Administrador' : 'Cadastro de Administrador';
+  const formattedDoc = formatCNPJ(doc);
+  const label = mode === 'login' ? 'Login de Administrador' : mode === 'register' ? 'Cadastro de Administrador' : 'Esqueci minha senha';
 
   const handleSubmit = async () => {
     setLoading(true);
     setError(null);
-
-    const payload = {
-      nome: nome.trim(),
-      doc: normalizeDoc(doc),
-      senha,
-    };
+    setMessage(null);
 
     try {
+      if (mode === 'forgot') {
+        if (!email.trim()) {
+          setError('Email obrigatório');
+          return;
+        }
+        await api.forgotPassword({ email: email.trim().toLowerCase() });
+        setMessage('Se o email existir, você receberá um link de redefinição em breve.');
+        return;
+      }
+
+      const payload = {
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        doc: normalizeDoc(doc),
+        senha,
+      };
+
       const result = mode === 'login'
         ? await api.loginAdmin({ doc: payload.doc, senha: payload.senha })
         : await api.criarAdmin(payload);
 
-      onAuthenticated(result as AdminUser);
+      onAuthenticated(result as { nome: string; doc: string; accessToken: string; refreshToken: string });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro inesperado';
-      setError(message.replace(/\"/g, ''));
+      setError(message.replace(/"/g, ''));
     } finally {
       setLoading(false);
     }
@@ -55,7 +88,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <button
             type="button"
-            onClick={() => setMode('login')}
+            onClick={() => { setMode('login'); setError(null); setMessage(null); }}
             style={{
               flex: 1,
               padding: '12px 16px',
@@ -70,7 +103,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           </button>
           <button
             type="button"
-            onClick={() => setMode('register')}
+            onClick={() => { setMode('register'); setError(null); setMessage(null); }}
             style={{
               flex: 1,
               padding: '12px 16px',
@@ -91,6 +124,12 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           </div>
         )}
 
+        {message && (
+          <div style={{ marginBottom: '20px', padding: '14px', borderRadius: tokens.radius.md, background: '#EEF7EF', border: '1px solid #8FCB8D', color: '#1F6A3D' }}>
+            {message}
+          </div>
+        )}
+
         {mode === 'register' && (
           <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
             Nome
@@ -103,26 +142,75 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           </label>
         )}
 
-        <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-          CNPJ
-          <input
-            value={formattedDoc}
-            onChange={(e) => setDoc(e.target.value)}
-            placeholder="00.000.000/0000-00"
-            style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-          />
-        </label>
+        {mode !== 'forgot' && (
+          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
+            CNPJ
+            <input
+              value={formattedDoc}
+              onChange={(e) => setDoc(e.target.value)}
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
+            />
+          </label>
+        )}
 
-        <label style={{ display: 'block', marginBottom: '22px', color: tokens.color.textSecond }}>
-          Senha
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            placeholder="Senha segura"
-            style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-          />
-        </label>
+        {mode !== 'forgot' && (
+          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
+            Senha
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder="Senha segura"
+              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
+            />
+          </label>
+        )}
+
+        {mode === 'register' && (
+          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
+            />
+          </label>
+        )}
+
+        {mode === 'forgot' && (
+          <label style={{ display: 'block', marginBottom: '22px', color: tokens.color.textSecond }}>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
+            />
+          </label>
+        )}
+
+        {mode !== 'forgot' && mode === 'login' && (
+          <button
+            type="button"
+            onClick={() => { setMode('forgot'); setError(null); setMessage(null); }}
+            style={{
+              marginBottom: 20,
+              background: 'transparent',
+              border: 'none',
+              color: tokens.color.accent,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textAlign: 'left',
+            }}
+          >
+            Esqueci minha senha
+          </button>
+        )}
 
         <button
           type="button"
@@ -139,7 +227,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
         >
-          {loading ? 'Processando...' : mode === 'login' ? 'Entrar' : 'Cadastrar'}
+          {loading ? 'Processando...' : mode === 'forgot' ? 'Enviar link' : mode === 'login' ? 'Entrar' : 'Cadastrar'}
         </button>
       </div>
     </div>
