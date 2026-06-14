@@ -66,6 +66,8 @@ export function Sidebar({ active, onNav }: { active: NavPage; onNav: (p: NavPage
           </button>
         ))}
       </nav>
+
+
     </aside>
   );
 }
@@ -83,6 +85,7 @@ export function DesktopHeader() {
         <p className="dashboard-header__subtitle">Aqui está o desempenho da sua oficina hoje.</p>
       </div>
       <div className="dashboard-header__actions" style={{ position: 'relative' }}>
+
         <div className="dashboard-header__indicator">
           <button className="dashboard-button">{Icons.bell}</button>
           <span className="dashboard-header__badge">3</span>
@@ -144,6 +147,7 @@ export function DesktopHeader() {
 // ── Mobile Topbar ─────────────────────────────────────────────────────────────
 
 export function MobileTopbar() {
+
   const { user } = useAuth();
 
   return (
@@ -211,4 +215,6 @@ export function MobileNav({ active, onNav, onNewOS }: MobileNavProps) {
       ))}
     </nav>
   );
+
 }
+

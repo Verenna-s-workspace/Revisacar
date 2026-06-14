@@ -43,13 +43,17 @@ export default function App() {
   const handleStartNew = () => {
     setSelectedOrdem(null);
     setView('os');            // sempre abre o Check (fluxo de entrada)
+    setView('os');            // sempre abre o Check (fluxo de entrada)
   };
 
   const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => {
     setSelectedOrdem(ordem);
     setView('os');
+    setView('os');
   };
 
+  const handleBackToDashboard = () => {
+    setView('dashboard');
   const handleBackToDashboard = () => {
     setView('dashboard');
     setSelectedOrdem(null);
@@ -162,4 +166,4 @@ export default function App() {
       </div>
     </div>
   );
-}
+}}
