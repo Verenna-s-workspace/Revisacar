@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { tokens } from "../constants";
+import { useResponsive } from "./ui";
 import type { SaveStatus } from "../types";
+import "../styles/topbar.css";
 
 interface TopbarProps {
   saveStatus: SaveStatus;
@@ -17,264 +17,169 @@ export function Topbar({
   onExportPDF,
   onBackToStart,
 }: TopbarProps) {
-  const [resetHover, setResetHover] = useState(false);
-  const [exportHover, setExportHover] = useState(false);
-  const [backHover, setBackHover] = useState(false);
+  const { isDesktop, isMobile } = useResponsive();
 
-  return (
-    <nav
-      className="topbar-glass"
-      style={{
-        background: "rgba(247,246,243,0.9)",
-        borderBottom: `1px solid ${tokens.color.border}`,
-        padding: "0 40px",
-        height: 56,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "sticky",
-        top: 0,
-        zIndex: 300,
-      }}
-    >
-      {/* Logo */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          flexDirection: "row",
-        }}
-      >
-        {/* Wordmark with brand line */}
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          <div
-            style={{
-              width: 3,
-              height: 28,
-              background: tokens.color.ferrari,
-              borderRadius: 1.5,
-              marginRight: 0,
-              flexShrink: 0,
-            }}
-          />
-          <img
-            src="/Logorevisavermelha.svg"
-            alt="Logo RevisaCar"
-            width="70"
-            height="70"
-            loading="eager"
-            fetchPriority="high"
-          />
+  const saveIndicatorClass = [
+    "topbar-status",
+    saveStatus ? `topbar-status--${saveStatus}` : undefined,
+    isDesktop ? "topbar-status--desktop" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-          <div>
-            <div
-              style={{
-                marginLeft: -10,
-                fontFamily: tokens.fontLogo,
-                fontSize: "1.02rem",
-                fontWeight: 500,
-                color: tokens.color.text,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.1,
-              }}
-            >
-              Revisa
-              <span
-                style={{
-                  color: tokens.color.ferrari,
-                  fontFamily: tokens.fontLogo,
-                }}
-              >
-                Car
-              </span>
-            </div>
-            <div
-              style={{
-                marginLeft: -10,
-                whiteSpace: "nowrap ",
-                fontFamily: tokens.fontMono,
-                fontSize: "0.54rem",
-                color: tokens.color.ghost,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                lineHeight: 1,
-              }}
-            >
-              Inspeção Veicular
-            </div>
-          </div>
+  const Logo = (
+    <div className="topbar__logo">
+      <div className="topbar__logo-mark" />
+      <img
+        src="/Logorevisavermelha.svg"
+        alt="Logo RevisaCar"
+        width="70"
+        height="70"
+        loading="eager"
+        fetchPriority="high"
+      />
+      <div>
+        <div className="topbar__title">
+          Revisa<span>Car</span>
         </div>
+        <div className="topbar__subtitle">Inspeção Veicular</div>
       </div>
+    </div>
+  );
 
-      {/* Right actions */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        {/* Save status */}
-        <div
-          style={{
-            fontFamily: tokens.fontMono,
-            fontSize: "0.64rem",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            transition: tokens.transition.base,
-            opacity: saveStatus ? 1 : 0,
-            minWidth: 156,
-            justifyContent: "flex-end",
-            color: tokens.color.muted,
-          }}
-        >
-          {saveStatus === "saving" && (
-            <>
-              <svg
-                width={11}
-                height={11}
-                viewBox="0 0 11 11"
-                style={{ animation: "spin 1s linear infinite" }}
-              >
-                <circle
-                  cx={5.5}
-                  cy={5.5}
-                  r={4}
-                  fill="none"
-                  stroke={tokens.color.ghost}
-                  strokeWidth={1.5}
-                  strokeDasharray="6 6"
-                />
-              </svg>
-              <span>salvando...</span>
-            </>
-          )}
-          {saveStatus === "saved" && (
-            <>
-              <svg
-                width={11}
-                height={11}
-                viewBox="0 0 11 11"
-                fill="none"
-                stroke={tokens.color.ok}
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="1.5,5.5 4,8 9,2.5" />
-              </svg>
-              <span style={{ color: tokens.color.ok }}>salvo às {savedAt}</span>
-            </>
-          )}
-          {saveStatus === "error" && (
-            <>
-              <svg
-                width={11}
-                height={11}
-                viewBox="0 0 11 11"
-                fill="none"
-                stroke={tokens.color.crit}
-                strokeWidth={1.5}
-                strokeLinecap="round"
-              >
-                <circle cx={5.5} cy={5.5} r={4} />
-                <line x1="5.5" y1="3.5" x2="5.5" y2="5.8" />
-                <circle
-                  cx="5.5"
-                  cy="7.5"
-                  r="0.5"
-                  fill={tokens.color.crit}
-                  stroke="none"
-                />
-              </svg>
-              <span style={{ color: tokens.color.crit }}>
-                erro ao fazer envio para o db
-              </span>
-            </>
-          )}
-        </div>
-
-        {onBackToStart && (
-          <button
-            onClick={onBackToStart}
-            onMouseEnter={() => setBackHover(true)}
-            onMouseLeave={() => setBackHover(false)}
-            style={{
-              fontFamily: tokens.fontMono,
-              fontSize: "0.64rem",
-              fontWeight: 500,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              padding: "7px 15px",
-              borderRadius: tokens.radius.md,
-              border: `1px solid ${backHover ? tokens.color.borderHigh : tokens.color.border}`,
-              background: backHover ? tokens.color.surfaceHigh : "transparent",
-              color: backHover ? tokens.color.textSecond : tokens.color.subtle,
-              cursor: "pointer",
-              transition: tokens.transition.fast,
-            }}
-          >
-            ← Voltar
-          </button>
-        )}
-
-        <button
-          onClick={onReset}
-          onMouseEnter={() => setResetHover(true)}
-          onMouseLeave={() => setResetHover(false)}
-          style={{
-            fontFamily: tokens.fontMono,
-            fontSize: "0.64rem",
-            fontWeight: 500,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            padding: "7px 15px",
-            borderRadius: tokens.radius.md,
-            border: `1px solid ${resetHover ? tokens.color.borderHigh : tokens.color.border}`,
-            background: resetHover ? tokens.color.surfaceHigh : "transparent",
-            color: resetHover ? tokens.color.textSecond : tokens.color.subtle,
-            cursor: "pointer",
-            transition: tokens.transition.fast,
-          }}
-        >
-          Limpar tudo
-        </button>
-
-        <button
-          onClick={onExportPDF}
-          onMouseEnter={() => setExportHover(true)}
-          onMouseLeave={() => setExportHover(false)}
-          style={{
-            fontFamily: tokens.fontMono,
-            fontSize: "0.64rem",
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            padding: "7px 16px",
-            borderRadius: tokens.radius.md,
-            border: "none",
-            background: exportHover
-              ? tokens.color.accentHover
-              : tokens.color.ferrari,
-            color: "#fff",
-            cursor: "pointer",
-            transition: tokens.transition.fast,
-            boxShadow: exportHover
-              ? `0 2px 8px rgba(204,20,0,0.35)`
-              : "0 1px 3px rgba(204,20,0,0.25)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-          }}
-        >
+  const SaveIndicator = (
+    <div className={saveIndicatorClass}>
+      {saveStatus === "saving" && (
+        <>
+          <svg width={11} height={11} viewBox="0 0 11 11" className="topbar-icon-spin">
+            <circle
+              cx={5.5}
+              cy={5.5}
+              r={4}
+              fill="none"
+              stroke="var(--color-ghost)"
+              strokeWidth={1.5}
+              strokeDasharray="6 6"
+            />
+          </svg>
+          <span>salvando...</span>
+        </>
+      )}
+      {saveStatus === "saved" && (
+        <>
           <svg
             width={11}
             height={11}
             viewBox="0 0 11 11"
             fill="none"
-            stroke="currentColor"
+            stroke="var(--color-ok)"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="1.5,5.5 4,8 9,2.5" />
+          </svg>
+          <span>salvo às {savedAt}</span>
+        </>
+      )}
+      {saveStatus === "error" && (
+        <>
+          <svg
+            width={11}
+            height={11}
+            viewBox="0 0 11 11"
+            fill="none"
+            stroke="var(--color-crit)"
             strokeWidth={1.5}
             strokeLinecap="round"
           >
-            <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
+            <circle cx={5.5} cy={5.5} r={4} />
+            <line x1="5.5" y1="3.5" x2="5.5" y2="5.8" />
+            <circle cx="5.5" cy="7.5" r="0.5" fill="var(--color-crit)" stroke="none" />
           </svg>
-          Gerar PDF
+          <span>erro ao fazer envio para o db</span>
+        </>
+      )}
+    </div>
+  );
+
+  const buttonClass = (accent = false, small = false) => [
+    "topbar-button",
+    accent ? "topbar-button--accent" : undefined,
+    small ? "topbar-button--small" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  if (isDesktop) {
+    return (
+      <nav className="topbar topbar--desktop topbar-glass">
+        <div className="topbar__inner">
+          {Logo}
+          <div className="topbar__actions">
+            {SaveIndicator}
+            {onBackToStart && (
+              <button className={buttonClass()} onClick={onBackToStart}>
+                ← Voltar
+              </button>
+            )}
+            <button className={buttonClass()} onClick={onReset}>
+              Limpar tudo
+            </button>
+            <button className={buttonClass(true)} onClick={onExportPDF}>
+              <svg
+                width={11}
+                height={11}
+                viewBox="0 0 11 11"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+              >
+                <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
+              </svg>
+              Gerar PDF
+            </button>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="topbar topbar--mobile topbar-glass">
+      <div className="topbar-mobile-row">
+        <div className="topbar-mobile-slot">
+          {onBackToStart ? (
+            <button className={buttonClass(false, true)} onClick={onBackToStart}>
+              ←{!isMobile && " Voltar"}
+            </button>
+          ) : (
+            <div />
+          )}
+        </div>
+        <div className="topbar-mobile-logo">{Logo}</div>
+        <div className="topbar-mobile-end">
+          <button className={buttonClass(true)} onClick={onExportPDF}>
+            <svg
+              width={11}
+              height={11}
+              viewBox="0 0 11 11"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+            >
+              <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
+            </svg>
+            {!isMobile && " Gerar PDF"}
+          </button>
+        </div>
+      </div>
+      <div className="topbar-row-separator">
+        {SaveIndicator}
+        <button className="topbar-button topbar-button--smaller" onClick={onReset}>
+          Limpar tudo
         </button>
       </div>
     </nav>
