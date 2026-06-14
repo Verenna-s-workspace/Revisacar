@@ -1,11 +1,12 @@
+/* import { useEffect } from 'react';
 import { useEffect } from 'react';
+import '../styles/screens.css';
 import { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
 import { StepTabs } from '../components/StepTabs';
 import { Lightbox } from '../components/ui';
 import { Step1, Step2, Step3 } from '../components/Steps';
-import { tokens } from '../constants';
 
 import type { OrdemServico } from '../types';
 
@@ -35,12 +36,7 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
   };
 
   return (
-    <div style={{
-      fontFamily: tokens.fontSans,
-      background: tokens.color.bg,
-      minHeight: '100vh',
-      paddingBottom: 80,
-    }}>
+    <div className="home-shell">
       <Topbar
         saveStatus={os.saveStatus}
         savedAt={os.savedAt}
@@ -105,3 +101,4 @@ export default function Home({ initialOrdem, onBackToStart }: HomeProps) {
     </div>
   );
 }
+  */

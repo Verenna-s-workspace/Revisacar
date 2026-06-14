@@ -29,7 +29,16 @@ MIDDLEWARE = [
 ROOT_URLCONF = "DjangoSet.urls"
 WSGI_APPLICATION = "DjangoSet.wsgi.application"
  
-DATABASES = {}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
+    }
+}
  
 # ── CORS ──────────────────────────────────────────────────────────────────────
  
@@ -38,6 +47,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "https://bucket-funcionando1.onrender.com",
+    "https://deploydofms.onrender.com",
+    "https://revisacar-1-qmmv.onrender.com",
 ]
  
 CORS_ALLOW_ALL_ORIGINS = False
