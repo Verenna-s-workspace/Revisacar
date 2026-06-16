@@ -131,7 +131,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                   onClick={() => setCalDate(d => addMonths(d, -1))}
                   style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
                 >
-                  {AgendaIcons.chevR}
+                  {AgendaIcons.chevsL}
                 </button>
                 <span style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
                   {MONTHS[month]} {year}
