@@ -78,7 +78,7 @@ export default function App() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   // se nao tiver logado mostra o login
- /* if (!user) {
+ if (!user) {
     if (authMode === 'login') {
       return (
         <div style={{
@@ -126,7 +126,7 @@ export default function App() {
       );
     }
   }
-*/
+
   return (
     <div style={{
       minHeight: '100vh',
