@@ -120,6 +120,4 @@ export interface TabelaPeca {
   quantidade: string;
   isAuto: boolean;
   sourceKey?: string; // checklist key (e.g. "motor:Filtro de ar") for auto-added rows
-
 }
-

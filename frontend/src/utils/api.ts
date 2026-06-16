@@ -100,6 +100,26 @@ export const api = {
 
   deletarOrdem: (id: string) => authFetch(`${API_BASE}/ordens/${id}`, { method: 'DELETE' }),
 
+  // ── Agendamentos ────────────────────────────────────────────────────────────
+
+  listarAgendamentos: () => authFetch(`${API_BASE}/agendamentos`),
+
+  obterAgendamento: (id: string) => authFetch(`${API_BASE}/agendamentos/${id}`),
+
+  criarAgendamento: (payload: unknown) =>
+    authFetch(`${API_BASE}/agendamentos`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarAgendamento: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/agendamentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarAgendamento: (id: string) => authFetch(`${API_BASE}/agendamentos/${id}`, { method: 'DELETE' }),
+
   criarAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/signup`, {
       method: 'POST',
