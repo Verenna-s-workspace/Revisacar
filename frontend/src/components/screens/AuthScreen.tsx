@@ -14,13 +14,13 @@ import { AuthLayout } from '../layout';
 /* ─── Schemas ───────────────────────────────────────────── */
 const loginSchema = z.object({
   email:    z.string().email('E-mail inválido'),
-  password: z.string().min(1, 'Senha obrigatória'),
+  password: z.string().min(6, 'Mínimo 6 caracteres'),
 });
 const registerSchema = z.object({
   name:             z.string().min(2, 'Nome muito curto'),
   email:            z.string().email('E-mail inválido'),
   phone:            z.string().min(10, 'Telefone inválido'),
-  password:         z.string().min(8, 'Mínimo 8 caracteres'),
+  password:         z.string().min(6, 'Mínimo 6 caracteres'),
   password_confirm: z.string(),
 }).refine(d => d.password === d.password_confirm, {
   path: ['password_confirm'],
@@ -199,7 +199,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       <Input
         label="Senha"
         type={showPw ? 'text' : 'password'}
-        placeholder="Mínimo 8 caracteres"
+        placeholder="Mínimo 6 caracteres"
         error={errors.password?.message}
         suffix={
           <button type="button" onClick={() => setShowPw(!showPw)}

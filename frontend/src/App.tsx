@@ -5,7 +5,6 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth';
 
 /* ─── Lazy screens ──────────────────────────────────────── */
-// Auth screen removed for local dev; navigation to `/login` will redirect to `/`.
 const Dashboard     = lazy(() => import('./components/screens/DashboardScreen').then(m => ({ default: m.DashboardScreen })));
 const Vehicles      = lazy(() => import('./components/screens/VehiclesScreen').then(m => ({ default: m.VehiclesScreen })));
 const Schedule      = lazy(() => import('./components/screens/ScheduleScreen').then(m => ({ default: m.ScheduleScreen })));
@@ -14,6 +13,7 @@ const Maintenance   = lazy(() => import('./components/screens/ScheduledMaintenan
 const Estimates     = lazy(() => import('./components/screens/EstimatesScreen').then(m => ({ default: m.EstimatesScreen })));
 const Notifications = lazy(() => import('./components/screens/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
 const Profile       = lazy(() => import('./components/screens/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
+const AuthScreen    = lazy(() => import('./components/screens/AuthScreen').then(m => ({ default: m.AuthScreen })));
 
 /* ─── Query Client ──────────────────────────────────────── */
 const qc = new QueryClient({
@@ -25,7 +25,10 @@ const qc = new QueryClient({
 
 /* ─── Guards ────────────────────────────────────────────── */
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  // Authentication guard disabled — always allow access to routes.
+  const { session } = useAuthStore();
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -59,8 +62,8 @@ function AppRouter() {
   return (
     <Suspense fallback={<AppLoader />}>
       <Routes>
-        <Route path="/login"    element={<Navigate to="/" replace />} />
-        <Route path="/cadastro" element={<Navigate to="/" replace />} />
+        <Route path="/login"    element={<AuthScreen />} />
+        <Route path="/cadastro" element={<AuthScreen />} />
         <Route path="/"             element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/veiculos"     element={<RequireAuth><Vehicles /></RequireAuth>} />
         <Route path="/agendar"      element={<RequireAuth><Schedule /></RequireAuth>} />
@@ -69,7 +72,7 @@ function AppRouter() {
         <Route path="/orcamentos"   element={<RequireAuth><Estimates /></RequireAuth>} />
         <Route path="/notificacoes" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="/perfil"       element={<RequireAuth><Profile /></RequireAuth>} />
-        <Route path="*"             element={<Navigate to="/" replace />} />
+        <Route path="*"             element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>
   );

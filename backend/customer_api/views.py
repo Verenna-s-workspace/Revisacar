@@ -104,9 +104,15 @@ def register(request):
         "created_at": now_iso(),
         "updated_at": now_iso(),
     })
-    tokens = _make_tokens(cid, d["name"])
-    return Response({**tokens, "customer": {"id": cid, "name": d["name"], "email": d["email"]}},
-                    status=status.HTTP_201_CREATED)
+    if not customer:
+        return Response({"detail": "Erro ao criar conta"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    tokens = _make_tokens(customer["id"], customer["name"])
+    return Response({**tokens, "customer": {
+        "id": customer["id"],
+        "name": customer["name"],
+        "email": customer["email"]
+    }}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])

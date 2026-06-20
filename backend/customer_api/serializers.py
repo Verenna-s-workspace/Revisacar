@@ -11,7 +11,7 @@ class CustomerRegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     phone = serializers.CharField(max_length=20)
-    password = serializers.CharField(min_length=8, write_only=True)
+    password = serializers.CharField(min_length=6, write_only=True)
     password_confirm = serializers.CharField(write_only=True)
 
     def validate_name(self, v):
@@ -30,7 +30,7 @@ class CustomerRegisterSerializer(serializers.Serializer):
 
 class CustomerLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(min_length=6, write_only=True)
 
     def validate_email(self, v):
         return v.lower().strip()
@@ -38,7 +38,7 @@ class CustomerLoginSerializer(serializers.Serializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(min_length=8, write_only=True)
+    new_password = serializers.CharField(min_length=6, write_only=True)
     new_password_confirm = serializers.CharField(write_only=True)
 
     def validate(self, data):
