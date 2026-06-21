@@ -4,6 +4,7 @@ import type {
   Appointment, Estimate, ServiceHistory, Notification,
   MaintenanceReminder, DashboardSummary, AuthTokens,
 } from '../types';
+import { useAuthStore } from '@/store/auth';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const BYPASS = import.meta.env.VITE_BYPASS_LOGIN === 'true';
@@ -16,13 +17,12 @@ export const apiClient = axios.create({
 
 // ── Attach JWT to every request ───────────────────────────────────────────────
 apiClient.interceptors.request.use((config) => {
-  const raw = localStorage.getItem('customer_session');
-  if (raw) {
-    try {
-      const session: CustomerSession = JSON.parse(raw);
-      if (session.access) config.headers.Authorization = `Bearer ${session.access}`;
-    } catch { /* ignore */ }
-  }
+  try {
+    const session = useAuthStore.getState().session;
+    if (session?.access) {
+      config.headers.Authorization = `Bearer ${session.access}`;
+    }
+  } catch { /* ignore */ }
   return config;
 });
 

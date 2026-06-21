@@ -7,11 +7,13 @@ from __future__ import annotations
 import jwt as pyjwt
 from datetime import datetime, timedelta
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
+from django.utils.translation import gettext_lazy as _
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import (
     CustomerRegisterSerializer, CustomerLoginSerializer,
@@ -37,6 +39,7 @@ def _make_tokens(customer_id: str, name: str) -> dict:
     refresh = RT()
     refresh["customer_id"] = customer_id
     refresh["name"] = name
+    refresh["user_id"] = customer_id  # for JWTAuthentication user identification
     # Override subject (sub) claim
     refresh.payload["sub"] = customer_id
     return {
@@ -54,6 +57,29 @@ class _FakeUser:
         self.name = name
         self.is_authenticated = True
         self.is_anonymous = False
+
+
+class CustomJWTAuthentication(JWTAuthentication):
+    """
+    Custom authentication that returns a simple user object based on the token,
+    avoiding a database lookup for the User model.
+    """
+    def get_user(self, validated_token):
+        try:
+            user_id = validated_token.get("user_id")
+        except KeyError:
+            raise InvalidToken(_("Token contained no recognizable user identification"))
+
+        # Create a simple user-like object
+        class User:
+            def __init__(self, user_id):
+                self.id = user_id
+                # Use customer_id as username for compatibility with _get_customer_id
+                self.username = user_id
+                self.is_authenticated = True
+                self.is_anonymous = False
+
+        return User(user_id)
 
 
 def _decode_bearer(request):
@@ -78,9 +104,9 @@ def _require_auth(request):
     return c, None
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # AUTH
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -161,9 +187,9 @@ def forgot_password(request):
     return Response({"detail": "Se o e-mail existir, você receberá as instruções."})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # PROFILE
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET", "PUT", "PATCH"])
 def profile(request):
@@ -218,9 +244,9 @@ def change_password(request):
     return Response({"detail": "Senha alterada com sucesso"})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def dashboard(request):
@@ -232,11 +258,12 @@ def dashboard(request):
     return Response(summary)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # VEHICLES
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET", "POST"])
+@authentication_classes([CustomJWTAuthentication])
 def vehicles_list(request):
     """GET/POST /api/customer/vehicles"""
     c, err = _require_auth(request)
@@ -289,9 +316,9 @@ def vehicle_detail(request, vehicle_id: str):
     return Response(updated)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # APPOINTMENTS
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET", "POST"])
 def appointments_list(request):
@@ -352,9 +379,9 @@ def appointment_detail(request, appointment_id: str):
     return Response({"detail": "Agendamento cancelado"})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # AVAILABILITY
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -379,9 +406,9 @@ def available_times(request):
     return Response({"date": date_str, "times": times})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # ESTIMATES
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def estimates_list(request):
@@ -421,9 +448,9 @@ def estimate_detail(request, estimate_id: str):
     return Response(updated)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # SERVICE HISTORY
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def history_list(request):
@@ -447,9 +474,9 @@ def history_detail(request, history_id: str):
     return Response(item)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # NOTIFICATIONS
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def notifications_list(request):
@@ -481,9 +508,9 @@ def notifications_read_all(request):
     return Response({"detail": "Todas marcadas como lidas"})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # REMINDERS
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def reminders_list(request):
