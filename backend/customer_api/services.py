@@ -129,6 +129,40 @@ def get_appointment(appointment_id: str, customer_id: str):
 
 
 def create_appointment(data: dict):
+    # Verificar disponibilidade
+    date_str = str(data["date"])
+    time_str = str(data["time_slot"])
+
+    # Verificar se o horário está marcado como disponível
+    available_slot = (
+        get_client()
+        .table("availability_slots")
+        .select("id")
+        .eq("date", date_str)
+        .eq("time_slot", time_str)
+        .eq("is_available", True)
+        .execute()
+    )
+
+    if not available_slot.data:
+        raise Exception("Horário selecionado não está disponível")
+
+    # Verificar se não há agendamento existente para o mesmo veículo na mesma data/hora
+    existing_appointment = (
+        get_client()
+        .table("appointments")
+        .select("id")
+        .eq("vehicle_id", data["vehicle_id"])
+        .eq("date", date_str)
+        .eq("time_slot", time_str)
+        .in_("status", ["pendente", "confirmado"])
+        .execute()
+    )
+
+    if existing_appointment.data:
+        raise Exception("Já existe um agendamento para este veículo neste horário")
+
+    # Criar o agendamento se todas as verificações passarem
     r = get_client().table("appointments").insert(data).execute()
     return r.data[0] if r.data else None
 

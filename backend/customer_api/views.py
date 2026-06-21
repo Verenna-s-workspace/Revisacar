@@ -342,21 +342,24 @@ def appointments_list(request):
     if not vehicle:
         return Response({"detail": "Veículo não encontrado"}, status=status.HTTP_400_BAD_REQUEST)
 
-    appt = services.create_appointment({
-        "id": new_id(),
-        "customer_id": c["id"],
-        "vehicle_id": d["vehicle_id"],
-        "vehicle_label": f"{vehicle['brand']} {vehicle['model']} {vehicle['year']} — {vehicle['plate']}",
-        "service_type": d["service_type"],
-        "service_description": d.get("service_description", ""),
-        "date": str(d["date"]),
-        "time_slot": str(d["time_slot"]),
-        "status": "pendente",
-        "notes": d.get("notes", ""),
-        "created_at": now_iso(),
-        "updated_at": now_iso(),
-    })
-    return Response(appt, status=status.HTTP_201_CREATED)
+    try:
+        appt = services.create_appointment({
+            "id": new_id(),
+            "customer_id": c["id"],
+            "vehicle_id": d["vehicle_id"],
+            "vehicle_label": f"{vehicle['brand']} {vehicle['model']} {vehicle['year']} — {vehicle['plate']}",
+            "service_type": d["service_type"],
+            "service_description": d.get("service_description", ""),
+            "date": str(d["date"]),
+            "time_slot": str(d["time_slot"]),
+            "status": "pendente",
+            "notes": d.get("notes", ""),
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+        })
+        return Response(appt, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["GET", "DELETE"])
