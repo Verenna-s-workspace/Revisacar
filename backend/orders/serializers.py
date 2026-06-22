@@ -48,6 +48,7 @@ def normalize_doc(value: str) -> str:
 class AdminSerializer(serializers.Serializer):
     nome = serializers.CharField()
     doc = serializers.CharField(default="")
+    email = serializers.EmailField()
     senha = serializers.CharField(write_only=True)  # pra nao aparecer no json
 
     def validate_nome(self, value):
@@ -60,6 +61,11 @@ class AdminSerializer(serializers.Serializer):
         if len(digits) != 14:
             raise serializers.ValidationError("CNPJ deve conter 14 dígitos")
         return digits
+
+    def validate_email(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Email obrigatório")
+        return value.strip().lower()
 
     def validate_senha(self, value):
         if len(value) < 6:
