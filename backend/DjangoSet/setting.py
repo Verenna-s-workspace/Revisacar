@@ -9,7 +9,7 @@ load_dotenv(BASE_DIR / "supabase.env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-key-change-in-production")
 
-DEBUG = os.getenv("DEBUG", "True") == "True"
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ["*"]
 
@@ -49,6 +49,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://bucket-funcionando1.onrender.com",
     "https://deploydofms.onrender.com",
     "https://revisacar-1-qmmv.onrender.com",
+    "https://backkkkk-gwx5.onrender.com",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False
