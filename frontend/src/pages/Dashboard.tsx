@@ -16,7 +16,7 @@ import { OSRow, OSModal, OrdensPage } from '../features/Dashboard/OrdensPage';
 
 // High-fidelity Sub-pages
 import { ClientesPage } from '../features/Dashboard/ClientesPage';
-import { VeiculosPage } from '../features/Dashboard/VeiculosPage';
+import { VeiculosPage } from '../features/Dashboard/Veiculos/VeiculosPage';
 import { EstoquePage } from '../features/Dashboard/EstoquePage';
 import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
 import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
@@ -65,6 +65,9 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
   }
   if (page === 'agendamentos') {
     return <AgendamentosPage onNav={setPage} isMobile={isMobile} onNewOS={onNewOS} />;
+  }
+  if (page === 'veiculos') {
+    return <VeiculosPage onNav={setPage} isMobile={isMobile} onNewOS={onNewOS} />;
   }
   if (page !== 'dashboard') {
     return <PlaceholderPage page={page} onNav={setPage} isMobile={isMobile} onNewOS={onNewOS} />;
