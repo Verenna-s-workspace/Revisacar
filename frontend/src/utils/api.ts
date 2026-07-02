@@ -120,6 +120,26 @@ export const api = {
 
   deletarAgendamento: (id: string) => authFetch(`${API_BASE}/agendamentos/${id}`, { method: 'DELETE' }),
 
+  // ── Veículos ─────────────────────────────────────────────────────────────────
+
+  listarVeiculos: () => authFetch(`${API_BASE}/veiculos`),
+
+  obterVeiculo: (id: string) => authFetch(`${API_BASE}/veiculos/${id}`),
+
+  criarVeiculo: (payload: unknown) =>
+    authFetch(`${API_BASE}/veiculos`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarVeiculo: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/veiculos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarVeiculo: (id: string) => authFetch(`${API_BASE}/veiculos/${id}`, { method: 'DELETE' }),
+
   criarAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/signup`, {
       method: 'POST',
