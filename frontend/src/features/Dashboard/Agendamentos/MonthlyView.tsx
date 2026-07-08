@@ -36,7 +36,9 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
   }, [agendamentos]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
+    // Container principal — minHeight:0 para não forçar o `body` da página a
+    // ultrapassar o espaço disponível quando o viewport for baixo.
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
       {/* Month/Year header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -99,7 +101,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
       </div>
 
       {/* Calendar cells */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         {matrix.map((week, wi) => (
           <div
             key={wi}

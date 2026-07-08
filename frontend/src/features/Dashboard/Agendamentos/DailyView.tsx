@@ -56,8 +56,12 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
   const totalH = AGENDA_HOURS.length * HOUR_H;
 
   return (
+    // ── Container principal (seção de agendamentos diários) ──────────────────
+    // Tamanho fixo: preenche o espaço que o `body` da página lhe dá (flex:1) e
+    // NUNCA excede isso (minHeight:0 permite encolher, overflow:hidden garante
+    // que nada vaze para fora do card). Ele mesmo não rola.
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
-      {/* Day header */}
+      {/* Day header — fixo, não faz parte da área rolável */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
@@ -93,8 +97,16 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
         )}
       </div>
 
-      {/* Timeline scroll area */}
-      <div style={{ overflowY: 'auto', flex: 1, position: 'relative' }}>
+      {/*
+        ── Seção interna: lista de horários + agendamentos ──────────────────────
+        Única parte da tela que rola. `flex:1` faz com que ela ocupe exatamente
+        o espaço que sobra dentro do container principal (abaixo do header fixo
+        e acima da barra de resumo fixa); `overflowY:auto` ativa a rolagem
+        vertical assim que o conteúdo (horas + cards) ultrapassa essa altura.
+        `overscrollBehavior:'contain'` impede que o gesto de scroll "vaze" para
+        a página ao chegar no topo/fim da lista.
+      */}
+      <div style={{ overflowY: 'auto', flex: 1, position: 'relative', overscrollBehavior: 'contain' }}>
         <div style={{ display: 'flex', minHeight: totalH }}>
           {/* Hour labels column */}
           <div style={{ width: 60, flexShrink: 0, position: 'relative', borderRight: `1px solid ${tokens.color.border}` }}>
@@ -247,7 +259,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
         </div>
       </div>
 
-      {/* Bottom summary bar */}
+      {/* Bottom summary bar — fixa, fora da área rolável */}
       {dayItems.length > 0 && (
         <div style={{ display: 'flex', gap: 12, padding: '10px 20px', borderTop: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap' }}>
           {(['agendado', 'em_andamento', 'pronto_retirada', 'concluido', 'cancelado'] as const).map(st => {
