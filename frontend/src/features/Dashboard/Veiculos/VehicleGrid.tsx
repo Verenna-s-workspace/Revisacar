@@ -24,12 +24,15 @@ const PAGE_SIZE = 12;
 
 function SkeletonCard() {
   return (
-    <div style={{ borderRadius: 18, border: `1px solid ${tokens.color.border}`, overflow: 'hidden', background: 'white' }}>
-      <div style={{ height: 168, background: tokens.color.surfaceHigh }} />
-      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ height: 16, width: '70%', borderRadius: 5, background: tokens.color.surfaceHigh }} />
-        <div style={{ height: 11, width: '50%', borderRadius: 5, background: tokens.color.surfaceHigh }} />
-        <div style={{ height: 28, width: '100%', borderRadius: 5, background: tokens.color.surfaceHigh, marginTop: 4 }} />
+    <div style={{ borderRadius: 20, border: `1px solid ${tokens.color.border}`, overflow: 'hidden', background: 'white' }}>
+      <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ height: 8, width: '30%', borderRadius: 4, background: tokens.color.surfaceHigh, marginBottom: 8 }} />
+        <div style={{ height: 15, width: '65%', borderRadius: 5, background: tokens.color.surfaceHigh }} />
+      </div>
+      <div style={{ margin: '12px 16px 0', aspectRatio: '16 / 9', borderRadius: 14, background: tokens.color.surfaceHigh }} />
+      <div style={{ padding: '13px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ height: 11, width: '55%', borderRadius: 4, background: tokens.color.surfaceHigh }} />
+        <div style={{ height: 27, width: '100%', borderRadius: 8, background: tokens.color.surfaceHigh, marginTop: 4 }} />
       </div>
     </div>
   );

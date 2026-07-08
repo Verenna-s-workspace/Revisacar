@@ -65,7 +65,9 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
+    // Container principal — mesmo padrão do DailyView: flex:1 + minHeight:0
+    // para poder encolher até o espaço disponível; só a timeline abaixo rola.
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
       {/* Week header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -124,8 +126,8 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
         })}
       </div>
 
-      {/* Timeline grid */}
-      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      {/* Seção interna rolável: horários + agendamentos da semana */}
+      <div style={{ flex: 1, overflowY: 'auto', position: 'relative', overscrollBehavior: 'contain' }}>
         <div style={{ display: 'flex', minHeight: totalH }}>
           {/* Hour labels */}
           <div style={{ width: 56, flexShrink: 0, borderRight: `1px solid ${tokens.color.border}`, position: 'relative' }}>

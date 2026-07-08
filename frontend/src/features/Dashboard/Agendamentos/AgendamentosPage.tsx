@@ -165,10 +165,17 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS }: AgendamentosPageP
 
   // ── Content ─────────────────────────────────────────────────────────────────
 
+  // Em modo Lista (busca/filtros de período ou status ativos, ou mobile), a
+  // seção precisa do comportamento ORIGINAL: altura livre + rolagem natural da
+  // página. O travamento em altura fixa (usado para isolar o scroll interno das
+  // views de calendário) só se aplica quando NÃO estamos em modo Lista.
   const content = (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
+    <div style={{
+      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg,
+      ...(showList ? {} : { minHeight: 0, overflow: 'hidden' }),
+    }}>
 
-      {/* ── Page header ─── */}
+      {/* ── Page header (fixo) ─── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isMobile ? '14px 16px' : '16px 28px',
@@ -215,7 +222,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS }: AgendamentosPageP
         </div>
       </div>
 
-      {/* ── Filters ─── */}
+      {/* ── Filters (fixo) ─── */}
       <AppointmentFilters
         search={search}
         filtros={filtros}
@@ -223,27 +230,39 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS }: AgendamentosPageP
         onFiltros={setFiltros}
       />
 
-      {/* ── Mobile view switcher ─── */}
+      {/* ── Mobile view switcher (fixo) ─── */}
       {isMobile && (
         <div style={{ padding: '10px 14px', background: 'white', borderBottom: `1px solid ${tokens.color.border}` }}>
           <ViewSwitcher active={viewMode} onChange={setViewMode} />
         </div>
       )}
 
-      {/* ── Body ─── */}
+      {/*
+        ── Body: container principal da área de agendamentos ───────────────────
+        Ocupa todo o espaço restante (flex:1, minHeight:0) dentro do `content`,
+        que agora tem altura finita. Este wrapper só rola (overflowY:auto) quando
+        o conteúdo excede o espaço disponível — o que na prática só acontece na
+        visão em Lista (busca/filtros ativos). Nas visões de calendário
+        (Diário/Semanal), o card abaixo preenche exatamente este espaço e é ELE
+        quem cuida do próprio scroll internamente, então este wrapper permanece
+        parado, sem rolar.
+      */}
       <div style={{
         flex: 1, minHeight: 0, overflowY: 'auto',
         padding: isMobile ? '12px 12px 32px' : '18px 28px 36px',
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
-        {/* Stats cards */}
-        <AppointmentStats stats={stats} loading={loading} />
+        {/* Stats cards — altura fixa, nunca encolhe */}
+        <div style={{ flexShrink: 0 }}>
+          <AppointmentStats stats={stats} loading={loading} />
+        </div>
 
         {loading ? (
           <Skeleton h={420} r={16} />
         ) : (
           <>
-            {/* Calendar views */}
+            {/* Calendar views — cada uma preenche o espaço restante (flex:1,
+                minHeight:0) e isola a própria rolagem internamente. */}
             {!showList && viewMode === 'diario' && (
               <DailyView
                 date={viewDate}
@@ -370,10 +389,30 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS }: AgendamentosPageP
     );
   }
 
+  if (showList) {
+    // ── Modo Lista: shell ORIGINAL (altura livre, rolagem natural da página) ──
+    // É exatamente o que existia antes do ajuste de scroll interno do Diário/
+    // Semanal/Mensal. Restaurado 1:1 para que a lista de agendamentos volte a
+    // rolar como rolava antes, sem nenhum conteúdo cortado.
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar active="agendamentos" onNav={onNav} />
+        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          {content}
+        </main>
+        {modals}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    // Modo calendário (Diário/Semanal/Mensal): shell travado em 100vh (ao invés
+    // de minHeight). Isso é o que permite que os containers filhos com
+    // `flex:1 + minHeight:0` calculem uma altura FINITA e, por consequência,
+    // que o scroll interno do DailyView/WeeklyView funcione isoladamente.
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar active="agendamentos" onNav={onNav} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {content}
       </main>
       {modals}
