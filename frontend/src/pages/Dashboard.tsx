@@ -15,7 +15,7 @@ import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
 import { OSRow, OSModal, OrdensPage } from '../features/Dashboard/OrdensPage';
 
 // High-fidelity Sub-pages
-import { ClientesPage } from '../features/Dashboard/ClientesPage';
+import { ClientesPage } from '../features/Dashboard/Clientes/ClientesPage';
 import { VeiculosPage } from '../features/Dashboard/Veiculos/VeiculosPage';
 import { EstoquePage } from '../features/Dashboard/EstoquePage';
 import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
@@ -59,18 +59,49 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
   const { loading, data } = useDashboard();
   const [page, setPage] = useState<NavPage>('dashboard');
   const [sel, setSel] = useState<OrdemRow | null>(null);
+  // Foco pendente para a tela de Agendamentos (definido ao navegar a partir da
+  // badge "Agendado" ou da aba Agendamentos no perfil de um cliente). Qualquer
+  // navegação "normal" (sidebar, menu mobile, botão voltar) passa por
+  // `handleNav` e limpa esse foco, para que ele nunca "vaze" para uma visita
+  // posterior e não relacionada à tela de Agendamentos.
+  const [agendaFocus, setAgendaFocus] = useState<{ search?: string; highlightId?: string } | null>(null);
+
+  const handleNav = (p: NavPage) => { setAgendaFocus(null); setPage(p); };
+  const handleGoToAgendamentos = (focus: { search?: string; highlightId?: string }) => {
+    setAgendaFocus(focus);
+    setPage('agendamentos');
+  };
 
   if (page === 'ordens') {
-    return <OrdensPage ordens={data.ordens} loading={loading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={setPage} isMobile={isMobile} />;
+    return <OrdensPage ordens={data.ordens} loading={loading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
   }
   if (page === 'agendamentos') {
-    return <AgendamentosPage onNav={setPage} isMobile={isMobile} onNewOS={onNewOS} />;
+    return (
+      <AgendamentosPage
+        onNav={handleNav}
+        isMobile={isMobile}
+        onNewOS={onNewOS}
+        initialSearch={agendaFocus?.search}
+        initialHighlightId={agendaFocus?.highlightId}
+      />
+    );
   }
   if (page === 'veiculos') {
-    return <VeiculosPage onNav={setPage} isMobile={isMobile} onNewOS={onNewOS} />;
+    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
+  }
+  if (page === 'clientes') {
+    return (
+      <ClientesPage
+        onNav={handleNav}
+        isMobile={isMobile}
+        onNewOS={onNewOS}
+        onLoadOS={onLoadOS}
+        onGoToAgendamentos={handleGoToAgendamentos}
+      />
+    );
   }
   if (page !== 'dashboard') {
-    return <PlaceholderPage page={page} onNav={setPage} isMobile={isMobile} onNewOS={onNewOS} />;
+    return <PlaceholderPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
 
   const spark7 = data.fatDiario.map(d => d.valor);
@@ -356,7 +387,7 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
         {ordensRecentes}
         {alertasSection}
       </div>
-      <MobileNav active={page} onNav={setPage} onNewOS={onNewOS} />
+      <MobileNav active={page} onNav={handleNav} onNewOS={onNewOS} />
       {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
     </div>
   );
@@ -364,7 +395,7 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
   // ── DESKTOP ────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: tokens.color.bg }}>
-      <Sidebar active={page} onNav={setPage} />
+      <Sidebar active={page} onNav={handleNav} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <DesktopHeader />
         <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>

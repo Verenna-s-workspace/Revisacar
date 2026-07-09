@@ -140,6 +140,26 @@ export const api = {
 
   deletarVeiculo: (id: string) => authFetch(`${API_BASE}/veiculos/${id}`, { method: 'DELETE' }),
 
+  // ── Clientes ─────────────────────────────────────────────────────────────────
+
+  listarClientes: () => authFetch(`${API_BASE}/clientes`),
+
+  obterCliente: (id: string) => authFetch(`${API_BASE}/clientes/${id}`),
+
+  criarCliente: (payload: unknown) =>
+    authFetch(`${API_BASE}/clientes`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarCliente: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/clientes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarCliente: (id: string) => authFetch(`${API_BASE}/clientes/${id}`, { method: 'DELETE' }),
+
   criarAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/signup`, {
       method: 'POST',
