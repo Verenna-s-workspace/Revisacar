@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
@@ -32,6 +32,10 @@ interface AgendamentosPageProps {
   onNav: (p: NavPage) => void;
   isMobile: boolean;
   onNewOS?: () => void;
+  /** Pré-preenche a busca (ex.: vindo da badge "Agendado" no card de um cliente). */
+  initialSearch?: string;
+  /** Abre automaticamente o detalhe deste agendamento assim que a lista carregar. */
+  initialHighlightId?: string;
 }
 
 // ── Filter logic ──────────────────────────────────────────────────────────────
@@ -111,7 +115,7 @@ function ViewSwitcher({ active, onChange }: { active: AgendaViewMode; onChange: 
 
 // ── AgendamentosPage ─────────────────────────────────────────────────────────
 
-export function AgendamentosPage({ onNav, isMobile, onNewOS }: AgendamentosPageProps) {
+export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, initialHighlightId }: AgendamentosPageProps) {
   const {
     agendamentos, loading, stats,
     addAgendamento, updateStatus, cancelAgendamento,
@@ -120,12 +124,21 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS }: AgendamentosPageP
 
   const [viewMode, setViewMode]       = useState<AgendaViewMode>('diario');
   const [viewDate, setViewDate]       = useState(() => new Date());
-  const [search,   setSearch]         = useState('');
+  const [search,   setSearch]         = useState(initialSearch ?? '');
   const [filtros,  setFiltros]        = useState<AgendaFiltros>({ status: 'todos', periodo: 'todos' });
   const [selectedAg, setSelectedAg]   = useState<Agendamento | null>(null);
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [newModalDate,  setNewModalDate] = useState<string | undefined>(undefined);
   const [rescheduleId,  setRescheduleId] = useState<string | null>(null);
+
+  // Vindo do perfil de um cliente (badge "Agendado" ou item da aba Agendamentos):
+  // assim que a lista carregar, abre direto o detalhe daquele agendamento.
+  useEffect(() => {
+    if (!initialHighlightId || loading) return;
+    const alvo = agendamentos.find(a => a.id === initialHighlightId);
+    if (alvo) setSelectedAg(alvo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, initialHighlightId]);
 
   const filtered = useMemo(
     () => applyFilters(agendamentos, search, filtros),

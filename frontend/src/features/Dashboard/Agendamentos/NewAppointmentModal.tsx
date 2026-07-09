@@ -28,6 +28,10 @@ interface NewAppointmentModalProps {
   getOcupados: (data: string) => OcupadoSlot[];
   onConfirm: (input: NovoAgendamentoInput) => void;
   onClose: () => void;
+  /** Nome do cliente pré-selecionado (ex.: agendamento aberto a partir do perfil do cliente). */
+  initialCliente?: string;
+  /** Veículos conhecidos do cliente pré-selecionado, para escolha rápida sem digitar. */
+  initialVeiculos?: { veiculo: string; placa: string }[];
 }
 
 function isSlotOccupied(slot: string, ocupados: OcupadoSlot[]): boolean {
@@ -40,7 +44,7 @@ function isSlotOccupied(slot: string, ocupados: OcupadoSlot[]): boolean {
   });
 }
 
-export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose }: NewAppointmentModalProps) {
+export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos }: NewAppointmentModalProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [calDate, setCalDate] = useState(() => {
     if (initialDate) return parseISODate(initialDate);
@@ -50,7 +54,10 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    cliente: '', veiculo: '', placa: '', titulo: '', descricao: '',
+    cliente: initialCliente ?? '',
+    veiculo: initialVeiculos?.[0]?.veiculo ?? '',
+    placa: initialVeiculos?.[0]?.placa ?? '',
+    titulo: '', descricao: '',
   });
 
   const year = calDate.getFullYear();
@@ -244,6 +251,36 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                 alterar
               </button>
             </div>
+
+            {initialCliente && (
+              <div style={{ padding: '10px 14px', borderRadius: 10, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}`, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ display: 'flex', color: tokens.color.ferrari }}>{Icons.user}</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: tokens.color.text }}>
+                  Agendando para <strong>{initialCliente}</strong>
+                </span>
+                {initialVeiculos && initialVeiculos.length > 1 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', width: '100%' }}>
+                    {initialVeiculos.map(v => {
+                      const active = form.veiculo === v.veiculo && form.placa === v.placa;
+                      return (
+                        <button
+                          key={v.placa}
+                          onClick={() => setForm(prev => ({ ...prev, veiculo: v.veiculo, placa: v.placa }))}
+                          style={{
+                            padding: '5px 10px', borderRadius: 7, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
+                            border: `1.5px solid ${active ? tokens.color.ferrari : tokens.color.border}`,
+                            background: active ? tokens.color.ferrariMid : 'white',
+                            color: active ? tokens.color.ferrari : tokens.color.text,
+                          }}
+                        >
+                          {v.veiculo} · {v.placa}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
               <div>

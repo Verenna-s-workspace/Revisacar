@@ -51,6 +51,7 @@ export interface VeiculoCadastrado {
   combustivel: string;
   cambio: VeiculoCambio;
   portas: number;
+  motor?: string;                // ex.: "1.0 Turbo", "2.0 16V" — opcional
   chassi?: string;
   renavam?: string;
   observacoes?: string;
@@ -75,6 +76,7 @@ export interface NovoVeiculoInput {
   combustivel: string;
   cambio: VeiculoCambio;
   portas: number;
+  motor?: string;
   chassi?: string;
   renavam?: string;
   observacoes?: string;
