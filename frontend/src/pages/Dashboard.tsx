@@ -22,6 +22,7 @@ import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
 import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
 import { AgendamentosPage } from '../features/Dashboard/Agendamentos/AgendamentosPage';
 import { ServicosPage } from '../features/Dashboard/ServicosPage';
+import { RelatoriosPage } from '../features/Dashboard/Relatorios/RelatoriosPage';
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
@@ -99,6 +100,9 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
         onGoToAgendamentos={handleGoToAgendamentos}
       />
     );
+  }
+  if (page === 'relatorios') {
+    return <RelatoriosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
   if (page !== 'dashboard') {
     return <PlaceholderPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
