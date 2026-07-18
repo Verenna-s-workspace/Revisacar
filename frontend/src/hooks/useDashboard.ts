@@ -1,16 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../utils/api';
 import type { Alerta, DashData, FaturamentoDia, OrdemRow } from '../types/dashboard';
+// TICKET e SVC_PRECO agora moram em utils/relatorios.ts (usado também pela
+// tela de Relatórios) — reexportado aqui para quem já importava daqui.
+import { SVC_PRECO, TICKET } from '../utils/relatorios';
 
-// Exportado para que outras telas (ex.: perfil do cliente, aba Histórico)
-// possam estimar "gastos totais" com o MESMO critério usado aqui, em vez de
-// duplicar o número mágico.
-export const TICKET = 480;
-const SVC_PRECO: Record<string, number> = {
-  'Troca de Óleo': 180, 'Freios': 320, 'Suspensão': 450,
-  'Alinhamento': 150, 'Ar Condicionado': 280, 'Elétrica': 200,
-  'Motor': 800, 'Transmissão': 600, 'Pneus': 120, 'Funilaria': 900,
-};
+export { TICKET };
 
 const MONTH_ORDER = [1, 2, 3, 4, 5, 6, 0];
 

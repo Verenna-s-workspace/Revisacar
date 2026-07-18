@@ -14,6 +14,10 @@ export interface OrdemRow {
   updated_at: string;
   fotos_paths?: string[];
   payload?: any;
+  /** Ainda não existe no backend (OrdemServicoSerializer / tabela ordens no Supabase).
+   *  Quando existir, os relatórios passam a usar o valor real automaticamente
+   *  via valorOS() em utils/relatorios.ts. */
+  valor_total?: number | null;
 }
 
 export interface FaturamentoDia {

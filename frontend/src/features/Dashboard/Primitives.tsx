@@ -133,13 +133,16 @@ interface KpiCardProps {
   icon: JSX.Element;
   title: string;
   value: string;
-  pct: number;
+  /** null quando não há período anterior com dados — a comparação some da UI. */
+  pct: number | null;
   spark: number[];
   loading: boolean;
+  /** Texto ao lado do %. Default mantém o comportamento atual (Visão Geral = mensal). */
+  comparisonLabel?: string;
 }
 
-export function KpiCard({ icon, title, value, pct, spark, loading }: KpiCardProps) {
-  const pos = pct >= 0;
+export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLabel = 'vs. mês anterior' }: KpiCardProps) {
+  const pos = pct !== null && pct >= 0;
   return (
     <Card style={{ padding: '18px 20px', flex: 1, minWidth: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
@@ -162,11 +165,17 @@ export function KpiCard({ icon, title, value, pct, spark, loading }: KpiCardProp
               <div style={{ fontSize: '1.65rem', fontWeight: 800, color: tokens.color.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
                 {value}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: pos ? '#1A7F4B' : '#CC1400' }}>
-                  {pos ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
-                </span>
-                <span style={{ fontSize: '0.72rem', color: tokens.color.muted }}>vs. mês anterior</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, minHeight: 17 }}>
+                {pct === null ? (
+                  <span style={{ fontSize: '0.72rem', color: tokens.color.muted }}>sem comparação disponível</span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: pos ? tokens.color.ok : tokens.color.crit }}>
+                      {pos ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: tokens.color.muted }}>{comparisonLabel}</span>
+                  </>
+                )}
               </div>
             </>
           )}
