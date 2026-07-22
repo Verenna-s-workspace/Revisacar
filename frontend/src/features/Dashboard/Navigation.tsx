@@ -11,7 +11,7 @@ const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'clientes',     icon: Icons.user,   label: 'Clientes' },
   { id: 'veiculos',     icon: Icons.car,    label: 'Veículos' },
   { id: 'estoque',      icon: Icons.box,    label: 'Estoque' },
-  { id: 'servicos',     icon: Icons.wrench, label: 'Serviços' },
+  { id: 'servicos',     icon: Icons.wrench, label: 'Catálogo' },
   { id: 'financeiro',   icon: Icons.money,  label: 'Financeiro' },
   { id: 'relatorios',   icon: Icons.chart,  label: 'Relatórios' },
   { id: 'configuracoes',icon: Icons.cog,    label: 'Configurações' },

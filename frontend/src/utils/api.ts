@@ -160,6 +160,26 @@ export const api = {
 
   deletarCliente: (id: string) => authFetch(`${API_BASE}/clientes/${id}`, { method: 'DELETE' }),
 
+  // ── Catálogo de Serviços ─────────────────────────────────────────────────────
+
+  listarServicos: () => authFetch(`${API_BASE}/servicos`),
+
+  obterServico: (id: string) => authFetch(`${API_BASE}/servicos/${id}`),
+
+  criarServico: (payload: unknown) =>
+    authFetch(`${API_BASE}/servicos`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarServico: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/servicos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarServico: (id: string) => authFetch(`${API_BASE}/servicos/${id}`, { method: 'DELETE' }),
+
   criarAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/signup`, {
       method: 'POST',
