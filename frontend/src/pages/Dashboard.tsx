@@ -101,6 +101,9 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
       />
     );
   }
+  if (page === 'servicos') {
+    return <ServicosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
+  }
   if (page === 'relatorios') {
     return <RelatoriosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
