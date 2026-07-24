@@ -180,6 +180,51 @@ export const api = {
 
   deletarServico: (id: string) => authFetch(`${API_BASE}/servicos/${id}`, { method: 'DELETE' }),
 
+  // ── Estoque ────────────────────────────────
+
+  listarEstoque: () => authFetch(`${API_BASE}/estoque`),
+
+  obterItemEstoque: (id: string) => authFetch(`${API_BASE}/estoque/${id}`),
+
+  criarItemEstoque: (payload: unknown) =>
+    authFetch(`${API_BASE}/estoque`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarItemEstoque: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/estoque/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarItemEstoque: (id: string) => authFetch(`${API_BASE}/estoque/${id}`, { method: 'DELETE' }),
+
+  listarMovimentosEstoque: () => authFetch(`${API_BASE}/estoque/movimentos`),
+
+  // ── Kits de Estoque ────────────────────────
+
+  listarKits: () => authFetch(`${API_BASE}/kits`),
+
+  obterKit: (id: string) => authFetch(`${API_BASE}/kits/${id}`),
+
+  criarKit: (payload: unknown) =>
+    authFetch(`${API_BASE}/kits`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarKit: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/kits/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarKit: (id: string) => authFetch(`${API_BASE}/kits/${id}`, { method: 'DELETE' }),
+
+  /** Aplica a receita do kit: valida, deduz cada componente e registra as saidas. */
+  aplicarKit: (id: string) => authFetch(`${API_BASE}/kits/${id}/aplicar`, { method: 'POST' }),
+
   criarAdmin: (payload: unknown) =>
     fetch(`${API_BASE}/admin/signup`, {
       method: 'POST',

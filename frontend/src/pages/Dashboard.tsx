@@ -90,6 +90,9 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
   if (page === 'veiculos') {
     return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
+  if (page === 'estoque') {
+    return <EstoquePage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
+  }
   if (page === 'clientes') {
     return (
       <ClientesPage

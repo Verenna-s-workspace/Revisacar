@@ -1,16 +1,20 @@
+import { useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Sidebar, MobileNav } from '../Navigation';
 import { Card, KpiCard, Skeleton } from '../Primitives';
 import { useRelatorios } from '../../../hooks/useRelatorios';
+import { useEstoque } from '../../../hooks/useEstoque';
 import { formatBRL } from '../../../utils/dashboard';
 import { formatarNumero } from '../../../utils/relatorios';
+import { itensMaisMovimentados } from '../../../utils/estoque_utils';
 import type { NavPage } from '../../../types/dashboard';
 
 import { PeriodoSelector } from './PeriodoSelector';
 import { FaturamentoComparativoChart } from './FaturamentoComparativoChart';
 import { OrdensComparativoChart } from './OrdensComparativoChart';
 import { ServicosMaisRealizadosChart } from './ServicosMaisRealizadosChart';
+import { ItensEstoqueMaisMovimentadosChart } from './ItensEstoqueMaisMovimentadosChart';
 import { MediaDiariaInfo } from './MediaDiariaInfo';
 
 interface RelatoriosPageProps {
@@ -35,6 +39,16 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS }: RelatoriosP
     usandoDadosDemo,
     recarregar,
   } = useRelatorios();
+
+  // Reaproveita o mesmo intervaloAtual de Relatórios, só que sobre o log de
+  // movimentação do Estoque em vez de sobre ordens — soma quantidade de
+  // saída por item (aplicação de kit / uso avulso; ajustes manuais de
+  // cadastro não contam, ver hooks/useEstoque.ts).
+  const { itens: itensEstoque, movimentos: movimentosEstoque, carregando: carregandoEstoque } = useEstoque();
+  const itensEstoqueMovimentados = useMemo(
+    () => itensMaisMovimentados(movimentosEstoque, itensEstoque, intervaloAtual),
+    [movimentosEstoque, itensEstoque, intervaloAtual]
+  );
 
   const sparkFaturamento = serieFaturamento.map((p) => p.atual ?? 0);
   const sparkOrdens = serieOrdens.map((p) => p.atual ?? 0);
@@ -229,6 +243,32 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS }: RelatoriosP
                 </div>
               ) : (
                 <ServicosMaisRealizadosChart dados={servicosMaisRealizados} />
+              )}
+            </Card>
+
+            {/* itens de estoque mais movimentados */}
+            <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+              <div className="dashboard-card__header">
+                <div>
+                  <div className="dashboard-card__header-title">ITENS DE ESTOQUE MAIS MOVIMENTADOS</div>
+                  <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                    Peças com mais saída de estoque no período (quantidade e % do total).
+                  </div>
+                </div>
+                <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.box}</span>
+              </div>
+              {carregando || carregandoEstoque ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} h={26} />
+                  ))}
+                </div>
+              ) : itensEstoqueMovimentados.length === 0 ? (
+                <div style={{ fontSize: '0.82rem', color: tokens.color.muted, textAlign: 'center', padding: '20px 0' }}>
+                  Nenhuma movimentação de estoque neste período.
+                </div>
+              ) : (
+                <ItensEstoqueMaisMovimentadosChart dados={itensEstoqueMovimentados} />
               )}
             </Card>
           </>

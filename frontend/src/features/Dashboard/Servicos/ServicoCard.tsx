@@ -30,9 +30,11 @@ interface ServicoCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleAtivo: () => void;
+  /** Nome do kit de Estoque vinculado a este serviço, se houver — só leitura aqui (fonte da verdade é o Kit). */
+  kitVinculadoNome?: string;
 }
 
-export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo }: ServicoCardProps) {
+export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo, kitVinculadoNome }: ServicoCardProps) {
   const inativo = !servico.ativo;
 
   return (
@@ -88,6 +90,13 @@ export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo }: Servic
       <p style={{ fontSize: '0.82rem', color: tokens.color.textSecond, lineHeight: 1.4, margin: 0 }}>
         {servico.descricao}
       </p>
+
+      {kitVinculadoNome && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', color: tokens.color.muted }}>
+          <span style={{ display: 'flex', flexShrink: 0 }}>{Icons.box}</span>
+          Kit vinculado: <strong style={{ color: tokens.color.textSecond, fontWeight: 700 }}>{kitVinculadoNome}</strong>
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, borderTop: `1px solid ${tokens.color.border}`, paddingTop: 10, marginTop: 2 }}>
         <ActionBtn title={inativo ? 'Ativar serviço' : 'Desativar serviço'} onClick={onToggleAtivo}>
