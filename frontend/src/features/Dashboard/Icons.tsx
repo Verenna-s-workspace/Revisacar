@@ -26,6 +26,12 @@ export const Icons = {
   edit:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   trash:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
   search:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+
+  // Auto parts category icons (Estoque)
+  tire:          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg>,
+  wheel:         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="20"/><line x1="4" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="20" y2="12"/></svg>,
+  steeringWheel: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.3"/><line x1="12" y1="14.3" x2="12" y2="20"/><line x1="6.3" y1="9" x2="10.3" y2="11"/><line x1="17.7" y1="9" x2="13.7" y2="11"/></svg>,
+  seat:          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M7 4h6a2 2 0 0 1 2 2v6"/><path d="M7 4v11a3 3 0 0 0 3 3h6"/><line x1="7" y1="12" x2="12" y2="12"/><line x1="18" y1="15" x2="18" y2="19"/><line x1="16" y1="17" x2="20" y2="17"/></svg>,
   
   // Service-specific icons
   oleo:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="7" rx="5" ry="3"/><path d="M7 7v5c0 3 10 3 10 0V7"/><path d="M12 17v3"/></svg>,
@@ -41,4 +47,24 @@ export const SVC_ICON: Record<string, JSX.Element> = {
   'Suspensão': Icons.suspensao,
   'Alinhamento': Icons.alinhamento,
   'Ar Condicionado': Icons.ar,
+};
+
+// Estoque: mapa categoria (texto livre, ver CATEGORIA_GRUPOS em utils/estoque_utils.ts) -> icone.
+// Categorias sem icone especifico caem em Icons.wrench (mecanica/servico) ou Icons.box (peca/insumo generico).
+export const CATEGORIA_ICON: Record<string, JSX.Element> = {
+  'Pneus': Icons.tire,
+  'Calotas': Icons.wheel,
+  'Rodas': Icons.wheel,
+  'Volante': Icons.steeringWheel,
+  'Bancos': Icons.seat,
+  'Motor': Icons.wrench,
+  'Correias': Icons.wrench,
+  'Freios': Icons.wrench,
+  'Suspensão': Icons.wrench,
+  'Elétrica': Icons.wrench,
+  'Lubrificantes': Icons.box,
+  'Filtros': Icons.box,
+  'Fluidos': Icons.box,
+  'Acessórios': Icons.box,
+  'Funilaria': Icons.wrench,
 };

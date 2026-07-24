@@ -4,6 +4,7 @@ import { Icons } from './Icons';
 import { Sidebar, MobileNav } from './Navigation';
 import { Card, Skeleton } from './Primitives';
 import { useServicos } from '../../hooks/useServicos';
+import { useEstoque } from '../../hooks/useEstoque';
 import type { ServicoItem } from '../../types/servico';
 import type { NavPage } from '../../types/dashboard';
 
@@ -21,6 +22,16 @@ interface ServicosPageProps {
 
 export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   const { servicos, loading, stats, addServico, updateServico, deleteServico, toggleAtivo } = useServicos();
+
+  // Vínculo Kit ↔ Serviço: a fonte da verdade é o Kit (Estoque), então aqui é
+  // só leitura — um lookup servicoId -> nome do kit, montado uma vez aqui em
+  // vez de cada ServicoCard chamar useEstoque() individualmente.
+  const { kits } = useEstoque();
+  const kitPorServicoId = useMemo(() => {
+    const mapa = new Map<string, string>();
+    kits.forEach(k => { if (k.servicoId) mapa.set(k.servicoId, k.nome); });
+    return mapa;
+  }, [kits]);
 
   const [search, setSearch] = useState('');
   const [categoria, setCategoria] = useState('todas');
@@ -157,6 +168,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
                 onEdit={() => abrirEdicao(s)}
                 onDelete={() => setExcluindo(s)}
                 onToggleAtivo={() => toggleAtivo(s.id)}
+                kitVinculadoNome={kitPorServicoId.get(s.id)}
               />
             ))}
           </div>

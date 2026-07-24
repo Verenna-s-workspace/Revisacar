@@ -1,448 +1,425 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
-import { Card } from './Primitives';
+import { Sidebar, MobileNav } from './Navigation';
+import { Card, Skeleton } from './Primitives';
+import { useEstoque } from '../../hooks/useEstoque';
+import { filtrarItensPorBusca, itemEstaBaixo } from '../../utils/estoque_utils';
+import type { EstoqueItem, EstoqueKit, NovoEstoqueItemInput, NovoEstoqueKitInput } from '../../types/estoque';
+import type { NavPage } from '../../types/dashboard';
 
-interface EstoqueItem {
-  id: string;
-  nome: string;
-  categoria: string;
-  quantidade: number;
-  minimo: number;
-  preco: number;
-  localizacao: string;
+import { EstoqueStats } from './Estoque/EstoqueStats';
+import { EstoqueFilters } from './Estoque/EstoqueFilters';
+import { CategoriaGrid } from './Estoque/CategoriaGrid';
+import { EstoqueItemCard } from './Estoque/EstoqueItemCard';
+import { EstoqueBaixoTira } from './Estoque/EstoqueBaixoTira';
+import { QuarentenaAlert } from './Estoque/QuarentenaAlert';
+import { KitCard } from './Estoque/KitCard';
+import { ProdutoModal } from './Estoque/ProdutoModal';
+import { CriarKitModal } from './Estoque/CriarKitModal';
+import { ConfirmDeleteModal } from './Estoque/ConfirmDeleteModal';
+
+interface EstoquePageProps {
+  onNav: (p: NavPage) => void;
+  isMobile: boolean;
+  onNewOS?: () => void;
 }
 
-const MOCK_ESTOQUE: EstoqueItem[] = [
-  { id: '1', nome: 'Óleo Sintético 5W30 Mobil', categoria: 'Lubrificantes', quantidade: 24, minimo: 10, preco: 58.90, localizacao: 'Prateleira A1' },
-  { id: '2', nome: 'Filtro de Óleo Civic (2012-2021)', categoria: 'Filtros', quantidade: 3, minimo: 5, preco: 35.00, localizacao: 'Prateleira A3' },
-  { id: '3', nome: 'Pastilha de Freio Dianteira Civic', categoria: 'Freios', quantidade: 2, minimo: 4, preco: 189.00, localizacao: 'Prateleira B2' },
-  { id: '4', nome: 'Filtro de Ar Motor Corolla', categoria: 'Filtros', quantidade: 8, minimo: 4, preco: 45.00, localizacao: 'Prateleira A4' },
-  { id: '5', nome: 'Fluido de Freio Bosch DOT 4', categoria: 'Fluidos', quantidade: 15, minimo: 6, preco: 28.50, localizacao: 'Armário C1' },
-  { id: '6', nome: 'Palheta Limpador Dyna 26"/14"', categoria: 'Acessórios', quantidade: 4, minimo: 5, preco: 79.90, localizacao: 'Prateleira D3' },
-];
+type Visao = { tipo: 'inicio' } | { tipo: 'categoria'; categoria: string } | { tipo: 'baixo-estoque' };
 
-export function EstoquePage({ isMobile }: { isMobile: boolean }) {
-  const [itens, setItens] = useState<EstoqueItem[]>(MOCK_ESTOQUE);
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'baixo' | 'ok'>('all');
-  const [showModal, setShowModal] = useState(false);
-  const [newItem, setNewItem] = useState({ nome: '', categoria: 'Lubrificantes', quantidade: 10, minimo: 5, preco: 0.0, localizacao: '' });
+export function EstoquePage({ onNav, isMobile, onNewOS }: EstoquePageProps) {
+  const {
+    itens, kits, carregando, erro, usandoDadosDemo, stats,
+    recarregar, criarItem, atualizarItem, excluirItem,
+    criarKit, atualizarKit, excluirKit, aplicarKit, disponibilidadeKit,
+  } = useEstoque();
 
-  const filtered = itens.filter(item => {
-    const matchesSearch = item.nome.toLowerCase().includes(search.toLowerCase()) ||
-      item.categoria.toLowerCase().includes(search.toLowerCase()) ||
-      item.localizacao.toLowerCase().includes(search.toLowerCase());
+  const [busca, setBusca] = useState('');
+  const [visao, setVisao] = useState<Visao>({ tipo: 'inicio' });
+  const [somenteBaixo, setSomenteBaixo] = useState(false);
 
-    const isLow = item.quantidade <= item.minimo;
-    const matchesFilter = filterType === 'all' || 
-      (filterType === 'baixo' && isLow) || 
-      (filterType === 'ok' && !isLow);
+  const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
+  const [editandoItem, setEditandoItem] = useState<EstoqueItem | undefined>(undefined);
+  const [excluindoItem, setExcluindoItem] = useState<EstoqueItem | null>(null);
 
-    return matchesSearch && matchesFilter;
-  });
+  const [modalKitAberto, setModalKitAberto] = useState(false);
+  const [editandoKit, setEditandoKit] = useState<EstoqueKit | undefined>(undefined);
+  const [excluindoKit, setExcluindoKit] = useState<EstoqueKit | null>(null);
 
-  const lowStockCount = itens.filter(i => i.quantidade <= i.minimo).length;
+  const [aplicandoKitId, setAplicandoKitId] = useState<string | null>(null);
+  const [erroAplicarKit, setErroAplicarKit] = useState<Record<string, string>>({});
 
-  const handleQtyChange = (id: string, delta: number) => {
-    setItens(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, quantidade: Math.max(0, item.quantidade + delta) };
-      }
-      return item;
-    }));
-  };
+  const itensPorId = useMemo(() => new Map(itens.map(i => [i.id, i])), [itens]);
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItem.nome || newItem.preco <= 0) return;
-    const item: EstoqueItem = {
-      id: String(itens.length + 1),
-      nome: newItem.nome,
-      categoria: newItem.categoria,
-      quantidade: Number(newItem.quantidade),
-      minimo: Number(newItem.minimo),
-      preco: Number(newItem.preco),
-      localizacao: newItem.localizacao || 'Sem prateleira',
-    };
-    setItens([item, ...itens]);
-    setShowModal(false);
-    setNewItem({ nome: '', categoria: 'Lubrificantes', quantidade: 10, minimo: 5, preco: 0.0, localizacao: '' });
-  };
+  const resultadosBusca = useMemo(
+    () => (busca.trim() ? filtrarItensPorBusca(itens, busca) : null),
+    [busca, itens]
+  );
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header Area */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
-        <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Controle de Estoque</h2>
-          <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '2px 0 0' }}>Gerencie as peças e produtos disponíveis para os serviços.</p>
+  const itensDaVisao = useMemo(() => {
+    if (visao.tipo === 'categoria') {
+      const daCategoria = itens.filter(i => i.categoria === visao.categoria);
+      return somenteBaixo ? daCategoria.filter(itemEstaBaixo) : daCategoria;
+    }
+    if (visao.tipo === 'baixo-estoque') return itens.filter(itemEstaBaixo);
+    return [];
+  }, [itens, visao, somenteBaixo]);
+
+  function abrirNovoProduto() {
+    setEditandoItem(undefined);
+    setModalProdutoAberto(true);
+  }
+  function abrirEdicaoProduto(item: EstoqueItem) {
+    setEditandoItem(item);
+    setModalProdutoAberto(true);
+  }
+  function salvarProduto(input: NovoEstoqueItemInput) {
+    if (editandoItem) atualizarItem(editandoItem.id, input);
+    else criarItem(input);
+    setModalProdutoAberto(false);
+    setEditandoItem(undefined);
+  }
+
+  function abrirNovoKit() {
+    setEditandoKit(undefined);
+    setModalKitAberto(true);
+  }
+  function abrirEdicaoKit(kit: EstoqueKit) {
+    setEditandoKit(kit);
+    setModalKitAberto(true);
+  }
+  function salvarKit(input: NovoEstoqueKitInput) {
+    if (editandoKit) atualizarKit(editandoKit.id, input);
+    else criarKit(input);
+    setModalKitAberto(false);
+    setEditandoKit(undefined);
+  }
+
+  async function handleAplicarKit(kit: EstoqueKit) {
+    setAplicandoKitId(kit.id);
+    setErroAplicarKit(prev => {
+      const proximo = { ...prev };
+      delete proximo[kit.id];
+      return proximo;
+    });
+    const resultado = await aplicarKit(kit.id);
+    if (!resultado.ok) {
+      setErroAplicarKit(prev => ({ ...prev, [kit.id]: resultado.mensagem }));
+    }
+    setAplicandoKitId(null);
+  }
+
+  function selecionarCategoria(categoria: string) {
+    setSomenteBaixo(false);
+    setVisao({ tipo: 'categoria', categoria });
+  }
+
+  const BTN_PRIMARIO = {
+    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+    background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 9,
+    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+  } as const;
+
+  const BTN_SECUNDARIO = {
+    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+    background: 'transparent', color: tokens.color.ferrari, border: `1px solid ${tokens.color.ferrari}`, borderRadius: 9,
+    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+  } as const;
+
+  // ── conteúdo ──────────────────────────────────────────────────────────────
+
+  const content = (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
+      {/* header */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: isMobile ? '14px 16px' : '16px 28px', background: 'white',
+          borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap', gap: 10,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {isMobile && (
+            <button
+              onClick={() => onNav('dashboard')}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}
+            >
+              {Icons.chevL}
+            </button>
+          )}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
+                Estoque
+              </h2>
+              {usandoDadosDemo && (
+                <span
+                  style={{
+                    fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                    color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
+                    borderRadius: 6, padding: '2px 7px',
+                  }}
+                >
+                  dados de demonstração
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
+              Peças, insumos e kits da oficina.
+            </p>
+          </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 18px',
-            background: 'var(--color-ferrari)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-md)',
-            transition: 'var(--transition-fast)',
-            width: isMobile ? '100%' : 'auto',
-            justifyContent: 'center',
-          }}
-        >
-          {Icons.plus} Novo Item
-        </button>
+
+        {!erro && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={abrirNovoKit} style={BTN_SECUNDARIO}>
+              <span style={{ display: 'flex' }}>{Icons.plus}</span>
+              {!isMobile && 'Criar Kit'}
+            </button>
+            <button onClick={abrirNovoProduto} style={BTN_PRIMARIO}>
+              <span style={{ display: 'flex' }}>{Icons.plus}</span>
+              {!isMobile && 'Adicionar Produto'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Warning Alert Banner for Low Stock */}
-      {lowStockCount > 0 && (
-        <div style={{
-          padding: '12px 16px',
-          background: 'var(--color-crit-bg)',
-          border: '1px solid var(--color-crit-border)',
-          borderRadius: 12,
-          color: 'var(--color-crit)',
-          fontSize: '0.84rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10
-        }}>
-          <span style={{ display: 'flex' }}>{Icons.alert}</span>
-          <div>
-            Atenção: <strong>{lowStockCount}</strong> itens estão com a quantidade em estoque **abaixo do limite mínimo**.
-          </div>
-        </div>
-      )}
+      <EstoqueFilters busca={busca} onBusca={setBusca} />
 
-      {/* Filter and Search controls */}
-      <Card style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
-            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: tokens.color.muted, display: 'flex' }}>
-              {Icons.search}
-            </span>
-            <input
-              type="text"
-              placeholder="Buscar item por nome, categoria, prateleira..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '11px 14px 11px 40px',
-                background: tokens.color.bg,
-                border: `1px solid ${tokens.color.border}`,
-                borderRadius: 10,
-                color: tokens.color.text,
-                fontSize: '0.875rem',
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setFilterType('all')}
-              style={{
-                padding: '8px 14px',
-                background: filterType === 'all' ? 'var(--color-ferrari-glow)' : 'transparent',
-                color: filterType === 'all' ? 'var(--color-ferrari)' : tokens.color.textSecond,
-                border: `1px solid ${filterType === 'all' ? 'var(--color-ferrari)' : tokens.color.border}`,
-                borderRadius: 8,
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Todos ({itens.length})
-            </button>
-            <button
-              onClick={() => setFilterType('baixo')}
-              style={{
-                padding: '8px 14px',
-                background: filterType === 'baixo' ? 'var(--color-crit-bg)' : 'transparent',
-                color: filterType === 'baixo' ? 'var(--color-crit)' : tokens.color.textSecond,
-                border: `1px solid ${filterType === 'baixo' ? 'var(--color-crit)' : tokens.color.border}`,
-                borderRadius: 8,
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Estoque Baixo ({lowStockCount})
-            </button>
-            <button
-              onClick={() => setFilterType('ok')}
-              style={{
-                padding: '8px 14px',
-                background: filterType === 'ok' ? 'var(--color-ok-bg)' : 'transparent',
-                color: filterType === 'ok' ? 'var(--color-ok)' : tokens.color.textSecond,
-                border: `1px solid ${filterType === 'ok' ? 'var(--color-ok)' : tokens.color.border}`,
-                borderRadius: 8,
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Estoque Saudável ({itens.length - lowStockCount})
-            </button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Table list */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 700 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${tokens.color.border}`, background: tokens.color.surfaceHigh }}>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase' }}>Item / Descrição</th>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase' }}>Categoria</th>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase' }}>Localização</th>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', textAlign: 'right' }}>Preço Unitário</th>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', textAlign: 'center', width: 140 }}>Qtd. em Estoque</th>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
-                <th style={{ padding: '14px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', textAlign: 'right' }}>Ações Rápidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(item => {
-                const isLow = item.quantidade <= item.minimo;
-                return (
-                  <tr
-                    key={item.id}
-                    style={{
-                      borderBottom: `1px solid ${tokens.color.border}`,
-                      transition: 'var(--transition-fast)',
-                    }}
-                    className="checklist-item"
-                  >
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: tokens.color.text }}>{item.nome}</div>
-                      <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>ID: #{item.id}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontSize: '0.84rem', color: tokens.color.textSecond }}>
-                      {item.categoria}
-                    </td>
-                    <td style={{ padding: '16px 20px', fontSize: '0.84rem', color: tokens.color.muted }}>
-                      {item.localizacao}
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 600, color: tokens.color.text }}>
-                      R$ {item.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                        <button
-                          onClick={() => handleQtyChange(item.id, -1)}
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 6,
-                            background: tokens.color.surfaceHigh,
-                            border: `1px solid ${tokens.color.border}`,
-                            color: tokens.color.text,
-                            cursor: 'pointer',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: tokens.color.text, width: 30, textAlign: 'center' }}>
-                          {item.quantidade}
-                        </span>
-                        <button
-                          onClick={() => handleQtyChange(item.id, 1)}
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 6,
-                            background: tokens.color.surfaceHigh,
-                            border: `1px solid ${tokens.color.border}`,
-                            color: tokens.color.text,
-                            cursor: 'pointer',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '4px 10px',
-                        borderRadius: 12,
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        background: isLow ? 'var(--color-crit-bg)' : 'var(--color-ok-bg)',
-                        color: isLow ? 'var(--color-crit)' : 'var(--color-ok)',
-                        border: `1px solid ${isLow ? 'var(--color-crit-border)' : 'var(--color-ok-border)'}`
-                      }}>
-                        {isLow ? 'Baixo Nível' : 'Suficiente'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <button
-                        onClick={() => handleQtyChange(item.id, 10)}
-                        style={{
-                          padding: '6px 10px',
-                          background: tokens.color.surfaceHigh,
-                          border: `1px solid ${tokens.color.border}`,
-                          borderRadius: 6,
-                          fontSize: '0.72rem',
-                          color: tokens.color.textSecond,
-                          cursor: 'pointer',
-                          fontWeight: 600
-                        }}
-                      >
-                        +10 Unid.
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: tokens.color.muted, fontSize: '0.85rem' }}>
-                    Nenhum item do estoque encontrado com esse critério.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Add Stock Item Modal */}
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: 16,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            background: tokens.color.card,
-            borderRadius: 16,
-            width: '100%',
-            maxWidth: 480,
-            border: `1px solid ${tokens.color.border}`,
-            boxShadow: 'var(--shadow-lg)',
-            overflow: 'hidden',
-          }}>
-            <div style={{ padding: '18px 24px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>Adicionar Item ao Estoque</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
+      {/* corpo */}
+      <div
+        style={{
+          flex: 1, minHeight: 0, overflowY: 'auto',
+          padding: isMobile ? '12px 12px 32px' : '18px 28px 36px',
+          display: 'flex', flexDirection: 'column', gap: 16,
+        }}
+      >
+        {erro && !carregando && (
+          <Card style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ color: tokens.color.crit, display: 'flex' }}>{Icons.alert}</span>
+              <span style={{ fontSize: '0.85rem', color: tokens.color.text }}>{erro}</span>
             </div>
-            <form onSubmit={handleAdd} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>NOME DO PRODUTO / PEÇA *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Correia Dentada Civic"
-                  value={newItem.nome}
-                  onChange={e => setNewItem({ ...newItem, nome: e.target.value })}
-                  style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                />
+            <button
+              onClick={recarregar}
+              style={{ padding: '7px 14px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+            >
+              Tentar novamente
+            </button>
+          </Card>
+        )}
+
+        {!erro && (
+          <>
+            <EstoqueStats stats={stats} loading={carregando} />
+
+            {carregando ? (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14 }}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Card key={i} style={{ padding: 14 }}>
+                    <Skeleton h={140} r={8} />
+                  </Card>
+                ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            ) : resultadosBusca ? (
+              resultadosBusca.length === 0 ? (
+                <Card style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 16, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
+                    {Icons.search}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: tokens.color.text }}>Nenhum item encontrado</div>
+                  <div style={{ fontSize: '0.82rem', color: tokens.color.muted, maxWidth: 320 }}>
+                    Tente buscar por outro nome ou por um veículo de aplicação.
+                  </div>
+                </Card>
+              ) : (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>CATEGORIA</label>
-                  <select
-                    value={newItem.categoria}
-                    onChange={e => setNewItem({ ...newItem, categoria: e.target.value })}
-                    style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                  >
-                    <option>Lubrificantes</option>
-                    <option>Filtros</option>
-                    <option>Freios</option>
-                    <option>Fluidos</option>
-                    <option>Suspensão</option>
-                    <option>Acessórios</option>
-                    <option>Outros</option>
-                  </select>
+                  <div style={{ fontSize: '0.78rem', color: tokens.color.muted, marginBottom: 10 }}>
+                    {resultadosBusca.length} {resultadosBusca.length === 1 ? 'resultado' : 'resultados'} pra &quot;{busca}&quot;
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+                    {resultadosBusca.map(item => (
+                      <EstoqueItemCard
+                        key={item.id}
+                        item={item}
+                        onEdit={() => abrirEdicaoProduto(item)}
+                        onDelete={() => setExcluindoItem(item)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>PREÇO UNITÁRIO (R$) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={newItem.preco || ''}
-                    onChange={e => setNewItem({ ...newItem, preco: Number(e.target.value) })}
-                    placeholder="Ex: 58.90"
-                    style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>QTD INICIAL</label>
-                  <input
-                    type="number"
-                    value={newItem.quantidade}
-                    onChange={e => setNewItem({ ...newItem, quantidade: Number(e.target.value) })}
-                    style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>MÍNIMO ALERTA</label>
-                  <input
-                    type="number"
-                    value={newItem.minimo}
-                    onChange={e => setNewItem({ ...newItem, minimo: Number(e.target.value) })}
-                    style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>LOCALIZAÇÃO NA OFICINA</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Prateleira B3"
-                  value={newItem.localizacao}
-                  onChange={e => setNewItem({ ...newItem, localizacao: e.target.value })}
-                  style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.textSecond, fontSize: '0.85rem', cursor: 'pointer' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{ padding: '10px 20px', background: 'var(--color-ferrari)', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  Adicionar Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              )
+            ) : (
+              <>
+                <QuarentenaAlert itens={itens} />
+
+                {visao.tipo === 'inicio' && (
+                  <EstoqueBaixoTira itens={itens} onVerTodos={() => setVisao({ tipo: 'baixo-estoque' })} />
+                )}
+
+                {visao.tipo === 'inicio' && (
+                  <>
+                    <CategoriaGrid itens={itens} onSelecionar={selecionarCategoria} />
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Kits</h3>
+                        <span style={{ fontSize: '0.78rem', color: tokens.color.muted }}>({kits.length})</span>
+                      </div>
+
+                      {kits.length === 0 ? (
+                        <Card style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+                          <div style={{ width: 52, height: 52, borderRadius: 14, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
+                            {Icons.box}
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>Nenhum kit cadastrado</div>
+                          <div style={{ fontSize: '0.8rem', color: tokens.color.muted, maxWidth: 300 }}>
+                            Combine itens já cadastrados numa receita pra dar baixa rápida em serviços comuns.
+                          </div>
+                        </Card>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                          {kits.map(kit => (
+                            <KitCard
+                              key={kit.id}
+                              kit={kit}
+                              itensPorId={itensPorId}
+                              disponibilidade={disponibilidadeKit(kit)}
+                              aplicando={aplicandoKitId === kit.id}
+                              erro={erroAplicarKit[kit.id] ?? null}
+                              onAplicar={() => handleAplicarKit(kit)}
+                              onEdit={() => abrirEdicaoKit(kit)}
+                              onDelete={() => setExcluindoKit(kit)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {visao.tipo !== 'inicio' && (
+                  <div>
+                    <button
+                      onClick={() => setVisao({ tipo: 'inicio' })}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.ferrari, fontSize: '0.82rem', fontWeight: 700, padding: 0, marginBottom: 12 }}
+                    >
+                      <span style={{ display: 'flex' }}>{Icons.chevL}</span>
+                      Categorias
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>
+                        {visao.tipo === 'categoria' ? visao.categoria : 'Estoque Baixo'}
+                        <span style={{ fontWeight: 600, color: tokens.color.muted, fontSize: '0.8rem', marginLeft: 8 }}>
+                          ({itensDaVisao.length})
+                        </span>
+                      </h3>
+                      {visao.tipo === 'categoria' && (
+                        <button
+                          onClick={() => setSomenteBaixo(v => !v)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9,
+                            border: `1px solid ${somenteBaixo ? tokens.color.warn : tokens.color.border}`,
+                            background: somenteBaixo ? tokens.color.warnBg : 'transparent',
+                            color: somenteBaixo ? tokens.color.warn : tokens.color.textSecond,
+                            fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <span style={{ display: 'flex' }}>{Icons.alert}</span>
+                          Só estoque baixo
+                        </button>
+                      )}
+                    </div>
+
+                    {itensDaVisao.length === 0 ? (
+                      <Card style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+                        <div style={{ width: 52, height: 52, borderRadius: 14, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
+                          {Icons.box}
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>Nenhum item encontrado</div>
+                        <div style={{ fontSize: '0.8rem', color: tokens.color.muted, maxWidth: 300 }}>
+                          {somenteBaixo ? 'Nenhum item em baixo estoque nesta categoria.' : 'Cadastre o primeiro item pra começar.'}
+                        </div>
+                      </Card>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+                        {itensDaVisao.map(item => (
+                          <EstoqueItemCard
+                            key={item.id}
+                            item={item}
+                            onEdit={() => abrirEdicaoProduto(item)}
+                            onDelete={() => setExcluindoItem(item)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const modals = (
+    <>
+      {modalProdutoAberto && (
+        <ProdutoModal
+          item={editandoItem}
+          categoriaInicial={visao.tipo === 'categoria' ? visao.categoria : undefined}
+          onSave={salvarProduto}
+          onClose={() => { setModalProdutoAberto(false); setEditandoItem(undefined); }}
+        />
       )}
+      {excluindoItem && (
+        <ConfirmDeleteModal
+          nome={excluindoItem.nome}
+          entidadeLabel="produto"
+          onConfirm={() => excluirItem(excluindoItem.id)}
+          onClose={() => setExcluindoItem(null)}
+        />
+      )}
+      {modalKitAberto && (
+        <CriarKitModal
+          kit={editandoKit}
+          itensDisponiveis={itens}
+          onSave={salvarKit}
+          onClose={() => { setModalKitAberto(false); setEditandoKit(undefined); }}
+        />
+      )}
+      {excluindoKit && (
+        <ConfirmDeleteModal
+          nome={excluindoKit.nome}
+          entidadeLabel="kit"
+          onConfirm={() => excluirKit(excluindoKit.id)}
+          onClose={() => setExcluindoKit(null)}
+        />
+      )}
+    </>
+  );
+
+  // ── layout ────────────────────────────────────────────────────────────────
+
+  if (isMobile) {
+    return (
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+        {content}
+        <MobileNav active="estoque" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
+        {modals}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <Sidebar active="estoque" onNav={onNav} />
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {content}
+      </main>
+      {modals}
     </div>
   );
 }
