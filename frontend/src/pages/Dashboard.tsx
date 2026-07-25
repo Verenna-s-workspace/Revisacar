@@ -66,11 +66,18 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
   // `handleNav` e limpa esse foco, para que ele nunca "vaze" para uma visita
   // posterior e não relacionada à tela de Agendamentos.
   const [agendaFocus, setAgendaFocus] = useState<{ search?: string; highlightId?: string } | null>(null);
+  // Mesmo mecanismo, agora para o Estoque — usado pelo card "Destaque do Período"
+  // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
+  const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
 
-  const handleNav = (p: NavPage) => { setAgendaFocus(null); setPage(p); };
+  const handleNav = (p: NavPage) => { setAgendaFocus(null); setEstoqueFocus(null); setPage(p); };
   const handleGoToAgendamentos = (focus: { search?: string; highlightId?: string }) => {
     setAgendaFocus(focus);
     setPage('agendamentos');
+  };
+  const handleGoToEstoque = (focus: { search?: string }) => {
+    setEstoqueFocus(focus);
+    setPage('estoque');
   };
 
   if (page === 'ordens') {
@@ -91,7 +98,14 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
     return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
   if (page === 'estoque') {
-    return <EstoquePage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
+    return (
+      <EstoquePage
+        onNav={handleNav}
+        isMobile={isMobile}
+        onNewOS={onNewOS}
+        initialSearch={estoqueFocus?.search}
+      />
+    );
   }
   if (page === 'clientes') {
     return (
@@ -108,7 +122,14 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
     return <ServicosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
   if (page === 'relatorios') {
-    return <RelatoriosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
+    return (
+      <RelatoriosPage
+        onNav={handleNav}
+        isMobile={isMobile}
+        onNewOS={onNewOS}
+        onGoToEstoque={handleGoToEstoque}
+      />
+    );
   }
   if (page !== 'dashboard') {
     return <PlaceholderPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;

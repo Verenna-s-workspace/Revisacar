@@ -143,10 +143,19 @@ export function itensMaisMovimentados(
     total += m.quantidade;
   });
 
-  const ordenado = Array.from(contagem.entries())
+  const ordenado: ItemEstoqueMovimentado[] = Array.from(contagem.entries())
     .map(([itemId, quantidade]) => {
       const item = itensPorId.get(itemId)!;
-      return { nome: item.nome, categoria: item.categoria, quantidade, percentual: total > 0 ? (quantidade / total) * 100 : 0 };
+      return {
+        nome: item.nome,
+        categoria: item.categoria,
+        quantidade,
+        percentual: total > 0 ? (quantidade / total) * 100 : 0,
+        id: item.id,
+        preco: item.preco,
+        quantidadeAtual: item.quantidade,
+        fotoDataUrl: item.fotoDataUrl,
+      };
     })
     .sort((a, b) => b.quantidade - a.quantidade);
 

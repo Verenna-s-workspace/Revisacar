@@ -97,4 +97,10 @@ export interface ItemEstoqueMovimentado {
   categoria: string; // '' pro bucket agregado "Outros" — cai no ícone genérico
   quantidade: number;
   percentual: number;
+  /** Ausentes só no bucket agregado "Outros" — nos itens reais (sempre os primeiros da lista), vêm preenchidos. */
+  id?: string;
+  preco?: number;
+  /** Quantidade em estoque agora — diferente de `quantidade`, que é o quanto foi movimentado no período. */
+  quantidadeAtual?: number;
+  fotoDataUrl?: string;
 }

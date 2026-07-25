@@ -15,15 +15,17 @@ import { FaturamentoComparativoChart } from './FaturamentoComparativoChart';
 import { OrdensComparativoChart } from './OrdensComparativoChart';
 import { ServicosMaisRealizadosChart } from './ServicosMaisRealizadosChart';
 import { ItensEstoqueMaisMovimentadosChart } from './ItensEstoqueMaisMovimentadosChart';
+import { TopItensEstoqueDestaque } from './TopItensEstoqueDestaque';
 import { MediaDiariaInfo } from './MediaDiariaInfo';
 
 interface RelatoriosPageProps {
   onNav: (p: NavPage) => void;
   isMobile: boolean;
   onNewOS?: () => void;
+  onGoToEstoque?: (focus: { search?: string }) => void;
 }
 
-export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS }: RelatoriosPageProps) {
+export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque }: RelatoriosPageProps) {
   const {
     carregando,
     erro,
@@ -245,6 +247,26 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS }: RelatoriosP
                 <ServicosMaisRealizadosChart dados={servicosMaisRealizados} />
               )}
             </Card>
+
+            {/* destaque do item de estoque mais movimentado — visão adicional, não substitui o gráfico de barra abaixo */}
+            {!carregando && !carregandoEstoque && itensEstoqueMovimentados.some(i => i.id) && (
+              <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+                <div className="dashboard-card__header">
+                  <div>
+                    <div className="dashboard-card__header-title">DESTAQUE DO PERÍODO</div>
+                    <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                      Item de estoque com maior saída, com preço, disponibilidade e acesso direto — toque pra ver no Estoque.
+                    </div>
+                  </div>
+                  <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.dollar}</span>
+                </div>
+                <TopItensEstoqueDestaque
+                  itens={itensEstoqueMovimentados.filter(i => i.id)}
+                  isMobile={mobile}
+                  onVerItem={(nome) => onGoToEstoque?.({ search: nome })}
+                />
+              </Card>
+            )}
 
             {/* itens de estoque mais movimentados */}
             <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>

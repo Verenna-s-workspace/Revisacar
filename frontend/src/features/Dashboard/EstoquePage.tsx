@@ -23,18 +23,20 @@ interface EstoquePageProps {
   onNav: (p: NavPage) => void;
   isMobile: boolean;
   onNewOS?: () => void;
+  /** Preenche a busca ao entrar na tela — usado pelo "Ver Item" em Relatórios. */
+  initialSearch?: string;
 }
 
 type Visao = { tipo: 'inicio' } | { tipo: 'categoria'; categoria: string } | { tipo: 'baixo-estoque' };
 
-export function EstoquePage({ onNav, isMobile, onNewOS }: EstoquePageProps) {
+export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: EstoquePageProps) {
   const {
     itens, kits, carregando, erro, usandoDadosDemo, stats,
     recarregar, criarItem, atualizarItem, excluirItem,
     criarKit, atualizarKit, excluirKit, aplicarKit, disponibilidadeKit,
   } = useEstoque();
 
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(initialSearch ?? '');
   const [visao, setVisao] = useState<Visao>({ tipo: 'inicio' });
   const [somenteBaixo, setSomenteBaixo] = useState(false);
 
