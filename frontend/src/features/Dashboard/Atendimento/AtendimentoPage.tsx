@@ -32,7 +32,7 @@ interface AtendimentoPageProps {
 }
 
 export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill }: AtendimentoPageProps) {
-  const { loading, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado } =
+  const { loading, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear } =
     useAtendimento();
   const { kits, itens } = useEstoque();
   const { servicos } = useServicos();
@@ -146,6 +146,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
       onClose={() => setSelected(null)}
       onContinuarChecklist={() => handleContinuarChecklist(selected)}
       onAtualizarOverlay={atualizarOverlay}
+      onDesbloquear={desbloquear}
     >
       <PecasNecessarias ordem={selected} kits={kits} itens={itens} servicos={servicos} />
       <HistoricoExpress ordem={selected} todasOrdens={ordens} />

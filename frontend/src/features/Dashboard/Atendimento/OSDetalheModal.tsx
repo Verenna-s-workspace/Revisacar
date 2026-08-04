@@ -78,18 +78,22 @@ interface OSDetalheModalProps {
   /** Navega pro checklist real (onLoadOS) — quem chama já cuida de garantirIniciado antes. */
   onContinuarChecklist: () => void;
   onAtualizarOverlay: (ordemId: string, patch: Partial<Omit<OverlayOS, 'ordemId'>>) => void;
+  /** Tira a OS de 'aguardando' — ver useAtendimento.desbloquear. */
+  onDesbloquear: (ordemId: string) => void;
   /** Slot da Fase 6 (Peças Necessárias + Histórico Express/retorno) — fica entre Reclamação e Observações. */
   children?: ReactNode;
 }
 
-export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualizarOverlay, children }: OSDetalheModalProps) {
+export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualizarOverlay, onDesbloquear, children }: OSDetalheModalProps) {
   const veiculoPayload = parseOrdemPayload(ordem).veiculo ?? {};
   const finalizada = ordem.status === 'finalizada';
+  const bloqueada = ordem.status === 'aguardando';
 
   // Estado local pros campos de texto — persiste no overlay em onBlur/close/continuar,
   // não a cada tecla (evita reescrever localStorage e recalcular o board a cada letra).
   const [reclamacao, setReclamacao] = useState(ordem.reclamacaoCliente ?? '');
   const [observacoes, setObservacoes] = useState(ordem.observacoesInternas ?? '');
+  const [motivoBloqueio, setMotivoBloqueio] = useState(ordem.motivoBloqueio ?? '');
   const [gravando, setGravando] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [fotoMsg, setFotoMsg] = useState<string | null>(null);
@@ -98,7 +102,7 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
   const reconhecimentoRef = useRef<SpeechRecognitionLike | null>(null);
 
   const salvarCampos = () => {
-    onAtualizarOverlay(ordem.id, { reclamacaoCliente: reclamacao, observacoesInternas: observacoes });
+    onAtualizarOverlay(ordem.id, { reclamacaoCliente: reclamacao, observacoesInternas: observacoes, motivoBloqueio });
   };
 
   const handleClose = () => {
@@ -117,6 +121,12 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
 
   const handleClienteAvisado = (avisado: boolean) => {
     onAtualizarOverlay(ordem.id, { clienteAvisado: avisado });
+  };
+
+  const handleDesbloquear = () => {
+    salvarCampos();
+    setMotivoBloqueio('');
+    onDesbloquear(ordem.id);
   };
 
   const ditadoDisponivel =
@@ -193,6 +203,25 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
               <Field icon={Icons.box} label="Cor" value={veiculoPayload.cor} />
             </div>
           </div>
+
+          {bloqueada && (
+            <div>
+              <div style={{ ...SECTION_LABEL, color: tokens.color.crit }}>Bloqueado — Aguardando</div>
+              <textarea
+                value={motivoBloqueio}
+                onChange={e => setMotivoBloqueio(e.target.value)}
+                onBlur={salvarCampos}
+                placeholder="Ex.: aguardando pastilha de freio no fornecedor…"
+                style={{
+                  ...FIELD_INPUT,
+                  height: 56,
+                  resize: 'none',
+                  background: tokens.color.critBg,
+                  borderColor: tokens.color.critBorder,
+                }}
+              />
+            </div>
+          )}
 
           {!finalizada && (
             <div>
@@ -310,7 +339,27 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
         </div>
 
         {!finalizada && (
-          <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            {bloqueada && (
+              <button
+                onClick={handleDesbloquear}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  border: `1px solid ${tokens.color.border}`,
+                  background: 'transparent',
+                  color: tokens.color.text,
+                  cursor: 'pointer',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                }}
+              >
+                Desbloquear
+              </button>
+            )}
             <button
               onClick={handleContinuar}
               style={{

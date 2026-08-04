@@ -145,6 +145,25 @@ export function OSKanbanCard({ item, qtdPecas, possivelRetorno, onAbrir, onInici
           {formatDuracaoDesde(ordem.iniciadoEm)}
         </div>
       )}
+
+      {ordem.status === 'aguardando' && ordem.motivoBloqueio && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 5,
+            fontSize: '0.72rem',
+            color: tokens.color.crit,
+            marginTop: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ display: 'flex', flexShrink: 0, marginTop: 1 }}>{Icons.alert}</span>
+          {ordem.motivoBloqueio}
+        </div>
+      )}
     </CardShell>
   );
 }

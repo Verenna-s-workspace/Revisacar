@@ -111,6 +111,24 @@ export function useAtendimento() {
     [atualizarOverlay]
   );
 
+  // Tira a OS do estado 'aguardando', devolvendo pra 'rascunho' — reaparece em
+  // "Em Execução" se iniciadoEm já existia (retomando o trabalho), ou em
+  // "Fila" se nunca chegou a começar. Otimista: atualiza a lista local antes
+  // da resposta da API; se a chamada falhar, recarrega pra não deixar a tela
+  // mentindo que desbloqueou quando não desbloqueou de verdade.
+  const desbloquear = useCallback(
+    async (ordemId: string) => {
+      setOrdensRaw(prev => prev.map(o => (o.id === ordemId ? { ...o, status: 'rascunho' } : o)));
+      atualizarOverlay(ordemId, { motivoBloqueio: undefined });
+      try {
+        await api.atualizarOrdem(ordemId, { status: 'rascunho' });
+      } catch {
+        carregarOrdens();
+      }
+    },
+    [atualizarOverlay, carregarOrdens]
+  );
+
   const reload = useCallback(() => {
     carregarOrdens();
     reloadAgendamentos();
@@ -126,6 +144,7 @@ export function useAtendimento() {
     proximoAgendamento,
     atualizarOverlay,
     garantirIniciado,
+    desbloquear,
     reload,
   };
 }

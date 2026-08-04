@@ -24,6 +24,8 @@ export interface OverlayOS {
   observacoesInternas?: string;
   clienteAvisado?: boolean;
   prioridade?: PrioridadeAtendimento | null;
+  /** Só tem sentido enquanto status === 'aguardando' — limpo automaticamente ao desbloquear. */
+  motivoBloqueio?: string;
 }
 
 /** `Record<ordemId, OverlayOS>` — formato salvo sob a chave única do localStorage. */
@@ -36,6 +38,7 @@ export type OSAtendimento = OrdemRow & {
   observacoesInternas?: string;
   clienteAvisado?: boolean;
   prioridade?: PrioridadeAtendimento | null;
+  motivoBloqueio?: string;
 };
 
 export type KanbanColunaId = 'fila' | 'em_execucao' | 'bloqueado' | 'concluido';
