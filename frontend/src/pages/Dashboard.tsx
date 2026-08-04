@@ -23,9 +23,11 @@ import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
 import { AgendamentosPage } from '../features/Dashboard/Agendamentos/AgendamentosPage';
 import { ServicosPage } from '../features/Dashboard/ServicosPage';
 import { RelatoriosPage } from '../features/Dashboard/Relatorios/RelatoriosPage';
+import { AtendimentoPage } from '../features/Dashboard/Atendimento/AtendimentoPage';
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
+import type { OSPrefillInput } from '../types/atendimento';
 
 // ── PlaceholderPage ───────────────────────────────────────────────────────────
 
@@ -54,7 +56,7 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS?: (id: string) => void }) {
+export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void }) {
   const { user } = useAuth();
   const { isMobile } = useResponsive();
   const { loading, data } = useDashboard();
@@ -82,6 +84,17 @@ export function Dashboard({ onNewOS, onLoadOS }: { onNewOS: () => void; onLoadOS
 
   if (page === 'ordens') {
     return <OrdensPage ordens={data.ordens} loading={loading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
+  }
+  if (page === 'atendimento') {
+    return (
+      <AtendimentoPage
+        onNav={handleNav}
+        isMobile={isMobile}
+        onNewOS={onNewOS}
+        onLoadOS={onLoadOS}
+        onNewOSComPrefill={onNewOSComPrefill}
+      />
+    );
   }
   if (page === 'agendamentos') {
     return (

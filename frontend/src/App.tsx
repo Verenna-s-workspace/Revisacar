@@ -6,6 +6,7 @@ import { AuthScreen } from './pages/AuthScreen';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { api } from './utils/api';
 import type { OrdemServico } from './types';
+import type { OSPrefillInput } from './types/atendimento';
 import { useAuth } from './context/AuthContext';
 
 type View = 'dashboard' | 'os' | 'os2' | 'login' | 'reset-password';
@@ -37,22 +38,34 @@ export default function App() {
 
   const [view, setView]                 = useState<View>('dashboard');
   const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
+  const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
   const [authMode, setAuthMode]         = useState<'login' | 'reset-password'>('login');
 
   // ── Navegação ──────────────────────────────────────────────────────────────
   const handleStartNew = () => {
     setSelectedOrdem(null);
+    setPrefillOS(null);
     setView('os');            // sempre abre o Check (fluxo de entrada)
+  };
+
+  // Igual a handleStartNew, mas pré-preenchendo cliente/veículo (usado pelo
+  // botão "Iniciar Atendimento" da tela de Atendimento — ver Seção 8 do prompt).
+  const handleStartNewComPrefill = (prefill: OSPrefillInput) => {
+    setSelectedOrdem(null);
+    setPrefillOS(prefill);
+    setView('os');
   };
 
   const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => {
     setSelectedOrdem(ordem);
+    setPrefillOS(null);
     setView('os');
   };
 
   const handleBackToDashboard = () => {
     setView('dashboard');
     setSelectedOrdem(null);
+    setPrefillOS(null);
   };
 
   const handleGoToCheck2 = () => {
@@ -141,6 +154,7 @@ export default function App() {
           <Dashboard
             onNewOS={handleStartNew}
             onLoadOS={handleLoadOS}
+            onNewOSComPrefill={handleStartNewComPrefill}
           />
         ) : view === 'os2' ? (
           <Check2
@@ -150,6 +164,7 @@ export default function App() {
         ) : view === 'os' ? (
           <Check
             initialOrdem={selectedOrdem}
+            prefill={prefillOS}
             onBackToStart={handleBackToDashboard}
             onNextChecklist={handleGoToCheck2}   // ← permite ir para Check2
           />
@@ -158,6 +173,7 @@ export default function App() {
           <Dashboard
             onNewOS={handleStartNew}
             onLoadOS={handleLoadOS}
+            onNewOSComPrefill={handleStartNewComPrefill}
           />
         )}
       </div>

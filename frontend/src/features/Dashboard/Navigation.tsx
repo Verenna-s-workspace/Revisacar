@@ -5,16 +5,17 @@ import '../../styles/dashboard.css';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
-  { id: 'dashboard',    icon: Icons.home,   label: 'Visão Geral' },
-  { id: 'ordens',       icon: Icons.orders, label: 'Ordens de Serviço' },
-  { id: 'agendamentos', icon: Icons.cal,    label: 'Agendamentos' },
-  { id: 'clientes',     icon: Icons.user,   label: 'Clientes' },
-  { id: 'veiculos',     icon: Icons.car,    label: 'Veículos' },
-  { id: 'estoque',      icon: Icons.box,    label: 'Estoque' },
-  { id: 'servicos',     icon: Icons.wrench, label: 'Catálogo' },
-  { id: 'financeiro',   icon: Icons.money,  label: 'Financeiro' },
-  { id: 'relatorios',   icon: Icons.chart,  label: 'Relatórios' },
-  { id: 'configuracoes',icon: Icons.cog,    label: 'Configurações' },
+  { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
+  { id: 'ordens',       icon: Icons.orders,          label: 'Ordens de Serviço' },
+  { id: 'atendimento',  icon: Icons.clipboardCheck,  label: 'Atendimento' },
+  { id: 'agendamentos', icon: Icons.cal,             label: 'Agendamentos' },
+  { id: 'clientes',     icon: Icons.user,            label: 'Clientes' },
+  { id: 'veiculos',     icon: Icons.car,             label: 'Veículos' },
+  { id: 'estoque',      icon: Icons.box,             label: 'Estoque' },
+  { id: 'servicos',     icon: Icons.wrench,          label: 'Catálogo' },
+  { id: 'financeiro',   icon: Icons.money,           label: 'Financeiro' },
+  { id: 'relatorios',   icon: Icons.chart,           label: 'Relatórios' },
+  { id: 'configuracoes',icon: Icons.cog,             label: 'Configurações' },
 ];
 
 export { NAV_ITEMS };
