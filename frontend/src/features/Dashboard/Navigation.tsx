@@ -13,10 +13,6 @@ const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'clientes',     icon: Icons.user,            label: 'Clientes' },
   { id: 'veiculos',     icon: Icons.car,             label: 'Veículos' },
   { id: 'estoque',      icon: Icons.box,             label: 'Estoque' },
-  { id: 'servicos',     icon: Icons.wrench,          label: 'Catálogo' },
-  { id: 'financeiro',   icon: Icons.money,           label: 'Financeiro' },
-  { id: 'relatorios',   icon: Icons.chart,           label: 'Relatórios' },
-  { id: 'configuracoes',icon: Icons.cog,             label: 'Configurações' },
 ];
 
 export { NAV_ITEMS };
@@ -98,7 +94,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
             onClick={() => onNav(id)}
             className={`dashboard-sidebar-link${active === id ? ' dashboard-sidebar-link--active' : ''}`}
           >
-            <span style={{ flexShrink: 0, display: 'flex' }}>
+            <span style={{ flexShrink: 0, display: 'flex'}}>
               {icon}
             </span>
             {label}
@@ -112,9 +108,8 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
           existir uma tela de detalhe de alertas dedicada. */}
       {!carregandoAlertas && totalAlertas > 0 && (
         <button className="dashboard-sidebar__alertas" onClick={() => onNav('atendimento')}>
-          <div className="dashboard-sidebar__alertas-titulo">
-            <span style={{ display: 'flex' }}>{Icons.alert}</span>
-            Alertas
+          <div className="dashboard-sidebar__alertas-titulo">           
+         <h1>Alertas</h1>   
           </div>
           <div className="dashboard-sidebar__alertas-numero">{totalAlertas}</div>
           <div className="dashboard-sidebar__alertas-legenda">
@@ -135,6 +130,12 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações">
           {Icons.cog}
         </button>
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('relatorios')} title="Relátorios">
+          {Icons.chart}
+        </button>
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro">
+          {Icons.money}
+        </button>
       </div>
 
       {onNewOS && (
@@ -142,10 +143,10 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
           onClick={onNewOS}
           style={{
             margin: '0 16px 18px',
-            padding: '18px 10px',
+            padding: '56px 10px',
             borderRadius: 16,
-            border: `1.5px dashed rgba(204,20,0,0.35)`,
-            background: 'transparent',
+            border: `2px dashed rgba(204, 20, 0, 0.64)`,
+            background: '#faf8f8',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

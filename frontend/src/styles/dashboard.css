@@ -41,7 +41,7 @@
 }
 
 .dashboard-sidebar__brand {
-  padding: 14px 22px 22px;
+  padding: 17px 22px 22px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -88,8 +88,9 @@
 .dashboard-sidebar__brand-logo {
   width: 52px;
   height: 52px;
+  border: 1px solid #c3c3c330;
   border-radius: 16px;
-  background: var(--color-ferrari-mid);
+  background: var(--color-bg-alt);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,6 +137,9 @@
   stroke: currentColor;
   color: inherit;
 }
+.dashboard-sidebar-link:hover svg {
+  color: var(--color-ferrari);
+}
 
 .dashboard-sidebar-link:hover,
 .dashboard-mobile-bottom-nav__item:hover {
@@ -146,6 +150,9 @@
   background: #CC1400;
   color: white;
   box-shadow: 0 4px 10px rgba(204,20,0,0.25);
+}
+.dashboard-sidebar-link--active svg {
+  color: white;
 }
 
 /* ── Cartão de Identidade ─────────────────────────────────────────────────── */
@@ -263,12 +270,13 @@
 .dashboard-sidebar__dock {
   margin: 0 16px 14px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 6px;
+  box-shadow: 0 3px 6px rgba(74, 7, 0, 0.28);
 }
 
 .dashboard-sidebar__dock-item {
@@ -297,8 +305,8 @@
 
 .dashboard-sidebar__alertas {
   margin: 10px 16px 18px;
-  padding: 14px 16px;
-  border-radius: 14px;
+  padding: 29px 16px;
+  border-radius: 16px;
   background: #CC1400;
   border: none;
   text-align: left;
@@ -306,35 +314,30 @@
   color: white;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
   box-shadow: 0 6px 16px rgba(204,20,0,0.28);
 }
 
-.dashboard-sidebar__alertas-titulo {
+.dashboard-sidebar__alertas-titulo h1 {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   opacity: 0.9;
 }
 
-.dashboard-sidebar__alertas-titulo svg {
-  width: 13px;
-  height: 13px;
-}
 
 .dashboard-sidebar__alertas-numero {
-  font-size: 1.6rem;
+  font-size: 2.4rem;
   font-weight: 800;
   line-height: 1.15;
 }
 
 .dashboard-sidebar__alertas-legenda {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   opacity: 0.85;
+  font-weight: 500;
   line-height: 1.3;
 }
 
