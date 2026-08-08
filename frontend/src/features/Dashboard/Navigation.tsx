@@ -3,6 +3,7 @@ import { Icons } from './Icons';
 import type { NavPage } from '../../types/dashboard';
 import '../../styles/dashboard.css';
 import { useAuth } from '../../context/AuthContext';
+import { useAlertasResumo } from '../../hooks/useAlertasResumo';
 import { useState } from 'react';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
@@ -22,25 +23,27 @@ export { NAV_ITEMS };
 
 // ── Sidebar (desktop) ─────────────────────────────────────────────────────────
 
-export function Sidebar({ active, onNav }: { active: NavPage; onNav: (p: NavPage) => void }) {
+function iniciaisDe(nome?: string): string {
+  if (!nome) return 'OF';
+  const partes = nome.trim().split(/\s+/);
+  if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
+  return nome.slice(0, 2).toUpperCase();
+}
+
+export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p: NavPage) => void; onNewOS?: () => void }) {
+  const { user, logout } = useAuth();
+  const { total: totalAlertas, loading: carregandoAlertas } = useAlertasResumo();
+  const [menuAberto, setMenuAberto] = useState(false);
+
   return (
     <aside className="dashboard-sidebar" style={{ position: 'relative' }}>
-      <svg
-        className="dashboard-sidebar__wave"
-        viewBox="0 0 228 220"
-        preserveAspectRatio="none"
-      >
-        <path d="M0,120 Q57,70 114,110 Q171,150 228,100 L228,220 L0,220Z" fill="white" />
-        <path d="M0,160 Q57,120 114,150 Q171,180 228,140 L228,220 L0,220Z" fill="white" />
-      </svg>
-
       <div className="dashboard-sidebar__brand">
         <div className="dashboard-sidebar__brand-logo">
           <img
             src="/Logorevisavermelha.svg"
             alt=""
             className="dashboard-sidebar__brand-logo-image"
-            style={{ filter: 'brightness(0) invert(1)', width: 56, height: 56 }}
+            style={{ width: 56, height: 56 }}
           />
         </div>
         <div className="dashboard-sidebar__brand-copy">
@@ -53,14 +56,49 @@ export function Sidebar({ active, onNav }: { active: NavPage; onNav: (p: NavPage
         </div>
       </div>
 
+      {/* Cartão de Identidade — mostra só o dado real disponível hoje (user.nome
+          como nome da oficina). A seta abre um menu com a sessão atual e sair;
+          "trocar de usuário" fica pra quando existir modelo de funcionário/cargo
+          (ver documento de arquitetura, seção de multi-tenancy) — não é
+          fabricado aqui. */}
+      <div className="dashboard-sidebar__identity">
+        <div className="dashboard-sidebar__identity-avatar">{iniciaisDe(user?.nome)}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="dashboard-sidebar__identity-label">Oficina</div>
+          <div className="dashboard-sidebar__identity-nome">{user?.nome ?? 'Oficina'}</div>
+        </div>
+        <button
+          className="dashboard-sidebar__identity-chevron"
+          onClick={() => setMenuAberto(v => !v)}
+          title="Sessão"
+        >
+          {Icons.chevD}
+        </button>
+
+        {menuAberto && (
+          <div className="dashboard-sidebar__identity-dropdown">
+            <button
+              className="dashboard-sidebar__identity-dropdown-item"
+              onClick={() => { logout(); setMenuAberto(false); }}
+              style={{ color: '#CC1400', fontWeight: 700 }}
+            >
+              Sair
+            </button>
+            <div className="dashboard-sidebar__identity-dropdown-hint">
+              Troca entre funcionários da oficina chega numa próxima versão.
+            </div>
+          </div>
+        )}
+      </div>
+
       <nav className="dashboard-sidebar-nav">
-        {NAV_ITEMS.map(({ id, icon, label }) => (
+        {NAV_ITEMS.filter(({ id }) => id !== 'configuracoes').map(({ id, icon, label }) => (
           <button
             key={id}
             onClick={() => onNav(id)}
             className={`dashboard-sidebar-link${active === id ? ' dashboard-sidebar-link--active' : ''}`}
           >
-            <span style={{ opacity: active === id ? 1 : 0.8, flexShrink: 0, display: 'flex' }}>
+            <span style={{ flexShrink: 0, display: 'flex' }}>
               {icon}
             </span>
             {label}
@@ -68,7 +106,72 @@ export function Sidebar({ active, onNav }: { active: NavPage; onNav: (p: NavPage
         ))}
       </nav>
 
+      {/* Bloco de Alertas — soma bloqueados + clientes não avisados (Atendimento)
+          e baixo estoque + quarentena (Estoque). Só aparece quando há algo pra
+          mostrar. Clique leva pra Atendimento por enquanto — provisório até
+          existir uma tela de detalhe de alertas dedicada. */}
+      {!carregandoAlertas && totalAlertas > 0 && (
+        <button className="dashboard-sidebar__alertas" onClick={() => onNav('atendimento')}>
+          <div className="dashboard-sidebar__alertas-titulo">
+            <span style={{ display: 'flex' }}>{Icons.alert}</span>
+            Alertas
+          </div>
+          <div className="dashboard-sidebar__alertas-numero">{totalAlertas}</div>
+          <div className="dashboard-sidebar__alertas-legenda">
+            Você tem {totalAlertas} {totalAlertas === 1 ? 'alerta' : 'alertas'}, toque pra visualizar
+          </div>
+        </button>
+      )}
 
+      {/* Dock — Catálogo / Dicas / Configurações. Dicas ainda não tem tela própria
+          (cai no PlaceholderPage genérico até existir uma). */}
+      <div className="dashboard-sidebar__dock">
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('servicos')} title="Catálogo">
+          {Icons.wrench}
+        </button>
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas">
+          {Icons.help}
+        </button>
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações">
+          {Icons.cog}
+        </button>
+      </div>
+
+      {onNewOS && (
+        <button
+          onClick={onNewOS}
+          style={{
+            margin: '0 16px 18px',
+            padding: '18px 10px',
+            borderRadius: 16,
+            border: `1.5px dashed rgba(204,20,0,0.35)`,
+            background: 'transparent',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+          }}
+        >
+          <span
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: '#CC1400',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {Icons.plus}
+          </span>
+          <span style={{ fontSize: '0.76rem', fontWeight: 700, color: tokens.color.textSecond, textAlign: 'center' }}>
+            Criar Nova Solicitação
+          </span>
+        </button>
+      )}
     </aside>
   );
 }
@@ -147,9 +250,10 @@ export function DesktopHeader() {
 
 // ── Mobile Topbar ─────────────────────────────────────────────────────────────
 
-export function MobileTopbar() {
+export function MobileTopbar({ onNav }: { onNav?: (p: NavPage) => void } = {}) {
 
   const { user } = useAuth();
+  const { total: totalAlertas } = useAlertasResumo();
 
   return (
     <div className="dashboard-mobile-topbar">
@@ -161,10 +265,32 @@ export function MobileTopbar() {
         </span>
       </div>
       <div className="dashboard-mobile-topbar__actions">
-        <div style={{ position: 'relative' }}>
-          <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.bell}</span>
-          <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-        </div>
+        {totalAlertas > 0 && (
+          <button
+            onClick={() => onNav?.('atendimento')}
+            style={{ position: 'relative', border: 'none', background: 'transparent', padding: 4, display: 'flex' }}
+            title={`${totalAlertas} alertas`}
+          >
+            <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.bell}</span>
+            <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {totalAlertas}
+            </span>
+          </button>
+        )}
+        <button
+          onClick={() => onNav?.('dicas')}
+          style={{ border: 'none', background: 'transparent', padding: 4, display: 'flex', color: tokens.color.muted }}
+          title="Dicas"
+        >
+          {Icons.info}
+        </button>
+        <button
+          onClick={() => onNav?.('configuracoes')}
+          style={{ border: 'none', background: 'transparent', padding: 4, display: 'flex', color: tokens.color.muted }}
+          title="Configurações"
+        >
+          {Icons.cog}
+        </button>
         <div style={{ width: 32, height: 32, borderRadius: '50%', background: tokens.color.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}>
           {Icons.user}
         </div>

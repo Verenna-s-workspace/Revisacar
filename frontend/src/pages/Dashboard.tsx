@@ -43,12 +43,12 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
   );
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <MobileTopbar />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
+      <MobileTopbar onNav={onNav} />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar active={page} onNav={onNav} />
+      <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{content}</main>
     </div>
   );
@@ -414,7 +414,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
   // ── MOBILE ─────────────────────────────────────────────────────────────────
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 90 }}>
-      <MobileTopbar />
+      <MobileTopbar onNav={handleNav} />
       <div style={{ padding: '16px 14px 0' }}>
         <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: tokens.color.text, margin: '0 0 2px' }}>
           Olá, {user?.nome ?? 'Lucas Andrelo'} 👋
@@ -439,7 +439,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
   // ── DESKTOP ────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: tokens.color.bg }}>
-      <Sidebar active={page} onNav={handleNav} />
+      <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <DesktopHeader />
         <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>

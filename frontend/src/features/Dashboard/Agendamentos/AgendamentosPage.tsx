@@ -409,7 +409,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     // rolar como rolava antes, sem nenhum conteúdo cortado.
     return (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar active="agendamentos" onNav={onNav} />
+        <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
         <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {content}
         </main>
@@ -424,7 +424,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     // `flex:1 + minHeight:0` calculem uma altura FINITA e, por consequência,
     // que o scroll interno do DailyView/WeeklyView funcione isoladamente.
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar active="agendamentos" onNav={onNav} />
+      <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {content}
       </main>

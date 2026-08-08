@@ -1,7 +1,7 @@
 export type NavPage =
   | 'dashboard' | 'ordens' | 'agendamentos' | 'clientes'
   | 'veiculos' | 'estoque' | 'servicos' | 'financeiro'
-  | 'relatorios' | 'configuracoes' | 'atendimento';
+  | 'relatorios' | 'configuracoes' | 'atendimento' | 'dicas';
 
 export interface OrdemRow {
   id: string;

@@ -211,7 +211,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar active="servicos" onNav={onNav} />
+      <Sidebar active="servicos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}
       </main>

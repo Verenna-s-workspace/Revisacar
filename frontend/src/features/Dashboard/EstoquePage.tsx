@@ -417,7 +417,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar active="estoque" onNav={onNav} />
+      <Sidebar active="estoque" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}
       </main>
