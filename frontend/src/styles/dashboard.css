@@ -130,10 +130,10 @@
 }
 
 .dashboard-sidebar-link svg {
-  width: 1.3em;
-  height: 1.3em;
+  width: 2.3em;
+  height: auto;
   display: block;
-  fill: currentColor;
+  fill: transparent;
   stroke: currentColor;
   color: inherit;
 }

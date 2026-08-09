@@ -123,18 +123,18 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
       <div className="dashboard-sidebar__dock">
         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('servicos')} title="Catálogo">
           {Icons.wrench}
-        </button>
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas">
-          {Icons.help}
-        </button>
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações">
-          {Icons.cog}
-        </button>
+        </button>     
         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('relatorios')} title="Relátorios">
           {Icons.chart}
         </button>
         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro">
           {Icons.money}
+        </button>   
+         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas">
+          {Icons.help}
+        </button>
+         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações">
+          {Icons.cog}
         </button>
       </div>
 
