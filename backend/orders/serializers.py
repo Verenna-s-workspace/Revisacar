@@ -83,6 +83,57 @@ class AdminLoginSerializer(serializers.Serializer):
         return value
 
 
+# ── Funcionários (RBAC) ──────────────────────────────────────────────────────
+
+from .rbac import cargo_valido_para_funcionario
+
+
+def validate_pin_format(value: str) -> str:
+    v = str(value).strip()
+    if not re.match(r"^\d{6}$", v):
+        raise serializers.ValidationError("PIN deve ter exatamente 6 dígitos numéricos")
+    return v
+
+
+class FuncionarioSerializer(serializers.Serializer):
+    """Cadastro de funcionário pelo dono/gerente. O PIN aqui é o inicial —
+    o funcionário pode trocar depois via 'esqueci meu PIN'."""
+    nome = serializers.CharField()
+    email = serializers.CharField()
+    pin = serializers.CharField(write_only=True)
+    cargo = serializers.CharField()
+
+    def validate_nome(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Nome obrigatório")
+        return value.strip()
+
+    def validate_email(self, value):
+        v = value.strip().lower()
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise serializers.ValidationError("Email inválido")
+        return v
+
+    def validate_pin(self, value):
+        return validate_pin_format(value)
+
+    def validate_cargo(self, value):
+        v = value.strip().lower()
+        if not cargo_valido_para_funcionario(v):
+            raise serializers.ValidationError("Cargo inválido")
+        return v
+
+
+class FuncionarioPinLoginSerializer(serializers.Serializer):
+    """Login pelo fluxo de quiosque: funcionário já foi escolhido na lista
+    (funcionario_id), só falta confirmar com o PIN."""
+    funcionario_id = serializers.CharField()
+    pin = serializers.CharField(write_only=True)
+
+    def validate_pin(self, value):
+        return validate_pin_format(value)
+
+
 class VeiculoSerializer(serializers.Serializer):
     placa = serializers.CharField()
     modelo = serializers.CharField()

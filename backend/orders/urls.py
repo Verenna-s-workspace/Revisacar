@@ -20,6 +20,23 @@ urlpatterns = [
     # Admin auth
     path("admin/signup", views.admin_signup),
     path("admin/login", views.admin_login),
+    path("admin/refresh", views.admin_refresh),
+    path("admin/logout", views.admin_logout),
+    path("admin/forgot-password", views.admin_forgot_password),
+    path("admin/reset-password", views.admin_reset_password),
+
+    # Funcionários (RBAC) — rotas específicas ANTES do catch-all
+    # <funcionario_id>, senão "publicos"/"login-pin"/etc. seriam
+    # interpretados como um id.
+    path("funcionarios", views.funcionarios_list),
+    path("funcionarios/signup", views.funcionario_signup),
+    path("funcionarios/publicos", views.funcionarios_publicos),
+    path("funcionarios/login-pin", views.funcionario_login_pin),
+    path("funcionarios/forgot-pin", views.funcionario_forgot_pin),
+    path("funcionarios/<str:funcionario_id>", views.funcionario_detail),
+
+    # Sessão atual (dono ou funcionário)
+    path("me", views.me),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

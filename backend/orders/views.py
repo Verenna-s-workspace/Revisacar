@@ -3,6 +3,7 @@ import base64
 import urllib.parse
 import hmac
 import json
+import re
 import secrets
 import time
 from datetime import datetime
@@ -13,9 +14,15 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from supabase import create_client
 
-from .serializers import OrdemServicoSerializer, AdminSerializer, AdminLoginSerializer, pwhash, valhash
+from .serializers import (
+    OrdemServicoSerializer, AdminSerializer, AdminLoginSerializer,
+    FuncionarioSerializer, FuncionarioPinLoginSerializer, pwhash, valhash,
+    validate_pin_format,
+)
+from .rbac import permissoes_do_cargo, FUNCIONARIO_CARGOS
 
 # ── Supabase client (singleton) ───────────────────────────────────────────────
 
@@ -33,6 +40,13 @@ RESET_REQUESTS: dict[str, list[float]] = {}
 MAX_RESET_REQUESTS = 5
 RESET_REQUEST_WINDOW_SECONDS = 60 * 60
 MIN_RESET_REQUEST_INTERVAL_SECONDS = 20
+
+# PIN é um segredo curto (6 dígitos = 1 milhão de combinações) — sem
+# bloqueio, é força-bruta trivial. 5 tentativas erradas / 15 min por
+# funcionário, independente de quem está tentando.
+PIN_ATTEMPTS: dict[str, list[float]] = {}
+MAX_PIN_ATTEMPTS = 5
+PIN_ATTEMPT_WINDOW_SECONDS = 15 * 60
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,14 +108,57 @@ def _get_admin_by_email(email: str):
 
 
 def _issue_tokens(admin: dict) -> dict:
-    access_token = make_jwt({"nome": admin["nome"], "doc": admin["doc"]}, ACCESS_TOKEN_LIFETIME_SECONDS)
+    """Emite tokens pro DONO (conta admin, login por CNPJ). Dono sempre tem
+    todas as permissões — por isso 'cargo': 'dono' e permissoes = tudo."""
+    permissoes = permissoes_do_cargo("dono")
+    payload = {
+        "tipo": "dono",
+        "nome": admin["nome"],
+        "doc": admin["doc"],
+        "oficina_doc": admin["doc"],  # dono é a própria oficina
+        "cargo": "dono",
+        "permissoes": permissoes,
+    }
+    access_token = make_jwt(payload, ACCESS_TOKEN_LIFETIME_SECONDS)
     refresh_token = secrets.token_urlsafe(32)
     REFRESH_TOKENS[refresh_token] = {
+        "tipo": "dono",
         "doc": admin["doc"],
         "nome": admin["nome"],
         "expires_at": time.time() + REFRESH_TOKEN_LIFETIME_SECONDS,
     }
-    return {"accessToken": access_token, "refreshToken": refresh_token, "nome": admin["nome"], "doc": admin["doc"]}
+    return {
+        "accessToken": access_token, "refreshToken": refresh_token,
+        "nome": admin["nome"], "doc": admin["doc"],
+        "tipo": "dono", "cargo": "dono", "permissoes": permissoes,
+    }
+
+
+def _issue_funcionario_tokens(funcionario: dict) -> dict:
+    """Emite tokens pra um FUNCIONÁRIO (login por email, cargo limitado)."""
+    permissoes = permissoes_do_cargo(funcionario["cargo"])
+    payload = {
+        "tipo": "funcionario",
+        "id": funcionario["id"],
+        "nome": funcionario["nome"],
+        "email": funcionario["email"],
+        "oficina_doc": funcionario["oficina_doc"],
+        "cargo": funcionario["cargo"],
+        "permissoes": permissoes,
+    }
+    access_token = make_jwt(payload, ACCESS_TOKEN_LIFETIME_SECONDS)
+    refresh_token = secrets.token_urlsafe(32)
+    REFRESH_TOKENS[refresh_token] = {
+        "tipo": "funcionario",
+        "id": funcionario["id"],
+        "email": funcionario["email"],
+        "expires_at": time.time() + REFRESH_TOKEN_LIFETIME_SECONDS,
+    }
+    return {
+        "accessToken": access_token, "refreshToken": refresh_token,
+        "nome": funcionario["nome"], "email": funcionario["email"],
+        "tipo": "funcionario", "cargo": funcionario["cargo"], "permissoes": permissoes,
+    }
 
 
 def _get_active_refresh(refresh_token: str) -> dict | None:
@@ -143,6 +200,39 @@ def _send_reset_email(email: str, token: str):
         print(f"[PASSWORD RESET] Link de redefinição: {reset_link}")
 
 
+def _send_pin_email(email: str, nome: str, pin: str):
+    subject = 'Seu PIN de acesso Revisacar'
+    message = (
+        f'Olá, {nome},\n\n'
+        'Recebemos uma solicitação para recuperar o PIN de acesso à oficina.\n\n'
+        f'Seu novo PIN é: {pin}\n\n'
+        'Esse PIN substitui o anterior — use-o na tela de login.\n\n'
+        'Se você não solicitou isso, avise o responsável pela oficina.\n\n'
+        'Atenciosamente,\nRevisacar'
+    )
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@revisacar.local')
+    try:
+        send_mail(subject, message, from_email, [email], fail_silently=False)
+        print(f"[PIN RESET] email enviado com sucesso para {email}")
+    except Exception as exc:
+        print(f"[PIN RESET] Falha ao enviar email para {email}: {exc}")
+
+
+def _pin_attempt_allowed(funcionario_id: str) -> bool:
+    now = time.time()
+    attempts = [t for t in PIN_ATTEMPTS.get(funcionario_id, []) if t > now - PIN_ATTEMPT_WINDOW_SECONDS]
+    PIN_ATTEMPTS[funcionario_id] = attempts
+    return len(attempts) < MAX_PIN_ATTEMPTS
+
+
+def _record_pin_attempt(funcionario_id: str):
+    PIN_ATTEMPTS.setdefault(funcionario_id, []).append(time.time())
+
+
+def _clear_pin_attempts(funcionario_id: str):
+    PIN_ATTEMPTS.pop(funcionario_id, None)
+
+
 def _can_request_password_reset(email: str) -> bool:
     now = time.time()
     attempts = RESET_REQUESTS.get(email, [])
@@ -171,6 +261,38 @@ def require_auth(view_func):
         request.admin = payload
         return view_func(request, *args, **kwargs)
     return wrapper
+
+
+def require_permission(permissao: str):
+    """Exige token válido E que o cargo do token tenha essa permissão.
+    Uso: @require_permission("financeiro.ver") acima da view.
+    Dono sempre passa, porque seu token já carrega todas as permissões."""
+    def decorator(view_func):
+        def wrapper(request, *args, **kwargs):
+            payload = _require_auth(request)
+            if payload is None:
+                return Response({"detail": "Token inválido ou expirado"}, status=status.HTTP_401_UNAUTHORIZED)
+            if permissao not in payload.get("permissoes", []):
+                return Response({"detail": "Você não tem permissão para isso"}, status=status.HTTP_403_FORBIDDEN)
+            request.admin = payload
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def _get_funcionario_by_email(email: str):
+    res = supabase.table("funcionarios").select("*").eq("email", email.lower()).limit(1).execute()
+    return res.data[0] if res.data else None
+
+
+def _get_funcionario_by_id(funcionario_id: str):
+    res = supabase.table("funcionarios").select("*").eq("id", funcionario_id).limit(1).execute()
+    return res.data[0] if res.data else None
+
+
+def _oficina_doc_do_token(payload: dict) -> str:
+    """Doc da oficina a que o token pertence — funciona pra dono e funcionário."""
+    return payload.get("oficina_doc") or payload.get("doc", "")
 
 
 # ── Root ──────────────────────────────────────────────────────────────────────
@@ -235,6 +357,8 @@ def admin_login(request):
 
 @api_view(["POST"])
 def admin_refresh(request):
+    """Reemite tokens a partir de um refresh token válido — funciona tanto
+    pra login de dono quanto de funcionário (olha o 'tipo' salvo na sessão)."""
     refresh_token = request.data.get("refreshToken")
     if not refresh_token:
         return Response({"detail": "refreshToken obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
@@ -243,13 +367,18 @@ def admin_refresh(request):
     if not session:
         return Response({"detail": "Refresh token inválido ou expirado"}, status=status.HTTP_401_UNAUTHORIZED)
 
+    _invalidate_refresh_token(refresh_token)
+
+    if session.get("tipo") == "funcionario":
+        funcionario = _get_funcionario_by_id(session["id"])
+        if not funcionario or not funcionario.get("ativo", True):
+            return Response({"detail": "Funcionário não encontrado ou inativo"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(_issue_funcionario_tokens(funcionario))
+
     admin = _get_admin_by_doc(session["doc"])
     if not admin:
         return Response({"detail": "Admin não encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
-    _invalidate_refresh_token(refresh_token)
-    tokens = _issue_tokens(admin)
-    return Response(tokens)
+    return Response(_issue_tokens(admin))
 
 
 @api_view(["POST"])
@@ -305,6 +434,171 @@ def admin_reset_password(request):
     record["used"] = True
     _invalidate_refresh_tokens_for_doc(admin["doc"])
     return Response({"message": "Senha redefinida com sucesso"})
+
+
+# ── Funcionários (RBAC) ──────────────────────────────────────────────────────
+#
+# O DONO não é uma linha em "funcionarios" — ele é a conta admin que já
+# existe (login por CNPJ). "funcionarios" são Gerente/Mecânico/Atendente,
+# sempre vinculados a uma oficina (oficina_doc = CNPJ do dono que os criou),
+# com login próprio por email.
+
+@api_view(["POST"])
+@require_permission("funcionarios.gerenciar")
+def funcionario_signup(request):
+    """Cadastra um funcionário. Só quem tem 'funcionarios.gerenciar' (hoje,
+    só o dono) pode chamar isso — nunca é auto-cadastro."""
+    serializer = FuncionarioSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    dados = serializer.validated_data
+    oficina_doc = _oficina_doc_do_token(request.admin)
+
+    if _get_funcionario_by_email(dados["email"]):
+        return Response({"detail": "Email já cadastrado"}, status=status.HTTP_409_CONFLICT)
+
+    supabase.table("funcionarios").insert({
+        "oficina_doc": oficina_doc,
+        "nome": dados["nome"],
+        "email": dados["email"],
+        "pin_hash": pwhash(dados["pin"]),
+        "cargo": dados["cargo"],
+        "ativo": True,
+        "created_at": _now(),
+    }).execute()
+
+    return Response({"message": "Funcionário cadastrado"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+def funcionarios_publicos(request):
+    """Lista pra tela de login em quiosque — SEM autenticação, porque
+    ninguém logou ainda. Só nome/cargo (nada sensível: sem email, sem PIN).
+    O CNPJ não é segredo (é registro público), então expor 'quem trabalha
+    nessa oficina' pra quem já tem o CNPJ em mãos é uma troca aceitável
+    pela UX de quiosque. O que importa (o PIN) continua protegido."""
+    oficina_doc = request.query_params.get("oficina_doc", "").strip()
+    if not re.match(r"^\d{14}$", oficina_doc):
+        return Response({"detail": "oficina_doc inválido"}, status=status.HTTP_400_BAD_REQUEST)
+
+    res = supabase.table("funcionarios").select("id, nome, cargo").eq(
+        "oficina_doc", oficina_doc
+    ).eq("ativo", True).order("nome").execute()
+    return Response(res.data)
+
+
+@api_view(["POST"])
+def funcionario_login_pin(request):
+    """Segundo passo do login em quiosque: funcionário já foi escolhido na
+    lista (funcionario_id), agora confirma com o PIN."""
+    serializer = FuncionarioPinLoginSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    dados = serializer.validated_data
+    funcionario_id = dados["funcionario_id"]
+
+    if not _pin_attempt_allowed(funcionario_id):
+        return Response({"detail": "Muitas tentativas. Aguarde alguns minutos e tente de novo."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    funcionario = _get_funcionario_by_id(funcionario_id)
+    if not funcionario or not valhash(dados["pin"], funcionario.get("pin_hash", "")):
+        _record_pin_attempt(funcionario_id)
+        return Response({"detail": "PIN incorreto"}, status=status.HTTP_401_UNAUTHORIZED)
+    if not funcionario.get("ativo", True):
+        return Response({"detail": "Este acesso foi desativado"}, status=status.HTTP_403_FORBIDDEN)
+
+    _clear_pin_attempts(funcionario_id)
+    return Response(_issue_funcionario_tokens(funcionario))
+
+
+@api_view(["POST"])
+def funcionario_forgot_pin(request):
+    """Gera um PIN novo (aleatório) e manda por email — não existe 'ver o
+    PIN antigo', só substituir por um novo, igual reset de senha."""
+    email = request.data.get("email", "").strip().lower()
+    if not email:
+        return Response({"detail": "Email obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not _can_request_password_reset(email):
+        return Response({"detail": "Aguarde alguns minutos antes de tentar novamente."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    funcionario = _get_funcionario_by_email(email)
+    if funcionario and funcionario.get("ativo", True):
+        novo_pin = f"{secrets.randbelow(1_000_000):06d}"
+        supabase.table("funcionarios").update({"pin_hash": pwhash(novo_pin)}).eq("id", funcionario["id"]).execute()
+        _clear_pin_attempts(funcionario["id"])
+        _send_pin_email(email, funcionario["nome"], novo_pin)
+
+    return Response({"message": "Se o email existir, você receberá um novo PIN em instantes."})
+
+
+@api_view(["GET"])
+@require_permission("funcionarios.gerenciar")
+def funcionarios_list(request):
+    """Lista os funcionários da oficina de quem está chamando (tenant-scoped)."""
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    res = supabase.table("funcionarios").select(
+        "id, nome, email, cargo, ativo, created_at"
+    ).eq("oficina_doc", oficina_doc).order("created_at", desc=True).execute()
+    return Response(res.data)
+
+
+@api_view(["PATCH", "DELETE"])
+@require_permission("funcionarios.gerenciar")
+def funcionario_detail(request, funcionario_id):
+    """PATCH pra mudar cargo/ativo. DELETE pra remover o acesso."""
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    funcionario = _get_funcionario_by_id(funcionario_id)
+
+    if not funcionario or funcionario["oficina_doc"] != oficina_doc:
+        return Response({"detail": "Não encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "DELETE":
+        supabase.table("funcionarios").delete().eq("id", funcionario_id).execute()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    updates = {}
+    if "cargo" in request.data:
+        cargo = str(request.data["cargo"]).strip().lower()
+        if cargo not in FUNCIONARIO_CARGOS:
+            return Response({"detail": "Cargo inválido"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        updates["cargo"] = cargo
+    if "ativo" in request.data:
+        updates["ativo"] = bool(request.data["ativo"])
+    if "pin" in request.data:
+        # dono resetando o PIN na mão (sem passar pelo fluxo de email)
+        try:
+            updates["pin_hash"] = pwhash(validate_pin_format(request.data["pin"]))
+        except ValidationError:
+            return Response({"detail": "PIN deve ter exatamente 6 dígitos numéricos"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    if not updates:
+        return Response({"detail": "Nada para atualizar"}, status=status.HTTP_400_BAD_REQUEST)
+
+    supabase.table("funcionarios").update(updates).eq("id", funcionario_id).execute()
+    if ("ativo" in updates and not updates["ativo"]) or "pin_hash" in updates:
+        # desativou o funcionário, ou trocou o PIN → derruba sessões ativas na hora
+        _clear_pin_attempts(funcionario_id)
+        for key, token_data in list(REFRESH_TOKENS.items()):
+            if token_data.get("tipo") == "funcionario" and token_data.get("id") == funcionario_id:
+                REFRESH_TOKENS.pop(key, None)
+
+    return Response({"message": "Atualizado"})
+
+
+@api_view(["GET"])
+@require_auth
+def me(request):
+    """Qualquer usuário autenticado (dono ou funcionário) chama isso pra
+    saber quem é e o que pode fazer — sem precisar decodificar o JWT no front."""
+    return Response({
+        "tipo": request.admin.get("tipo"),
+        "nome": request.admin.get("nome"),
+        "cargo": request.admin.get("cargo"),
+        "permissoes": request.admin.get("permissoes", []),
+    })
 
 
 # ── Ordens ────────────────────────────────────────────────────────────────────
