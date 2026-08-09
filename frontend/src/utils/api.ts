@@ -267,5 +267,49 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handleResponse),
 
+  // ── Funcionários (RBAC) ─────────────────────────────────────────────────────
+  // Login de funcionário é por PIN (6 dígitos), não senha — ver rbac.py.
+
+  /** Lista pra tela de login em quiosque. Sem token — ninguém logou ainda. */
+  listarFuncionariosPublicos: (oficinaDoc: string) =>
+    fetch(`${API_BASE}/funcionarios/publicos?oficina_doc=${encodeURIComponent(oficinaDoc)}`, {
+      headers: baseHeaders,
+    }).then(handleResponse),
+
+  loginFuncionarioPin: (payload: { funcionario_id: string; pin: string }) =>
+    fetch(`${API_BASE}/funcionarios/login-pin`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  esqueciPin: (email: string) =>
+    fetch(`${API_BASE}/funcionarios/forgot-pin`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ email }),
+    }).then(handleResponse),
+
+  /** Estes 4 exigem 'funcionarios.gerenciar' — o backend reforça isso. */
+  listarFuncionarios: () => authFetch(`${API_BASE}/funcionarios`),
+
+  criarFuncionario: (payload: { nome: string; email: string; pin: string; cargo: string }) =>
+    authFetch(`${API_BASE}/funcionarios/signup`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarFuncionario: (id: string, payload: { cargo?: string; ativo?: boolean; pin?: string }) =>
+    authFetch(`${API_BASE}/funcionarios/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  removerFuncionario: (id: string) =>
+    authFetch(`${API_BASE}/funcionarios/${id}`, { method: 'DELETE' }),
+
+  /** Quem estou logado, e o que posso fazer — pra sincronizar sessão sem decodificar JWT no front. */
+  me: () => authFetch(`${API_BASE}/me`),
+
   baixarFoto: (filename: string) => fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
 };

@@ -102,9 +102,25 @@ export interface AdminUser {
 
 export interface AuthResult {
   nome: string;
-  doc: string;
+  doc?: string;
+  email?: string;
   accessToken: string;
   refreshToken: string;
+  /** 'dono' = conta admin (login por CNPJ). 'funcionario' = login por email. */
+  tipo?: 'dono' | 'funcionario';
+  cargo?: string;
+  /** Permissões resolvidas pro cargo — usadas só pra decidir o que mostrar na UI.
+   * A proteção de verdade é sempre no backend (require_permission). */
+  permissoes?: string[];
+}
+
+export interface Funcionario {
+  id: string;
+  nome: string;
+  email: string;
+  cargo: 'gerente' | 'mecanico' | 'atendente';
+  ativo: boolean;
+  created_at: string;
 }
 
 export type ValidationErrors = Record<string, string>;

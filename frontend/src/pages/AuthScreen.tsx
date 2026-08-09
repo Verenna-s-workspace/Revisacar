@@ -68,7 +68,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         ? await api.loginAdmin({ doc: payload.doc, senha: payload.senha })
         : await api.criarAdmin(payload);
 
-      onAuthenticated(result as { nome: string; doc: string; accessToken: string; refreshToken: string });
+      onAuthenticated(result as AuthResult);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro inesperado';
       setError(message.replace(/"/g, ''));

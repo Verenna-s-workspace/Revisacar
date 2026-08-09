@@ -3,6 +3,7 @@ import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { Card } from './Primitives';
 import { useTheme } from '../../hooks/useTheme';
+import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 
 export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   const { theme, toggleTheme } = useTheme();
@@ -298,6 +299,8 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
           </Card>
         </div>
       </div>
+
+      <FuncionariosCard isMobile={isMobile} />
     </div>
   );
 }
