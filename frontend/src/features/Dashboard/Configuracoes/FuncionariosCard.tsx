@@ -3,7 +3,7 @@ import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Card } from '../Primitives';
 import { api } from '../../../utils/api';
-import { usePermissions } from '../../../hooks/usePermissions.tsx';
+import { usePermissions } from '../../../hooks/usePermissions';
 import type { Funcionario } from '../../../types';
 
 const CARGO_LABEL: Record<string, string> = {

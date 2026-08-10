@@ -4,8 +4,9 @@ import Check2 from './pages/InspectionChecklist';
 import { Dashboard } from './pages/Dashboard';
 import { AuthScreen } from './pages/AuthScreen';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
+import { FuncionarioLoginScreen } from './pages/FuncionarioLogin/FuncionarioLoginScreen';
 import { api } from './utils/api';
-import type { OrdemServico } from './types';
+import type { OrdemServico, AuthResult } from './types';
 import type { OSPrefillInput } from './types/atendimento';
 import { useAuth } from './context/AuthContext';
 
@@ -39,7 +40,7 @@ export default function App() {
   const [view, setView]                 = useState<View>('dashboard');
   const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
   const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
-  const [authMode, setAuthMode]         = useState<'login' | 'reset-password'>('login');
+  const [authMode, setAuthMode]         = useState<'login' | 'reset-password' | 'funcionario'>('login');
 
   // ── Navegação ──────────────────────────────────────────────────────────────
   const handleStartNew = () => {
@@ -90,9 +91,23 @@ export default function App() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
- 
- /* // se nao tiver logado mostra o login
- if (!user) {
+
+  // Barreira de login — estava comentada (modo dev, sempre caía no
+  // Dashboard). Restaurei pra valer, já que agora tem os 2 fluxos reais:
+  // dono (CNPJ+senha) e funcionário (nome + PIN, tela cheia).
+  if (!user) {
+    if (authMode === 'funcionario') {
+      return (
+        <FuncionarioLoginScreen
+          onAuthenticated={(result: AuthResult) => {
+            login(result);
+            setView('dashboard');
+          }}
+          onVoltarParaDono={() => setAuthMode('login')}
+        />
+      );
+    }
+
     if (authMode === 'login') {
       return (
         <div style={{
@@ -109,9 +124,22 @@ export default function App() {
           }}>
             <AuthScreen onAuthenticated={(result) => {
               login(result);
+              // Guarda o CNPJ neste dispositivo — é o que permite a tela de
+              // login de funcionário já abrir direto no seletor de nomes,
+              // sem pedir CNPJ de novo (ver FuncionarioLoginScreen).
+              if (result.doc) localStorage.setItem('revisacarDeviceOficinaDoc', result.doc);
               // depois do login vai pro dash
               setView('dashboard');
             }}/>
+            <div style={{ textAlign: 'center', marginTop: 18 }}>
+              <button
+                type="button"
+                onClick={() => setAuthMode('funcionario')}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-ferrari)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Sou funcionário →
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -140,7 +168,7 @@ export default function App() {
       );
     }
   }
-*/
+
   return (
     <div style={{
       minHeight: '100vh',

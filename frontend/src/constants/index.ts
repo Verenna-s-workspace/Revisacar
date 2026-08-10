@@ -1,6 +1,6 @@
 import type { Section, StatusConfig } from '../types';
 
-export const API_BASE = import.meta.env.VITE_API_URL || 'https://backkkkk-gwx5.onrender.com';
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 
