@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import financeiro_views
 
 urlpatterns = [
     # Root
@@ -37,6 +38,12 @@ urlpatterns = [
 
     # Sessão atual (dono ou funcionário)
     path("me", views.me),
+
+    # Financeiro — protegido por financeiro.ver / financeiro.editar / financeiro.ver_margem
+    path("financeiro/categorias", financeiro_views.categorias),
+    path("financeiro/resumo", financeiro_views.resumo),
+    path("financeiro/transacoes", financeiro_views.transacoes),
+    path("financeiro/transacoes/<str:transacao_id>", financeiro_views.transacao_detail),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

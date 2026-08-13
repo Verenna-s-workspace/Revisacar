@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password, check_password
 
@@ -48,6 +49,7 @@ def normalize_doc(value: str) -> str:
 class AdminSerializer(serializers.Serializer):
     nome = serializers.CharField()
     doc = serializers.CharField(default="")
+    email = serializers.CharField()
     senha = serializers.CharField(write_only=True)  # pra nao aparecer no json
 
     def validate_nome(self, value):
@@ -60,6 +62,12 @@ class AdminSerializer(serializers.Serializer):
         if len(digits) != 14:
             raise serializers.ValidationError("CNPJ deve conter 14 dígitos")
         return digits
+
+    def validate_email(self, value):
+        v = value.strip().lower()
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise serializers.ValidationError("Email inválido")
+        return v
 
     def validate_senha(self, value):
         if len(value) < 6:
@@ -207,3 +215,47 @@ def pwhash(senha: str):
 
 def valhash(senha: str, pwhash: str):
     return check_password(senha, pwhash)
+
+
+# ── Financeiro ────────────────────────────────────────────────────────────────
+#
+# Categorias fixas por código (mesma filosofia do rbac.py: começar simples,
+# só virar tabela configurável se um dia isso for pedido de verdade).
+
+CATEGORIAS_ENTRADA = ("servicos", "pecas", "acessorios", "outros")
+CATEGORIAS_SAIDA = (
+    "aluguel", "energia", "agua", "internet", "salarios", "contabilidade",
+    "compra_pecas", "ferramentas", "equipamentos", "manutencao",
+    "impostos", "marketing", "taxas", "outros",
+)
+FORMAS_PAGAMENTO = ("pix", "dinheiro", "debito", "credito", "boleto", "transferencia")
+
+
+class FinanceiroTransacaoSerializer(serializers.Serializer):
+    tipo = serializers.ChoiceField(choices=["entrada", "saida"])
+    categoria = serializers.CharField()
+    descricao = serializers.CharField(required=False, allow_blank=True, default="")
+    valor = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    forma_pagamento = serializers.ChoiceField(choices=list(FORMAS_PAGAMENTO), required=False, allow_null=True, default=None)
+    # 'vencido' nunca é gravado — é calculado na leitura (status='pendente' + venceu).
+    status = serializers.ChoiceField(choices=["pendente", "pago", "cancelado"], default="pendente")
+    data_competencia = serializers.DateField()
+    data_vencimento = serializers.DateField(required=False, allow_null=True, default=None)
+    data_pagamento = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    cliente_nome = serializers.CharField(required=False, allow_blank=True, default="")
+    # Preparado pra quando a OS gerar a entrada sozinha — ninguém preenche isso ainda.
+    ordem_servico_id = serializers.CharField(required=False, allow_null=True, default=None)
+
+    def validate_categoria(self, value):
+        v = value.strip().lower()
+        tipo = self.initial_data.get("tipo")
+        validas = CATEGORIAS_ENTRADA if tipo == "entrada" else CATEGORIAS_SAIDA
+        if v not in validas:
+            raise serializers.ValidationError(f"Categoria inválida para tipo '{tipo}'")
+        return v
+
+    def validate(self, data):
+        if data.get("status") == "pago" and not data.get("data_pagamento"):
+            from django.utils import timezone
+            data["data_pagamento"] = timezone.now()
+        return data

@@ -4,6 +4,7 @@ import type { NavPage } from '../../types/dashboard';
 import '../../styles/dashboard.css';
 import { useAuth } from '../../context/AuthContext';
 import { useAlertasResumo } from '../../hooks/useAlertasResumo';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useState } from 'react';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
@@ -29,6 +30,7 @@ function iniciaisDe(nome?: string): string {
 export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p: NavPage) => void; onNewOS?: () => void }) {
   const { user, logout } = useAuth();
   const { total: totalAlertas, loading: carregandoAlertas } = useAlertasResumo();
+  const { can } = usePermissions();
   const [menuAberto, setMenuAberto] = useState(false);
 
   return (
@@ -127,9 +129,11 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('relatorios')} title="Relátorios">
           {Icons.chart}
         </button>
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro">
-          {Icons.money}
-        </button>   
+        {can('financeiro.ver') && (
+          <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro">
+            {Icons.money}
+          </button>
+        )}   
          <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas">
           {Icons.help}
         </button>
@@ -345,4 +349,3 @@ export function MobileNav({ active, onNav, onNewOS }: MobileNavProps) {
   );
 
 }
-

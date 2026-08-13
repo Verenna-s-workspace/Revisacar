@@ -15,6 +15,11 @@ type View = 'dashboard' | 'os' | 'os2' | 'login' | 'reset-password';
 export default function App() {
   const { user, loading, login, logout } = useAuth();
 
+  const [view, setView]                 = useState<View>('dashboard');
+  const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
+  const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
+  const [authMode, setAuthMode]         = useState<'login' | 'reset-password' | 'funcionario'>('login');
+
   // Show loading indicator while checking auth status
   if (loading) {
     return (
@@ -36,11 +41,6 @@ export default function App() {
       </div>
     );
   }
-
-  const [view, setView]                 = useState<View>('dashboard');
-  const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
-  const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
-  const [authMode, setAuthMode]         = useState<'login' | 'reset-password' | 'funcionario'>('login');
 
   // ── Navegação ──────────────────────────────────────────────────────────────
   const handleStartNew = () => {
@@ -92,9 +92,7 @@ export default function App() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  // Barreira de login — estava comentada (modo dev, sempre caía no
-  // Dashboard). Restaurei pra valer, já que agora tem os 2 fluxos reais:
-  // dono (CNPJ+senha) e funcionário (nome + PIN, tela cheia).
+  // Barreira de login — dono (CNPJ+senha) e funcionário (nome + PIN, tela cheia).
   if (!user) {
     if (authMode === 'funcionario') {
       return (

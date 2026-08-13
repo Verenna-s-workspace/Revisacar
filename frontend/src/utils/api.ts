@@ -12,7 +12,11 @@ const handleResponse = async (res: Response) => {
     const msg = await res.text().catch(() => `HTTP ${res.status}`);
     throw new Error(msg || `HTTP ${res.status}`);
   }
-  return res.json();
+  // 204 (DELETE) e outras respostas sem corpo não são JSON válido — tentar
+  // res.json() nelas quebra mesmo quando a chamada deu certo.
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 };
 
 const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
@@ -310,6 +314,40 @@ export const api = {
 
   /** Quem estou logado, e o que posso fazer — pra sincronizar sessão sem decodificar JWT no front. */
   me: () => authFetch(`${API_BASE}/me`),
+
+  // ── Financeiro ───────────────────────────────────────────────────────────────
+  // GET exige financeiro.ver, POST/PATCH/DELETE exigem financeiro.editar —
+  // o backend reforça isso, aqui é só o cliente HTTP.
+
+  categoriasFinanceiro: () => fetch(`${API_BASE}/financeiro/categorias`, { headers: baseHeaders }).then(handleResponse),
+
+  listarTransacoes: (params?: { de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago'; semPeriodo?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.de) qs.set('de', params.de);
+    if (params?.ate) qs.set('ate', params.ate);
+    if (params?.tipo) qs.set('tipo', params.tipo);
+    if (params?.status) qs.set('status', params.status);
+    if (params?.semPeriodo) qs.set('sem_periodo', '1');
+    const query = qs.toString();
+    return authFetch(`${API_BASE}/financeiro/transacoes${query ? `?${query}` : ''}`);
+  },
+
+  criarTransacao: (payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/financeiro/transacoes`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  atualizarTransacao: (id: string, payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/financeiro/transacoes/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  removerTransacao: (id: string) =>
+    authFetch(`${API_BASE}/financeiro/transacoes/${id}`, { method: 'DELETE' }),
+
+  resumoFinanceiro: (params?: { de?: string; ate?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.de) qs.set('de', params.de);
+    if (params?.ate) qs.set('ate', params.ate);
+    const query = qs.toString();
+    return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
+  },
 
   baixarFoto: (filename: string) => fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
 };
