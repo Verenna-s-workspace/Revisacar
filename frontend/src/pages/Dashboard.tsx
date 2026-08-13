@@ -54,6 +54,30 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
   );
 }
 
+// ── ShellPage ──────────────────────────────────────────────────────────────
+// Pra páginas "sem chrome própria" (FinanceiroPage, ConfiguracoesPage — só
+// devolvem o conteúdo interno, sem Sidebar/topbar). Reaproveita a mesma casca
+// da PlaceholderPage, mas com o conteúdo real no lugar do placeholder.
+
+function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; children: React.ReactNode }) {
+  if (isMobile) return (
+    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 90 }}>
+      <MobileTopbar onNav={onNav} />
+      <div style={{ padding: '16px 14px 32px' }}>{children}</div>
+      <MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
+    </div>
+  );
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
+        <DesktopHeader />
+        <div style={{ padding: '18px 28px 32px' }}>{children}</div>
+      </main>
+    </div>
+  );
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void }) {
@@ -142,6 +166,20 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
         onNewOS={onNewOS}
         onGoToEstoque={handleGoToEstoque}
       />
+    );
+  }
+  if (page === 'financeiro') {
+    return (
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
+        <FinanceiroPage isMobile={isMobile} />
+      </ShellPage>
+    );
+  }
+  if (page === 'configuracoes') {
+    return (
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
+        <ConfiguracoesPage isMobile={isMobile} />
+      </ShellPage>
     );
   }
   if (page !== 'dashboard') {
