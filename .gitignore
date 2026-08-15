@@ -184,7 +184,7 @@ cython_debug/
 
 
 #.env
-supabase.env
+backend/ supabase.env
 *.env
 backend/.env
 
