@@ -14,6 +14,7 @@ import { ContasWidget } from './Financeiro/ContasWidget';
 import { TransacaoModal } from './Financeiro/TransacaoModal';
 import { labelCategoria, LABEL_STATUS } from './Financeiro/categoriaLabels';
 import type { Transacao, Categorias } from './Financeiro/types';
+import { buildSeedTransacoes, buildSeedCategorias, buildSeedResumo, filtrarSeedPorPeriodo } from '../../utils/financeiro_utils';
 
 type Preset = 'este-mes' | 'mes-passado' | '3-meses';
 
@@ -56,6 +57,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [usandoDadosDemo, setUsandoDadosDemo] = useState(false);
 
   const { de, ate } = periodoDoPreset(preset);
 
@@ -74,16 +76,36 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
         setTransacoes(t);
         setPendentesReceber(pr);
         setPendentesPagar(pp);
+        setUsandoDadosDemo(false);
       })
-      .catch(() => setErro('Não foi possível carregar os dados financeiros.'))
+      .catch(() => {
+        // Mesmo critério de hooks/useEstoque.ts e hooks/useRelatorios.ts: só
+        // cai pra dados de demonstração em desenvolvimento. Faturamento e
+        // margem fictícios são um risco pelo menos tão grande quanto estoque
+        // fictício, então uma falha real em produção mostra o erro de
+        // verdade — e uma resposta bem sucedida (mesmo vazia) nunca é
+        // substituída por isto, em nenhum ambiente.
+        if (import.meta.env.DEV) {
+          const todas = buildSeedTransacoes();
+          setResumo(buildSeedResumo(todas, de, ate, podeVerMargem));
+          setTransacoes(filtrarSeedPorPeriodo(todas, de, ate));
+          setPendentesReceber(todas.filter(x => x.status === 'pendente' && x.tipo === 'entrada'));
+          setPendentesPagar(todas.filter(x => x.status === 'pendente' && x.tipo === 'saida'));
+          setUsandoDadosDemo(true);
+        } else {
+          setErro('Não foi possível carregar os dados financeiros.');
+        }
+      })
       .finally(() => setLoading(false));
-  }, [podeVer, de, ate]);
+  }, [podeVer, de, ate, podeVerMargem]);
 
   useEffect(() => { carregarTudo(); }, [carregarTudo]);
 
   useEffect(() => {
     if (!podeVer) return;
-    api.categoriasFinanceiro().then(setCategorias).catch(() => {});
+    api.categoriasFinanceiro()
+      .then(setCategorias)
+      .catch(() => { if (import.meta.env.DEV) setCategorias(buildSeedCategorias()); });
   }, [podeVer]);
 
   const fluxoDiario = useMemo<FluxoDia[]>(() => {
@@ -145,7 +167,20 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Financeiro</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Financeiro</h2>
+            {usandoDadosDemo && (
+              <span
+                style={{
+                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
+                  borderRadius: 6, padding: '2px 7px',
+                }}
+              >
+                dados de demonstração
+              </span>
+            )}
+          </div>
           <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '2px 0 0' }}>Entradas, saídas e fluxo de caixa da oficina.</p>
         </div>
         <div style={{ display: 'flex', gap: 10, width: isMobile ? '100%' : 'auto' }}>
