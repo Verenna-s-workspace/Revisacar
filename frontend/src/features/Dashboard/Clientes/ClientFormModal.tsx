@@ -3,6 +3,9 @@ import { tokens, COMBUSTIVEL_OPTIONS } from '../../../constants';
 import { CATEGORIA_OPTIONS } from '../../../utils/veiculos_utils';
 import { ClienteIcons } from './icons';
 import { Icons } from '../Icons';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
+import { Textarea } from '../../../components/inputs/textarea';
 import type { Cliente, NovoClienteInput, NovoVeiculoClienteInput } from '../../../types/cliente';
 import type { VeiculoCategoria } from '../../../types/veiculo';
 
@@ -42,8 +45,8 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
   const [fotoPrincipal, setFotoPrincipal] = useState<string | undefined>(cliente?.fotoPrincipal);
   const [veiculosNovos, setVeiculosNovos] = useState<NovoVeiculoClienteInput[]>([]);
 
-  const setField = <K extends keyof FormState>(key: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(prev => ({ ...prev, [key]: e.target.value }));
+  const setField = <K extends keyof FormState>(key: K) => (v: string) =>
+    setForm(prev => ({ ...prev, [key]: v }));
 
   const handleFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -75,17 +78,6 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
     };
     onSave(input, veiculosNovos);
     onClose();
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 9,
-    border: `1px solid ${tokens.color.border}`, background: 'white',
-    fontSize: '0.875rem', color: tokens.color.text, outline: 'none',
-    fontFamily: tokens.fontSans, boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = {
-    fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 5, display: 'block',
   };
 
   return (
@@ -155,32 +147,28 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Nome Completo *</label>
-                <input style={inputStyle} placeholder="Nome do cliente" value={form.nome} onChange={setField('nome')} />
+                <Input name="cli_nome" label="Nome Completo" required placeholder="Nome do cliente" value={form.nome} onChangeValue={setField('nome')} />
               </div>
               <div>
-                <label style={labelStyle}>CPF/CNPJ</label>
-                <input style={inputStyle} placeholder="000.000.000-00" value={form.cpfCnpj} onChange={setField('cpfCnpj')} />
+                <Input name="cli_doc" type="cpf_cnpj" label="CPF/CNPJ" placeholder="000.000.000-00" value={form.cpfCnpj} onChangeValue={setField('cpfCnpj')} />
               </div>
               <div>
-                <label style={labelStyle}>Telefone</label>
-                <input style={inputStyle} placeholder="(11) 99999-9999" value={form.telefone} onChange={setField('telefone')} />
+                <Input name="cli_tel" type="phone" label="Telefone" placeholder="(11) 99999-9999" value={form.telefone} onChangeValue={setField('telefone')} />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>E-mail</label>
-                <input style={inputStyle} placeholder="email@exemplo.com" value={form.email} onChange={setField('email')} />
+                <Input name="cli_email" type="email" label="E-mail" placeholder="email@exemplo.com" value={form.email} onChangeValue={setField('email')} />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Endereço</label>
-                <input style={inputStyle} placeholder="Rua, número, bairro — cidade/UF" value={form.endereco} onChange={setField('endereco')} />
+                <Input name="cli_endereco" label="Endereço" placeholder="Rua, número, bairro — cidade/UF" value={form.endereco} onChangeValue={setField('endereco')} />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Observações</label>
-                <textarea
-                  style={{ ...inputStyle, minHeight: 64, resize: 'vertical', lineHeight: 1.5 }}
+                <Textarea
+                  name="cli_obs"
+                  label="Observações"
                   placeholder="Observações gerais sobre o cliente..."
                   value={form.observacoes}
-                  onChange={setField('observacoes')}
+                  onChangeValue={setField('observacoes')}
+                  rows={3}
                 />
               </div>
             </div>
@@ -214,61 +202,31 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                   </button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
-                  <div>
-                    <label style={labelStyle}>Marca *</label>
-                    <input style={{ ...inputStyle, background: 'white' }} placeholder="Ex: Toyota" value={v.marca} onChange={e => updateVeiculo(idx, { marca: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Modelo *</label>
-                    <input style={{ ...inputStyle, background: 'white' }} placeholder="Ex: Corolla" value={v.modelo} onChange={e => updateVeiculo(idx, { modelo: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Placa *</label>
-                    <input
-                      style={{ ...inputStyle, background: 'white', fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                      placeholder="ABC1D23" maxLength={8}
-                      value={v.placa} onChange={e => updateVeiculo(idx, { placa: e.target.value })}
+                  <Input name={`v_marca_${idx}`} label="Marca" required placeholder="Ex: Toyota" value={v.marca} onChangeValue={val => updateVeiculo(idx, { marca: val })} />
+                  <Input name={`v_modelo_${idx}`} label="Modelo" required placeholder="Ex: Corolla" value={v.modelo} onChangeValue={val => updateVeiculo(idx, { modelo: val })} />
+                  <Input name={`v_placa_${idx}`} type="placa" label="Placa" required placeholder="ABC1D23" value={v.placa} onChangeValue={val => updateVeiculo(idx, { placa: val })} />
+                  <Input name={`v_ano_${idx}`} type="number" label="Ano" value={v.ano} onChangeValue={val => updateVeiculo(idx, { ano: val })} />
+                  <Input name={`v_cor_${idx}`} label="Cor" placeholder="Ex: Prata" value={v.cor} onChangeValue={val => updateVeiculo(idx, { cor: val })} />
+                  <Select
+                    name={`v_categoria_${idx}`}
+                    label="Categoria"
+                    value={v.categoria}
+                    options={CATEGORIA_OPTIONS}
+                    onChangeValue={val => updateVeiculo(idx, { categoria: val as VeiculoCategoria })}
+                  />
+                  <Input name={`v_km_${idx}`} type="number" label="Quilometragem" placeholder="0" value={v.quilometragem} onChangeValue={val => updateVeiculo(idx, { quilometragem: val })} />
+                  <Input name={`v_motor_${idx}`} label="Motor" placeholder="Ex: 1.0 Turbo" value={v.motor} onChangeValue={val => updateVeiculo(idx, { motor: val })} />
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <Select
+                      name={`v_combustivel_${idx}`}
+                      label="Combustível"
+                      value={v.combustivel}
+                      options={COMBUSTIVEL_OPTIONS}
+                      onChangeValue={val => updateVeiculo(idx, { combustivel: val })}
                     />
                   </div>
-                  <div>
-                    <label style={labelStyle}>Ano</label>
-                    <input style={{ ...inputStyle, background: 'white' }} type="number" value={v.ano} onChange={e => updateVeiculo(idx, { ano: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Cor</label>
-                    <input style={{ ...inputStyle, background: 'white' }} placeholder="Ex: Prata" value={v.cor} onChange={e => updateVeiculo(idx, { cor: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Categoria</label>
-                    <select
-                      style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
-                      value={v.categoria}
-                      onChange={e => updateVeiculo(idx, { categoria: e.target.value as VeiculoCategoria })}
-                    >
-                      {CATEGORIA_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Quilometragem</label>
-                    <input style={{ ...inputStyle, background: 'white' }} type="number" placeholder="0" value={v.quilometragem} onChange={e => updateVeiculo(idx, { quilometragem: e.target.value })} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Motor</label>
-                    <input style={{ ...inputStyle, background: 'white' }} placeholder="Ex: 1.0 Turbo" value={v.motor} onChange={e => updateVeiculo(idx, { motor: e.target.value })} />
-                  </div>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label style={labelStyle}>Combustível</label>
-                    <select
-                      style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}
-                      value={v.combustivel}
-                      onChange={e => updateVeiculo(idx, { combustivel: e.target.value })}
-                    >
-                      {COMBUSTIVEL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label style={labelStyle}>Observações</label>
-                    <input style={{ ...inputStyle, background: 'white' }} placeholder="Observações sobre o veículo..." value={v.observacoes} onChange={e => updateVeiculo(idx, { observacoes: e.target.value })} />
+                    <Input name={`v_obs_${idx}`} label="Observações" placeholder="Observações sobre o veículo..." value={v.observacoes} onChangeValue={val => updateVeiculo(idx, { observacoes: val })} />
                   </div>
                 </div>
               </div>

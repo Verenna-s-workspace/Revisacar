@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
 import { tokens } from '../constants';
+import { Input } from '../components/inputs/input';
 import type { AuthResult } from '../types';
 
 interface ResetPasswordScreenProps {
@@ -80,37 +81,17 @@ export function ResetPasswordScreen({ onAuthenticated }: ResetPasswordScreenProp
           </div>
         )}
 
-        <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-          Token de Redefinição
-          <input
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder="Cole o token recebido por email"
-            style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-          />
-        </label>
+        <div style={{ marginBottom: '14px' }}>
+          <Input name="reset_token" label="Token de Redefinição" value={token} onChangeValue={setToken} placeholder="Cole o token recebido por email" />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-          Nova Senha
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            placeholder="Nova senha"
-            style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-          />
-        </label>
+        <div style={{ marginBottom: '14px' }}>
+          <Input name="reset_senha" type="password" label="Nova Senha" value={senha} onChangeValue={setSenha} placeholder="Nova senha" autoComplete="new-password" />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-          Confirmar Nova Senha
-          <input
-            type="password"
-            value={confirmacao}
-            onChange={(e) => setConfirmacao(e.target.value)}
-            placeholder="Confirmar nova senha"
-            style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-          />
-        </label>
+        <div style={{ marginBottom: '14px' }}>
+          <Input name="reset_confirmacao" type="password" label="Confirmar Nova Senha" value={confirmacao} onChangeValue={setConfirmacao} placeholder="Confirmar nova senha" autoComplete="new-password" />
+        </div>
 
         <button
           type="button"

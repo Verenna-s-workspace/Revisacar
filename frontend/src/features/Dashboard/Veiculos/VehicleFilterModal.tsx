@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { tokens } from '../../../constants';
 import { CATEGORIA_OPTIONS, MARCAS_SUGERIDAS, emptyFiltros } from '../../../utils/veiculos_utils';
 import { VEICULO_STATUS_ORDER, VEICULO_STATUS_CONFIG } from './StatusBadge';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
 import type { VeiculoFiltros, VeiculoStatus, VeiculoVinculo, VeiculoCategoria } from '../../../types/veiculo';
 
 interface VehicleFilterModalProps {
@@ -21,18 +23,17 @@ const CATEGORIA_FILTER_OPTS: { val: VeiculoCategoria | 'todas'; label: string }[
   ...CATEGORIA_OPTIONS.map(c => ({ val: c.value, label: c.label })),
 ];
 
+const STATUS_SELECT_OPTIONS = [
+  { value: 'todos', label: 'Todos os status' },
+  ...VEICULO_STATUS_ORDER.map(s => ({ value: s, label: VEICULO_STATUS_CONFIG[s].label })),
+];
+
 export function VehicleFilterModal({ filtros, onApply, onClose }: VehicleFilterModalProps) {
   const [f, setF] = useState<VeiculoFiltros>(filtros);
 
   const set = <K extends keyof VeiculoFiltros>(key: K, value: VeiculoFiltros[K]) =>
     setF(prev => ({ ...prev, [key]: value }));
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 9,
-    border: `1px solid ${tokens.color.border}`, background: tokens.color.bg,
-    fontSize: '0.85rem', color: tokens.color.text, outline: 'none',
-    fontFamily: tokens.fontSans, boxSizing: 'border-box',
-  };
   const labelStyle: React.CSSProperties = {
     fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase',
     letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 6, display: 'block',
@@ -84,26 +85,8 @@ export function VehicleFilterModal({ filtros, onApply, onClose }: VehicleFilterM
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
-            <div>
-              <label style={labelStyle}>Marca</label>
-              <select
-                value={f.marca}
-                onChange={e => set('marca', e.target.value)}
-                style={{ ...inputStyle, cursor: 'pointer' }}
-              >
-                <option value="">Todas as marcas</option>
-                {MARCAS_SUGERIDAS.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Modelo</label>
-              <input
-                style={inputStyle}
-                placeholder="Ex: Corolla, HB20..."
-                value={f.modelo}
-                onChange={e => set('modelo', e.target.value)}
-              />
-            </div>
+            <Select name="marca_filtro" label="Marca" value={f.marca} placeholder="Todas as marcas" options={MARCAS_SUGERIDAS} onChangeValue={v => set('marca', v)} />
+            <Input name="modelo_filtro" label="Modelo" placeholder="Ex: Corolla, HB20..." value={f.modelo} onChangeValue={v => set('modelo', v)} />
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={labelStyle}>Categoria</label>
@@ -133,32 +116,20 @@ export function VehicleFilterModal({ filtros, onApply, onClose }: VehicleFilterM
             <div>
               <label style={labelStyle}>Ano de Fabricação</label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input style={inputStyle} placeholder="De" type="number" value={f.anoDe} onChange={e => set('anoDe', e.target.value)} />
-                <input style={inputStyle} placeholder="Até" type="number" value={f.anoAte} onChange={e => set('anoAte', e.target.value)} />
+                <Input name="ano_de" placeholder="De" type="number" value={f.anoDe} onChangeValue={v => set('anoDe', v)} />
+                <Input name="ano_ate" placeholder="Até" type="number" value={f.anoAte} onChangeValue={v => set('anoAte', v)} />
               </div>
             </div>
-            <div>
-              <label style={labelStyle}>Cor</label>
-              <input style={inputStyle} placeholder="Ex: Branco, Prata..." value={f.cor} onChange={e => set('cor', e.target.value)} />
-            </div>
+            <Input name="cor_filtro" label="Cor" placeholder="Ex: Branco, Prata..." value={f.cor} onChangeValue={v => set('cor', v)} />
 
-            <div>
-              <label style={labelStyle}>Proprietário</label>
-              <input style={inputStyle} placeholder="Nome ou CPF/CNPJ..." value={f.proprietario} onChange={e => set('proprietario', e.target.value)} />
-            </div>
-            <div>
-              <label style={labelStyle}>Status do Veículo</label>
-              <select
-                value={f.status}
-                onChange={e => set('status', e.target.value as VeiculoStatus | 'todos')}
-                style={{ ...inputStyle, cursor: 'pointer' }}
-              >
-                <option value="todos">Todos os status</option>
-                {VEICULO_STATUS_ORDER.map(s => (
-                  <option key={s} value={s}>{VEICULO_STATUS_CONFIG[s].label}</option>
-                ))}
-              </select>
-            </div>
+            <Input name="proprietario_filtro" label="Proprietário" placeholder="Nome ou CPF/CNPJ..." value={f.proprietario} onChangeValue={v => set('proprietario', v)} />
+            <Select
+              name="status_filtro"
+              label="Status do Veículo"
+              value={f.status}
+              options={STATUS_SELECT_OPTIONS}
+              onChangeValue={v => set('status', v as VeiculoStatus | 'todos')}
+            />
           </div>
         </div>
 

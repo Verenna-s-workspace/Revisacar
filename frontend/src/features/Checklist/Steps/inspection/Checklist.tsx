@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { STATUS_CONFIG, tokens } from '../../../../constants';
 import type { StatusConfig } from '../../../../types';
 import { SectionIcon } from '../../../../components/ui';
+import { Textarea } from '../../../../components/inputs/textarea';
 
 // ── ChecklistItem ─────────────────────────────────────────────────────────────
 
@@ -180,29 +181,13 @@ export function ChecklistItem({
           padding: '0 16px 11px 19px',
           animation: 'fadeUp 0.16s ease forwards',
         }}>
-          <textarea
+          <Textarea
+            name={`obs-${key}`}
             value={data?.obs || ''}
-            onChange={(e) => onSetObs(key, e.target.value)}
+            onChangeValue={(v) => onSetObs(key, v)}
             rows={2}
             placeholder="Observação técnica..."
             autoFocus={obsOpen && !data?.obs}
-            style={{
-              width: '100%',
-              fontFamily: tokens.fontSans,
-              fontSize: '0.83rem',
-              color: tokens.color.text,
-              background: tokens.color.bgAlt,
-              border: `1px solid ${tokens.color.border}`,
-              borderRadius: tokens.radius.sm,
-              padding: '7px 11px',
-              outline: 'none',
-              resize: 'none',
-              lineHeight: 1.5,
-              boxSizing: 'border-box',
-              transition: 'border-color 0.18s, box-shadow 0.18s',
-            }}
-            onFocus={(e) => (e.target.style.borderColor = tokens.color.ferrari)}
-            onBlur={(e)  => (e.target.style.borderColor = tokens.color.border)}
           />
         </div>
       )}

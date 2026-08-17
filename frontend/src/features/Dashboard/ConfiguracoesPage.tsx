@@ -4,6 +4,7 @@ import { Icons } from './Icons';
 import { Card } from './Primitives';
 import { useTheme } from '../../hooks/useTheme';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
+import { Input } from '../../components/inputs/input';
 
 export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   const { theme, toggleTheme } = useTheme();
@@ -91,70 +92,56 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
           </div>
 
           <form onSubmit={handleSaveWorkshop} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>NOME COMERCIAL DA OFICINA</label>
-              <input
-                type="text"
+            <Input
+              name="workshop_nome"
+              label="Nome Comercial da Oficina"
+              required
+              value={workshop.nome}
+              onChangeValue={v => setWorkshop({ ...workshop, nome: v })}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              <Input
+                name="workshop_cnpj"
+                type="cpf_cnpj"
+                label="CNPJ"
                 required
-                value={workshop.nome}
-                onChange={e => setWorkshop({ ...workshop, nome: e.target.value })}
-                style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
+                value={workshop.cnpj}
+                onChangeValue={v => setWorkshop({ ...workshop, cnpj: v })}
+              />
+              <Input
+                name="workshop_valor_hora"
+                type="currency"
+                label="Taxa de Mão de Obra (R$/hora)"
+                required
+                value={workshop.valorHora ? String(workshop.valorHora) : ''}
+                onChangeValue={v => setWorkshop({ ...workshop, valorHora: Number(v) || 0 })}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>CNPJ</label>
-                <input
-                  type="text"
-                  required
-                  value={workshop.cnpj}
-                  onChange={e => setWorkshop({ ...workshop, cnpj: e.target.value })}
-                  style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>TAXA DE MÃO DE OBRA (R$/HORA)</label>
-                <input
-                  type="number"
-                  required
-                  value={workshop.valorHora}
-                  onChange={e => setWorkshop({ ...workshop, valorHora: Number(e.target.value) })}
-                  style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>TELEFONE / WHATSAPP</label>
-                <input
-                  type="text"
-                  required
-                  value={workshop.telefone}
-                  onChange={e => setWorkshop({ ...workshop, telefone: e.target.value })}
-                  style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>EMAIL DE ATENDIMENTO</label>
-                <input
-                  type="email"
-                  required
-                  value={workshop.email}
-                  onChange={e => setWorkshop({ ...workshop, email: e.target.value })}
-                  style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
-                />
-              </div>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>ENDEREÇO DA OFICINA</label>
-              <input
-                type="text"
+              <Input
+                name="workshop_telefone"
+                type="phone"
+                label="Telefone / WhatsApp"
                 required
-                value={workshop.endereco}
-                onChange={e => setWorkshop({ ...workshop, endereco: e.target.value })}
-                style={{ width: '100%', padding: 10, background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.text, fontSize: '0.875rem' }}
+                value={workshop.telefone}
+                onChangeValue={v => setWorkshop({ ...workshop, telefone: v })}
+              />
+              <Input
+                name="workshop_email"
+                type="email"
+                label="Email de Atendimento"
+                required
+                value={workshop.email}
+                onChangeValue={v => setWorkshop({ ...workshop, email: v })}
               />
             </div>
+            <Input
+              name="workshop_endereco"
+              label="Endereço da Oficina"
+              required
+              value={workshop.endereco}
+              onChangeValue={v => setWorkshop({ ...workshop, endereco: v })}
+            />
             
             {savedSuccess && (
               <div style={{

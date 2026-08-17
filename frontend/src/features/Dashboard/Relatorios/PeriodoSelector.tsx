@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { ChangeEvent } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import type { FiltroPeriodo, IntervaloDatas, PeriodoPreset } from '../../../types/relatorios';
 import { formatarIntervalo } from '../../../utils/relatorios';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
 
 const OPCOES: { valor: PeriodoPreset; rotulo: string }[] = [
   { valor: 'hoje', rotulo: 'Hoje' },
@@ -34,8 +35,8 @@ export function PeriodoSelector({ filtro, intervaloAtual, isMobile, onChange }: 
     fim: paraInputDate(filtro.personalizado?.fim ?? intervaloAtual.fim),
   }));
 
-  function selecionarPreset(e: ChangeEvent<HTMLSelectElement>) {
-    const preset = e.target.value as PeriodoPreset;
+  function selecionarPreset(v: string) {
+    const preset = v as PeriodoPreset;
     if (preset === 'personalizado') {
       onChange({
         preset,
@@ -76,31 +77,34 @@ export function PeriodoSelector({ filtro, intervaloAtual, isMobile, onChange }: 
         <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>Período:</span>
       </div>
 
-      <select className="dashboard-card__select" value={filtro.preset} onChange={selecionarPreset}>
-        {OPCOES.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.rotulo}
-          </option>
-        ))}
-      </select>
+      <div style={{ minWidth: 170 }}>
+        <Select
+          name="relatorios_periodo_preset"
+          value={filtro.preset}
+          onChangeValue={selecionarPreset}
+          options={OPCOES.map(o => ({ value: o.valor, label: o.rotulo }))}
+        />
+      </div>
 
       {filtro.preset === 'personalizado' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <input
+          <Input
+            name="relatorios_data_inicio"
             type="date"
-            className="dashboard-card__select"
             value={range.inicio}
             max={range.fim}
-            onChange={(e) => aplicarData('inicio', e.target.value)}
+            onChangeValue={(v) => aplicarData('inicio', v)}
+            style={{ width: 'auto' }}
           />
           <span style={{ fontSize: '0.78rem', color: tokens.color.muted }}>até</span>
-          <input
+          <Input
+            name="relatorios_data_fim"
             type="date"
-            className="dashboard-card__select"
             value={range.fim}
             min={range.inicio}
             max={paraInputDate(new Date())}
-            onChange={(e) => aplicarData('fim', e.target.value)}
+            onChangeValue={(v) => aplicarData('fim', v)}
+            style={{ width: 'auto' }}
           />
         </div>
       )}

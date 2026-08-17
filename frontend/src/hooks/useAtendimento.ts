@@ -21,6 +21,7 @@ export interface ResumoOperacional {
 export function useAtendimento() {
   const [ordensRaw, setOrdensRaw] = useState<OrdemRow[]>([]);
   const [loadingOrdens, setLoadingOrdens] = useState(true);
+  const [erroOrdens, setErroOrdens] = useState<string | null>(null);
   // Incrementado a cada gravação no overlay pra forçar a releitura do
   // localStorage — o overlay é síncrono e vive fora do React, então não há
   // outro jeito de "notificar" o hook de que ele mudou.
@@ -29,19 +30,28 @@ export function useAtendimento() {
   const {
     agendamentos,
     loading: loadingAgendamentos,
+    erro: erroAgendamentos,
     reload: reloadAgendamentos,
   } = useAgendamentos();
 
   const carregarOrdens = useCallback(async () => {
     setLoadingOrdens(true);
+    setErroOrdens(null);
     try {
       const data = await api.listarOrdens();
       const lista: OrdemRow[] = Array.isArray(data) ? data : [];
       // Fallback de demo só em desenvolvimento — ver comentário em
-      // buildSeedOrdensAtendimento (mesmo racional do useEstoque).
+      // buildSeedOrdensAtendimento (mesmo racional do useEstoque). Uma lista
+      // vazia só vira demo em DEV; em produção uma resposta bem sucedida
+      // (mesmo vazia) nunca é substituída.
       setOrdensRaw(lista.length === 0 && import.meta.env.DEV ? buildSeedOrdensAtendimento() : lista);
     } catch {
-      setOrdensRaw(import.meta.env.DEV ? buildSeedOrdensAtendimento() : []);
+      if (import.meta.env.DEV) {
+        setOrdensRaw(buildSeedOrdensAtendimento());
+      } else {
+        setOrdensRaw([]);
+        setErroOrdens('Não foi possível carregar as ordens de serviço.');
+      }
     } finally {
       setLoadingOrdens(false);
     }
@@ -136,6 +146,7 @@ export function useAtendimento() {
 
   return {
     loading: loadingOrdens || loadingAgendamentos,
+    erro: erroOrdens ?? erroAgendamentos ?? null,
     ordens,
     agendamentos,
     colunas,

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { tokens } from '../../../constants';
 import { VeiculoIcons } from './icons';
+import { Input } from '../../../components/inputs/input';
 import type { VeiculoCadastrado, VeiculoProprietario } from '../../../types/veiculo';
 
 interface ChangeOwnerModalProps {
@@ -14,17 +15,6 @@ export function ChangeOwnerModal({ veiculo, onSave, onClose }: ChangeOwnerModalP
   const [doc, setDoc] = useState(veiculo.proprietario?.docCpfCnpj ?? '');
   const [tel, setTel] = useState(veiculo.proprietario?.telefone ?? '');
   const [email, setEmail] = useState(veiculo.proprietario?.email ?? '');
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 9,
-    border: `1px solid ${tokens.color.border}`, background: 'white',
-    fontSize: '0.875rem', color: tokens.color.text, outline: 'none',
-    fontFamily: tokens.fontSans, boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = {
-    fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 5, display: 'block',
-  };
 
   const handleSave = () => {
     if (!nome.trim()) return;
@@ -53,24 +43,12 @@ export function ChangeOwnerModal({ veiculo, onSave, onClose }: ChangeOwnerModalP
           </div>
 
           <div style={{ display: 'grid', gap: 14 }}>
-            <div>
-              <label style={labelStyle}>Nome do Proprietário *</label>
-              <input style={inputStyle} placeholder="Nome completo" value={nome} onChange={e => setNome(e.target.value)} autoFocus />
-            </div>
+            <Input name="proprietario_nome" label="Nome do Proprietário" required placeholder="Nome completo" value={nome} onChangeValue={setNome} autoFocus />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div>
-                <label style={labelStyle}>CPF/CNPJ</label>
-                <input style={inputStyle} placeholder="000.000.000-00" value={doc} onChange={e => setDoc(e.target.value)} />
-              </div>
-              <div>
-                <label style={labelStyle}>Telefone</label>
-                <input style={inputStyle} placeholder="(11) 99999-9999" value={tel} onChange={e => setTel(e.target.value)} />
-              </div>
+              <Input name="proprietario_doc" type="cpf_cnpj" label="CPF/CNPJ" placeholder="000.000.000-00" value={doc} onChangeValue={setDoc} />
+              <Input name="proprietario_tel" type="phone" label="Telefone" placeholder="(11) 99999-9999" value={tel} onChangeValue={setTel} />
             </div>
-            <div>
-              <label style={labelStyle}>E-mail</label>
-              <input style={inputStyle} placeholder="email@exemplo.com" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
+            <Input name="proprietario_email" type="email" label="E-mail" placeholder="email@exemplo.com" value={email} onChangeValue={setEmail} />
           </div>
         </div>
 

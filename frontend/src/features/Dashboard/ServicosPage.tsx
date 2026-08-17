@@ -21,7 +21,7 @@ interface ServicosPageProps {
 }
 
 export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
-  const { servicos, loading, stats, addServico, updateServico, deleteServico, toggleAtivo } = useServicos();
+  const { servicos, loading, usingApi, erro, stats, addServico, updateServico, deleteServico, toggleAtivo } = useServicos();
 
   // Vínculo Kit ↔ Serviço: a fonte da verdade é o Kit (Estoque), então aqui é
   // só leitura — um lookup servicoId -> nome do kit, montado uma vez aqui em
@@ -74,6 +74,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   }
 
   const temFiltroAtivo = search !== '' || categoria !== 'todas';
+  const usandoDadosDemo = !loading && !usingApi && !erro;
 
   // ── conteúdo ────────────────────────────────────────────────────────────────
 
@@ -97,9 +98,20 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
             </button>
           )}
           <div>
-            <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-              Catálogo de Serviços
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
+                Catálogo de Serviços
+              </h2>
+              {usandoDadosDemo && (
+                <span style={{
+                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
+                  borderRadius: 6, padding: '2px 7px',
+                }}>
+                  dados de demonstração
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
               Serviços, preços e duração estimada oferecidos pela oficina.
             </p>
@@ -118,6 +130,16 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
           {!isMobile && 'Adicionar Serviço'}
         </button>
       </div>
+
+      {erro && (
+        <div style={{
+          margin: isMobile ? '12px 16px 0' : '14px 28px 0',
+          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
+          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
+        }}>
+          {erro}
+        </div>
+      )}
 
       <ServicoFilters
         search={search}

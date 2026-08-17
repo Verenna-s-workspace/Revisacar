@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { tokens } from '../../../constants';
+import { Input } from '../../../components/inputs/input';
+import { Textarea } from '../../../components/inputs/textarea';
 import type { NovoServicoInput, ServicoItem } from '../../../types/servico';
-
-const FIELD_LABEL: CSSProperties = {
-  display: 'block', fontSize: '0.78rem', fontWeight: 700,
-  color: tokens.color.textSecond, marginBottom: 5,
-};
-
-const FIELD_INPUT: CSSProperties = {
-  width: '100%', padding: 10, background: tokens.color.bg,
-  border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-  color: tokens.color.text, fontSize: '0.875rem', fontFamily: tokens.fontSans,
-};
 
 const FORM_VAZIO: NovoServicoInput = { nome: '', categoria: '', preco: 0, duracao: '', descricao: '', ativo: true };
 
@@ -61,69 +52,52 @@ export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, onClo
 
         <form onSubmit={handleSubmit}>
           <div className="dashboard-modal__body">
-            <div>
-              <label style={FIELD_LABEL}>NOME DO SERVIÇO *</label>
-              <input
-                type="text"
-                required
-                value={form.nome}
-                onChange={e => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Troca de Óleo e Filtro"
-                style={FIELD_INPUT}
-              />
-            </div>
+            <Input
+              name="servico_nome"
+              label="Nome do Serviço"
+              required
+              value={form.nome}
+              onChangeValue={v => setForm({ ...form, nome: v })}
+              placeholder="Ex: Troca de Óleo e Filtro"
+            />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={FIELD_LABEL}>CATEGORIA *</label>
-                <input
-                  type="text"
-                  required
-                  list="categorias-servico"
-                  value={form.categoria}
-                  onChange={e => setForm({ ...form, categoria: e.target.value })}
-                  placeholder="Ex: Freios"
-                  style={FIELD_INPUT}
-                />
-                <datalist id="categorias-servico">
-                  {categoriasDisponiveis.map(c => <option key={c} value={c} />)}
-                </datalist>
-              </div>
-              <div>
-                <label style={FIELD_LABEL}>DURAÇÃO ESTIMADA *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.duracao}
-                  onChange={e => setForm({ ...form, duracao: e.target.value })}
-                  placeholder="Ex: 1h 30min"
-                  style={FIELD_INPUT}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={FIELD_LABEL}>PREÇO COBRADO (R$) *</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
+              <Input
+                name="servico_categoria"
+                label="Categoria"
                 required
-                value={form.preco || ''}
-                onChange={e => setForm({ ...form, preco: Number(e.target.value) })}
-                placeholder="Ex: 250.00"
-                style={FIELD_INPUT}
+                value={form.categoria}
+                onChangeValue={v => setForm({ ...form, categoria: v })}
+                placeholder="Ex: Freios"
+                datalistOptions={categoriasDisponiveis}
+              />
+              <Input
+                name="servico_duracao"
+                label="Duração Estimada"
+                required
+                value={form.duracao}
+                onChangeValue={v => setForm({ ...form, duracao: v })}
+                placeholder="Ex: 1h 30min"
               />
             </div>
 
-            <div>
-              <label style={FIELD_LABEL}>DESCRIÇÃO DETALHADA</label>
-              <textarea
-                value={form.descricao}
-                onChange={e => setForm({ ...form, descricao: e.target.value })}
-                style={{ ...FIELD_INPUT, height: 80, resize: 'none' }}
-              />
-            </div>
+            <Input
+              name="servico_preco"
+              type="currency"
+              label="Preço Cobrado"
+              required
+              value={form.preco ? String(form.preco) : ''}
+              onChangeValue={v => setForm({ ...form, preco: Number(v) || 0 })}
+              placeholder="R$ 0,00"
+            />
+
+            <Textarea
+              name="servico_descricao"
+              label="Descrição Detalhada"
+              value={form.descricao}
+              onChangeValue={v => setForm({ ...form, descricao: v })}
+              rows={3}
+            />
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
               <input

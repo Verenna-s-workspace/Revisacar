@@ -23,23 +23,30 @@ export function useVeiculos() {
   const [veiculos, setVeiculos] = useState<VeiculoCadastrado[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingApi, setUsingApi] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
+  // Mesmo padrão de useEstoque/useRelatorios: fallback pra dados de
+  // demonstração só em desenvolvimento (import.meta.env.DEV). Em produção
+  // mostra o erro real em vez de veículos fictícios. Uma resposta bem
+  // sucedida (mesmo com lista vazia) nunca é substituída por demo, em
+  // nenhum ambiente.
   const load = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     try {
       const data = await api.listarVeiculos();
       const lista: VeiculoCadastrado[] = Array.isArray(data) ? data : data?.veiculos ?? [];
-      if (lista.length || Array.isArray(data)) {
-        setVeiculos(lista);
-        setUsingApi(true);
-      } else {
+      setVeiculos(lista);
+      setUsingApi(true);
+    } catch {
+      if (import.meta.env.DEV) {
         setVeiculos(buildSeedVeiculos());
         setUsingApi(false);
+      } else {
+        setVeiculos([]);
+        setUsingApi(false);
+        setErro('Não foi possível carregar os veículos.');
       }
-    } catch {
-      // Backend ainda não expõe /veiculos — usa dados de demonstração.
-      setVeiculos(buildSeedVeiculos());
-      setUsingApi(false);
     } finally {
       setLoading(false);
     }
@@ -127,6 +134,7 @@ export function useVeiculos() {
     veiculos,
     loading,
     usingApi,
+    erro,
     stats,
     reload: load,
     addVeiculo,

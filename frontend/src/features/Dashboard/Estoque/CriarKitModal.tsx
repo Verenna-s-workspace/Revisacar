@@ -1,27 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CSSProperties, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { comprimirImagem } from '../../../utils/estoque_utils';
 import { useServicos } from '../../../hooks/useServicos';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
+import { Textarea } from '../../../components/inputs/textarea';
 import type { EstoqueItem, EstoqueKit, EstoqueKitItemReceita, NovoEstoqueKitInput } from '../../../types/estoque';
 
-const FIELD_LABEL: CSSProperties = {
-  display: 'block', fontSize: '0.78rem', fontWeight: 700,
-  color: tokens.color.textSecond, marginBottom: 5,
-};
-
-const FIELD_INPUT: CSSProperties = {
-  width: '100%', padding: 10, background: tokens.color.bg,
-  border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-  color: tokens.color.text, fontSize: '0.875rem', fontFamily: tokens.fontSans,
-};
-
-const BTN_SECUNDARIO: CSSProperties = {
+const BTN_SECUNDARIO = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   padding: '7px 14px', background: tokens.color.surfaceHigh, color: tokens.color.textSecond,
   border: `1px solid ${tokens.color.border}`, borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-};
+} as const;
 
 interface CriarKitModalProps {
   kit?: EstoqueKit;                  // presente = modo edição
@@ -116,39 +108,33 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarK
 
         <form onSubmit={handleSubmit}>
           <div className="dashboard-modal__body">
-            <div>
-              <label style={FIELD_LABEL}>NOME DO KIT *</label>
-              <input
-                type="text"
-                required
-                value={nome}
-                onChange={e => setNome(e.target.value)}
-                placeholder="Ex: Kit Revisão Básica Fiat Uno"
-                style={FIELD_INPUT}
-              />
-            </div>
+            <Input
+              name="kit_nome"
+              label="Nome do Kit"
+              required
+              value={nome}
+              onChangeValue={setNome}
+              placeholder="Ex: Kit Revisão Básica Fiat Uno"
+            />
+
+            <Textarea
+              name="kit_descricao"
+              label="Descrição"
+              value={descricao}
+              onChangeValue={setDescricao}
+              rows={2}
+            />
+
+            <Select
+              name="kit_servico"
+              label="Vincular a um Serviço do Catálogo (opcional)"
+              value={servicoId ?? ''}
+              onChangeValue={v => setServicoId(v || undefined)}
+              options={[{ value: '', label: 'Nenhum' }, ...servicos.map(s => ({ value: s.id, label: s.nome }))]}
+            />
 
             <div>
-              <label style={FIELD_LABEL}>DESCRIÇÃO</label>
-              <textarea
-                value={descricao}
-                onChange={e => setDescricao(e.target.value)}
-                style={{ ...FIELD_INPUT, height: 60, resize: 'none' }}
-              />
-            </div>
-
-            <div>
-              <label style={FIELD_LABEL}>VINCULAR A UM SERVIÇO DO CATÁLOGO (OPCIONAL)</label>
-              <select value={servicoId ?? ''} onChange={e => setServicoId(e.target.value || undefined)} style={FIELD_INPUT}>
-                <option value="">Nenhum</option>
-                {servicos.map(s => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={FIELD_LABEL}>FOTO DO KIT</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>FOTO DO KIT</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div
                   style={{
@@ -174,14 +160,14 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarK
             </div>
 
             <div>
-              <label style={FIELD_LABEL}>ITENS DO KIT *</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>ITENS DO KIT *</label>
               <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
+                <Input
+                  name="kit_busca_item"
+                  type="search"
                   value={busca}
-                  onChange={e => setBusca(e.target.value)}
+                  onChangeValue={setBusca}
                   placeholder="Buscar item já cadastrado no estoque..."
-                  style={FIELD_INPUT}
                 />
                 {resultadosBusca.length > 0 && (
                   <div
@@ -224,14 +210,15 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarK
                       <span style={{ flex: 1, fontSize: '0.82rem', color: tokens.color.text, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {itensPorId.get(r.itemId)?.nome ?? 'Item removido'}
                       </span>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={r.quantidade}
-                        onChange={e => alterarQuantidade(r.itemId, Number(e.target.value))}
-                        style={{ width: 56, padding: '6px 8px', border: `1px solid ${tokens.color.border}`, borderRadius: 6, fontSize: '0.8rem', textAlign: 'center' }}
-                      />
+                      <div style={{ width: 56 }}>
+                        <Input
+                          name={`kit_qtd_${r.itemId}`}
+                          type="number"
+                          value={String(r.quantidade)}
+                          onChangeValue={v => alterarQuantidade(r.itemId, Number(v) || 1)}
+                          style={{ padding: '6px 8px', textAlign: 'center' }}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => removerItem(r.itemId)}

@@ -60,12 +60,17 @@ function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros
 }
 
 export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendamentos }: ClientesPageProps) {
-  const { clientes, loading: clientesLoading, addCliente, updateCliente, deleteCliente } = useClientes();
-  const { veiculos, loading: veiculosLoading, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
-  const { agendamentos, loading: agendamentosLoading, addAgendamento, getOcupados } = useAgendamentos();
+  const { clientes, loading: clientesLoading, usingApi: clientesUsingApi, erro: clientesErro, addCliente, updateCliente, deleteCliente } = useClientes();
+  const { veiculos, loading: veiculosLoading, usingApi: veiculosUsingApi, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
+  const { agendamentos, loading: agendamentosLoading, usingApi: agendamentosUsingApi, addAgendamento, getOcupados } = useAgendamentos();
   const { loading: ordensLoading, data } = useDashboard();
 
   const loading = clientesLoading || veiculosLoading || agendamentosLoading || ordensLoading;
+  // As três fontes desta tela (clientes/veículos/agendamentos) seguem o
+  // mesmo padrão dev-only de demonstração — se qualquer uma caiu pra dados
+  // de demo, ou se a principal (clientes) falhou de verdade, sinaliza aqui.
+  const usandoDadosDemo = !loading && (!clientesUsingApi || !veiculosUsingApi || !agendamentosUsingApi) && !clientesErro;
+  const erro = clientesErro;
 
   const clientesEnriquecidos = useMemo(
     () => enrichClientes(clientes, veiculos, agendamentos, data.ordens),
@@ -171,9 +176,20 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
             </button>
           )}
           <div>
-            <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-              Clientes
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
+                Clientes
+              </h2>
+              {usandoDadosDemo && (
+                <span style={{
+                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
+                  borderRadius: 6, padding: '2px 7px',
+                }}>
+                  dados de demonstração
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
               Gerencie a carteira de clientes da oficina.
             </p>
@@ -195,6 +211,16 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
           {isMobile ? 'Cadastrar' : 'Cadastrar Cliente'}
         </button>
       </div>
+
+      {erro && (
+        <div style={{
+          margin: isMobile ? '12px 16px 0' : '14px 28px 0',
+          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
+          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
+        }}>
+          {erro}
+        </div>
+      )}
 
       {/* busca + filtros */}
       <ClientFilters

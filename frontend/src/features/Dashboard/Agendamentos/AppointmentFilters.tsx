@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
 import { APPOINTMENT_STATUS_ORDER, APPOINTMENT_STATUS_CONFIG } from './StatusBadge';
 import type { AppointmentStatus, AgendaFiltros, AgendaPeriodo } from '../../../types/agendamento';
 import { useResponsive } from '../../../components/ui';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
 
 const PERIOD_OPTS: { val: AgendaPeriodo; label: string }[] = [
   { val: 'todos', label: 'Todos' },
@@ -72,32 +73,14 @@ export function AppointmentFilters({ search, filtros, onSearch, onFiltros }: App
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8, flex: 1,
-            background: tokens.color.bg, borderRadius: 9,
-            border: `1px solid ${tokens.color.border}`, padding: '7px 12px',
-          }}
-        >
-          <span style={{ color: tokens.color.muted, display: 'flex', flexShrink: 0 }}>{Icons.search}</span>
-          <input
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Input
+            name="busca_agendamentos"
+            type="search"
             value={search}
-            onChange={e => onSearch(e.target.value)}
+            onChangeValue={onSearch}
             placeholder="Buscar por cliente ou placa..."
-            style={{
-              border: 'none', background: 'transparent', outline: 'none',
-              fontSize: '0.83rem', color: tokens.color.text, width: '100%',
-              fontFamily: tokens.fontSans,
-            }}
           />
-          {search && (
-            <button
-              onClick={() => onSearch('')}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 2, fontSize: '1.1rem', lineHeight: 1 }}
-            >
-              ×
-            </button>
-          )}
         </div>
 
         <button
@@ -137,19 +120,13 @@ export function AppointmentFilters({ search, filtros, onSearch, onFiltros }: App
             {PERIOD_OPTS.map(o => pill(filtros.periodo === o.val, () => setPeriodo(o.val), o.label))}
           </div>
           <div style={{ width: 1, height: 20, background: tokens.color.border, flexShrink: 0, alignSelf: 'center' }} />
-          <select
+          <Select
+            name="status_agendamento_filtro"
             value={filtros.status}
-            onChange={e => setStatus(e.target.value as AppointmentStatus | 'todos')}
-            style={{
-              padding: '5px 10px', borderRadius: 8, border: `1px solid ${tokens.color.border}`,
-              background: 'white', color: tokens.color.text,
-              fontSize: '0.78rem', fontFamily: tokens.fontSans, outline: 'none', cursor: 'pointer',
-            }}
-          >
-            {STATUS_OPTS.map(o => (
-              <option key={o.val} value={o.val}>{o.label}</option>
-            ))}
-          </select>
+            options={STATUS_OPTS.map(o => ({ value: o.val, label: o.label }))}
+            onChangeValue={v => setStatus(v as AppointmentStatus | 'todos')}
+            style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+          />
         </div>
       )}
     </div>

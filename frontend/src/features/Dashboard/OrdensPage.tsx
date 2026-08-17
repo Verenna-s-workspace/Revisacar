@@ -3,6 +3,7 @@ import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge } from './Primitives';
 import { api } from '../../utils/api';
+import { Input } from '../../components/inputs/input';
 import type { OrdemRow } from '../../types/dashboard';
 
 // ── Date formatter ────────────────────────────────────────────────────────────
@@ -312,13 +313,13 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: tokens.color.bg, borderRadius: 9, border: `1px solid ${tokens.color.border}`, padding: '7px 12px', flex: isMobile ? 1 : undefined, minWidth: isMobile ? 0 : 220 }}>
-          <span style={{ color: tokens.color.muted, display: 'flex', flexShrink: 0 }}>{Icons.search}</span>
-          <input
-            placeholder="Buscar OS, cliente, placa..."
+        <div style={{ flex: isMobile ? 1 : undefined, minWidth: isMobile ? 0 : 220 }}>
+          <Input
+            name="busca_ordens"
+            type="search"
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.83rem', color: tokens.color.text, width: '100%' }}
+            onChangeValue={setSearch}
+            placeholder="Buscar OS, cliente, placa..."
           />
         </div>
       </div>

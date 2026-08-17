@@ -18,23 +18,30 @@ export function useServicos() {
   const [servicos, setServicos] = useState<ServicoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingApi, setUsingApi] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
+  // Mesmo padrão de useEstoque/useRelatorios: fallback pra dados de
+  // demonstração só em desenvolvimento (import.meta.env.DEV). Em produção
+  // mostra o erro real em vez de serviços fictícios. Uma resposta bem
+  // sucedida (mesmo com lista vazia) nunca é substituída por demo, em
+  // nenhum ambiente.
   const load = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     try {
       const data = await api.listarServicos();
       const lista: ServicoItem[] = Array.isArray(data) ? data : data?.servicos ?? [];
-      if (lista.length || Array.isArray(data)) {
-        setServicos(lista);
-        setUsingApi(true);
-      } else {
+      setServicos(lista);
+      setUsingApi(true);
+    } catch {
+      if (import.meta.env.DEV) {
         setServicos(buildSeedServicos());
         setUsingApi(false);
+      } else {
+        setServicos([]);
+        setUsingApi(false);
+        setErro('Não foi possível carregar o catálogo de serviços.');
       }
-    } catch {
-      // Backend ainda não expõe /servicos — usa dados de demonstração.
-      setServicos(buildSeedServicos());
-      setUsingApi(false);
     } finally {
       setLoading(false);
     }
@@ -115,6 +122,7 @@ export function useServicos() {
     servicos,
     loading,
     usingApi,
+    erro,
     stats,
     reload: load,
     addServico,

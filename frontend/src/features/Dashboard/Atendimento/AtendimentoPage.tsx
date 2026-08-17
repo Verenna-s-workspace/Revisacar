@@ -32,7 +32,7 @@ interface AtendimentoPageProps {
 }
 
 export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill }: AtendimentoPageProps) {
-  const { loading, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear } =
+  const { loading, erro, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear } =
     useAtendimento();
   const { kits, itens } = useEstoque();
   const { servicos } = useServicos();
@@ -104,6 +104,16 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
           </p>
         </div>
       </div>
+
+      {erro && (
+        <div style={{
+          margin: isMobile ? '12px 16px 0' : '14px 28px 0',
+          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
+          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
+        }}>
+          {erro}
+        </div>
+      )}
 
       {/* corpo */}
       <div

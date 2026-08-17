@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
 import { tokens } from '../constants';
+import { Input } from '../components/inputs/input';
 import type { AdminUser, AuthResult } from '../types';
 
 interface AuthScreenProps {
@@ -8,25 +9,6 @@ interface AuthScreenProps {
 }
 
 type AuthMode = 'login' | 'register' | 'forgot';
-
-const normalizeDoc = (value: string) => value.replace(/\D/g, '').slice(0, 14);
-
-const formatCNPJ = (value: string) => {
-  const digits = normalizeDoc(value);
-  const part1 = digits.slice(0, 2);
-  const part2 = digits.slice(2, 5);
-  const part3 = digits.slice(5, 8);
-  const part4 = digits.slice(8, 12);
-  const part5 = digits.slice(12, 14);
-
-  return [
-    part1,
-    part2 ? `.${part2}` : '',
-    part3 ? `.${part3}` : '',
-    part4 ? `/${part4}` : '',
-    part5 ? `-${part5}` : '',
-  ].join('');
-};
 
 export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -38,7 +20,6 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const formattedDoc = formatCNPJ(doc);
   const label = mode === 'login' ? 'Login de Administrador' : mode === 'register' ? 'Cadastro de Administrador' : 'Esqueci minha senha';
 
   const handleSubmit = async () => {
@@ -60,7 +41,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       const payload = {
         nome: nome.trim(),
         email: email.trim().toLowerCase(),
-        doc: normalizeDoc(doc),
+        doc,
         senha,
       };
 
@@ -131,67 +112,33 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         )}
 
         {mode === 'register' && (
-          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-            Nome
-            <input
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Seu nome"
-              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-            />
-          </label>
+          <div style={{ marginBottom: '14px' }}>
+            <Input name="auth_nome" label="Nome" value={nome} onChangeValue={setNome} placeholder="Seu nome" />
+          </div>
         )}
 
         {mode !== 'forgot' && (
-          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-            CNPJ
-            <input
-              value={formattedDoc}
-              onChange={(e) => setDoc(e.target.value)}
-              placeholder="00.000.000/0000-00"
-              maxLength={18}
-              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-            />
-          </label>
+          <div style={{ marginBottom: '14px' }}>
+            <Input name="auth_cnpj" type="cpf_cnpj" label="CNPJ" value={doc} onChangeValue={setDoc} placeholder="00.000.000/0000-00" />
+          </div>
         )}
 
         {mode !== 'forgot' && (
-          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-            Senha
-            <input
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="Senha segura"
-              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-            />
-          </label>
+          <div style={{ marginBottom: '14px' }}>
+            <Input name="auth_senha" type="password" label="Senha" value={senha} onChangeValue={setSenha} placeholder="Senha segura" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
+          </div>
         )}
 
         {mode === 'register' && (
-          <label style={{ display: 'block', marginBottom: '14px', color: tokens.color.textSecond }}>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-            />
-          </label>
+          <div style={{ marginBottom: '14px' }}>
+            <Input name="auth_email" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" />
+          </div>
         )}
 
         {mode === 'forgot' && (
-          <label style={{ display: 'block', marginBottom: '22px', color: tokens.color.textSecond }}>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: tokens.radius.md, border: `1px solid ${tokens.color.border}` }}
-            />
-          </label>
+          <div style={{ marginBottom: '22px' }}>
+            <Input name="auth_email_forgot" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" />
+          </div>
         )}
 
         {mode !== 'forgot' && mode === 'login' && (

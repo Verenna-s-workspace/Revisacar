@@ -1,9 +1,9 @@
 import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
 import { VeiculoIcons } from './icons';
 import { filtrosAtivos } from '../../../utils/veiculos_utils';
 import type { VeiculoFiltros } from '../../../types/veiculo';
 import { useResponsive } from '../../../components/ui';
+import { Input } from '../../../components/inputs/input';
 
 interface VehicleFiltersProps {
   search: string;
@@ -25,32 +25,14 @@ export function VehicleFilters({ search, filtros, onSearch, onOpenFilters, onCle
         display: 'flex', alignItems: 'center', gap: 10,
       }}
     >
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8, flex: 1,
-          background: tokens.color.bg, borderRadius: 9,
-          border: `1px solid ${tokens.color.border}`, padding: '7px 12px',
-        }}
-      >
-        <span style={{ color: tokens.color.muted, display: 'flex', flexShrink: 0 }}>{Icons.search}</span>
-        <input
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Input
+          name="busca_veiculos"
+          type="search"
           value={search}
-          onChange={e => onSearch(e.target.value)}
+          onChangeValue={onSearch}
           placeholder="Buscar por placa, marca, modelo ou proprietário..."
-          style={{
-            border: 'none', background: 'transparent', outline: 'none',
-            fontSize: '0.83rem', color: tokens.color.text, width: '100%',
-            fontFamily: tokens.fontSans,
-          }}
         />
-        {search && (
-          <button
-            onClick={() => onSearch('')}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 2, fontSize: '1.1rem', lineHeight: 1 }}
-          >
-            ×
-          </button>
-        )}
       </div>
 
       <button

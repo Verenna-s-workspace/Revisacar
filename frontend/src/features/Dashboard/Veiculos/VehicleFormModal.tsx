@@ -4,6 +4,9 @@ import { COMBUSTIVEL_OPTIONS } from '../../../constants';
 import { PhotoGrid, Lightbox } from '../../../components/ui';
 import { CATEGORIA_OPTIONS, CAMBIO_OPTIONS, PORTAS_OPTIONS } from '../../../utils/veiculos_utils';
 import { VeiculoIcons } from './icons';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
+import { Textarea } from '../../../components/inputs/textarea';
 import type { NovoVeiculoInput, VeiculoCadastrado, VeiculoCategoria, VeiculoCambio } from '../../../types/veiculo';
 
 interface Photo { src: string; name: string; }
@@ -44,6 +47,8 @@ function buildInitialState(v?: VeiculoCadastrado): FormState {
   };
 }
 
+const PORTAS_SELECT_OPTIONS = PORTAS_OPTIONS.map(p => ({ value: String(p), label: `${p} portas` }));
+
 export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalProps) {
   const isEdit = !!veiculo;
   const [step, setStep] = useState<1 | 2>(1);
@@ -52,8 +57,8 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
   const [fotos, setFotos] = useState<Photo[]>(() => (veiculo?.fotosAdicionais ?? []).map(src => ({ src, name: 'foto' })));
   const [preview, setPreview] = useState<string | null>(null);
 
-  const setField = <K extends keyof FormState>(key: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm(prev => ({ ...prev, [key]: e.target.value as FormState[K] }));
+  const setField = <K extends keyof FormState>(key: K) => (v: string) =>
+    setForm(prev => ({ ...prev, [key]: v as FormState[K] }));
 
   const handleFotoPrincipal = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -110,12 +115,6 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
     onClose();
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 9,
-    border: `1px solid ${tokens.color.border}`, background: 'white',
-    fontSize: '0.875rem', color: tokens.color.text, outline: 'none',
-    fontFamily: tokens.fontSans, boxSizing: 'border-box',
-  };
   const labelStyle: React.CSSProperties = {
     fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
     letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 5, display: 'block',
@@ -151,81 +150,42 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
         {step === 1 && (
           <div className="dashboard-modal__body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
-              <div>
-                <label style={labelStyle}>Placa *</label>
-                <input
-                  style={{ ...inputStyle, fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                  placeholder="ABC1D23"
-                  maxLength={8}
-                  value={form.placa}
-                  onChange={setField('placa')}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Categoria *</label>
-                <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.categoria} onChange={setField('categoria')}>
-                  {CATEGORIA_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
+              <Input
+                name="placa" type="placa" label="Placa" required placeholder="ABC1D23"
+                value={form.placa} onChangeValue={setField('placa')}
+                style={{ fontFamily: tokens.fontMono, letterSpacing: '0.06em' }}
+              />
+              <Select name="categoria" label="Categoria" required value={form.categoria} options={CATEGORIA_OPTIONS} onChangeValue={setField('categoria')} />
 
-              <div>
-                <label style={labelStyle}>Marca *</label>
-                <input style={inputStyle} placeholder="Toyota" value={form.marca} onChange={setField('marca')} />
-              </div>
-              <div>
-                <label style={labelStyle}>Modelo *</label>
-                <input style={inputStyle} placeholder="Corolla Altis" value={form.modelo} onChange={setField('modelo')} />
-              </div>
+              <Input name="marca" label="Marca" required placeholder="Toyota" value={form.marca} onChangeValue={setField('marca')} />
+              <Input name="modelo" label="Modelo" required placeholder="Corolla Altis" value={form.modelo} onChangeValue={setField('modelo')} />
 
-              <div>
-                <label style={labelStyle}>Ano *</label>
-                <input style={inputStyle} type="number" placeholder="2022" value={form.ano} onChange={setField('ano')} />
-              </div>
-              <div>
-                <label style={labelStyle}>Cor</label>
-                <input style={inputStyle} placeholder="Prata" value={form.cor} onChange={setField('cor')} />
-              </div>
+              <Input name="ano" type="number" label="Ano" required placeholder="2022" value={form.ano} onChangeValue={setField('ano')} />
+              <Input name="cor" label="Cor" placeholder="Prata" value={form.cor} onChangeValue={setField('cor')} />
 
-              <div>
-                <label style={labelStyle}>Quilometragem</label>
-                <input style={inputStyle} type="number" placeholder="32000" value={form.quilometragem} onChange={setField('quilometragem')} />
-              </div>
-              <div>
-                <label style={labelStyle}>Combustível</label>
-                <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.combustivel} onChange={setField('combustivel')}>
-                  {COMBUSTIVEL_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+              <Input name="quilometragem" type="number" label="Quilometragem" placeholder="32000" value={form.quilometragem} onChangeValue={setField('quilometragem')} />
+              <Select name="combustivel" label="Combustível" value={form.combustivel} options={COMBUSTIVEL_OPTIONS} onChangeValue={setField('combustivel')} />
 
-              <div>
-                <label style={labelStyle}>Câmbio</label>
-                <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.cambio} onChange={setField('cambio')}>
-                  {CAMBIO_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>Número de Portas</label>
-                <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.portas} onChange={setField('portas')}>
-                  {PORTAS_OPTIONS.map(p => <option key={p} value={p}>{p} portas</option>)}
-                </select>
-              </div>
+              <Select name="cambio" label="Câmbio" value={form.cambio} options={CAMBIO_OPTIONS} onChangeValue={setField('cambio')} />
+              <Select name="portas" label="Número de Portas" value={form.portas} options={PORTAS_SELECT_OPTIONS} onChangeValue={setField('portas')} />
 
-              <div>
-                <label style={labelStyle}>Chassi</label>
-                <input style={{ ...inputStyle, fontFamily: tokens.fontMono, fontSize: '0.8rem' }} placeholder="9BWZZZ377VT004251" value={form.chassi} onChange={setField('chassi')} />
-              </div>
-              <div>
-                <label style={labelStyle}>Renavam</label>
-                <input style={{ ...inputStyle, fontFamily: tokens.fontMono, fontSize: '0.8rem' }} placeholder="01234567890" value={form.renavam} onChange={setField('renavam')} />
-              </div>
+              <Input
+                name="chassi" label="Chassi" placeholder="9BWZZZ377VT004251" value={form.chassi} onChangeValue={setField('chassi')}
+                style={{ fontFamily: tokens.fontMono, fontSize: '0.8rem' }}
+              />
+              <Input
+                name="renavam" label="Renavam" placeholder="01234567890" value={form.renavam} onChangeValue={setField('renavam')}
+                style={{ fontFamily: tokens.fontMono, fontSize: '0.8rem' }}
+              />
 
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Observações</label>
-                <textarea
-                  style={{ ...inputStyle, minHeight: 72, resize: 'vertical', lineHeight: 1.5 }}
+                <Textarea
+                  name="observacoes_veiculo"
+                  label="Observações"
                   placeholder="Observações gerais sobre o veículo..."
                   value={form.observacoes}
-                  onChange={setField('observacoes')}
+                  onChangeValue={setField('observacoes')}
+                  rows={3}
                 />
               </div>
             </div>
@@ -294,20 +254,12 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px' }}>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={labelStyle}>Nome do Proprietário</label>
-                  <input style={inputStyle} placeholder="Deixe em branco para salvar sem proprietário" value={form.proprietarioNome} onChange={setField('proprietarioNome')} />
+                  <Input name="prop_nome" label="Nome do Proprietário" placeholder="Deixe em branco para salvar sem proprietário" value={form.proprietarioNome} onChangeValue={setField('proprietarioNome')} />
                 </div>
-                <div>
-                  <label style={labelStyle}>CPF/CNPJ</label>
-                  <input style={inputStyle} placeholder="000.000.000-00" value={form.proprietarioDoc} onChange={setField('proprietarioDoc')} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Telefone</label>
-                  <input style={inputStyle} placeholder="(11) 99999-9999" value={form.proprietarioTelefone} onChange={setField('proprietarioTelefone')} />
-                </div>
+                <Input name="prop_doc" type="cpf_cnpj" label="CPF/CNPJ" placeholder="000.000.000-00" value={form.proprietarioDoc} onChangeValue={setField('proprietarioDoc')} />
+                <Input name="prop_tel" type="phone" label="Telefone" placeholder="(11) 99999-9999" value={form.proprietarioTelefone} onChangeValue={setField('proprietarioTelefone')} />
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={labelStyle}>E-mail</label>
-                  <input style={inputStyle} placeholder="email@exemplo.com" value={form.proprietarioEmail} onChange={setField('proprietarioEmail')} />
+                  <Input name="prop_email" type="email" label="E-mail" placeholder="email@exemplo.com" value={form.proprietarioEmail} onChangeValue={setField('proprietarioEmail')} />
                 </div>
               </div>
             </div>

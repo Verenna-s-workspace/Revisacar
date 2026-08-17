@@ -5,6 +5,8 @@ import { Icons } from '../Icons';
 import { StatusBadge } from '../Primitives';
 import { api } from '../../../utils/api';
 import { parseOrdemPayload } from '../../../utils/atendimento_utils';
+import { Select } from '../../../components/inputs/select';
+import { Textarea } from '../../../components/inputs/textarea';
 import type { OSAtendimento, OverlayOS, PrioridadeAtendimento } from '../../../types/atendimento';
 
 const FIELD_LABEL: CSSProperties = {
@@ -187,11 +189,18 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
         <div className="dashboard-modal__body">
           <div>
             <label style={FIELD_LABEL}>Prioridade</label>
-            <select value={ordem.prioridade ?? ''} onChange={e => handlePrioridade(e.target.value)} style={{ ...FIELD_INPUT, maxWidth: 220 }}>
-              <option value="">Nenhuma</option>
-              <option value="vip">VIP</option>
-              <option value="garantia">Garantia</option>
-            </select>
+            <div style={{ maxWidth: 220 }}>
+              <Select
+                name="os_prioridade"
+                value={ordem.prioridade ?? ''}
+                onChangeValue={handlePrioridade}
+                options={[
+                  { value: '', label: 'Nenhuma' },
+                  { value: 'vip', label: 'VIP' },
+                  { value: 'garantia', label: 'Garantia' },
+                ]}
+              />
+            </div>
           </div>
 
           <div>
@@ -207,31 +216,28 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
           {bloqueada && (
             <div>
               <div style={{ ...SECTION_LABEL, color: tokens.color.crit }}>Bloqueado — Aguardando</div>
-              <textarea
+              <Textarea
+                name="motivo_bloqueio"
                 value={motivoBloqueio}
-                onChange={e => setMotivoBloqueio(e.target.value)}
+                onChangeValue={setMotivoBloqueio}
                 onBlur={salvarCampos}
                 placeholder="Ex.: aguardando pastilha de freio no fornecedor…"
-                style={{
-                  ...FIELD_INPUT,
-                  height: 56,
-                  resize: 'none',
-                  background: tokens.color.critBg,
-                  borderColor: tokens.color.critBorder,
-                }}
+                rows={2}
+                style={{ background: tokens.color.critBg, borderColor: tokens.color.critBorder }}
               />
             </div>
           )}
 
           {!finalizada && (
             <div>
-              <label style={FIELD_LABEL}>Reclamação do Cliente</label>
-              <textarea
+              <Textarea
+                name="reclamacao_cliente"
+                label="Reclamação do Cliente"
                 value={reclamacao}
-                onChange={e => setReclamacao(e.target.value)}
+                onChangeValue={setReclamacao}
                 onBlur={salvarCampos}
                 placeholder="O que o cliente relatou ao trazer o veículo…"
-                style={{ ...FIELD_INPUT, height: 64, resize: 'none' }}
+                rows={2}
               />
             </div>
           )}
@@ -289,12 +295,13 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
                     </button>
                   )}
                 </div>
-                <textarea
+                <Textarea
+                  name="observacoes_internas"
                   value={observacoes}
-                  onChange={e => setObservacoes(e.target.value)}
+                  onChangeValue={setObservacoes}
                   onBlur={salvarCampos}
                   placeholder="Anotações internas da oficina — não aparecem pro cliente."
-                  style={{ ...FIELD_INPUT, height: 80, resize: 'none' }}
+                  rows={3}
                 />
               </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { tokens } from '../../constants';
 import { api } from '../../utils/api';
 import { useResponsive } from '../../components/ui';
+import { Input } from '../../components/inputs/input';
 import { BrandPanel } from './BrandPanel';
 import { FuncionarioPicker } from './FuncionarioPicker';
 import type { FuncionarioPublico } from './FuncionarioPicker';
@@ -11,8 +12,6 @@ import type { AuthResult } from '../../types';
 const DEVICE_OFICINA_KEY = 'revisacarDeviceOficinaDoc';
 
 type Step = 'pareamento' | 'login' | 'esqueci-solicitar' | 'esqueci-enviado';
-
-const normalizeDoc = (value: string) => value.replace(/\D/g, '').slice(0, 14);
 
 interface Props {
   onAuthenticated: (result: AuthResult) => void;
@@ -51,7 +50,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
 
   const handlePareamento = (e: React.FormEvent) => {
     e.preventDefault();
-    const doc = normalizeDoc(docInput);
+    const doc = docInput;
     if (doc.length !== 14) {
       setErro('CNPJ deve ter 14 dígitos');
       return;
@@ -134,14 +133,13 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
                 Digite o CNPJ da oficina pra habilitar o login dos funcionários neste aparelho. Só precisa fazer isso uma vez.
               </p>
               <label style={fieldLabel}>CNPJ DA OFICINA</label>
-              <input
-                type="text"
-                inputMode="numeric"
+              <Input
+                name="pareamento_cnpj"
+                type="cpf_cnpj"
                 autoFocus
                 value={docInput}
-                onChange={e => setDocInput(e.target.value)}
+                onChangeValue={setDocInput}
                 placeholder="00.000.000/0000-00"
-                style={fieldInput}
               />
               {erro && <p style={errorText}>{erro}</p>}
               <button type="submit" style={primaryButton}>Continuar</button>
@@ -200,14 +198,14 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
                 Sem problema — vamos te mandar um PIN novo por email.
               </p>
               <label style={fieldLabel}>EMAIL CADASTRADO</label>
-              <input
+              <Input
+                name="esqueci_pin_email"
                 type="email"
                 autoFocus
                 required
                 value={emailRecuperacao}
-                onChange={e => setEmailRecuperacao(e.target.value)}
+                onChangeValue={setEmailRecuperacao}
                 placeholder="seu@email.com"
-                style={fieldInput}
               />
               {erro && <p style={errorText}>{erro}</p>}
               <button type="submit" disabled={enviando} style={{ ...primaryButton, opacity: enviando ? 0.6 : 1 }}>

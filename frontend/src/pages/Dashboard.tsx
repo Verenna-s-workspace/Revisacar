@@ -12,6 +12,7 @@ import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../f
 import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../features/Dashboard/Primitives';
 import { Icons, SVC_ICON } from '../features/Dashboard/Icons';
 import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
+import { Select } from '../components/inputs/select';
 import { OSRow, OSModal, OrdensPage } from '../features/Dashboard/OrdensPage';
 
 // High-fidelity Sub-pages
@@ -86,6 +87,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
   const { loading, data } = useDashboard();
   const [page, setPage] = useState<NavPage>('dashboard');
   const [sel, setSel] = useState<OrdemRow | null>(null);
+  // Selects puramente de exibição do card de Faturamento/Top Serviços — ainda
+  // não afetam os dados mostrados (mesmo comportamento de antes da migração
+  // pro componente padronizado, só que agora controlados em vez de soltos).
+  const [periodoFaturamento, setPeriodoFaturamento] = useState('Últimos 7 dias');
+  const [ordemTopServicos, setOrdemTopServicos] = useState('Ordenar por: Faturamento');
   // Foco pendente para a tela de Agendamentos (definido ao navegar a partir da
   // badge "Agendado" ou da aba Agendamentos no perfil de um cliente). Qualquer
   // navegação "normal" (sidebar, menu mobile, botão voltar) passa por
@@ -213,11 +219,14 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
               {data.fatDiario[0].dia} – {data.fatDiario[6].dia}, {new Date().getFullYear()}
             </div>
           )}
-          <select className="dashboard-card__select">
-            <option>Últimos 7 dias</option>
-            <option>Últimos 30 dias</option>
-            <option>Este mês</option>
-          </select>
+          <div style={{ width: 155 }}>
+            <Select
+              name="dash_periodo_faturamento"
+              value={periodoFaturamento}
+              onChangeValue={setPeriodoFaturamento}
+              options={['Últimos 7 dias', 'Últimos 30 dias', 'Este mês']}
+            />
+          </div>
           <button className="dashboard-card__icon-button">⋮</button>
         </div>
       </div>
@@ -233,10 +242,14 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
     <Card style={{ padding: isMobile ? '16px' : '20px 22px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div className="dashboard-card__header-title">TOP SERVIÇOS</div>
-        <select className="dashboard-card__select">
-          <option>Ordenar por: Faturamento</option>
-          <option>Ordenar por: Quantidade</option>
-        </select>
+        <div style={{ width: 190 }}>
+          <Select
+            name="dash_ordenar_top_servicos"
+            value={ordemTopServicos}
+            onChangeValue={setOrdemTopServicos}
+            options={['Ordenar por: Faturamento', 'Ordenar por: Quantidade']}
+          />
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${tokens.color.border}` }}>

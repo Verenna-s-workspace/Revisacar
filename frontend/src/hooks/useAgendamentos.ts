@@ -313,24 +313,33 @@ export interface AgendamentoStats {
 }
 
 export function useAgendamentos() {
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => buildSeed());
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingApi, setUsingApi] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
+  // Mesmo padrão de useEstoque/useRelatorios: fallback pra dados de
+  // demonstração só em desenvolvimento (import.meta.env.DEV). Em produção
+  // mostra o erro real em vez de agendamentos fictícios. Uma resposta bem
+  // sucedida (mesmo com lista vazia) nunca é substituída por demo, em
+  // nenhum ambiente.
   const load = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     try {
       const data = await api.listarAgendamentos();
-      if (Array.isArray(data) && data.length > 0) {
-        setAgendamentos(sortAgendamentos(data));
-        setUsingApi(true);
-      } else {
+      const lista: Agendamento[] = Array.isArray(data) ? data : [];
+      setAgendamentos(sortAgendamentos(lista));
+      setUsingApi(true);
+    } catch {
+      if (import.meta.env.DEV) {
         setAgendamentos(sortAgendamentos(buildSeed()));
         setUsingApi(false);
+      } else {
+        setAgendamentos([]);
+        setUsingApi(false);
+        setErro('Não foi possível carregar os agendamentos.');
       }
-    } catch {
-      setAgendamentos(sortAgendamentos(buildSeed()));
-      setUsingApi(false);
     } finally {
       setLoading(false);
     }
@@ -440,6 +449,8 @@ export function useAgendamentos() {
   return {
     agendamentos,
     loading,
+    usingApi,
+    erro,
     stats,
     reload: load,
     addAgendamento,

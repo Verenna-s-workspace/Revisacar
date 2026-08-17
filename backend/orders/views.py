@@ -458,15 +458,21 @@ def funcionario_signup(request):
     if _get_funcionario_by_email(dados["email"]):
         return Response({"detail": "Email já cadastrado"}, status=status.HTTP_409_CONFLICT)
 
-    supabase.table("funcionarios").insert({
-        "oficina_doc": oficina_doc,
-        "nome": dados["nome"],
-        "email": dados["email"],
-        "pin_hash": pwhash(dados["pin"]),
-        "cargo": dados["cargo"],
-        "ativo": True,
-        "created_at": _now(),
-    }).execute()
+    try:
+        supabase.table("funcionarios").insert({
+            "oficina_doc": oficina_doc,
+            "nome": dados["nome"],
+            "email": dados["email"],
+            "pin_hash": pwhash(dados["pin"]),
+            "cargo": dados["cargo"],
+            "ativo": True,
+            "created_at": _now(),
+        }).execute()
+    except Exception:
+        return Response(
+            {"detail": "Não foi possível cadastrar o funcionário no momento."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     return Response({"message": "Funcionário cadastrado"}, status=status.HTTP_201_CREATED)
 
@@ -539,9 +545,18 @@ def funcionario_forgot_pin(request):
 def funcionarios_list(request):
     """Lista os funcionários da oficina de quem está chamando (tenant-scoped)."""
     oficina_doc = _oficina_doc_do_token(request.admin)
-    res = supabase.table("funcionarios").select(
-        "id, nome, email, cargo, ativo, created_at"
-    ).eq("oficina_doc", oficina_doc).order("created_at", desc=True).execute()
+    try:
+        res = supabase.table("funcionarios").select(
+            "id, nome, email, cargo, ativo, created_at"
+        ).eq("oficina_doc", oficina_doc).order("created_at", desc=True).execute()
+    except Exception:
+        # Não deixa uma falha do Supabase (tabela ausente, timeout, etc.)
+        # virar um 500 cru — devolve um erro limpo que o frontend já sabe
+        # exibir, em vez de mascarar com dado nenhum.
+        return Response(
+            {"detail": "Não foi possível carregar os funcionários no momento."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     return Response(res.data)
 
 
@@ -556,7 +571,13 @@ def funcionario_detail(request, funcionario_id):
         return Response({"detail": "Não encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == "DELETE":
-        supabase.table("funcionarios").delete().eq("id", funcionario_id).execute()
+        try:
+            supabase.table("funcionarios").delete().eq("id", funcionario_id).execute()
+        except Exception:
+            return Response(
+                {"detail": "Não foi possível remover o funcionário no momento."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     updates = {}
@@ -577,7 +598,13 @@ def funcionario_detail(request, funcionario_id):
     if not updates:
         return Response({"detail": "Nada para atualizar"}, status=status.HTTP_400_BAD_REQUEST)
 
-    supabase.table("funcionarios").update(updates).eq("id", funcionario_id).execute()
+    try:
+        supabase.table("funcionarios").update(updates).eq("id", funcionario_id).execute()
+    except Exception:
+        return Response(
+            {"detail": "Não foi possível atualizar o funcionário no momento."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     if ("ativo" in updates and not updates["ativo"]) or "pin_hash" in updates:
         # desativou o funcionário, ou trocou o PIN → derruba sessões ativas na hora
         _clear_pin_attempts(funcionario_id)

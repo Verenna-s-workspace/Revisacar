@@ -23,23 +23,30 @@ export function useClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingApi, setUsingApi] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
+  // Mesmo padrão de useEstoque/useRelatorios: se a API falhar, só cai pra
+  // dados de demonstração em desenvolvimento (import.meta.env.DEV). Em
+  // produção mostra o erro real em vez de clientes fictícios. Uma resposta
+  // bem sucedida (mesmo com lista vazia) nunca é substituída por dados de
+  // demonstração, em nenhum ambiente.
   const load = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     try {
       const data = await api.listarClientes();
       const lista: Cliente[] = Array.isArray(data) ? data : data?.clientes ?? [];
-      if (lista.length || Array.isArray(data)) {
-        setClientes(lista);
-        setUsingApi(true);
-      } else {
+      setClientes(lista);
+      setUsingApi(true);
+    } catch {
+      if (import.meta.env.DEV) {
         setClientes(buildSeedClientes());
         setUsingApi(false);
+      } else {
+        setClientes([]);
+        setUsingApi(false);
+        setErro('Não foi possível carregar os clientes.');
       }
-    } catch {
-      // Backend ainda não expõe /clientes — usa dados de demonstração.
-      setClientes(buildSeedClientes());
-      setUsingApi(false);
     } finally {
       setLoading(false);
     }
@@ -102,6 +109,7 @@ export function useClientes() {
     clientes,
     loading,
     usingApi,
+    erro,
     reload: load,
     addCliente,
     updateCliente,

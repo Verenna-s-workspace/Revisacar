@@ -2,12 +2,9 @@ import { useState } from 'react';
 import { tokens } from '../../../constants';
 import { labelCategoria, LABEL_FORMA_PAGAMENTO } from './categoriaLabels';
 import type { Categorias } from './types';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
 
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: 10, background: tokens.color.bg,
-  border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-  color: tokens.color.text, fontSize: '0.875rem',
-};
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: '0.78rem', fontWeight: 700,
   color: tokens.color.textSecond, marginBottom: 5,
@@ -46,7 +43,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const valorNum = Number(valor.replace(',', '.'));
+    const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) {
       setErro('Informe um valor válido');
       return;
@@ -111,42 +108,32 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
             </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>DESCRIÇÃO</label>
-            <input type="text" placeholder="Ex: Troca de óleo ou Aluguel" value={descricao} onChange={e => setDescricao(e.target.value)} style={inputStyle} />
-          </div>
+          <Input name="transacao_descricao" label="Descrição" placeholder="Ex: Troca de óleo ou Aluguel" value={descricao} onChangeValue={setDescricao} />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>VALOR (R$) *</label>
-              <input type="text" inputMode="decimal" required placeholder="150,00" value={valor} onChange={e => setValor(e.target.value)} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>CATEGORIA</label>
-              <select value={categoria} onChange={e => setCategoria(e.target.value)} style={inputStyle}>
-                {listaCategorias.map(c => <option key={c} value={c}>{labelCategoria(tipo, c)}</option>)}
-              </select>
-            </div>
+            <Input name="transacao_valor" type="currency" label="Valor" required placeholder="R$ 0,00" value={valor} onChangeValue={setValor} />
+            <Select
+              name="transacao_categoria"
+              label="Categoria"
+              value={categoria}
+              onChangeValue={setCategoria}
+              options={listaCategorias.map(c => ({ value: c, label: labelCategoria(tipo, c) }))}
+            />
           </div>
 
           {tipo === 'entrada' && (
-            <div>
-              <label style={labelStyle}>CLIENTE (OPCIONAL)</label>
-              <input type="text" placeholder="Nome do cliente" value={clienteNome} onChange={e => setClienteNome(e.target.value)} style={inputStyle} />
-            </div>
+            <Input name="transacao_cliente" label="Cliente (opcional)" placeholder="Nome do cliente" value={clienteNome} onChangeValue={setClienteNome} />
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>DATA</label>
-              <input type="date" value={dataCompetencia} onChange={e => setDataCompetencia(e.target.value)} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>FORMA DE PAGAMENTO</label>
-              <select value={formaPagamento} onChange={e => setFormaPagamento(e.target.value)} style={inputStyle}>
-                {categorias.formas_pagamento.map(f => <option key={f} value={f}>{LABEL_FORMA_PAGAMENTO[f] ?? f}</option>)}
-              </select>
-            </div>
+            <Input name="transacao_data" type="date" label="Data" value={dataCompetencia} onChangeValue={setDataCompetencia} />
+            <Select
+              name="transacao_forma_pagamento"
+              label="Forma de Pagamento"
+              value={formaPagamento}
+              onChangeValue={setFormaPagamento}
+              options={categorias.formas_pagamento.map(f => ({ value: f, label: LABEL_FORMA_PAGAMENTO[f] ?? f }))}
+            />
           </div>
 
           <div>
@@ -170,10 +157,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
           </div>
 
           {!statusPago && (
-            <div>
-              <label style={labelStyle}>VENCE EM (OPCIONAL)</label>
-              <input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} style={inputStyle} />
-            </div>
+            <Input name="transacao_vencimento" type="date" label="Vence em (opcional)" value={dataVencimento} onChangeValue={setDataVencimento} />
           )}
 
           {erro && <p style={{ color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600, margin: 0 }}>{erro}</p>}

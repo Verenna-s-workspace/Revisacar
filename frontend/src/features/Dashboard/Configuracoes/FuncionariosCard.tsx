@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Card } from '../Primitives';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
 import { api } from '../../../utils/api';
 import { usePermissions } from '../../../hooks/usePermissions';
 import type { Funcionario } from '../../../types';
@@ -12,23 +14,11 @@ const CARGO_LABEL: Record<string, string> = {
   atendente: 'Atendente',
 };
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 10,
-  background: tokens.color.bg,
-  border: `1px solid ${tokens.color.border}`,
-  borderRadius: 8,
-  color: tokens.color.text,
-  fontSize: '0.875rem',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.78rem',
-  fontWeight: 700,
-  color: tokens.color.textSecond,
-  marginBottom: 5,
-};
+const CARGO_OPTIONS = [
+  { value: 'atendente', label: CARGO_LABEL.atendente },
+  { value: 'mecanico', label: CARGO_LABEL.mecanico },
+  { value: 'gerente', label: CARGO_LABEL.gerente },
+];
 
 const FORM_INICIAL = { nome: '', email: '', pin: '', cargo: 'atendente' as const };
 
@@ -38,7 +28,11 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
 
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(true);
+  // Erro de CARREGAMENTO (bloqueia a lista, mostra retry) — separado do erro
+  // de AÇÃO (cargo/ativo/remover), que fica num aviso menor sem esconder a
+  // lista que já está na tela.
   const [erro, setErro] = useState('');
+  const [erroAcao, setErroAcao] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [novo, setNovo] = useState<{ nome: string; email: string; pin: string; cargo: string }>(FORM_INICIAL);
@@ -46,8 +40,9 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
   const carregar = useCallback(() => {
     setLoading(true);
     setErro('');
+    setErroAcao('');
     api.listarFuncionarios()
-      .then((data: Funcionario[]) => setFuncionarios(data))
+      .then((data: Funcionario[]) => setFuncionarios(Array.isArray(data) ? data : []))
       .catch(() => setErro('Não foi possível carregar os funcionários.'))
       .finally(() => setLoading(false));
   }, []);
@@ -62,7 +57,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErro('');
+    setErroAcao('');
     setSalvando(true);
     try {
       await api.criarFuncionario(novo);
@@ -70,7 +65,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
       setNovo(FORM_INICIAL);
       carregar();
     } catch (err) {
-      setErro(err instanceof Error ? err.message.replace(/"/g, '') : 'Erro ao cadastrar funcionário');
+      setErroAcao(err instanceof Error ? err.message.replace(/"/g, '') : 'Erro ao cadastrar funcionário');
     } finally {
       setSalvando(false);
     }
@@ -83,7 +78,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
       await api.atualizarFuncionario(id, { cargo });
     } catch {
       setFuncionarios(anterior);
-      setErro('Não foi possível atualizar o cargo. Tente de novo.');
+      setErroAcao('Não foi possível atualizar o cargo. Tente de novo.');
     }
   };
 
@@ -94,7 +89,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
       await api.atualizarFuncionario(f.id, { ativo: !f.ativo });
     } catch {
       setFuncionarios(anterior);
-      setErro('Não foi possível atualizar o acesso. Tente de novo.');
+      setErroAcao('Não foi possível atualizar o acesso. Tente de novo.');
     }
   };
 
@@ -106,7 +101,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
       await api.removerFuncionario(id);
     } catch {
       setFuncionarios(anterior);
-      setErro('Não foi possível remover o funcionário. Tente de novo.');
+      setErroAcao('Não foi possível remover o funcionário. Tente de novo.');
     }
   };
 
@@ -151,7 +146,8 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
         </button>
       </div>
 
-      {erro && (
+      {/* Erro de ação (cargo/ativo/remover) — a lista continua visível por trás. */}
+      {erroAcao && funcionarios.length > 0 && (
         <div style={{
           margin: '14px 20px 0',
           padding: '10px 14px',
@@ -162,13 +158,40 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
           fontSize: '0.8rem',
           fontWeight: 600,
         }}>
-          {erro}
+          {erroAcao}
         </div>
       )}
 
       {loading ? (
         <div style={{ padding: 24, textAlign: 'center', color: tokens.color.muted, fontSize: '0.85rem' }}>
           Carregando funcionários…
+        </div>
+      ) : erro ? (
+        <div style={{ padding: '28px 24px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--color-crit)', marginBottom: 8 }}>
+            {Icons.alert}
+          </div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: tokens.color.text, marginBottom: 4 }}>
+            {erro}
+          </div>
+          <div style={{ fontSize: '0.76rem', color: tokens.color.muted, marginBottom: 14 }}>
+            Verifique sua conexão e tente novamente.
+          </div>
+          <button
+            onClick={carregar}
+            style={{
+              padding: '8px 18px',
+              background: 'transparent',
+              color: tokens.color.text,
+              border: `1px solid ${tokens.color.border}`,
+              borderRadius: 8,
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Tentar novamente
+          </button>
         </div>
       ) : funcionarios.length === 0 ? (
         <div style={{ padding: 24, textAlign: 'center', color: tokens.color.muted, fontSize: '0.85rem' }}>
@@ -195,15 +218,13 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
                 <div style={{ fontSize: '0.74rem', color: tokens.color.muted }}>{f.email}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
-                <select
+                <Select
+                  name={`cargo-${f.id}`}
                   value={f.cargo}
-                  onChange={e => handleCargoChange(f.id, e.target.value)}
-                  style={{ ...inputStyle, width: 'auto', padding: '7px 8px', fontSize: '0.8rem' }}
-                >
-                  <option value="gerente">{CARGO_LABEL.gerente}</option>
-                  <option value="mecanico">{CARGO_LABEL.mecanico}</option>
-                  <option value="atendente">{CARGO_LABEL.atendente}</option>
-                </select>
+                  options={CARGO_OPTIONS}
+                  onChangeValue={v => handleCargoChange(f.id, v)}
+                  style={{ width: 'auto', padding: '7px 8px', fontSize: '0.8rem' }}
+                />
                 <button
                   onClick={() => handleToggleAtivo(f)}
                   title={f.ativo ? 'Clique para desativar o acesso' : 'Clique para reativar o acesso'}
@@ -270,55 +291,48 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
               <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
             </div>
             <form onSubmit={handleAdd} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={labelStyle}>NOME *</label>
-                <input
-                  type="text"
-                  required
-                  value={novo.nome}
-                  onChange={e => setNovo({ ...novo, nome: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>EMAIL DE LOGIN *</label>
-                <input
-                  type="email"
-                  required
-                  value={novo.email}
-                  onChange={e => setNovo({ ...novo, email: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>PIN INICIAL (6 dígitos) *</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  required
-                  pattern="\d{6}"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={novo.pin}
-                  onChange={e => setNovo({ ...novo, pin: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                  style={{ ...inputStyle, letterSpacing: '0.3em', fontVariantNumeric: 'tabular-nums' }}
-                />
-                <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 4 }}>
-                  O funcionário usa esse PIN pra entrar. Ele pode trocar depois em "Esqueci meu PIN".
+              {erroAcao && (
+                <div style={{
+                  padding: '10px 14px', background: 'var(--color-crit-bg)', color: 'var(--color-crit)',
+                  border: '1px solid var(--color-crit-border)', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                }}>
+                  {erroAcao}
                 </div>
-              </div>
-              <div>
-                <label style={labelStyle}>CARGO</label>
-                <select
-                  value={novo.cargo}
-                  onChange={e => setNovo({ ...novo, cargo: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="atendente">{CARGO_LABEL.atendente}</option>
-                  <option value="mecanico">{CARGO_LABEL.mecanico}</option>
-                  <option value="gerente">{CARGO_LABEL.gerente}</option>
-                </select>
-              </div>
+              )}
+              <Input
+                name="nome"
+                label="Nome"
+                required
+                value={novo.nome}
+                onChangeValue={v => setNovo({ ...novo, nome: v })}
+              />
+              <Input
+                name="email"
+                type="email"
+                label="Email de login"
+                required
+                value={novo.email}
+                onChangeValue={v => setNovo({ ...novo, email: v })}
+              />
+              <Input
+                name="pin"
+                type="digits"
+                label="PIN inicial (6 dígitos)"
+                required
+                maxLength={6}
+                placeholder="000000"
+                hint='O funcionário usa esse PIN pra entrar. Ele pode trocar depois em "Esqueci meu PIN".'
+                value={novo.pin}
+                onChangeValue={v => setNovo({ ...novo, pin: v })}
+                style={{ letterSpacing: '0.3em', fontVariantNumeric: 'tabular-nums' }}
+              />
+              <Select
+                name="cargo"
+                label="Cargo"
+                value={novo.cargo}
+                options={CARGO_OPTIONS}
+                onChangeValue={v => setNovo({ ...novo, cargo: v })}
+              />
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
                 <button

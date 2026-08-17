@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
+import { Input } from '../../../components/inputs/input';
+import { Textarea } from '../../../components/inputs/textarea';
 import {
   getMonthMatrix,
   toISODate,
@@ -66,8 +68,8 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
   const ocupados = useMemo(() => getOcupados(selectedDate), [getOcupados, selectedDate]);
   const todayISO = toISODate(new Date());
 
-  const setField = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(prev => ({ ...prev, [k]: e.target.value }));
+  const setField = (k: keyof typeof form) => (v: string) =>
+    setForm(prev => ({ ...prev, [k]: v }));
 
   const handleContinue = () => {
     if (!selectedDate || !selectedSlot) return;
@@ -90,17 +92,6 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
   };
 
   const formValid = form.cliente.trim() && form.veiculo.trim() && form.placa.trim();
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 9,
-    border: `1px solid ${tokens.color.border}`, background: 'white',
-    fontSize: '0.875rem', color: tokens.color.text, outline: 'none',
-    fontFamily: tokens.fontSans, boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = {
-    fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 5, display: 'block',
-  };
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
@@ -283,35 +274,18 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
-              <div>
-                <label style={labelStyle}>Nome do Cliente *</label>
-                <input style={inputStyle} placeholder="Carlos Eduardo Oliveira" value={form.cliente} onChange={setField('cliente')} />
-              </div>
-              <div>
-                <label style={labelStyle}>Veículo *</label>
-                <input style={inputStyle} placeholder="BMW 320i M-Sport" value={form.veiculo} onChange={setField('veiculo')} />
-              </div>
-              <div>
-                <label style={labelStyle}>Placa *</label>
-                <input
-                  style={{ ...inputStyle, fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                  placeholder="BRA2E19"
-                  maxLength={8}
-                  value={form.placa}
-                  onChange={setField('placa')}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Título do Serviço</label>
-                <input style={inputStyle} placeholder="Revisão de 40.000km" value={form.titulo} onChange={setField('titulo')} />
-              </div>
+              <Input name="ag_cliente" label="Nome do Cliente" required placeholder="Carlos Eduardo Oliveira" value={form.cliente} onChangeValue={setField('cliente')} />
+              <Input name="ag_veiculo" label="Veículo" required placeholder="BMW 320i M-Sport" value={form.veiculo} onChangeValue={setField('veiculo')} />
+              <Input name="ag_placa" type="placa" label="Placa" required placeholder="BRA2E19" value={form.placa} onChangeValue={setField('placa')} />
+              <Input name="ag_titulo" label="Título do Serviço" placeholder="Revisão de 40.000km" value={form.titulo} onChangeValue={setField('titulo')} />
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Descrição</label>
-                <textarea
-                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical', lineHeight: 1.5 }}
+                <Textarea
+                  name="ag_descricao"
+                  label="Descrição"
                   placeholder="Descreva o serviço a ser realizado..."
                   value={form.descricao}
-                  onChange={setField('descricao')}
+                  onChangeValue={setField('descricao')}
+                  rows={3}
                 />
               </div>
             </div>

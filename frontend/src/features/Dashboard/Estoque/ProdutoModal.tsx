@@ -1,26 +1,23 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { tokens } from '../../../constants';
 import { Icons, CATEGORIA_ICON } from '../Icons';
 import { CATEGORIA_GRUPOS, comprimirImagem } from '../../../utils/estoque_utils';
+import { Input } from '../../../components/inputs/input';
+import { Select } from '../../../components/inputs/select';
+import { Textarea } from '../../../components/inputs/textarea';
 import type { EstoqueItem, EstoqueItemQuarentena, NovoEstoqueItemInput } from '../../../types/estoque';
 
-const FIELD_LABEL: CSSProperties = {
-  display: 'block', fontSize: '0.78rem', fontWeight: 700,
-  color: tokens.color.textSecond, marginBottom: 5,
-};
-
-const FIELD_INPUT: CSSProperties = {
-  width: '100%', padding: 10, background: tokens.color.bg,
-  border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-  color: tokens.color.text, fontSize: '0.875rem', fontFamily: tokens.fontSans,
-};
-
-const BTN_SECUNDARIO: CSSProperties = {
+const BTN_SECUNDARIO = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   padding: '7px 14px', background: tokens.color.surfaceHigh, color: tokens.color.textSecond,
   border: `1px solid ${tokens.color.border}`, borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-};
+} as const;
+
+const CATEGORIA_SELECT_OPTIONS = CATEGORIA_GRUPOS.map(({ grupo, categorias }) => ({
+  group: grupo,
+  options: categorias,
+}));
 
 function blankQuarentena(): EstoqueItemQuarentena {
   return { motivo: '', fornecedor: '', dataEntrada: new Date().toISOString().slice(0, 10) };
@@ -114,105 +111,87 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
 
         <form onSubmit={handleSubmit}>
           <div className="dashboard-modal__body">
-            <div>
-              <label style={FIELD_LABEL}>NOME DO PRODUTO *</label>
-              <input
-                type="text"
+            <Input
+              name="produto_nome"
+              label="Nome do Produto"
+              required
+              value={form.nome}
+              onChangeValue={v => setForm({ ...form, nome: v })}
+              placeholder="Ex: Pastilha de Freio Dianteira"
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Select
+                name="produto_categoria"
+                label="Categoria"
                 required
-                value={form.nome}
-                onChange={e => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Pastilha de Freio Dianteira"
-                style={FIELD_INPUT}
+                value={form.categoria}
+                onChangeValue={v => setForm({ ...form, categoria: v })}
+                options={CATEGORIA_SELECT_OPTIONS}
+              />
+              <Input
+                name="produto_localizacao"
+                label="Localização"
+                required
+                value={form.localizacao}
+                onChangeValue={v => setForm({ ...form, localizacao: v })}
+                placeholder="Ex: Prateleira B2"
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={FIELD_LABEL}>CATEGORIA *</label>
-                <select
-                  required
-                  value={form.categoria}
-                  onChange={e => setForm({ ...form, categoria: e.target.value })}
-                  style={FIELD_INPUT}
-                >
-                  {CATEGORIA_GRUPOS.map(({ grupo, categorias }) => (
-                    <optgroup key={grupo} label={grupo}>
-                      {categorias.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={FIELD_LABEL}>LOCALIZAÇÃO *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.localizacao}
-                  onChange={e => setForm({ ...form, localizacao: e.target.value })}
-                  placeholder="Ex: Prateleira B2"
-                  style={FIELD_INPUT}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={FIELD_LABEL}>QUANTIDADE *</label>
-                <input
-                  type="number" min="0" step="1" required
-                  value={form.quantidade || form.quantidade === 0 ? form.quantidade : ''}
-                  onChange={e => setForm({ ...form, quantidade: Number(e.target.value) })}
-                  style={FIELD_INPUT}
-                />
-              </div>
-              <div>
-                <label style={FIELD_LABEL}>ESTOQUE MÍNIMO *</label>
-                <input
-                  type="number" min="0" step="1" required
-                  value={form.minimo || form.minimo === 0 ? form.minimo : ''}
-                  onChange={e => setForm({ ...form, minimo: Number(e.target.value) })}
-                  style={FIELD_INPUT}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={FIELD_LABEL}>PREÇO (R$) *</label>
-              <input
-                type="number" step="0.01" min="0" required
-                value={form.preco || ''}
-                onChange={e => setForm({ ...form, preco: Number(e.target.value) })}
-                placeholder="Ex: 95.00"
-                style={FIELD_INPUT}
+              <Input
+                name="produto_quantidade"
+                type="number"
+                label="Quantidade"
+                required
+                value={form.quantidade || form.quantidade === 0 ? String(form.quantidade) : ''}
+                onChangeValue={v => setForm({ ...form, quantidade: Number(v) || 0 })}
+              />
+              <Input
+                name="produto_minimo"
+                type="number"
+                label="Estoque Mínimo"
+                required
+                value={form.minimo || form.minimo === 0 ? String(form.minimo) : ''}
+                onChangeValue={v => setForm({ ...form, minimo: Number(v) || 0 })}
               />
             </div>
 
+            <Input
+              name="produto_preco"
+              type="currency"
+              label="Preço"
+              required
+              value={form.preco ? String(form.preco) : ''}
+              onChangeValue={v => setForm({ ...form, preco: Number(v) || 0 })}
+              placeholder="R$ 0,00"
+            />
+
             <div>
-              <label style={FIELD_LABEL}>APLICAÇÃO</label>
-              <textarea
-                value={form.aplicacao}
-                onChange={e => setForm({ ...form, aplicacao: e.target.value })}
+              <Textarea
+                name="produto_aplicacao"
+                label="Aplicação"
+                value={form.aplicacao ?? ''}
+                onChangeValue={v => setForm({ ...form, aplicacao: v })}
                 placeholder="Ex: Gol 1.6 2016-2019, Voyage 1.6 2015-2018"
-                style={{ ...FIELD_INPUT, height: 48, resize: 'none' }}
+                rows={2}
               />
               <span style={{ fontSize: '0.7rem', color: tokens.color.muted }}>
                 Texto livre — entra na busca por nome/aplicação, além do nome do produto.
               </span>
             </div>
 
-            <div>
-              <label style={FIELD_LABEL}>DESCRIÇÃO</label>
-              <textarea
-                value={form.descricao}
-                onChange={e => setForm({ ...form, descricao: e.target.value })}
-                style={{ ...FIELD_INPUT, height: 70, resize: 'none' }}
-              />
-            </div>
+            <Textarea
+              name="produto_descricao"
+              label="Descrição"
+              value={form.descricao ?? ''}
+              onChangeValue={v => setForm({ ...form, descricao: v })}
+              rows={3}
+            />
 
             <div>
-              <label style={FIELD_LABEL}>FOTO DO PRODUTO</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>FOTO DO PRODUTO</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div
                   style={{
@@ -267,38 +246,30 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
 
               {emQuarentena && (
                 <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div>
-                    <label style={FIELD_LABEL}>MOTIVO *</label>
-                    <input
-                      type="text"
-                      required
-                      value={form.quarentena?.motivo ?? ''}
-                      onChange={e => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), motivo: e.target.value } }))}
-                      placeholder="Ex: Peça com defeito de fábrica"
-                      style={FIELD_INPUT}
-                    />
-                  </div>
+                  <Input
+                    name="quarentena_motivo"
+                    label="Motivo"
+                    required
+                    value={form.quarentena?.motivo ?? ''}
+                    onChangeValue={v => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), motivo: v } }))}
+                    placeholder="Ex: Peça com defeito de fábrica"
+                  />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={FIELD_LABEL}>FORNECEDOR *</label>
-                      <input
-                        type="text"
-                        required
-                        value={form.quarentena?.fornecedor ?? ''}
-                        onChange={e => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), fornecedor: e.target.value } }))}
-                        placeholder="Ex: AutoPeças Beta Ltda"
-                        style={FIELD_INPUT}
-                      />
-                    </div>
-                    <div>
-                      <label style={FIELD_LABEL}>DATA DE ENTRADA</label>
-                      <input
-                        type="date"
-                        value={form.quarentena?.dataEntrada?.slice(0, 10) ?? ''}
-                        onChange={e => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), dataEntrada: e.target.value } }))}
-                        style={FIELD_INPUT}
-                      />
-                    </div>
+                    <Input
+                      name="quarentena_fornecedor"
+                      label="Fornecedor"
+                      required
+                      value={form.quarentena?.fornecedor ?? ''}
+                      onChangeValue={v => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), fornecedor: v } }))}
+                      placeholder="Ex: AutoPeças Beta Ltda"
+                    />
+                    <Input
+                      name="quarentena_data"
+                      type="date"
+                      label="Data de Entrada"
+                      value={form.quarentena?.dataEntrada?.slice(0, 10) ?? ''}
+                      onChangeValue={v => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), dataEntrada: v } }))}
+                    />
                   </div>
                 </div>
               )}
