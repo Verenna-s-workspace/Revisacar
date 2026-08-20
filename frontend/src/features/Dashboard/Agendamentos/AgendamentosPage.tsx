@@ -167,14 +167,20 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   }, [openNewModal]);
 
   const handleNewConfirm = useCallback(async (input: NovoAgendamentoInput) => {
-    if (rescheduleId) {
-      rescheduleAgendamento(rescheduleId, input.data, input.horaInicio);
-      setRescheduleId(null);
-    } else {
-      await addAgendamento(input);
+    try {
+      if (rescheduleId) {
+        rescheduleAgendamento(rescheduleId, input.data, input.horaInicio);
+        setRescheduleId(null);
+      } else {
+        await addAgendamento(input);
+      }
+      setViewDate(parseISODate(input.data));
+      if (viewMode === 'mensal') setViewMode('diario');
+    } catch (err) {
+      // Não deveria acontecer pelo seletor de horário (só oferece slots
+      // válidos), mas evita um erro não tratado se chegar aqui mesmo assim.
+      window.alert(err instanceof Error ? err.message : 'Não foi possível salvar o agendamento.');
     }
-    setViewDate(parseISODate(input.data));
-    if (viewMode === 'mensal') setViewMode('diario');
   }, [addAgendamento, rescheduleAgendamento, rescheduleId, viewMode]);
 
   // ── Content ─────────────────────────────────────────────────────────────────

@@ -13,6 +13,16 @@ import {
   minutesToTime,
   DEFAULT_DURATION_MINUTES,
 } from '../utils/agenda';
+import { lerHorarioFuncionamento } from '../utils/horario_funcionamento';
+
+/** Confere se [horaInicio, horaFim) cabe inteiro dentro do horário de
+ * funcionamento configurado — segunda camada de proteção além do seletor de
+ * horário (que já só oferece slots válidos), pra nunca aceitar um
+ * agendamento fora do expediente independente de como ele chegue aqui. */
+function dentroDoHorarioFuncionamento(horaInicio: string, horaFim: string): boolean {
+  const { horaAbertura, horaFechamento } = lerHorarioFuncionamento();
+  return timeToMinutes(horaInicio) >= timeToMinutes(horaAbertura) && timeToMinutes(horaFim) <= timeToMinutes(horaFechamento);
+}
 
 // ── Dados de demonstração ─────────────────────────────────────────────────────
 // Gerados de forma relativa a "hoje" para que a agenda sempre pareça povoada,
@@ -350,6 +360,9 @@ export function useAgendamentos() {
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
   const addAgendamento = useCallback(async (input: NovoAgendamentoInput) => {
+    if (!dentroDoHorarioFuncionamento(input.horaInicio, input.horaFim)) {
+      throw new Error('Esse horário está fora do funcionamento da oficina.');
+    }
     const novo: Agendamento = {
       id: `local-${Date.now()}`,
       status: 'agendado',
@@ -399,6 +412,14 @@ export function useAgendamentos() {
           prev.map(a => {
             if (a.id !== id) return a;
             const duracao = Math.max(timeToMinutes(a.horaFim) - timeToMinutes(a.horaInicio), DEFAULT_DURATION_MINUTES);
+            const novoFim = minutesToTime(timeToMinutes(novaHora) + duracao);
+            if (!dentroDoHorarioFuncionamento(novaHora, novoFim)) {
+              // Não deveria acontecer pelo seletor de horário (só oferece
+              // slots dentro do expediente), mas não aceita silenciosamente
+              // um reagendamento fora do horário se chegar aqui de outro jeito.
+              console.warn('Reagendamento rejeitado: fora do horário de funcionamento.', { id, novaData, novaHora });
+              return a;
+            }
             const reagendamento: AppointmentReschedule = {
               dataAnterior: a.data,
               horaAnterior: a.horaInicio,
@@ -409,7 +430,7 @@ export function useAgendamentos() {
               ...a,
               data: novaData,
               horaInicio: novaHora,
-              horaFim: minutesToTime(timeToMinutes(novaHora) + duracao),
+              horaFim: novoFim,
               reagendamento,
               updatedAt: new Date().toISOString(),
             };

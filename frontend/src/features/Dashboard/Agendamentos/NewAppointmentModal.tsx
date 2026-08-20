@@ -4,12 +4,12 @@ import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
 import { Input } from '../../../components/inputs/input';
 import { Textarea } from '../../../components/inputs/textarea';
+import { useHorarioFuncionamento } from '../../../hooks/useHorarioFuncionamento';
 import {
   getMonthMatrix,
   toISODate,
   addMonths,
   addDays,
-  TIME_SLOTS,
   minutesToTime,
   timeToMinutes,
   DEFAULT_DURATION_MINUTES,
@@ -47,6 +47,7 @@ function isSlotOccupied(slot: string, ocupados: OcupadoSlot[]): boolean {
 }
 
 export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos }: NewAppointmentModalProps) {
+  const { timeSlots, horaAbertura, horaFechamento } = useHorarioFuncionamento();
   const [step, setStep] = useState<1 | 2>(1);
   const [calDate, setCalDate] = useState(() => {
     if (initialDate) return parseISODate(initialDate);
@@ -193,36 +194,45 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                 Horários disponíveis
                 {selectedDate && <span style={{ color: tokens.color.text, marginLeft: 6 }}>· {formatDayMonth(parseISODate(selectedDate))}</span>}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
-                {TIME_SLOTS.map(slot => {
-                  const occupied = isSlotOccupied(slot, ocupados);
-                  const isSel = selectedSlot === slot;
-                  return (
-                    <button
-                      key={slot}
-                      disabled={occupied}
-                      onClick={() => !occupied && setSelectedSlot(slot)}
-                      style={{
-                        padding: '9px 10px', borderRadius: 9, border: `1.5px solid`,
-                        borderColor: isSel ? tokens.color.ferrari : occupied ? tokens.color.border : tokens.color.border,
-                        background: isSel ? tokens.color.ferrariMid : occupied ? tokens.color.bg : 'white',
-                        color: isSel ? tokens.color.ferrari : occupied ? tokens.color.ghost : tokens.color.text,
-                        fontWeight: isSel ? 700 : 500,
-                        fontSize: '0.82rem', fontFamily: tokens.fontMono,
-                        cursor: occupied ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        transition: 'all 0.12s',
-                        textDecoration: occupied ? 'line-through' : 'none',
-                        opacity: occupied ? 0.55 : 1,
-                      }}
-                    >
-                      {slot}
-                      {isSel && <span style={{ display: 'flex', color: tokens.color.ferrari }}>{AgendaIcons.checkCircle}</span>}
-                      {occupied && !isSel && <span style={{ fontSize: '0.62rem', fontFamily: tokens.fontSans }}>ocupado</span>}
-                    </button>
-                  );
-                })}
+              <div style={{ fontSize: '0.66rem', color: tokens.color.subtle, marginBottom: 8 }}>
+                Funcionamento: {horaAbertura} – {horaFechamento}
               </div>
+              {timeSlots.length === 0 ? (
+                <div style={{ fontSize: '0.78rem', color: tokens.color.muted, padding: '10px 0' }}>
+                  Nenhum horário disponível — confira o horário de funcionamento em Configurações.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
+                  {timeSlots.map(slot => {
+                    const occupied = isSlotOccupied(slot, ocupados);
+                    const isSel = selectedSlot === slot;
+                    return (
+                      <button
+                        key={slot}
+                        disabled={occupied}
+                        onClick={() => !occupied && setSelectedSlot(slot)}
+                        style={{
+                          padding: '9px 10px', borderRadius: 9, border: `1.5px solid`,
+                          borderColor: isSel ? tokens.color.ferrari : occupied ? tokens.color.border : tokens.color.border,
+                          background: isSel ? tokens.color.ferrariMid : occupied ? tokens.color.bg : 'white',
+                          color: isSel ? tokens.color.ferrari : occupied ? tokens.color.ghost : tokens.color.text,
+                          fontWeight: isSel ? 700 : 500,
+                          fontSize: '0.82rem', fontFamily: tokens.fontMono,
+                          cursor: occupied ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          transition: 'all 0.12s',
+                          textDecoration: occupied ? 'line-through' : 'none',
+                          opacity: occupied ? 0.55 : 1,
+                        }}
+                      >
+                        {slot}
+                        {isSel && <span style={{ display: 'flex', color: tokens.color.ferrari }}>{AgendaIcons.checkCircle}</span>}
+                        {occupied && !isSel && <span style={{ fontSize: '0.62rem', fontFamily: tokens.fontSans }}>ocupado</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

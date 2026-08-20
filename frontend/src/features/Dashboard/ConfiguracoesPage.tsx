@@ -5,6 +5,19 @@ import { Card } from './Primitives';
 import { useTheme } from '../../hooks/useTheme';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { Input } from '../../components/inputs/input';
+import { DEFAULT_HORA_ABERTURA, DEFAULT_HORA_FECHAMENTO } from '../../utils/agenda';
+import { notificarHorarioAtualizado } from '../../utils/horario_funcionamento';
+
+const WORKSHOP_DEFAULTS = {
+  nome: 'RevisaCar Premium',
+  cnpj: '12.345.678/0001-99',
+  telefone: '(11) 98765-4321',
+  email: 'contato@revisacarpremium.com.br',
+  endereco: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
+  valorHora: 120,
+  horaAbertura: DEFAULT_HORA_ABERTURA,
+  horaFechamento: DEFAULT_HORA_FECHAMENTO,
+};
 
 export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   const { theme, toggleTheme } = useTheme();
@@ -16,21 +29,24 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   const [installable, setInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Workshop state loaded/saved to localStorage
+  // Workshop state loaded/saved to localStorage. Mescla com WORKSHOP_DEFAULTS
+  // pra preencher campos novos (como o horário de funcionamento) que não
+  // existiam ainda em configurações salvas antes dessa funcionalidade.
   const [workshop, setWorkshop] = useState(() => {
     const saved = localStorage.getItem('oficina_config');
-    if (saved) return JSON.parse(saved);
-    return {
-      nome: 'RevisaCar Premium',
-      cnpj: '12.345.678/0001-99',
-      telefone: '(11) 98765-4321',
-      email: 'contato@revisacarpremium.com.br',
-      endereco: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
-      valorHora: 120,
-    };
+    if (saved) {
+      try {
+        return { ...WORKSHOP_DEFAULTS, ...JSON.parse(saved) };
+      } catch {
+        return WORKSHOP_DEFAULTS;
+      }
+    }
+    return WORKSHOP_DEFAULTS;
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [horarioTentouSalvar, setHorarioTentouSalvar] = useState(false);
+  const horarioInvalido = workshop.horaFechamento <= workshop.horaAbertura;
 
   useEffect(() => {
     const handleOnline = () => setOnline(true);
@@ -61,7 +77,12 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
 
   const handleSaveWorkshop = (e: React.FormEvent) => {
     e.preventDefault();
+    if (horarioInvalido) {
+      setHorarioTentouSalvar(true);
+      return;
+    }
     localStorage.setItem('oficina_config', JSON.stringify(workshop));
+    notificarHorarioAtualizado();
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
@@ -142,6 +163,34 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
               value={workshop.endereco}
               onChangeValue={v => setWorkshop({ ...workshop, endereco: v })}
             />
+
+            <div>
+              <div style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>
+                Horário de Funcionamento
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                <Input
+                  name="workshop_hora_abertura"
+                  type="time"
+                  label="Abertura"
+                  required
+                  value={workshop.horaAbertura}
+                  onChangeValue={v => setWorkshop({ ...workshop, horaAbertura: v })}
+                />
+                <Input
+                  name="workshop_hora_fechamento"
+                  type="time"
+                  label="Fechamento"
+                  required
+                  value={workshop.horaFechamento}
+                  onChangeValue={v => setWorkshop({ ...workshop, horaFechamento: v })}
+                  error={horarioTentouSalvar && horarioInvalido ? 'Deve ser depois do horário de abertura.' : undefined}
+                />
+              </div>
+              <span style={{ fontSize: '0.7rem', color: tokens.color.muted }}>
+                Define automaticamente os horários disponíveis na tela de Agendamentos.
+              </span>
+            </div>
             
             {savedSuccess && (
               <div style={{

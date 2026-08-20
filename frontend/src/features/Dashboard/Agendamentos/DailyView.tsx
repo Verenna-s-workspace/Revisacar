@@ -3,9 +3,8 @@ import { tokens } from '../../../constants';
 import { AppointmentCard } from './AppointmentCard';
 import { APPOINTMENT_STATUS_CONFIG } from './StatusBadge';
 import { AgendaIcons } from './icons';
+import { useHorarioFuncionamento } from '../../../hooks/useHorarioFuncionamento';
 import {
-  AGENDA_HOURS,
-  DAY_START_HOUR,
   toISODate,
   formatDayMonth,
   addDays,
@@ -23,6 +22,8 @@ interface DailyViewProps {
 }
 
 export function DailyView({ date, agendamentos, onDateChange, onCardClick }: DailyViewProps) {
+  const { agendaHours: AGENDA_HOURS } = useHorarioFuncionamento();
+  const DAY_START_HOUR = AGENDA_HOURS[0];
   const todayISO = toISODate(new Date());
   const iso = toISODate(date);
   const isToday = iso === todayISO;

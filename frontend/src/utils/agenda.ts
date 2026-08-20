@@ -121,18 +121,39 @@ export const minutesToTime = (minutes: number): string => {
 export const formatTimeRange = (inicio: string, fim: string): string =>
   `${inicio} - ${fim}`;
 
-/** Janela de funcionamento exibida na agenda (08:00 às 19:00). */
-export const DAY_START_HOUR = 8;
-export const DAY_END_HOUR = 19;
-
-/** Horas inteiras exibidas na lateral das views Diária/Semanal. */
-export const AGENDA_HOURS = Array.from(
-  { length: DAY_END_HOUR - DAY_START_HOUR },
-  (_, i) => DAY_START_HOUR + i,
-);
-
-/** Slots de 1h usados para seleção de horário (ex.: '08:00', '09:00', ...). */
-export const TIME_SLOTS: string[] = AGENDA_HOURS.map(h => `${pad2(h)}:00`);
-
 /** Duração padrão (min) de um novo agendamento ao escolher um horário. */
 export const DEFAULT_DURATION_MINUTES = 60;
+
+/** Horário de funcionamento padrão usado antes de qualquer configuração
+ * explícita nas Configurações (mantém o comportamento atual: 08:00–19:00). */
+export const DEFAULT_HORA_ABERTURA = '08:00';
+export const DEFAULT_HORA_FECHAMENTO = '19:00';
+
+/** Horas inteiras cobrindo o expediente — usado pra desenhar a grade lateral
+ * das views Diária/Semanal. Arredonda pra fora (floor/ceil) pra garantir que
+ * o expediente inteiro caiba na grade mesmo se abertura/fechamento não forem
+ * em hora cheia (ex.: 08:30). */
+export function getAgendaHours(horaAbertura: string, horaFechamento: string): number[] {
+  const startH = Math.floor(timeToMinutes(horaAbertura) / 60);
+  const endH = Math.ceil(timeToMinutes(horaFechamento) / 60);
+  const length = Math.max(endH - startH, 1);
+  return Array.from({ length }, (_, i) => startH + i);
+}
+
+/** Slots de horário pra seleção de agendamento — do horário de abertura até
+ * o de fechamento, em intervalos de `intervalMinutes` (padrão: a duração
+ * padrão de um agendamento). Nunca gera um slot que ultrapasse o
+ * fechamento — a última opção sempre termina até o horário configurado. */
+export function getTimeSlots(
+  horaAbertura: string,
+  horaFechamento: string,
+  intervalMinutes: number = DEFAULT_DURATION_MINUTES,
+): string[] {
+  const start = timeToMinutes(horaAbertura);
+  const end = timeToMinutes(horaFechamento);
+  const slots: string[] = [];
+  for (let t = start; t + intervalMinutes <= end; t += intervalMinutes) {
+    slots.push(minutesToTime(t));
+  }
+  return slots;
+}

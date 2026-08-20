@@ -2,9 +2,8 @@ import { useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { APPOINTMENT_STATUS_CONFIG } from './StatusBadge';
 import { AgendaIcons } from './icons';
+import { useHorarioFuncionamento } from '../../../hooks/useHorarioFuncionamento';
 import {
-  AGENDA_HOURS,
-  DAY_START_HOUR,
   getWeekDates,
   toISODate,
   addDays,
@@ -24,6 +23,8 @@ interface WeeklyViewProps {
 }
 
 export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDayClick }: WeeklyViewProps) {
+  const { agendaHours: AGENDA_HOURS } = useHorarioFuncionamento();
+  const DAY_START_HOUR = AGENDA_HOURS[0];
   const todayISO = toISODate(new Date());
   const weekDates = getWeekDates(date);
   const weekStart = weekDates[0];
