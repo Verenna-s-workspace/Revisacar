@@ -3,10 +3,13 @@ import base64
 import urllib.parse
 import hmac
 import json
+import logging
 import re
 import secrets
 import time
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -190,14 +193,14 @@ def _send_reset_email(email: str, token: str):
         'Atenciosamente,\nRevisacar'
     )
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@revisacar.local')
-    print(f"[PASSWORD RESET] backend={settings.EMAIL_BACKEND} host={settings.EMAIL_HOST} user={settings.EMAIL_HOST_USER} from={from_email}")
+    logger.info("[PASSWORD RESET] backend=%s host=%s from=%s", settings.EMAIL_BACKEND, settings.EMAIL_HOST, from_email)
 
     try:
         send_mail(subject, message, from_email, [email], fail_silently=False)
-        print(f"[PASSWORD RESET] email enviado com sucesso para {email}")
+        logger.info("[PASSWORD RESET] email enviado para %s", email)
     except Exception as exc:
-        print(f"[PASSWORD RESET] Falha ao enviar email para {email}: {exc}")
-        print(f"[PASSWORD RESET] Link de redefinição: {reset_link}")
+        logger.error("[PASSWORD RESET] Falha ao enviar email para %s: %s", email, exc)
+        logger.info("[PASSWORD RESET] Link de redefinição: %s", reset_link)
 
 
 def _send_pin_email(email: str, nome: str, pin: str):
@@ -213,9 +216,9 @@ def _send_pin_email(email: str, nome: str, pin: str):
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@revisacar.local')
     try:
         send_mail(subject, message, from_email, [email], fail_silently=False)
-        print(f"[PIN RESET] email enviado com sucesso para {email}")
+        logger.info("[PIN RESET] email enviado para %s", email)
     except Exception as exc:
-        print(f"[PIN RESET] Falha ao enviar email para {email}: {exc}")
+        logger.error("[PIN RESET] Falha ao enviar email para %s: %s", email, exc)
 
 
 def _pin_attempt_allowed(funcionario_id: str) -> bool:
@@ -761,24 +764,43 @@ def upload_fotos(request, ordem_id):
     if not files:
         return Response({"detail": "Nenhum arquivo enviado"}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Magic bytes para tipos permitidos (JPEG, PNG, WebP, GIF, HEIC/HEIF)
+    ALLOWED_MAGIC: list[tuple[bytes, str]] = [
+        (b"\xff\xd8\xff", "jpg"),
+        (b"\x89PNG\r\n\x1a\n", "png"),
+        (b"RIFF", "webp"),   # WebP: RIFF....WEBP
+        (b"GIF87a", "gif"),
+        (b"GIF89a", "gif"),
+        (b"\x00\x00\x00\x18ftypheic", "heic"),
+        (b"\x00\x00\x00\x18ftypheix", "heic"),
+    ]
+
     new_paths = []
     for file in files:
-        name_parts = file.name.split(".")
-        if len(name_parts) < 2:
-            return Response(
-                {"detail": f"Arquivo '{file.name}' sem extensão válida"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         contents = file.read()
+
         if len(contents) > MAX_FOTO_SIZE_BYTES:
             return Response(
-                {"detail": f"Arquivo '{file.name}' muito grande (máx {MAX_FOTO_SIZE_BYTES} bytes)"},
+                {"detail": f"Arquivo '{file.name}' muito grande (máx {MAX_FOTO_SIZE_BYTES // (1024*1024)} MB)"},
                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
 
-        extension = name_parts[-1]
-        unique_name = f"{ordem_id}/{uuid.uuid4()}.{extension}"
+        # Verifica magic bytes — rejeita executáveis disfarçados como imagem
+        matched_ext = None
+        for magic, ext in ALLOWED_MAGIC:
+            if contents[:len(magic)] == magic:
+                # Confirmação extra para WebP: bytes 8-11 devem ser "WEBP"
+                if ext == "webp" and contents[8:12] != b"WEBP":
+                    continue
+                matched_ext = ext
+                break
+        if matched_ext is None:
+            return Response(
+                {"detail": f"Arquivo '{file.name}' não é uma imagem válida (JPEG, PNG, WebP, GIF, HEIC)"},
+                status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            )
+
+        unique_name = f"{ordem_id}/{uuid.uuid4()}.{matched_ext}"
         supabase.storage.from_(BUCKET).upload(unique_name, contents)
         new_paths.append(unique_name)
 
@@ -808,7 +830,7 @@ def delete_foto(request, ordem_id, foto_path):
     try:
         supabase.storage.from_(BUCKET).remove([foto_path])
     except Exception as e:
-        print(f"Erro ao deletar do storage: {e}")
+        logger.error("Erro ao deletar foto do storage: %s", e)
 
     new_paths = [p for p in existing_paths if p != foto_path]
     supabase.table("ordens").update({

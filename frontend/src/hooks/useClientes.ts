@@ -75,35 +75,40 @@ export function useClientes() {
       try {
         await api.criarCliente(input);
       } catch {
-        // mantém o registro local mesmo se a chamada falhar
+        setClientes(prev => prev.filter(c => c.id !== novo.id));
+        throw new Error('Não foi possível salvar o cliente. Tente novamente.');
       }
     }
     return novo;
   }, [usingApi]);
 
   const updateCliente = useCallback(async (id: string, patch: Partial<NovoClienteInput>) => {
+    const anterior = clientes.find(c => c.id === id);
     setClientes(prev => prev.map(c => (c.id === id ? { ...c, ...patch, updatedAt: new Date().toISOString() } : c)));
 
     if (usingApi) {
       try {
         await api.atualizarCliente(id, patch);
       } catch {
-        // segue com o estado local
+        if (anterior) setClientes(prev => prev.map(c => (c.id === id ? anterior : c)));
+        throw new Error('Não foi possível atualizar o cliente. Tente novamente.');
       }
     }
-  }, [usingApi]);
+  }, [usingApi, clientes]);
 
   const deleteCliente = useCallback(async (id: string) => {
+    const anterior = clientes.find(c => c.id === id);
     setClientes(prev => prev.filter(c => c.id !== id));
 
     if (usingApi) {
       try {
         await api.deletarCliente(id);
       } catch {
-        // já removido localmente
+        if (anterior) setClientes(prev => [anterior, ...prev]);
+        throw new Error('Não foi possível excluir o cliente. Tente novamente.');
       }
     }
-  }, [usingApi]);
+  }, [usingApi, clientes]);
 
   return {
     clientes,
