@@ -190,7 +190,7 @@ export function DesktopHeader() {
   return (
     <div className="dashboard-header">
       <div>
-        <h1 className="dashboard-header__title">Olá, {user?.nome ?? 'Lucas Andrelo'} 👋</h1>
+        <h1 className="dashboard-header__title">Olá, {user?.nome ?? 'Usuário'} 👋</h1>
         <p className="dashboard-header__subtitle">Aqui está o desempenho da sua oficina hoje.</p>
       </div>
       <div className="dashboard-header__actions" style={{ position: 'relative' }}>
@@ -208,7 +208,7 @@ export function DesktopHeader() {
         >
           <div className="dashboard-header__avatar">{Icons.user}</div>
           <div>
-            <div className="dashboard-header__name">{user?.nome ?? 'Lucas Andrelo'}</div>
+            <div className="dashboard-header__name">{user?.nome ?? 'Usuário'}</div>
             <div className="dashboard-header__role">Administrador</div>
           </div>
         </div>

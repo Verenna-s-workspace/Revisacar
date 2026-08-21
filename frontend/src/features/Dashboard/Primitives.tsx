@@ -40,7 +40,7 @@ export function StatusBadge({ status }: { status: string }) {
 
 // ── Donut ─────────────────────────────────────────────────────────────────────
 
-export function Donut({ pct }: { pct: number }) {
+function Donut({ pct }: { pct: number }) {
   const r = 38;
   const c = 2 * Math.PI * r;
   const d = Math.min(pct / 100, 1) * c;
@@ -81,7 +81,7 @@ export function ProgressBar({ pct, color = '#CC1400' }: { pct: number; color?: s
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 
-export function Sparkline({ data }: { data: number[] }) {
+function Sparkline({ data }: { data: number[] }) {
   const chartData = data.map((value, index) => ({ index, value }));
   const maxValue = Math.max(...data, 1);
 
