@@ -16,16 +16,31 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [email, setEmail] = useState('');
   const [doc, setDoc] = useState('');
   const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const label = mode === 'login' ? 'Login de Administrador' : mode === 'register' ? 'Cadastro de Administrador' : 'Esqueci minha senha';
 
   const handleSubmit = async () => {
-    setLoading(true);
     setError(null);
     setMessage(null);
+
+    if (mode === 'register') {
+      if (!EMAIL_REGEX.test(email.trim())) {
+        setError('Email inválido');
+        return;
+      }
+      if (senha !== confirmarSenha) {
+        setError('As senhas não coincidem');
+        return;
+      }
+    }
+
+    setLoading(true);
 
     try {
       if (mode === 'forgot') {
@@ -69,7 +84,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <button
             type="button"
-            onClick={() => { setMode('login'); setError(null); setMessage(null); }}
+            onClick={() => { setMode('login'); setError(null); setMessage(null); setConfirmarSenha(''); }}
             style={{
               flex: 1,
               padding: '12px 16px',
@@ -84,7 +99,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           </button>
           <button
             type="button"
-            onClick={() => { setMode('register'); setError(null); setMessage(null); }}
+            onClick={() => { setMode('register'); setError(null); setMessage(null); setConfirmarSenha(''); }}
             style={{
               flex: 1,
               padding: '12px 16px',
@@ -130,9 +145,14 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         )}
 
         {mode === 'register' && (
-          <div style={{ marginBottom: '14px' }}>
-            <Input name="auth_email" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" />
-          </div>
+          <>
+            <div style={{ marginBottom: '14px' }}>
+              <Input name="auth_senha_confirm" type="password" label="Confirmar Senha" value={confirmarSenha} onChangeValue={setConfirmarSenha} placeholder="Repita a senha" autoComplete="new-password" />
+            </div>
+            <div style={{ marginBottom: '14px' }}>
+              <Input name="auth_email" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" />
+            </div>
+          </>
         )}
 
         {mode === 'forgot' && (
