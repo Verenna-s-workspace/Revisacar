@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
-import { StatusBadge } from './Primitives';
+import { StatusBadge, Skeleton } from './Primitives';
+import { Sidebar, MobileNav } from './Navigation';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
-import type { OrdemRow } from '../../types/dashboard';
+import type { OrdemRow, NavPage } from '../../types/dashboard';
 
 // ── Date formatter ────────────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ interface TableRowProps {
   deleting: boolean;
 }
 
-export function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowProps) {
+function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowProps) {
   const [hov, setHov] = useState(false);
   const d = new Date(o.created_at);
   return (
@@ -230,10 +231,6 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 }
 
 // ── OrdensPage ────────────────────────────────────────────────────────────────
-
-import { Skeleton } from './Primitives';
-import { Sidebar, MobileNav } from './Navigation';
-import type { NavPage } from '../../types/dashboard';
 
 type FilterStatus = 'todas' | 'rascunho' | 'finalizada' | 'aguardando';
 
