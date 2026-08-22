@@ -46,6 +46,26 @@ class ClienteSerializer(serializers.Serializer):
 def normalize_doc(value: str) -> str:
     return re.sub(r"\D", "", value or "")
 
+
+def _validate_cnpj(digits: str) -> None:
+    if len(digits) != 14:
+        raise serializers.ValidationError("CNPJ deve conter 14 dígitos")
+    if len(set(digits)) == 1:
+        raise serializers.ValidationError("CNPJ inválido")
+    # Primeiro dígito verificador
+    weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    s = sum(int(digits[i]) * weights1[i] for i in range(12))
+    r = 0 if s % 11 < 2 else 11 - (s % 11)
+    if r != int(digits[12]):
+        raise serializers.ValidationError("CNPJ inválido")
+    # Segundo dígito verificador
+    weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    s = sum(int(digits[i]) * weights2[i] for i in range(13))
+    r = 0 if s % 11 < 2 else 11 - (s % 11)
+    if r != int(digits[13]):
+        raise serializers.ValidationError("CNPJ inválido")
+
+
 class AdminSerializer(serializers.Serializer):
     nome = serializers.CharField()
     doc = serializers.CharField(default="")
@@ -59,8 +79,7 @@ class AdminSerializer(serializers.Serializer):
 
     def validate_doc(self, value):
         digits = normalize_doc(value)
-        if len(digits) != 14:
-            raise serializers.ValidationError("CNPJ deve conter 14 dígitos")
+        _validate_cnpj(digits)
         return digits
 
     def validate_email(self, value):
@@ -81,8 +100,7 @@ class AdminLoginSerializer(serializers.Serializer):
 
     def validate_doc(self, value):
         digits = normalize_doc(value)
-        if len(digits) != 14:
-            raise serializers.ValidationError("CNPJ deve conter 14 dígitos")
+        _validate_cnpj(digits)
         return digits
 
     def validate_senha(self, value):

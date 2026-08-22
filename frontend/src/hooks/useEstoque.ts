@@ -114,7 +114,9 @@ export function useEstoque() {
       try {
         await api.criarItemEstoque(input);
       } catch {
-        // mantém o registro local mesmo se a chamada falhar
+        setItens(prev => prev.filter(i => i.id !== novo.id));
+        setMovimentos(prev => prev.filter(m => m.itemId !== novo.id));
+        throw new Error('Não foi possível salvar o item no estoque. Tente novamente.');
       }
     }
     return novo;
@@ -154,21 +156,24 @@ export function useEstoque() {
       try {
         await api.atualizarItemEstoque(id, patch);
       } catch {
-        // segue com o estado local
+        if (original) setItens(prev => prev.map(i => (i.id === id ? original : i)));
+        throw new Error('Não foi possível atualizar o item. Tente novamente.');
       }
     }
   }, [itens, usandoDadosDemo]);
 
   const excluirItem = useCallback(async (id: string) => {
+    const anterior = itens.find(i => i.id === id);
     setItens(prev => prev.filter(i => i.id !== id));
     if (!usandoDadosDemo) {
       try {
         await api.deletarItemEstoque(id);
       } catch {
-        // já removido localmente
+        if (anterior) setItens(prev => [anterior, ...prev]);
+        throw new Error('Não foi possível excluir o item. Tente novamente.');
       }
     }
-  }, [usandoDadosDemo]);
+  }, [itens, usandoDadosDemo]);
 
   // ── Kits ───────────────────────────────────────────────────────────────────
 

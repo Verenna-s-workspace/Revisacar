@@ -6,16 +6,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Aponta explicitamente para o supabase.env na raiz do backend
 load_dotenv(BASE_DIR / "supabase.env")
-print("DB_NAME =", os.getenv("DB_NAME"))
-print("DB_USER =", os.getenv("DB_USER"))
-print("DB_HOST =", os.getenv("DB_HOST"))
-print("DB_PORT =", os.getenv("DB_PORT"))
-
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-key-change-in-production")
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = ["*"]
+_secret = os.environ.get("DJANGO_SECRET_KEY")
+if not _secret:
+    if DEBUG:
+        _secret = "insecure-dev-key-change-in-production"
+    else:
+        raise RuntimeError(
+            "DJANGO_SECRET_KEY não configurada. Defina a variável de ambiente antes de iniciar em produção."
+        )
+SECRET_KEY = _secret
+
+# Em produção defina ALLOWED_HOSTS=revisacar-1-qmmv.onrender.com,revisacar.vercel.app
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",

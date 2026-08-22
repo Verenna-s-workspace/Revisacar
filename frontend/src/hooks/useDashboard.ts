@@ -82,7 +82,6 @@ function buildFromOrdens(ordens: OrdemRow[]): DashData {
   const emAnd = ordens.filter(o => o.status === 'rascunho').length;
 
   const alertas: Alerta[] = [
-    { tipo: 'crit', msg: 'Verifique o estoque e evite atrasos nos serviços.', detalhe: '' },
     ...(emAnd > 0 ? [{ tipo: 'warn' as const, msg: `${emAnd} ordem${emAnd > 1 ? 's' : ''} aguardando aprovação`, detalhe: '' }] : []),
     { tipo: 'info', msg: `${ordAtual} ordens neste mês`, detalhe: '' },
     { tipo: 'info', msg: `${fatAtual === 0 ? 'Sem faturamento ainda' : 'Faturamento atualizado'}`, detalhe: '' },
@@ -102,8 +101,9 @@ function buildFromOrdens(ordens: OrdemRow[]): DashData {
     fatDiario,
     topServicos,
     receitas: fatAtual,
-    custos: Math.round(fatAtual * 0.59),
-    lucro: Math.round(fatAtual * 0.41),
+    // custos/lucro não são calculáveis a partir das OS — vêm da tela Financeiro
+    custos: 0,
+    lucro: 0,
     alertas,
     isDemo: false,
   };
