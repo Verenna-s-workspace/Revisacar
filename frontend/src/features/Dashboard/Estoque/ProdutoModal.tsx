@@ -120,7 +120,7 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
               placeholder="Ex: Pastilha de Freio Dianteira"
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
               <Select
                 name="produto_categoria"
                 label="Categoria"
@@ -139,7 +139,7 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
               <Input
                 name="produto_quantidade"
                 type="number"
@@ -254,7 +254,7 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
                     onChangeValue={v => setForm(f => ({ ...f, quarentena: { ...(f.quarentena ?? blankQuarentena()), motivo: v } }))}
                     placeholder="Ex: Peça com defeito de fábrica"
                   />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
                     <Input
                       name="quarentena_fornecedor"
                       label="Fornecedor"

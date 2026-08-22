@@ -145,7 +145,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+            <div className="dashboard-form-grid-2col" style={{ gap: '14px 20px' }}>
               <div style={{ gridColumn: 'span 2' }}>
                 <Input name="cli_nome" label="Nome Completo" required placeholder="Nome do cliente" value={form.nome} onChangeValue={setField('nome')} />
               </div>
@@ -201,7 +201,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                     {ClienteIcons.x}
                   </button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
+                <div className="dashboard-form-grid-2col" style={{ gap: '10px 16px' }}>
                   <Input name={`v_marca_${idx}`} label="Marca" required placeholder="Ex: Toyota" value={v.marca} onChangeValue={val => updateVeiculo(idx, { marca: val })} />
                   <Input name={`v_modelo_${idx}`} label="Modelo" required placeholder="Ex: Corolla" value={v.modelo} onChangeValue={val => updateVeiculo(idx, { modelo: val })} />
                   <Input name={`v_placa_${idx}`} type="placa" label="Placa" required placeholder="ABC1D23" value={v.placa} onChangeValue={val => updateVeiculo(idx, { placa: val })} />

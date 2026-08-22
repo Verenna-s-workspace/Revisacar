@@ -5,6 +5,7 @@ import { AgendaIcons } from './icons';
 import { Input } from '../../../components/inputs/input';
 import { Textarea } from '../../../components/inputs/textarea';
 import { useHorarioFuncionamento } from '../../../hooks/useHorarioFuncionamento';
+import { useResponsive } from '../../../components/ui';
 import {
   getMonthMatrix,
   toISODate,
@@ -48,6 +49,7 @@ function isSlotOccupied(slot: string, ocupados: OcupadoSlot[]): boolean {
 
 export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos }: NewAppointmentModalProps) {
   const { timeSlots, horaAbertura, horaFechamento } = useHorarioFuncionamento();
+  const { isMobile } = useResponsive();
   const [step, setStep] = useState<1 | 2>(1);
   const [calDate, setCalDate] = useState(() => {
     if (initialDate) return parseISODate(initialDate);
@@ -96,7 +98,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 680 }}>
+      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: isMobile ? 420 : 680 }}>
         {/* Header */}
         <div className="dashboard-modal__header">
           <div>
@@ -121,7 +123,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
 
         {/* ── Step 1: Date + Slot picker ── */}
         {step === 1 && (
-          <div className="dashboard-modal__body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div className="dashboard-modal__body" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 20 : 24 }}>
             {/* Calendar */}
             <div>
               {/* Month nav */}
@@ -283,12 +285,12 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 20px' }}>
               <Input name="ag_cliente" label="Nome do Cliente" required placeholder="Carlos Eduardo Oliveira" value={form.cliente} onChangeValue={setField('cliente')} />
               <Input name="ag_veiculo" label="Veículo" required placeholder="BMW 320i M-Sport" value={form.veiculo} onChangeValue={setField('veiculo')} />
               <Input name="ag_placa" type="placa" label="Placa" required placeholder="BRA2E19" value={form.placa} onChangeValue={setField('placa')} />
               <Input name="ag_titulo" label="Título do Serviço" placeholder="Revisão de 40.000km" value={form.titulo} onChangeValue={setField('titulo')} />
-              <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}>
                 <Textarea
                   name="ag_descricao"
                   label="Descrição"

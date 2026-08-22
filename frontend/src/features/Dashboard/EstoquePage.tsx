@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
-import { Sidebar, MobileNav } from './Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
 import { Card, Skeleton } from './Primitives';
 import { useEstoque } from '../../hooks/useEstoque';
 import { filtrarItensPorBusca, itemEstaBaixo } from '../../utils/estoque_utils';
@@ -407,7 +407,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="estoque" onNav={onNav} />
         {content}
         <MobileNav active="estoque" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
         {modals}

@@ -149,7 +149,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
         {/* ── Step 1: dados do veículo ── */}
         {step === 1 && (
           <div className="dashboard-modal__body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+            <div className="dashboard-form-grid-2col" style={{ gap: '14px 20px' }}>
               <Input
                 name="placa" type="placa" label="Placa" required placeholder="ABC1D23"
                 value={form.placa} onChangeValue={setField('placa')}
@@ -252,7 +252,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
                   🔜 vínculo com cliente cadastrado em breve
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px' }}>
+              <div className="dashboard-form-grid-2col" style={{ gap: '12px 20px' }}>
                 <div style={{ gridColumn: 'span 2' }}>
                   <Input name="prop_nome" label="Nome do Proprietário" placeholder="Deixe em branco para salvar sem proprietário" value={form.proprietarioNome} onChangeValue={setField('proprietarioNome')} />
                 </div>

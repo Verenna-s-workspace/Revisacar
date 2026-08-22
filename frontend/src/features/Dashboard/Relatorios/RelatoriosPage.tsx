@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
-import { Sidebar, MobileNav } from '../Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { Card, KpiCard, Skeleton } from '../Primitives';
 import { useRelatorios } from '../../../hooks/useRelatorios';
 import { useEstoque } from '../../../hooks/useEstoque';
@@ -303,7 +303,8 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
 
   if (mobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="relatorios" onNav={onNav} />
         {content}
         <MobileNav active="relatorios" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
       </div>

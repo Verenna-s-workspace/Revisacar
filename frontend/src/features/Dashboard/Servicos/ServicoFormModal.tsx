@@ -61,7 +61,7 @@ export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, onClo
               placeholder="Ex: Troca de Óleo e Filtro"
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
               <Input
                 name="servico_categoria"
                 label="Categoria"

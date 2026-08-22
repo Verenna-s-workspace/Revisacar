@@ -84,7 +84,7 @@ export function VehicleFilterModal({ filtros, onApply, onClose }: VehicleFilterM
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+          <div className="dashboard-form-grid-2col" style={{ gap: '14px 20px' }}>
             <Select name="marca_filtro" label="Marca" value={f.marca} placeholder="Todas as marcas" options={MARCAS_SUGERIDAS} onChangeValue={v => set('marca', v)} />
             <Input name="modelo_filtro" label="Modelo" placeholder="Ex: Corolla, HB20..." value={f.modelo} onChangeValue={v => set('modelo', v)} />
 

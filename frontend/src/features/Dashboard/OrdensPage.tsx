@@ -232,7 +232,7 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 // ── OrdensPage ────────────────────────────────────────────────────────────────
 
 import { Skeleton } from './Primitives';
-import { Sidebar, MobileNav } from './Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
 import type { NavPage } from '../../types/dashboard';
 
 type FilterStatus = 'todas' | 'rascunho' | 'finalizada' | 'aguardando';
@@ -364,7 +364,8 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="ordens" onNav={onNav} />
         {content}
         <MobileNav active="ordens" onNav={onNav} onNewOS={onNewOS} />
       </div>

@@ -130,7 +130,7 @@
 }
 
 .dashboard-sidebar-link svg {
-  width: 2.3em;
+  width: 1.7em;
   height: auto;
   display: block;
   fill: transparent;
@@ -903,6 +903,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
   background: white;
   border-bottom: 1px solid var(--color-border);
   position: sticky;
@@ -940,6 +943,117 @@
   font-weight: 700;
 }
 
+/* ── Drawer do menu mobile (aberto pelo hambúrguer) ─────────────────────── */
+
+.dashboard-mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  animation: dashboard-drawer-fade 0.16s ease;
+}
+
+.dashboard-mobile-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(82vw, 300px);
+  background: white;
+  z-index: 2001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 32px rgba(0,0,0,0.18);
+  animation: dashboard-drawer-slide 0.18s ease;
+  overflow-y: auto;
+}
+
+@keyframes dashboard-drawer-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dashboard-drawer-slide {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.dashboard-mobile-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.dashboard-mobile-drawer__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.dashboard-mobile-drawer__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 2px;
+  flex: 1;
+}
+
+.dashboard-mobile-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  color: var(--color-text-secondary, var(--color-muted));
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.dashboard-mobile-drawer__link:active {
+  background: var(--color-surface-high);
+}
+
+.dashboard-mobile-drawer__link--active {
+  background: rgba(204, 20, 0, 0.08);
+  color: var(--color-ferrari);
+}
+
+.dashboard-mobile-drawer__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 4px;
+}
+
+.dashboard-mobile-drawer__logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-crit);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .dashboard-mobile-bottom-nav {
   position: fixed;
   bottom: 0;
@@ -950,7 +1064,10 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 10px 0 18px;
+  padding: 10px 0;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   z-index: 100;
   box-shadow: 0 -6px 24px rgba(0,0,0,0.08);
 }
@@ -1007,6 +1124,29 @@
   font-size: 0.82rem;
   color: var(--color-muted);
   margin: 0 0 16px;
+}
+
+/* ── Grid de 2 colunas usado nos formulários dos modais — empilha em 1
+   coluna abaixo de 640px. O `gap` de cada formulário continua vindo do
+   style inline (varia um pouco de tela pra tela); só o número de colunas é
+   responsivo aqui. ── */
+.dashboard-form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 639px) {
+  .dashboard-form-grid-2col {
+    grid-template-columns: 1fr;
+  }
+  /* Campos com grid-column:'span 2' inline (pra ocupar a largura toda no
+     desktop) forçam o grid a abrir uma coluna implícita extra quando só
+     existe 1 coluna explícita — sem isso o layout "quebra" de volta pra 2
+     colunas mesmo com grid-template-columns:1fr acima. !important é
+     necessário aqui porque é a única forma de sobrescrever um style inline
+     via media query. */
+  .dashboard-form-grid-2col > * {
+    grid-column: auto !important;
+  }
 }
 
 @media (max-width: 979px) {

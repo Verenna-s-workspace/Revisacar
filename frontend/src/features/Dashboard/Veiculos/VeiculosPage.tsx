@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
-import { Sidebar, MobileNav } from '../Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useResponsive } from '../../../components/ui';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { emptyFiltros, filtrosAtivos } from '../../../utils/veiculos_utils';
@@ -245,7 +245,8 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="veiculos" onNav={onNav} />
         {content}
         <MobileNav active="veiculos" onNav={onNav} onNewOS={onNewOS ?? openCreate} />
         {modals}

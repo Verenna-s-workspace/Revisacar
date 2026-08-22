@@ -49,7 +49,10 @@ export function EstoqueStats({ stats, loading }: EstoqueStatsProps) {
               {loading ? (
                 <Skeleton w={40} h={22} r={4} />
               ) : (
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: tokens.color.text, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+                <div style={{
+                  fontSize: isMobile ? '1.02rem' : '1.2rem', fontWeight: 800, color: tokens.color.text,
+                  lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isMobile ? 'normal' : 'nowrap',
+                }}>
                   {d.format ? d.format(stats[d.key]) : stats[d.key]}
                 </div>
               )}

@@ -110,7 +110,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
 
           <Input name="transacao_descricao" label="Descrição" placeholder="Ex: Troca de óleo ou Aluguel" value={descricao} onChangeValue={setDescricao} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
             <Input name="transacao_valor" type="currency" label="Valor" required placeholder="R$ 0,00" value={valor} onChangeValue={setValor} />
             <Select
               name="transacao_categoria"
@@ -125,7 +125,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
             <Input name="transacao_cliente" label="Cliente (opcional)" placeholder="Nome do cliente" value={clienteNome} onChangeValue={setClienteNome} />
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
             <Input name="transacao_data" type="date" label="Data" value={dataCompetencia} onChangeValue={setDataCompetencia} />
             <Select
               name="transacao_forma_pagamento"

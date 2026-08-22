@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
-import { Sidebar, MobileNav } from '../Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useAtendimento } from '../../../hooks/useAtendimento';
 import { useEstoque } from '../../../hooks/useEstoque';
 import { useServicos } from '../../../hooks/useServicos';
@@ -167,7 +167,8 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="atendimento" onNav={onNav} />
         {content}
         <MobileNav active="atendimento" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
         {modals}

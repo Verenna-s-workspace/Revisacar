@@ -88,7 +88,7 @@ export default function Check({ initialOrdem, prefill, onBackToStart, onNextChec
       fontFamily: tokens.fontSans,
       background: tokens.color.bg,
       minHeight: '100vh',
-      paddingBottom: 80,
+      paddingBottom: 'var(--mobile-bottom-nav-h)',
     }}>
       <Topbar
         saveStatus={os.saveStatus}
