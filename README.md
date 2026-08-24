@@ -127,15 +127,18 @@ Base: raiz da API. Todas as rotas de negócio exigem `Authorization: Bearer <tok
 
 Itens já tratados: hardening de settings (SECRET_KEY/DEBUG/ALLOWED_HOSTS por env),
 validação de CNPJ, validação de MIME no upload, logging estruturado, KPIs do
-dashboard vindos do financeiro real, suíte de testes + CI verde.
+dashboard vindos do financeiro real, **sessões e rate-limiting persistidos no
+Supabase** (`orders/auth_store.py` — antes viviam em memória), suíte de testes +
+CI verde.
+
+> **Setup do banco:** rode [`backend/db/migrations/0001_auth_persistence.sql`](backend/db/migrations/0001_auth_persistence.sql)
+> no Supabase para criar as tabelas de sessão/rate-limit.
 
 Pendências conhecidas, em ordem de prioridade:
 
-1. **Persistir tokens de sessão** — `REFRESH_TOKENS`/`PIN_ATTEMPTS` ainda vivem em
-   dicionários na memória do processo (reinício desloga todos; não escala para
-   múltiplas instâncias). Migrar para tabela no Supabase ou Redis.
-2. **Paginação** nas listagens (`/ordens`, `/financeiro/transacoes`).
-3. **`react-router`** com URLs reais (hoje o roteamento é por `useState`).
-4. **OpenAPI/Swagger** (`drf-spectacular`) para documentação viva da API.
-5. **Migrations versionadas** do schema Supabase (Supabase CLI) e índices em
-   `oficina_doc` / `status` / `data_competencia`.
+1. **Paginação** nas listagens (`/ordens`, `/financeiro/transacoes`).
+2. **`react-router`** com URLs reais (hoje o roteamento é por `useState`).
+3. **OpenAPI/Swagger** (`drf-spectacular`) para documentação viva da API.
+4. **Migrations versionadas** do schema completo (o schema de negócio ainda é
+   gerido manualmente no Supabase) e índices em `oficina_doc` / `status` /
+   `data_competencia`.

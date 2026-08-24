@@ -25,6 +25,7 @@ from .serializers import (
     validate_pin_format,
 )
 from .rbac import permissoes_do_cargo, FUNCIONARIO_CARGOS
+from .auth_store import SupabaseAuthStore
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,11 @@ REFRESH_TOKEN_LIFETIME_SECONDS = 7 * 24 * 60 * 60
 RESET_TOKEN_LIFETIME_SECONDS = 15 * 60
 JWT_ALGORITHM = 'HS256'
 
-REFRESH_TOKENS: dict[str, dict] = {}
-PASSWORD_RESET_TOKENS: dict[str, dict] = {}
-RESET_REQUESTS: dict[str, list[float]] = {}
+# Sessões e rate-limiting são persistidos no Supabase (ver orders/auth_store.py) —
+# antes viviam em dicts na memória, que quebravam a cada restart e não escalavam
+# para múltiplas instâncias.
+auth_store = SupabaseAuthStore(supabase)
+
 MAX_RESET_REQUESTS = 5
 RESET_REQUEST_WINDOW_SECONDS = 60 * 60
 MIN_RESET_REQUEST_INTERVAL_SECONDS = 20
@@ -48,7 +51,6 @@ MIN_RESET_REQUEST_INTERVAL_SECONDS = 20
 # PIN é um segredo curto (6 dígitos = 1 milhão de combinações) — sem
 # bloqueio, é força-bruta trivial. 5 tentativas erradas / 15 min por
 # funcionário, independente de quem está tentando.
-PIN_ATTEMPTS: dict[str, list[float]] = {}
 MAX_PIN_ATTEMPTS = 5
 PIN_ATTEMPT_WINDOW_SECONDS = 15 * 60
 
@@ -125,12 +127,13 @@ def _issue_tokens(admin: dict) -> dict:
     }
     access_token = make_jwt(payload, ACCESS_TOKEN_LIFETIME_SECONDS)
     refresh_token = secrets.token_urlsafe(32)
-    REFRESH_TOKENS[refresh_token] = {
-        "tipo": "dono",
-        "doc": admin["doc"],
-        "nome": admin["nome"],
-        "expires_at": time.time() + REFRESH_TOKEN_LIFETIME_SECONDS,
-    }
+    auth_store.save_refresh_token(
+        refresh_token,
+        tipo="dono",
+        doc=admin["doc"],
+        nome=admin["nome"],
+        expires_at=time.time() + REFRESH_TOKEN_LIFETIME_SECONDS,
+    )
     return {
         "accessToken": access_token, "refreshToken": refresh_token,
         "nome": admin["nome"], "doc": admin["doc"],
@@ -152,12 +155,13 @@ def _issue_funcionario_tokens(funcionario: dict) -> dict:
     }
     access_token = make_jwt(payload, ACCESS_TOKEN_LIFETIME_SECONDS)
     refresh_token = secrets.token_urlsafe(32)
-    REFRESH_TOKENS[refresh_token] = {
-        "tipo": "funcionario",
-        "id": funcionario["id"],
-        "email": funcionario["email"],
-        "expires_at": time.time() + REFRESH_TOKEN_LIFETIME_SECONDS,
-    }
+    auth_store.save_refresh_token(
+        refresh_token,
+        tipo="funcionario",
+        funcionario_id=funcionario["id"],
+        email=funcionario["email"],
+        expires_at=time.time() + REFRESH_TOKEN_LIFETIME_SECONDS,
+    )
     return {
         "accessToken": access_token, "refreshToken": refresh_token,
         "nome": funcionario["nome"], "email": funcionario["email"],
@@ -166,20 +170,15 @@ def _issue_funcionario_tokens(funcionario: dict) -> dict:
 
 
 def _get_active_refresh(refresh_token: str) -> dict | None:
-    token = REFRESH_TOKENS.get(refresh_token)
-    if not token or token["expires_at"] < time.time():
-        return None
-    return token
+    return auth_store.get_active_refresh(refresh_token)
 
 
 def _invalidate_refresh_token(refresh_token: str):
-    REFRESH_TOKENS.pop(refresh_token, None)
+    auth_store.delete_refresh_token(refresh_token)
 
 
 def _invalidate_refresh_tokens_for_doc(doc: str):
-    for key, token_data in list(REFRESH_TOKENS.items()):
-        if token_data.get("doc") == doc:
-            REFRESH_TOKENS.pop(key, None)
+    auth_store.delete_refresh_tokens_for_doc(doc)
 
 
 def _send_reset_email(email: str, token: str):
@@ -223,31 +222,28 @@ def _send_pin_email(email: str, nome: str, pin: str):
 
 
 def _pin_attempt_allowed(funcionario_id: str) -> bool:
-    now = time.time()
-    attempts = [t for t in PIN_ATTEMPTS.get(funcionario_id, []) if t > now - PIN_ATTEMPT_WINDOW_SECONDS]
-    PIN_ATTEMPTS[funcionario_id] = attempts
-    return len(attempts) < MAX_PIN_ATTEMPTS
+    return auth_store.pin_attempt_allowed(
+        funcionario_id,
+        max_attempts=MAX_PIN_ATTEMPTS,
+        window_seconds=PIN_ATTEMPT_WINDOW_SECONDS,
+    )
 
 
 def _record_pin_attempt(funcionario_id: str):
-    PIN_ATTEMPTS.setdefault(funcionario_id, []).append(time.time())
+    auth_store.record_pin_attempt(funcionario_id)
 
 
 def _clear_pin_attempts(funcionario_id: str):
-    PIN_ATTEMPTS.pop(funcionario_id, None)
+    auth_store.clear_pin_attempts(funcionario_id)
 
 
 def _can_request_password_reset(email: str) -> bool:
-    now = time.time()
-    attempts = RESET_REQUESTS.get(email, [])
-    attempts = [t for t in attempts if t > now - RESET_REQUEST_WINDOW_SECONDS]
-    if attempts and (len(attempts) >= MAX_RESET_REQUESTS or now - attempts[-1] < MIN_RESET_REQUEST_INTERVAL_SECONDS):
-        RESET_REQUESTS[email] = attempts
-        return False
-
-    attempts.append(now)
-    RESET_REQUESTS[email] = attempts
-    return True
+    return auth_store.can_request_password_reset(
+        email,
+        max_requests=MAX_RESET_REQUESTS,
+        window_seconds=RESET_REQUEST_WINDOW_SECONDS,
+        min_interval_seconds=MIN_RESET_REQUEST_INTERVAL_SECONDS,
+    )
 
 
 def _require_auth(request):
@@ -404,12 +400,12 @@ def admin_forgot_password(request):
     admin = _get_admin_by_email(email)
     if admin:
         reset_token = secrets.token_urlsafe(32)
-        PASSWORD_RESET_TOKENS[reset_token] = {
-            "doc": admin["doc"],
-            "email": email,
-            "expires_at": time.time() + RESET_TOKEN_LIFETIME_SECONDS,
-            "used": False,
-        }
+        auth_store.save_reset_token(
+            reset_token,
+            doc=admin["doc"],
+            email=email,
+            expires_at=time.time() + RESET_TOKEN_LIFETIME_SECONDS,
+        )
         _send_reset_email(email, reset_token)
 
     return Response({"message": "Se o email existir, você receberá um link de redefinição em breve."})
@@ -425,8 +421,8 @@ def admin_reset_password(request):
     if len(senha) < 6:
         return Response({"detail": "Senha deve ter pelo menos 6 caracteres"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-    record = PASSWORD_RESET_TOKENS.get(token)
-    if not record or record.get("used") or record.get("expires_at", 0) < time.time():
+    record = auth_store.get_valid_reset_token(token)
+    if not record:
         return Response({"detail": "Token inválido ou expirado"}, status=status.HTTP_401_UNAUTHORIZED)
 
     admin = _get_admin_by_doc(record["doc"])
@@ -434,7 +430,7 @@ def admin_reset_password(request):
         return Response({"detail": "Admin não encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
     supabase.table("admins").update({"pwhash": pwhash(senha)}).eq("doc", admin["doc"]).execute()
-    record["used"] = True
+    auth_store.mark_reset_token_used(token)
     _invalidate_refresh_tokens_for_doc(admin["doc"])
     return Response({"message": "Senha redefinida com sucesso"})
 
@@ -611,9 +607,7 @@ def funcionario_detail(request, funcionario_id):
     if ("ativo" in updates and not updates["ativo"]) or "pin_hash" in updates:
         # desativou o funcionário, ou trocou o PIN → derruba sessões ativas na hora
         _clear_pin_attempts(funcionario_id)
-        for key, token_data in list(REFRESH_TOKENS.items()):
-            if token_data.get("tipo") == "funcionario" and token_data.get("id") == funcionario_id:
-                REFRESH_TOKENS.pop(key, None)
+        auth_store.delete_refresh_tokens_for_funcionario(funcionario_id)
 
     return Response({"message": "Atualizado"})
 
