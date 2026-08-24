@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { AuthScreen } from './pages/AuthScreen';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { FuncionarioLoginScreen } from './pages/FuncionarioLogin/FuncionarioLoginScreen';
+import { LearningCenterModal } from './features/Dashboard/LearningCenter/LearningCenterModal';
 import { api } from './utils/api';
 import type { OrdemServico, AuthResult } from './types';
 import type { OSPrefillInput } from './types/atendimento';
@@ -19,6 +20,10 @@ export default function App() {
   const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
   const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
   const [authMode, setAuthMode]         = useState<'login' | 'reset-password' | 'funcionario'>('login');
+  // Central de Aprendizado — vive aqui (acima de Dashboard) porque o botão
+  // "Dicas" está disponível em qualquer página do painel, e Dashboard só
+  // renderiza uma página por vez internamente.
+  const [showLearningCenter, setShowLearningCenter] = useState(false);
 
   // Show loading indicator while checking auth status
   if (loading) {
@@ -181,6 +186,7 @@ export default function App() {
             onNewOS={handleStartNew}
             onLoadOS={handleLoadOS}
             onNewOSComPrefill={handleStartNewComPrefill}
+            onOpenLearningCenter={() => setShowLearningCenter(true)}
           />
         ) : view === 'os2' ? (
           <Check2
@@ -200,9 +206,14 @@ export default function App() {
             onNewOS={handleStartNew}
             onLoadOS={handleLoadOS}
             onNewOSComPrefill={handleStartNewComPrefill}
+            onOpenLearningCenter={() => setShowLearningCenter(true)}
           />
         )}
       </div>
+
+      {showLearningCenter && (
+        <LearningCenterModal onClose={() => setShowLearningCenter(false)} />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge, Skeleton } from './Primitives';
-import { Sidebar, MobileNav } from './Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
 import type { OrdemRow, NavPage } from '../../types/dashboard';
@@ -232,6 +232,10 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 
 // ── OrdensPage ────────────────────────────────────────────────────────────────
 
+
+
+
+
 type FilterStatus = 'todas' | 'rascunho' | 'finalizada' | 'aguardando';
 
 const FILTER_LABELS: Record<FilterStatus, string> = {
@@ -361,7 +365,8 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="ordens" onNav={onNav} />
         {content}
         <MobileNav active="ordens" onNav={onNav} onNewOS={onNewOS} />
       </div>

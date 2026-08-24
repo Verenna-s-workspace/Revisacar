@@ -10,7 +10,7 @@ import { notificarHorarioAtualizado } from '../../utils/horario_funcionamento';
 
 const WORKSHOP_DEFAULTS = {
   nome: 'RevisaCar Premium',
-  cnpj: '12.345.678/0001-99',
+  cnpj: '12.345.678/0001-95',
   telefone: '(11) 98765-4321',
   email: 'contato@revisacarpremium.com.br',
   endereco: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',

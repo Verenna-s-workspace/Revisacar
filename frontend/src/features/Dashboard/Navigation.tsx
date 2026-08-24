@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlertasResumo } from '../../hooks/useAlertasResumo';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
   { id: 'ordens',       icon: Icons.orders,          label: 'Ordens de Serviço' },
@@ -255,14 +256,34 @@ export function DesktopHeader() {
 
 // ── Mobile Topbar ─────────────────────────────────────────────────────────────
 
-export function MobileTopbar({ onNav }: { onNav?: (p: NavPage) => void } = {}) {
+interface MobileTopbarProps {
+  onNav?: (p: NavPage) => void;
+  /** Página atual, pra destacar o item certo dentro do menu. */
+  active?: NavPage;
+}
 
-  const { user } = useAuth();
+export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
+
+  const { user, logout } = useAuth();
   const { total: totalAlertas } = useAlertasResumo();
+  const { can } = usePermissions();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  function navegar(p: NavPage) {
+    setMenuOpen(false);
+    onNav?.(p);
+  }
 
   return (
     <div className="dashboard-mobile-topbar">
-      <button className="dashboard-mobile-topbar__button">{Icons.menu}</button>
+      <button
+        className="dashboard-mobile-topbar__button"
+        onClick={() => setMenuOpen(true)}
+        aria-label="Abrir menu"
+        aria-expanded={menuOpen}
+      >
+        {Icons.menu}
+      </button>
       <div className="dashboard-mobile-topbar__logo">
         <img src="/Logorevisavermelha.svg" alt="" width={30} height={30} />
         <span style={{ fontFamily: "'Fredoka',cursive", fontSize: '1rem', color: tokens.color.text }}>
@@ -300,6 +321,75 @@ export function MobileTopbar({ onNav }: { onNav?: (p: NavPage) => void } = {}) {
           {Icons.user}
         </div>
       </div>
+
+      {menuOpen && createPortal(
+        <>
+          <div className="dashboard-mobile-drawer-backdrop" onClick={() => setMenuOpen(false)} />
+          <div className="dashboard-mobile-drawer" role="dialog" aria-modal="true">
+            <div className="dashboard-mobile-drawer__header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <img src="/Logorevisavermelha.svg" alt="" width={30} height={30} />
+                <span style={{ fontFamily: "'Fredoka',cursive", fontSize: '1.05rem', color: tokens.color.text }}>
+                  revisa<span style={{ color: '#CC1400' }}>car</span>
+                </span>
+              </div>
+              <button className="dashboard-button--close" onClick={() => setMenuOpen(false)} aria-label="Fechar menu">×</button>
+            </div>
+
+            <div className="dashboard-mobile-drawer__identity">
+              <div className="dashboard-sidebar__identity-avatar">{iniciaisDe(user?.nome)}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="dashboard-sidebar__identity-label">Oficina</div>
+                <div className="dashboard-sidebar__identity-nome">{user?.nome ?? 'Oficina'}</div>
+              </div>
+            </div>
+
+            <nav className="dashboard-mobile-drawer__nav">
+              {NAV_ITEMS.filter(({ id }) => id !== 'configuracoes').map(({ id, icon, label }) => (
+                <button
+                  key={id}
+                  onClick={() => navegar(id)}
+                  className={`dashboard-mobile-drawer__link${active === id ? ' dashboard-mobile-drawer__link--active' : ''}`}
+                >
+                  <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
+                  {label}
+                </button>
+              ))}
+
+              <div className="dashboard-mobile-drawer__divider" />
+
+              <button onClick={() => navegar('servicos')} className={`dashboard-mobile-drawer__link${active === 'servicos' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
+                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.wrench}</span>
+                Catálogo de Serviços
+              </button>
+              <button onClick={() => navegar('relatorios')} className={`dashboard-mobile-drawer__link${active === 'relatorios' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
+                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.chart}</span>
+                Relatórios
+              </button>
+              {can('financeiro.ver') && (
+                <button onClick={() => navegar('financeiro')} className={`dashboard-mobile-drawer__link${active === 'financeiro' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
+                  <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.money}</span>
+                  Financeiro
+                </button>
+              )}
+              <button onClick={() => navegar('dicas')} className={`dashboard-mobile-drawer__link${active === 'dicas' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
+                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.help}</span>
+                Dicas
+              </button>
+              <button onClick={() => navegar('configuracoes')} className={`dashboard-mobile-drawer__link${active === 'configuracoes' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
+                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.cog}</span>
+                Configurações
+              </button>
+            </nav>
+
+            <button className="dashboard-mobile-drawer__logout" onClick={() => { setMenuOpen(false); logout(); }}>
+              {Icons.logout}
+              Sair
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }

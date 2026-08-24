@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
-import { Sidebar, MobileNav } from '../Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { Skeleton } from '../Primitives';
 import { useResponsive } from '../../../components/ui';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -422,7 +422,8 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="agendamentos" onNav={onNav} />
         {content}
         <MobileNav active="agendamentos" onNav={onNav} onNewOS={onNewOS ?? (() => openNewModal())} />
         {modals}

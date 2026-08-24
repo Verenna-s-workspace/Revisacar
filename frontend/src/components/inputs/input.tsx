@@ -202,7 +202,10 @@ export function Input({
   // tem prioridade.
   const internalError = (() => {
     if (error) return undefined;
-    if (type === "cpf_cnpj" && value.length >= 11 && !isValidCpfCnpj(value)) return "CPF/CNPJ inválido";
+    // Gated por blur em ambos: um valor pré-preenchido (dado existente,
+    // vindo de props) não deve acusar erro assim que a tela abre — só
+    // depois que a pessoa realmente interagiu com o campo.
+    if (type === "cpf_cnpj" && blurred && value.length >= 11 && !isValidCpfCnpj(value)) return "CPF/CNPJ inválido";
     if (type === "email" && blurred && value && !isValidEmail(value)) return "E-mail inválido";
     return undefined;
   })();
@@ -217,6 +220,12 @@ export function Input({
   const hasTrailingIcon = type === "password" || loading || showClear;
 
   const inputEl = mask ? (
+    // Branch legado (escape-hatch de mask crua) — NÃO passar onBlur aqui.
+    // react-input-mask injeta o onBlur dele via inputProps pra limpeza
+    // interna da máscara e lança erro se a função-filha alterar esse prop —
+    // mesmo compondo (chamando o original + o nosso). Como esse branch não
+    // participa da validação por tipo (só usado por um mask cru pontual),
+    // {...inputProps} sozinho já preserva o comportamento correto.
     <InputMask key={mask} mask={mask} value={value} onChange={handleChange} disabled={isDisabled}>
       {(inputProps: any) => (
         <input
@@ -228,7 +237,6 @@ export function Input({
           maxLength={maxLength}
           disabled={isDisabled}
           autoFocus={autoFocus}
-          onBlur={handleBlur}
           style={style}
           aria-invalid={!!effectiveError}
           aria-describedby={errorId ?? hintId}
@@ -260,6 +268,7 @@ export function Input({
       list={datalistOptions ? `${fieldId}-list` : undefined}
       min={min}
       max={max}
+      lang={type === "date" || type === "time" ? "pt-BR" : undefined}
       aria-invalid={!!effectiveError}
       aria-describedby={errorId ?? hintId}
     />

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
-import { Sidebar, MobileNav } from './Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
 import { Card, Skeleton } from './Primitives';
 import { useServicos } from '../../hooks/useServicos';
 import { useEstoque } from '../../hooks/useEstoque';
@@ -223,7 +223,8 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="servicos" onNav={onNav} />
         {content}
         <MobileNav active="servicos" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
         {modals}

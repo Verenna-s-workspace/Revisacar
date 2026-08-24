@@ -181,25 +181,25 @@ interface SeedClienteTemplate {
 
 const SEED_CLIENTE_TEMPLATES: SeedClienteTemplate[] = [
   // ── Presentes em Veículos E Agendamentos (catálogo totalmente cruzado) ──
-  { nome: 'Carlos Eduardo Oliveira', cpfCnpj: '234.567.890-11', telefone: '(11) 98765-1234', email: 'carlos.eduardo@email.com', endereco: 'Rua das Palmeiras, 452 — São Paulo/SP', diasAtras: 520 },
-  { nome: 'Roberto Mendes Albuquerque', cpfCnpj: '456.789.012-33', telefone: '(21) 96543-2109', email: 'roberto.mendes@email.com', endereco: 'Av. Atlântica, 1200 — Rio de Janeiro/RJ', diasAtras: 410 },
-  { nome: 'Mariana Costa Ribeiro', cpfCnpj: '567.890.123-44', telefone: '(11) 95432-1098', email: 'mariana.costa@email.com', endereco: 'Rua Augusta, 890 — São Paulo/SP', diasAtras: 95 },
-  { nome: 'Bruno Alves Teixeira', cpfCnpj: '678.901.234-55', telefone: '(31) 94321-0987', email: 'bruno.teixeira@email.com', endereco: 'Av. Afonso Pena, 330 — Belo Horizonte/MG', diasAtras: 730 },
-  { nome: 'Ana Paula Ferreira', cpfCnpj: '789.012.345-66', telefone: '(11) 93210-9876', email: 'ana.ferreira@email.com', endereco: 'Rua Oscar Freire, 210 — São Paulo/SP', diasAtras: 280 },
-  { nome: 'Pedro Henrique Souza', cpfCnpj: '890.123.456-77', telefone: '(21) 92109-8765', email: 'pedro.henrique@email.com', endereco: 'Rua Voluntários da Pátria, 77 — Rio de Janeiro/RJ', diasAtras: 150 },
-  { nome: 'Diego Santos Moraes', cpfCnpj: '901.234.567-88', telefone: '(11) 99001-2233', email: 'diego.moraes@email.com', diasAtras: 365 },
-  { nome: 'Beatriz Lima Fontes', cpfCnpj: '012.345.678-99', telefone: '(11) 91098-7654', email: 'beatriz.lima@email.com', endereco: 'Alameda Santos, 1500 — São Paulo/SP', diasAtras: 40 },
-  { nome: 'Marcos Vinícius Pereira', cpfCnpj: '111.222.333-44', telefone: '(11) 98877-6655', email: 'marcos.vinicius@email.com', diasAtras: 130 },
+  { nome: 'Carlos Eduardo Oliveira', cpfCnpj: '234.567.890-92', telefone: '(11) 98765-1234', email: 'carlos.eduardo@email.com', endereco: 'Rua das Palmeiras, 452 — São Paulo/SP', diasAtras: 520 },
+  { nome: 'Roberto Mendes Albuquerque', cpfCnpj: '456.789.012-49', telefone: '(21) 96543-2109', email: 'roberto.mendes@email.com', endereco: 'Av. Atlântica, 1200 — Rio de Janeiro/RJ', diasAtras: 410 },
+  { nome: 'Mariana Costa Ribeiro', cpfCnpj: '567.890.123-03', telefone: '(11) 95432-1098', email: 'mariana.costa@email.com', endereco: 'Rua Augusta, 890 — São Paulo/SP', diasAtras: 95 },
+  { nome: 'Bruno Alves Teixeira', cpfCnpj: '678.901.234-69', telefone: '(31) 94321-0987', email: 'bruno.teixeira@email.com', endereco: 'Av. Afonso Pena, 330 — Belo Horizonte/MG', diasAtras: 730 },
+  { nome: 'Ana Paula Ferreira', cpfCnpj: '789.012.345-05', telefone: '(11) 93210-9876', email: 'ana.ferreira@email.com', endereco: 'Rua Oscar Freire, 210 — São Paulo/SP', diasAtras: 280 },
+  { nome: 'Pedro Henrique Souza', cpfCnpj: '890.123.456-42', telefone: '(21) 92109-8765', email: 'pedro.henrique@email.com', endereco: 'Rua Voluntários da Pátria, 77 — Rio de Janeiro/RJ', diasAtras: 150 },
+  { nome: 'Diego Santos Moraes', cpfCnpj: '901.234.567-70', telefone: '(11) 99001-2233', email: 'diego.moraes@email.com', diasAtras: 365 },
+  { nome: 'Beatriz Lima Fontes', cpfCnpj: '012.345.678-90', telefone: '(11) 91098-7654', email: 'beatriz.lima@email.com', endereco: 'Alameda Santos, 1500 — São Paulo/SP', diasAtras: 40 },
+  { nome: 'Marcos Vinícius Pereira', cpfCnpj: '111.222.333-96', telefone: '(11) 98877-6655', email: 'marcos.vinicius@email.com', diasAtras: 130 },
 
   // ── Presentes apenas em Veículos (cadastro sem agendamento futuro) ──────
-  { nome: 'Lucas Andrelo da Silva', cpfCnpj: '123.456.789-00', telefone: '(11) 99876-5432', email: 'lucas.andrelo@email.com', endereco: 'Rua Vergueiro, 3400 — São Paulo/SP', diasAtras: 340 },
-  { nome: 'Maria Siqueira Bastos', cpfCnpj: '345.678.901-22', telefone: '(19) 97654-3210', email: 'maria.siqueira@email.com', endereco: 'Rua Barão de Jaguara, 88 — Campinas/SP', diasAtras: 180 },
+  { nome: 'Lucas Andrelo da Silva', cpfCnpj: '123.456.789-09', telefone: '(11) 99876-5432', email: 'lucas.andrelo@email.com', endereco: 'Rua Vergueiro, 3400 — São Paulo/SP', diasAtras: 340 },
+  { nome: 'Maria Siqueira Bastos', cpfCnpj: '345.678.901-75', telefone: '(19) 97654-3210', email: 'maria.siqueira@email.com', endereco: 'Rua Barão de Jaguara, 88 — Campinas/SP', diasAtras: 180 },
 
   // ── Presentes apenas em Agendamentos (contato recente, veículo ainda não
   //    formalizado na frota) ───────────────────────────────────────────────
-  { nome: 'Fernanda Lima de Souza', cpfCnpj: '222.333.444-55', telefone: '(11) 97788-2211', email: 'fernanda.souza@email.com', diasAtras: 20 },
-  { nome: 'Juliana Martins Azevedo', cpfCnpj: '333.444.555-66', telefone: '(11) 96677-3322', email: 'juliana.azevedo@email.com', diasAtras: 12 },
-  { nome: 'Patrícia Gonçalves Tavares', cpfCnpj: '444.555.666-77', telefone: '(19) 95566-4433', email: 'patricia.tavares@email.com', diasAtras: 8 },
+  { nome: 'Fernanda Lima de Souza', cpfCnpj: '222.333.444-05', telefone: '(11) 97788-2211', email: 'fernanda.souza@email.com', diasAtras: 20 },
+  { nome: 'Juliana Martins Azevedo', cpfCnpj: '333.444.555-08', telefone: '(11) 96677-3322', email: 'juliana.azevedo@email.com', diasAtras: 12 },
+  { nome: 'Patrícia Gonçalves Tavares', cpfCnpj: '444.555.666-19', telefone: '(19) 95566-4433', email: 'patricia.tavares@email.com', diasAtras: 8 },
 
   // ── Prospects novos, sem nenhum veículo ou agendamento vinculado ───────
   { nome: 'Fernando Augusto Melo', telefone: '(11) 94455-6677', email: 'fernando.melo@email.com', diasAtras: 3 },

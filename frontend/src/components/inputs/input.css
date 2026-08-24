@@ -141,30 +141,15 @@ input[type="search"]::-webkit-search-results-decoration {
   color: var(--color-subtle);
 }
 
-/* ── Legado — seletores genéricos mantidos por compatibilidade com qualquer
-   <span>/<textarea> fora do componente que ainda dependa deles. Novo código
-   deve usar .inp-error-text / .inp-hint-text / .inp-textarea acima/abaixo. ── */
-span{
-   font-Family: var(--font-mono);
-          font-Size: 0.58rem;
-          color: var(--color-crit);
-          letter-Spacing: 0.04em;
-}
-textarea{
-      resize: vertical;
-      min-height: 72px;
-       width: 100%;
-      font-Family:var(--font-sans);
-              font-Size: 0.83rem;
-              color:var(--color-text);
-              background: var(--color-bg-alt);
-              border: 1px solid var(--color-border);
-              border-Radius: var(--radius-sm);
-              padding: 7px 11px;
-              outline: none;
-              line-Height: 1.5;
-              transition: var(--transition-base);
-    }
+/* Nota histórica: versões antigas deste arquivo tinham aqui seletores
+   genéricos `span{...}`/`textarea{...}` (sem classe) pensados como "estilo
+   padrão" de erro/textarea. Foram removidos — um seletor de tag sem escopo
+   pega QUALQUER <span>/<textarea> da aplicação (inclusive spans usados só
+   pra embrulhar ícone, ex. <span style={{display:'flex'}}>{Icons.x}</span>),
+   forçando cor/tamanho de fonte de texto de erro onde não fazia sentido (um
+   ícone branco dentro de um botão vermelho ficava vermelho-sobre-vermelho,
+   por exemplo). Use sempre .inp-error-text / .inp-hint-text / .inp-textarea
+   abaixo — nunca reintroduza um seletor de tag global aqui.
 
 /* Classe explícita usada pelo componente <Textarea> — mesmas regras do
    seletor genérico acima, só que escopada. */

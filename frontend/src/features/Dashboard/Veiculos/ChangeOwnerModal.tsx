@@ -44,7 +44,7 @@ export function ChangeOwnerModal({ veiculo, onSave, onClose }: ChangeOwnerModalP
 
           <div style={{ display: 'grid', gap: 14 }}>
             <Input name="proprietario_nome" label="Nome do Proprietário" required placeholder="Nome completo" value={nome} onChangeValue={setNome} autoFocus />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="dashboard-form-grid-2col" style={{ gap: 14 }}>
               <Input name="proprietario_doc" type="cpf_cnpj" label="CPF/CNPJ" placeholder="000.000.000-00" value={doc} onChangeValue={setDoc} />
               <Input name="proprietario_tel" type="phone" label="Telefone" placeholder="(11) 99999-9999" value={tel} onChangeValue={setTel} />
             </div>

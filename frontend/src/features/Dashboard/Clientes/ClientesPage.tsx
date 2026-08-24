@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
-import { Sidebar, MobileNav } from '../Navigation';
+import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -347,7 +347,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 80, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MobileTopbar active="clientes" onNav={onNav} />
         {content}
         <MobileNav active="clientes" onNav={onNav} onNewOS={onNewOS ?? openCreate} />
         {modals}

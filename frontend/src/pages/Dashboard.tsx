@@ -44,7 +44,7 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
   );
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <MobileTopbar onNav={onNav} />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
+      <MobileTopbar active={page} onNav={onNav} />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
   return (
@@ -62,8 +62,8 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 
 function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; children: React.ReactNode }) {
   if (isMobile) return (
-    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 90 }}>
-      <MobileTopbar onNav={onNav} />
+    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+      <MobileTopbar active={page} onNav={onNav} />
       <div style={{ padding: '16px 14px 32px' }}>{children}</div>
       <MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
@@ -81,7 +81,7 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void }) {
+export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void; onOpenLearningCenter?: () => void }) {
   const { user } = useAuth();
   const { isMobile } = useResponsive();
   const { loading, data } = useDashboard();
@@ -102,7 +102,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
 
-  const handleNav = (p: NavPage) => { setAgendaFocus(null); setEstoqueFocus(null); setPage(p); };
+  const handleNav = (p: NavPage) => {
+    if (p === 'dicas') { onOpenLearningCenter?.(); return; }
+    setAgendaFocus(null); setEstoqueFocus(null); setPage(p);
+  };
   const handleGoToAgendamentos = (focus: { search?: string; highlightId?: string }) => {
     setAgendaFocus(focus);
     setPage('agendamentos');
@@ -464,8 +467,8 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
 
   // ── MOBILE ─────────────────────────────────────────────────────────────────
   if (isMobile) return (
-    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 90 }}>
-      <MobileTopbar onNav={handleNav} />
+    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+      <MobileTopbar active={page} onNav={handleNav} />
       <div style={{ padding: '16px 14px 0' }}>
         <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: tokens.color.text, margin: '0 0 2px' }}>
           Olá, {user?.nome ?? 'Lucas Andrelo'} 👋
