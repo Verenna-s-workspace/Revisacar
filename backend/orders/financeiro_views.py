@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework import status as http_status
 
 from .views import supabase, require_auth, require_permission, _oficina_doc_do_token, _now
+from .pagination import parse_pagination, paginate
 from .serializers import (
     FinanceiroTransacaoSerializer, CATEGORIAS_ENTRADA, CATEGORIAS_SAIDA, FORMAS_PAGAMENTO,
 )
@@ -105,7 +106,8 @@ def transacoes(request):
     status_filtro = request.query_params.get("status")
     sem_periodo = request.query_params.get("sem_periodo") == "1"
 
-    q = supabase.table(TABELA).select("*").eq("oficina_doc", oficina_doc).neq("status", "cancelado")
+    pag = parse_pagination(request.query_params)
+    q = supabase.table(TABELA).select("*", count=("exact" if pag else None)).eq("oficina_doc", oficina_doc).neq("status", "cancelado")
     if not sem_periodo:
         de, ate = _parse_periodo(request)
         q = q.gte("data_competencia", de).lte("data_competencia", ate)
@@ -113,8 +115,16 @@ def transacoes(request):
         q = q.eq("tipo", tipo)
     if status_filtro in ("pendente", "pago"):
         q = q.eq("status", status_filtro)
+    q = q.order("data_competencia", desc=True)
 
-    linhas = q.order("data_competencia", desc=True).execute().data or []
+    def _com_vencido(linha):
+        return {**linha, "vencido": _is_vencido(linha)}
+
+    if pag:
+        page, page_size = pag
+        return Response(paginate(q, page, page_size, transform=_com_vencido))
+
+    linhas = q.execute().data or []
     for linha in linhas:
         linha["vencido"] = _is_vencido(linha)
     return Response(linhas)

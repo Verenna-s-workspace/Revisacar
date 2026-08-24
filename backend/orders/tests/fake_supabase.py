@@ -4,8 +4,9 @@ insert / select / delete / update encadeados com .eq() e .execute()."""
 
 
 class _Result:
-    def __init__(self, data):
+    def __init__(self, data, count=None):
         self.data = data
+        self.count = count
 
 
 class _Query:
@@ -14,14 +15,26 @@ class _Query:
         self._filters = []
         self._op = None
         self._payload = None
+        self._count = None
+        self._order = None
+        self._range = None
 
     def insert(self, row):
         self._op = "insert"
         self._payload = row
         return self
 
-    def select(self, *_columns):
+    def select(self, *_columns, count=None):
         self._op = "select"
+        self._count = count
+        return self
+
+    def order(self, column, desc=False):
+        self._order = (column, desc)
+        return self
+
+    def range(self, start, end):
+        self._range = (start, end)
         return self
 
     def delete(self):
@@ -47,7 +60,15 @@ class _Query:
             rows.append(saved)
             return _Result([saved])
         if self._op == "select":
-            return _Result([r for r in rows if self._match(r)])
+            matched = [r for r in rows if self._match(r)]
+            if self._order is not None:
+                column, desc = self._order
+                matched = sorted(matched, key=lambda r: r.get(column), reverse=desc)
+            total = len(matched)
+            if self._range is not None:
+                start, end = self._range
+                matched = matched[start:end + 1]
+            return _Result(matched, count=total if self._count else None)
         if self._op == "delete":
             removed = [r for r in rows if self._match(r)]
             self._table.rows = [r for r in rows if not self._match(r)]

@@ -26,6 +26,7 @@ from .serializers import (
 )
 from .rbac import permissoes_do_cargo, FUNCIONARIO_CARGOS
 from .auth_store import SupabaseAuthStore
+from .pagination import parse_pagination, paginate
 
 logger = logging.getLogger(__name__)
 
@@ -635,12 +636,15 @@ def ordens_list(request):
     POST /ordens        → cria nova ordem
     """
     if request.method == "GET":
-        query = supabase.table("ordens").select("*").order("created_at", desc=True)
+        pag = parse_pagination(request.query_params)
+        query = supabase.table("ordens").select("*", count=("exact" if pag else None)).order("created_at", desc=True)
         status_filter = request.query_params.get("status")
         if status_filter:
             query = query.eq("status", status_filter)
-        res = query.execute()
-        return Response(res.data)
+        if pag:
+            page, page_size = pag
+            return Response(paginate(query, page, page_size))
+        return Response(query.execute().data)
 
     # POST
     serializer = OrdemServicoSerializer(data=request.data)

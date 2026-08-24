@@ -134,9 +134,15 @@ CI verde.
 > **Setup do banco:** rode [`backend/db/migrations/0001_auth_persistence.sql`](backend/db/migrations/0001_auth_persistence.sql)
 > no Supabase para criar as tabelas de sessão/rate-limit.
 
+**Paginação opt-in** já disponível na API (`?page`/`?page_size` em `/ordens` e
+`/financeiro/transacoes`, ver `orders/pagination.py`) com cliente tipado no front
+(`api.listarOrdensPagina`, `api.listarTransacoesPagina`). Sem `?page`, o
+comportamento é o de sempre (lista completa). Falta só **adotar na UI** das telas
+de lista (controles de página / scroll infinito).
+
 Pendências conhecidas, em ordem de prioridade:
 
-1. **Paginação** nas listagens (`/ordens`, `/financeiro/transacoes`).
+1. **Adotar paginação na UI** das telas de Ordens e Financeiro.
 2. **`react-router`** com URLs reais (hoje o roteamento é por `useState`).
 3. **OpenAPI/Swagger** (`drf-spectacular`) para documentação viva da API.
 4. **Migrations versionadas** do schema completo (o schema de negócio ainda é
