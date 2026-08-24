@@ -5,6 +5,7 @@ from django.contrib.auth.hashers import make_password, check_password
 
 # ── Sub-serializers ────────────────────────────────────────────────────────────
 
+
 class OSHeaderSerializer(serializers.Serializer):
     os_num = serializers.CharField()
     os_date = serializers.CharField(default="")
@@ -42,6 +43,7 @@ class ClienteSerializer(serializers.Serializer):
         if not value.strip():
             raise serializers.ValidationError("Campo obrigatório")
         return value.strip()
+
 
 def normalize_doc(value: str) -> str:
     return re.sub(r"\D", "", value or "")
@@ -111,7 +113,7 @@ class AdminLoginSerializer(serializers.Serializer):
 
 # ── Funcionários (RBAC) ──────────────────────────────────────────────────────
 
-from .rbac import cargo_valido_para_funcionario
+from .rbac import cargo_valido_para_funcionario  # noqa: E402  (import local proposital)
 
 
 def validate_pin_format(value: str) -> str:
@@ -226,6 +228,7 @@ class OrdemServicoSerializer(serializers.Serializer):
         return data
 
 # ── Criptografia de senha ────────────────────────────────────────────────────────────
+
 
 def pwhash(senha: str):
     return make_password(senha)

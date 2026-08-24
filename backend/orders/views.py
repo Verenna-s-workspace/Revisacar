@@ -9,10 +9,9 @@ import secrets
 import time
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
-
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -26,6 +25,8 @@ from .serializers import (
     validate_pin_format,
 )
 from .rbac import permissoes_do_cargo, FUNCIONARIO_CARGOS
+
+logger = logging.getLogger(__name__)
 
 # ── Supabase client (singleton) ───────────────────────────────────────────────
 
@@ -300,7 +301,6 @@ def _oficina_doc_do_token(payload: dict) -> str:
 
 # ── Root ──────────────────────────────────────────────────────────────────────
 
-from django.utils import timezone
 
 @api_view(["GET"])
 def root(request):
