@@ -1,0 +1,6 @@
+# Dependências de desenvolvimento/CI (não instaladas em produção)
+-r requirements.txt
+pytest>=8.0
+pytest-django>=4.8
+pytest-env>=1.1
+flake8>=7.0
