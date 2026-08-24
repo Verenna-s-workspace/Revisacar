@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlertasResumo } from '../../hooks/useAlertasResumo';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
   { id: 'ordens',       icon: Icons.orders,          label: 'Ordens de Serviço' },
@@ -321,7 +322,7 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
         </div>
       </div>
 
-      {menuOpen && (
+      {menuOpen && createPortal(
         <>
           <div className="dashboard-mobile-drawer-backdrop" onClick={() => setMenuOpen(false)} />
           <div className="dashboard-mobile-drawer" role="dialog" aria-modal="true">
@@ -386,7 +387,8 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
               Sair
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

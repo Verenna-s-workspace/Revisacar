@@ -80,7 +80,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
                       cursor: 'pointer', whiteSpace: 'nowrap',
                     }}
                   >
-                    <span style={{ display: 'flex' }}>{m.icon}</span>
+                    <span style={{ display: 'flex', color: tokens.color.ferrari }}>{m.icon}</span>
                     {m.label}
                   </button>
                 );
@@ -106,8 +106,8 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
                       fontWeight: active ? 700 : 500, fontSize: '0.85rem',
                       cursor: 'pointer', transition: 'background 0.12s',
                     }}
-                  >
-                    <span style={{ display: 'flex', flexShrink: 0 }}>{m.icon}</span>
+                  >                                                                      {/* RETIREI m.icons */}
+                    <span style={{ display: 'flex', flexShrink: 0, color: tokens.color.ferrari }}>{}</span>
                     <span style={{ flex: 1 }}>{m.label}</span>
                   </button>
                 );

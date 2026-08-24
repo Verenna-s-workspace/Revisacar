@@ -130,12 +130,12 @@
 }
 
 .dashboard-sidebar-link svg {
-  width: 1.7fem;
+  width: 1.7em;
   height: auto;
   display: block;
   fill: transparent;
   stroke: currentColor;
-  color: inherit;
+  color: var(--color-ferrari);
 }
 .dashboard-sidebar-link:hover svg {
   color: var(--color-ferrari);
@@ -147,12 +147,11 @@
 }
 
 .dashboard-sidebar-link--active {
-  background: #CC1400;
-  color: white;
-  box-shadow: 0 4px 10px rgba(204,20,0,0.25);
+  background: var(--color-ferrari-mid);
+  color: var(--color-text);
 }
 .dashboard-sidebar-link--active svg {
-  color: white;
+  color: var(--color-ferrari);
 }
 
 /* ── Cartão de Identidade ─────────────────────────────────────────────────── */
@@ -949,6 +948,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 2000;
   animation: dashboard-drawer-fade 0.16s ease;
 }
@@ -1013,13 +1014,18 @@
   border: none;
   background: transparent;
   border-radius: 10px;
-  color: var(--color-text-secondary, var(--color-muted));
+  color: var(--color-text-second, var(--color-muted));
   font-family: var(--font-sans);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   text-align: left;
   width: 100%;
+}
+
+.dashboard-mobile-drawer__link svg {
+  color: var(--color-ferrari);
+  flex-shrink: 0;
 }
 
 .dashboard-mobile-drawer__link:active {
@@ -1068,7 +1074,7 @@
   padding-bottom: max(18px, env(safe-area-inset-bottom));
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  z-index: 100;
+  z-index: 2;
   box-shadow: 0 -6px 24px rgba(0,0,0,0.08);
 }
 
@@ -1092,7 +1098,7 @@
   display: block;
   width: 1.4em;
   height: 1.4em;
-  color: currentColor;
+  color: var(--color-ferrari);
 }
 
 .dashboard-mobile-bottom-nav__item--active {
