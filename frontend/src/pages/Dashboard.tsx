@@ -81,7 +81,7 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void }) {
+export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void; onOpenLearningCenter?: () => void }) {
   const { user } = useAuth();
   const { isMobile } = useResponsive();
   const { loading, data } = useDashboard();
@@ -102,7 +102,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill }: { onNewOS: (
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
 
-  const handleNav = (p: NavPage) => { setAgendaFocus(null); setEstoqueFocus(null); setPage(p); };
+  const handleNav = (p: NavPage) => {
+    if (p === 'dicas') { onOpenLearningCenter?.(); return; }
+    setAgendaFocus(null); setEstoqueFocus(null); setPage(p);
+  };
   const handleGoToAgendamentos = (focus: { search?: string; highlightId?: string }) => {
     setAgendaFocus(focus);
     setPage('agendamentos');
