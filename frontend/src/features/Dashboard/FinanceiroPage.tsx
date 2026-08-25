@@ -4,7 +4,7 @@ import { Icons } from './Icons';
 import { Card } from './Primitives';
 import { useDashboard } from '../../hooks/useDashboard';
 import { Sidebar, MobileNav } from './Navigation';
-import type { NavPage } from '../types/dashboard';
+import type { NavPage } from '../../types/dashboard';
 
 export function FinanceiroPage({ isMobile, onNav, onNewOS }: { isMobile: boolean; onNav: (p: NavPage) => void; onNewOS: () => void }) {
   const { data, loading } = useDashboard();

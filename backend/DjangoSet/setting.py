@@ -53,6 +53,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://bucket-funcionando1.onrender.com",
     "https://deploydofms.onrender.com",
     "https://revisacar-1-qmmv.onrender.com",
+    "https://revisacarro.onrender.com",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False

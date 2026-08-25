@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { Sidebar, MobileNav } from './Navigation';
-import type { NavPage } from '../types/dashboard';
+import type { NavPage } from '../../types/dashboard';
 
 export function ConfiguracoesPage({ isMobile, onNav, onNewOS }: { isMobile: boolean; onNav: (p: NavPage) => void; onNewOS: () => void }) {
   const { theme, toggleTheme } = useTheme();
@@ -127,7 +127,7 @@ export function ConfiguracoesPage({ isMobile, onNav, onNewOS }: { isMobile: bool
             }
             return res.json();
           });
-        } catch (apiError) {
+        } catch (apiError: any) {
           // API call failed (likely endpoint doesn't exist) - this is OK
           console.log('Workshop API endpoint not available:', apiError.message);
           // Don't throw error since localStorage save worked
