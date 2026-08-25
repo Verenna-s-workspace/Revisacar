@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { tokens, API_BASE } from '../../constants';
 import { Icons } from './Icons';
 import { Card } from './Primitives';
-import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
@@ -10,7 +9,6 @@ import { Sidebar, MobileNav } from './Navigation';
 import type { NavPage } from '../../types/dashboard';
 
 export function ConfiguracoesPage({ isMobile, onNav, onNewOS }: { isMobile: boolean; onNav: (p: NavPage) => void; onNewOS: () => void }) {
-  const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
 
   // Connection state
@@ -176,7 +174,7 @@ export function ConfiguracoesPage({ isMobile, onNav, onNewOS }: { isMobile: bool
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20, alignItems: 'start' }}>
         {/* General Form */}
         <Card style={{ padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
@@ -292,115 +290,9 @@ export function ConfiguracoesPage({ isMobile, onNav, onNewOS }: { isMobile: bool
           )}
         </Card>
 
-        {/* Sidebar Controls (Theme & Network) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Theme card */}
-          <Card style={{ padding: 20 }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-              Aparência do Sistema
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={theme === 'dark' ? toggleTheme : undefined}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  background: theme === 'light' ? 'var(--color-ferrari-glow)' : 'transparent',
-                  color: theme === 'light' ? 'var(--color-ferrari)' : tokens.color.textSecond,
-                  border: `1px solid ${theme === 'light' ? 'var(--color-ferrari)' : tokens.color.border}`,
-                  borderRadius: 8,
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                Claro
-              </button>
-              <button
-                onClick={theme === 'light' ? toggleTheme : undefined}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  background: theme === 'dark' ? 'var(--color-ferrari-glow)' : 'transparent',
-                  color: theme === 'dark' ? 'var(--color-ferrari)' : tokens.color.textSecond,
-                  border: `1px solid ${theme === 'dark' ? 'var(--color-ferrari)' : tokens.color.border}`,
-                  borderRadius: 8,
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                Carbono
-              </button>
-            </div>
-          </Card>
-
-          {/* Network & PWA Card */}
-          <Card style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                Status de Conectividade
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: online ? 'var(--color-ok)' : 'var(--color-crit)',
-                  boxShadow: online ? '0 0 8px var(--color-ok)' : '0 0 8px var(--color-crit)',
-                }} />
-                <span style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text }}>
-                  {online ? 'Dispositivo Online' : 'Modo Offline Ativo'}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 6, lineHeight: 1.4 }}>
-                {online
-                  ? 'Você está sincronizado com a nuvem em tempo real.'
-                  : 'Suas ordens e fotos de inspeção serão salvas localmente e sincronizadas quando restabelecer a conexão.'}
-              </p>
-            </div>
 
-            {installable && (
-              <div style={{ borderTop: `1px solid ${tokens.color.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                  Aplicativo Instalável
-                </div>
-                <button
-                  onClick={handleInstallPWA}
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    background: 'var(--color-ferrari)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  {Icons.plus} Instalar RevisaCar
-                </button>
-              </div>
-            )}
-          </Card>
-        </div>
-      </div>
-
-      <FuncionariosCard isMobile={isMobile} />
+      <div style={{ flex: 1 }}><FuncionariosCard isMobile={isMobile} /></div>
     </div>
   );
 
