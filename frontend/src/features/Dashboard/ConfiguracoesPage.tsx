@@ -256,6 +256,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
               >
                 Claro
               </button>
+              {/*
               <button
                 onClick={theme === 'light' ? toggleTheme : undefined}
                 style={{
@@ -276,6 +277,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
               >
                 Carbono
               </button>
+              */}
             </div>
           </Card>
 
