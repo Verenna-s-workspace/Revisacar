@@ -9,7 +9,7 @@ import { OSRow } from '../OrdensPage';
 import { ownerInitial, formatKm } from '../../../utils/veiculos_utils';
 import { formatAgendadoBadge, formatDataCurta } from '../../../utils/clientes_utils';
 import { formatBRL } from '../../../utils/dashboard';
-import { TICKET } from '../../../hooks/useDashboard';
+import { valorOS } from '../../../utils/relatorios';
 import type { ClienteComDados } from '../../../types/cliente';
 import type { VeiculoCadastrado } from '../../../types/veiculo';
 import type { Agendamento } from '../../../types/agendamento';
@@ -78,7 +78,9 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
   ];
 
   const concluidas = c.ordens.filter(o => o.status === 'finalizada');
-  const gastosEstimados = concluidas.length * TICKET;
+  // Soma o valor real de cada OS (valor_total quando o backend expõe, senão a
+  // estimativa por serviço) — mais fiel que multiplicar por um ticket fixo.
+  const gastosEstimados = concluidas.reduce((soma, o) => soma + valorOS(o), 0);
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1100 }}>
