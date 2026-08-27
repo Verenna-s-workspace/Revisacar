@@ -1,4 +1,16 @@
 import { API_BASE } from '../constants';
+import type { Paginado } from '../types/pagination';
+import type { OrdemRow } from '../types/dashboard';
+import type { Transacao } from '../features/Dashboard/Financeiro/types';
+
+function buildPageQuery(params: Record<string, string | number | undefined>): string {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null) continue;
+    qs.set(key === 'pageSize' ? 'page_size' : key, String(value));
+  }
+  return qs.toString();
+}
 
 let accessToken = '';
 let refreshToken = '';
@@ -99,6 +111,11 @@ export const api = {
     }),
 
   listarOrdens: () => authFetch(`${API_BASE}/ordens`),
+
+  // Paginado (opt-in). Use quando não precisar de todas as OS de uma vez — o
+  // dashboard continua usando listarOrdens() por precisar do mês inteiro.
+  listarOrdensPagina: (params: { page: number; pageSize?: number; status?: string }): Promise<Paginado<OrdemRow>> =>
+    authFetch(`${API_BASE}/ordens?${buildPageQuery(params)}`),
 
   obterOrdem: (id: string) => authFetch(`${API_BASE}/ordens/${id}`),
 
@@ -331,6 +348,11 @@ export const api = {
     const query = qs.toString();
     return authFetch(`${API_BASE}/financeiro/transacoes${query ? `?${query}` : ''}`);
   },
+
+  // Paginado (opt-in). Ideal para o extrato/histórico financeiro, que pode ter
+  // milhares de linhas ao longo dos anos.
+  listarTransacoesPagina: (params: { page: number; pageSize?: number; de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago' }): Promise<Paginado<Transacao>> =>
+    authFetch(`${API_BASE}/financeiro/transacoes?${buildPageQuery(params)}`),
 
   criarTransacao: (payload: Record<string, unknown>) =>
     authFetch(`${API_BASE}/financeiro/transacoes`, { method: 'POST', body: JSON.stringify(payload) }),
