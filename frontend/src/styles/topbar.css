@@ -4,6 +4,7 @@
   position: sticky;
   top: 0;
   z-index: 300;
+  padding: 0 10px;
 }
 
 .topbar__inner {
@@ -17,6 +18,27 @@
   display: flex;
   align-items: center;
   gap: 0;
+}
+
+.topbar__logo--clickable {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+}
+
+.topbar__logo--clickable:hover {
+  opacity: 0.82;
+}
+
+.topbar__logo--clickable:focus-visible {
+  outline: 2px solid var(--color-ferrari);
+  outline-offset: 3px;
 }
 
 .topbar__brand-line {

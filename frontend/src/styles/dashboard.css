@@ -1,3 +1,6 @@
+*{
+  user-select: none;
+}
 .dashboard-shell,
 .dashboard-mobile-shell,
 .home-shell,

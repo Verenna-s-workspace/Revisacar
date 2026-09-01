@@ -27,9 +27,10 @@ export function Topbar({
     .filter(Boolean)
     .join(" ");
 
-  const Logo = (
-    <div className="topbar__logo">
+  const logoContent = (
+    <>
       <div className="topbar__logo-mark" />
+
       <img
         src="/Logorevisavermelha.svg"
         alt="Logo RevisaCar"
@@ -44,7 +45,21 @@ export function Topbar({
         </div>
         <div className="topbar__subtitle">Inspeção Veicular</div>
       </div>
-    </div>
+    </>
+  );
+
+  const Logo = onBackToStart ? (
+    <button
+      type="button"
+      className="topbar__logo topbar__logo--clickable"
+      onClick={onBackToStart}
+      title="Voltar para a Home"
+      aria-label="Voltar para a Home"
+    >
+      {logoContent}
+    </button>
+  ) : (
+    <div className="topbar__logo">{logoContent}</div>
   );
 
   const SaveIndicator = (
@@ -118,11 +133,6 @@ export function Topbar({
           {Logo}
           <div className="topbar__actions">
             {SaveIndicator}
-            {onBackToStart && (
-              <button className={buttonClass()} onClick={onBackToStart}>
-                ← Voltar
-              </button>
-            )}
             <button className={buttonClass()} onClick={onReset}>
               Limpar tudo
             </button>
@@ -149,15 +159,7 @@ export function Topbar({
   return (
     <nav className="topbar topbar--mobile topbar-glass">
       <div className="topbar-mobile-row">
-        <div className="topbar-mobile-slot">
-          {onBackToStart ? (
-            <button className={buttonClass(false, true)} onClick={onBackToStart}>
-              ←{!isMobile && " Voltar"}
-            </button>
-          ) : (
-            <div />
-          )}
-        </div>
+        <div className="topbar-mobile-slot" />
         <div className="topbar-mobile-logo">{Logo}</div>
         <div className="topbar-mobile-end">
           <button className={buttonClass(true)} onClick={onExportPDF}>

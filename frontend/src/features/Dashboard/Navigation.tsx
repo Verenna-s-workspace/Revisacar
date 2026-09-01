@@ -184,7 +184,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
 
 // ── Desktop Header ─────────────────────────────────────────────────────────────
 
-export function DesktopHeader() {
+export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -197,10 +197,10 @@ export function DesktopHeader() {
       <div className="dashboard-header__actions" style={{ position: 'relative' }}>
 
         <div className="dashboard-header__indicator">
-          <button className="dashboard-button">{Icons.bell}</button>
-          <span className="dashboard-header__badge">3</span>
+          <button className="dashboard-button" onClick={() => onNav?.('atendimento')} title="Alertas" aria-label="Ver alertas">{Icons.bell}</button>
+          <span className="dashboard-header__badge">8</span>
         </div>
-        <button className="dashboard-button">{Icons.cal}</button>
+        <button className="dashboard-button" onClick={() => onNav?.('agendamentos')} title="Agendamentos" aria-label="Ver agendamentos">{Icons.cal}</button>
         <div className="dashboard-header__separator" />
         <div
           className="dashboard-header__profile"
@@ -213,44 +213,11 @@ export function DesktopHeader() {
             <div className="dashboard-header__role">Administrador</div>
           </div>
         </div>
-        {open && (
-          <div className="dashboard-header__dropdown" style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: 8,
-            background: 'white',
-            border: `1px solid ${tokens.color.border}`,
-            borderRadius: 8,
-            boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 1000,
-            minWidth: 160,
-            padding: 8,
-          }}>
-            <button
-              onClick={() => { logout(); setOpen(false); }}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                border: 'none',
-                background: 'transparent',
-                padding: '8px 12px',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#CC1400',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              {Icons.logout}
-              Sair
-            </button>
+        
           </div>
-        )}
+        
       </div>
-    </div>
+   
   );
 }
 

@@ -72,7 +72,7 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader />
+        <DesktopHeader onNav={onNav} />
         <div style={{ padding: '18px 28px 32px' }}>{children}</div>
       </main>
     </div>
@@ -401,11 +401,16 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   );
 
   // ── Alertas ────────────────────────────────────────────────────────────────
+  // O card inteiro e o último item da lista navegam para Atendimento (ainda a
+  // única tela com detalhe de alertas — ver mesmo padrão em Sidebar/alertas).
   const alertasSection = (
-    <Card style={{ padding: isMobile ? '14px 16px' : '18px 20px' }}>
+    <Card
+      onClick={() => handleNav('atendimento')}
+      style={{ padding: isMobile ? '14px 16px' : '18px 20px', cursor: 'pointer' }}
+    >
       <div className="dashboard-card__header" style={{ marginBottom: 12 }}>
         <div className="dashboard-card__header-title">ALERTAS IMPORTANTES</div>
-        <button style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
+        <button onClick={(e) => e.stopPropagation()} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {data.alertas.map((a, i) => {
@@ -414,8 +419,13 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
             warn: { bg: '#FFF8EC', border: 'rgba(179,92,0,0.18)', color: '#B35C00', icon: Icons.clock },
             info: { bg: '#F0FAF4', border: 'rgba(26,127,75,0.18)', color: '#1A7F4B', icon: Icons.cal },
           }[a.tipo];
+          const isUltimo = i === data.alertas.length - 1;
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 13px', borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, cursor: 'pointer' }}>
+            <div
+              key={i}
+              onClick={isUltimo ? (e) => { e.stopPropagation(); handleNav('atendimento'); } : undefined}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 13px', borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, cursor: 'pointer' }}
+            >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ color: cfg.color, flexShrink: 0, marginTop: 1, display: 'flex' }}>{cfg.icon}</span>
                 <div>
@@ -426,11 +436,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
               <span style={{ color: tokens.color.muted, flexShrink: 0, display: 'flex' }}>{Icons.arrow}</span>
             </div>
           );
-      })};
+      })}
       </div>
       {!isMobile && (
         <button
-
+          onClick={(e) => e.stopPropagation()}
           style={{ width: '100%', marginTop: 14, padding: '12px', background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           Ver Todos os Alertas →
@@ -495,7 +505,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     <div style={{ display: 'flex', minHeight: '100vh', background: tokens.color.bg }}>
       <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader />
+        <DesktopHeader onNav={handleNav} />
         <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {kpiRow}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 18 }}>

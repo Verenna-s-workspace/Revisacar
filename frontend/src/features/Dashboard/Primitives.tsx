@@ -16,10 +16,10 @@ export function Skeleton({ w = '100%', h = 16, r = 6 }: SkelProps) {
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
-interface CardProps { children: ReactNode; style?: React.CSSProperties; className?: string; }
-export function Card({ children, style, className = '' }: CardProps) {
+interface CardProps { children: ReactNode; style?: React.CSSProperties; className?: string; onClick?: React.MouseEventHandler<HTMLDivElement>; }
+export function Card({ children, style, className = '', onClick }: CardProps) {
   return (
-    <div className={`dashboard-card ${className}`} style={style}>
+    <div className={`dashboard-card ${className}`} style={style} onClick={onClick}>
       {children}
     </div>
   );
