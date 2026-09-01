@@ -58,10 +58,11 @@
 }
 
 .dashboard-sidebar__brand-inner {
-  font-family: 'Fredoka', cursive;
+  font-family: var(--font-sans);
   font-size: 1.15rem;
   color: var(--color-text);
   line-height: 1.1;
+  font-weight: 500;
 }
 
 .dashboard-sidebar__brand-inner span {

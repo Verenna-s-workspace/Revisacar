@@ -286,8 +286,8 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
       </button>
       <div className="dashboard-mobile-topbar__logo">
         <img src="/Logorevisavermelha.svg" alt="" width={30} height={30} />
-        <span style={{ fontFamily: "'Fredoka',cursive", fontSize: '1rem', color: tokens.color.text }}>
-          revisa<span style={{ color: '#CC1400' }}>car</span>
+        <span style={{ fontFamily: "var(--font-sans)", fontSize: '1rem', color: tokens.color.text }}>
+          Revisa<span style={{ color: '#CC1400' }}>car</span>
         </span>
       </div>
       <div className="dashboard-mobile-topbar__actions">
