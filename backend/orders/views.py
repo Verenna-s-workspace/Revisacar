@@ -18,7 +18,7 @@ from rest_framework.exceptions import ValidationError
 from supabase import create_client
 
 from .serializers import (
-    OrdemServicoSerializer, AdminSerializer, AdminLoginSerializer,
+    OrdemServicoSerializer, AdminSerializer, AdminLoginSerializer, ClienteSerializer ,
     FuncionarioSerializer, FuncionarioPinLoginSerializer, pwhash, valhash,
     validate_pin_format,
 )
