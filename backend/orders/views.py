@@ -252,7 +252,12 @@ def _require_auth(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None
-    return decode_jwt(auth_header.split(" ", 1)[1])
+    try:
+        token = auth_header.split(" ", 1)[1]
+        return decode_jwt(token)
+    except (IndexError, Exception):
+        # Handle malformed Authorization header or invalid token
+        return None
 
 
 def require_auth(view_func):
@@ -844,7 +849,7 @@ def clientes_list(request):
     POST /clientes        → cria novo cliente
     """
     if request.method == "GET":
-        res = supabase.table("clientes").select("*").order("created_at", desc=True).execute()
+        res = supabase.table("clientes").select("*").order("createdAt", desc=True).execute()
         return Response(res.data)
 
     # POST
@@ -914,7 +919,34 @@ def cliente_detail(request, cliente_id):
     if err:
         return err
 
-    supabase.table("clientes").delete().eq("id", cliente_id).execute()
+    delete_response = supabase.table("clientes").delete().eq("id", cliente_id).execute()
+    if not delete_response.data:
+        return Response({"detail": "Não encontrado"}, status=status.HTTP_404_NOT_FOUND)
+    return Response({"message": "Deletado"})
+
+    # DELETE
+    print(f"DEBUG: ====== DELETE OPERATION START =======")
+    print(f"DEBUG: Attempting to delete cliente with ID: {cliente_id}")
+
+    row, err = _get_by_id("clientes", cliente_id)
+    print(f"DEBUG: _get_by_id returned: row={row}, err={err}")
+
+    if err:
+        print(f"DEBUG: _get_by_id returned error, returning early")
+        return err
+
+    print(f"DEBUG: Record found, proceeding with delete operation")
+    delete_response = supabase.table("clientes").delete().eq("id", cliente_id).execute()
+    print(f"DEBUG: Delete response received: {delete_response}")
+    print(f"DEBUG: Delete response data: {delete_response.data}")
+    print(f"DEBUG: Delete response count: {len(delete_response.data) if delete_response.data else 0}")
+    print(f"DEBUG: ====== DELETE OPERATION END =======")
+
+    if not delete_response.data:
+        print(f"DEBUG: Delete operation affected 0 rows, returning 404")
+        return Response({"detail": "Não encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+    print(f"DEBUG: Delete operation successful, returning success message")
     return Response({"message": "Deletado"})
 
 

@@ -34,7 +34,7 @@ class OSHeaderSerializer(serializers.Serializer):
 
 class ClienteSerializer(serializers.Serializer):
     nome = serializers.CharField()
-    doc = serializers.CharField(default="")  # CPF ou CNPJ
+    doc = serializers.CharField()  # CPF ou CNPJ
     telefone = serializers.CharField()
     email = serializers.CharField(default="")
     endereco = serializers.CharField(default="")
@@ -42,15 +42,40 @@ class ClienteSerializer(serializers.Serializer):
     createdAt = serializers.CharField(default="")
     updatedAt = serializers.CharField(default="")
 
+    def to_internal_value(self, data):
+        # enviar tanto doc quanto cpfCnpj
+        if 'cpfCnpj' in data and 'doc' not in data:
+            data = data.copy()  # Don't modify original data
+            data['doc'] = data['cpfCnpj']
+        return super().to_internal_value(data)
+
     def validate_nome(self, value):
         if not value.strip():
             raise serializers.ValidationError("Nome obrigatório")
         return value.strip()
 
     def validate_doc(self, value):
-        if not utils.validate_cpf_cnpj(value):
-            raise serializers.ValidationError("CPF/CNPJ inválido")
-        return utils.normalize_cpf_cnpj(value)
+        # Handle None or empty values
+        if value is None:
+            raise serializers.ValidationError("CPF/CNPJ é obrigatório")
+
+        # Convert to string in case it's not
+        value_str = str(value).strip()
+
+        if not value_str:
+            raise serializers.ValidationError("CPF/CNPJ é obrigatório")
+            
+        if not utils.validate_cpf_cnpj(value_str):
+            # Provide more specific error message based on what we can detect
+            normalized = utils.normalize_cpf_cnpj(value_str)
+            if len(normalized) == 0:
+                raise serializers.ValidationError("CPF/CNPJ não pode conter apenas espaços ou caracteres não numéricos")
+            elif len(normalized) not in [11, 14]:
+                raise serializers.ValidationError(f"CPF/CNPJ deve ter 11 ou 14 dígitos, recebido: {len(normalized)}")
+            else:
+                raise serializers.ValidationError("CPF/CNPJ inválido")
+
+        return utils.normalize_cpf_cnpj(value_str)
 
     def validate_telefone(self, value):
         if not utils.validate_phone(value):
