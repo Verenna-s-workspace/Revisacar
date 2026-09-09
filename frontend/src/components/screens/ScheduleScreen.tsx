@@ -413,7 +413,13 @@ export function ScheduleScreen() {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       navigate('/');
     },
-    onError: (err: any) => toast.error(err.response?.data?.detail || 'Erro ao agendar'),
+    onError: (err: any) => {
+      // Mostrar mensagem específica do backend se disponível
+      const message = err.response?.data?.detail ||
+                     err.response?.data ||
+                     'Erro ao agendar';
+      toast.error(message);
+    },
   });
 
   const slideVariants = {

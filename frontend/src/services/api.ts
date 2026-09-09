@@ -4,6 +4,7 @@ import type {
   Appointment, Estimate, ServiceHistory, Notification,
   MaintenanceReminder, DashboardSummary, AuthTokens,
 } from '../types';
+import { useAuthStore } from '@/store/auth';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
 const BYPASS = import.meta.env.VITE_BYPASS_LOGIN === 'true';
@@ -16,13 +17,12 @@ export const apiClient = axios.create({
 
 // ── Attach JWT to every request ───────────────────────────────────────────────
 apiClient.interceptors.request.use((config) => {
-  const raw = localStorage.getItem('customer_session');
-  if (raw) {
-    try {
-      const session: CustomerSession = JSON.parse(raw);
-      if (session.access) config.headers.Authorization = `Bearer ${session.access}`;
-    } catch { /* ignore */ }
-  }
+  try {
+    const session = useAuthStore.getState().session;
+    if (session?.access) {
+      config.headers.Authorization = `Bearer ${session.access}`;
+    }
+  } catch { /* ignore */ }
   return config;
 });
 
@@ -118,7 +118,7 @@ function makeAvailableDates(year: number, month: number) {
   const d = new Date(year, month - 1, 1);
   while (d.getMonth() === month - 1) {
     const day = d.getDay();
-    // weekdays only
+    // weekdays only (Mon-Fri)
     if (day !== 0 && day !== 6) {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -130,7 +130,23 @@ function makeAvailableDates(year: number, month: number) {
   return dates;
 }
 
-const DEFAULT_TIMES = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00'];
+// More realistic mock times - simulating business hours with lunch break
+const DEFAULT_TIMES = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+
+// Simulate some slots being unavailable to mimic real availability
+function getMockAvailableTimes(date: string) {
+  // In a real app, this would vary by date, but for mock we'll just return most times
+  // Occasionally remove a time to simulate it being taken
+  const times = [...DEFAULT_TIMES];
+
+  // Remove a random time slot ~20% of the time to simulate booking
+  if (Math.random() < 0.2 && times.length > 3) {
+    const indexToRemove = Math.floor(Math.random() * times.length);
+    times.splice(indexToRemove, 1);
+  }
+
+  return times;
+}
 
 export const availabilityApi = {
   getDays: (year: number, month: number) => {
@@ -141,7 +157,7 @@ export const availabilityApi = {
   },
   getTimes: (date: string) => {
     if (BYPASS) {
-      return Promise.resolve({ data: { date, times: DEFAULT_TIMES } });
+      return Promise.resolve({ data: { date, times: getMockAvailableTimes(date) } });
     }
     return apiClient.get<{ date: string; times: string[] }>('/customer/availability/times', { params: { date } });
   },
