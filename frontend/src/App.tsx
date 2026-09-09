@@ -14,6 +14,7 @@ const Estimates     = lazy(() => import('./components/screens/EstimatesScreen').
 const Notifications = lazy(() => import('./components/screens/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
 const Profile       = lazy(() => import('./components/screens/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
 const AuthScreen    = lazy(() => import('./components/screens/AuthScreen').then(m => ({ default: m.AuthScreen })));
+const MechanicClientRegister = lazy(() => import('./components/screens/MechanicClientRegister').then(m => ({ default: m.MechanicClientRegister })));
 
 /* ─── Query Client ──────────────────────────────────────── */
 const qc = new QueryClient({

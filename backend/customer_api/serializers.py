@@ -244,6 +244,48 @@ class MaintenanceReminderSerializer(serializers.Serializer):
     progress_pct = serializers.FloatField(read_only=True)
 
 
+# ── PIN Auth ────────────────────────────────────────────────────────────────
+
+class CustomerPinLoginSerializer(serializers.Serializer):
+    documento = serializers.CharField(max_length=14)
+    pincode = serializers.CharField(min_length=6, max_length=6, write_only=True)
+
+    def validate_documento(self, value):
+        # Remove non-digits and validate length
+        digits = re.sub(r"\D", "", value or "")
+        if len(digits) not in [11, 14]:  # CPF (11) or CNPJ (14)
+            raise serializers.ValidationError("Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)")
+        return digits
+
+    def validate_pincode(self, value):
+        if not value.isdigit() or len(value) != 6:
+            raise serializers.ValidationError("PIN deve ter exatamente 6 dígitos")
+        return value
+
+
+class MechanicClientCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    document = serializers.CharField(max_length=20)  # CPF/CNPJ
+    pincode = serializers.CharField(min_length=6, max_length=6, write_only=True)
+
+    def validate_email(self, v):
+        return v.lower().strip()
+
+    def validate_document(self, v):
+        # Remove non-digits and validate length
+        digits = re.sub(r"\D", "", v or "")
+        if digits and len(digits) not in [11, 14]:  # CPF (11) or CNPJ (14)
+            raise serializers.ValidationError("Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)")
+        return digits
+
+    def validate_pincode(self, v):
+        if not v.isdigit():
+            raise serializers.ValidationError("PIN deve conter apenas números")
+        return v
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def pw_hash(password: str) -> str:

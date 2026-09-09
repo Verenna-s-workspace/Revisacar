@@ -9,6 +9,7 @@ Tables required:
 from __future__ import annotations
 import os
 from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
 from supabase import create_client, Client
 
 _client: Client | None = None
@@ -25,6 +26,16 @@ def get_client() -> Client:
     return _client
 
 
+def pin_hash(pin: str) -> str:
+    """Hash a PIN using the same mechanism as passwords"""
+    return make_password(pin)
+
+
+def pin_check(pin: str, hashed_pin: str) -> bool:
+    """Check PIN against hashed value"""
+    return check_password(pin, hashed_pin)
+
+
 # ── Customers ─────────────────────────────────────────────────────────────────
 
 def get_customer_by_email(email: str):
@@ -35,6 +46,37 @@ def get_customer_by_email(email: str):
 def get_customer_by_id(customer_id: str):
     r = get_client().table("customers").select("*").eq("id", customer_id).limit(1).execute()
     return r.data[0] if r.data else None
+
+
+def get_customer_by_document(documento: str):
+    """Get customer by CPF/CNPJ document"""
+    r = get_client().table("customers").select("*").eq("cpf", documento).limit(1).execute()
+    return r.data[0] if r.data else None
+
+
+def get_funcionario_by_id(funcionario_id: str):
+    """Get funcionario by ID"""
+    # Note: Using raw SQL since we don't have a funcionarios service yet
+    # This is a simplified version - in production you might want to add proper error handling
+    try:
+        r = get_client().table("funcionarios").select("*").eq("id", funcionario_id).limit(1).execute()
+        return r.data[0] if r.data else None
+    except Exception:
+        return None
+
+
+def get_customer_by_pin(pin: str):
+    """Get customer by PIN (iterates through all customers - for small datasets)"""
+    # Note: This is not optimal for large datasets. For production with many customers,
+    # consider adding an index or using a different approach.
+    try:
+        r = get_client().table("customers").select("id, name, email, pincode").execute()
+        for customer in (r.data or []):
+            if pin_check(pin, customer.get("pincode", "")):
+                return customer
+        return None
+    except Exception:
+        return None
 
 
 def create_customer(data: dict):

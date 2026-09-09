@@ -187,6 +187,74 @@ def forgot_password(request):
     return Response({"detail": "Se o e-mail existir, você receberá as instruções."})
 
 
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def pin_login(request):
+    """POST /api/customer/auth/pin-login - Login with document and 6-digit PIN"""
+    s = CustomerPinLoginSerializer(data=request.data)
+    if not s.is_valid():
+        return Response(s.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    d = s.validated_data
+    documento = d["documento"]
+    pincode = d["pincode"]
+
+    # Find client by documento (CPF/CNPJ)
+    customer = services.get_customer_by_document(documento)
+    if not customer or not pw_check(pincode, customer.get("pincode", "")):
+        return Response({"detail": "Documento ou PIN incorretos"},
+                       status=status.HTTP_401_UNAUTHORIZED)
+
+    tokens = _make_tokens(customer["id"], customer["name"])
+    return Response({
+        **tokens,
+        "customer": {"id": customer["id"], "name": customer["name"], "email": customer["email"]},
+    })
+
+
+@api_view(["POST"])
+@authentication_classes([CustomJWTAuthentication])
+@permission_classes([IsAuthenticated])
+def mechanic_create_client(request):
+    """POST /api/customer/mechanic/clients"""
+    # Verify user is a mechanic
+    user_id = _get_customer_id(request)
+    funcionario = services.get_funcionario_by_id(user_id)
+    if not funcionario or funcionario.get('cargo') != 'mecanico':
+        return Response({"detail": "Acesso negado"}, status=status.HTTP_403_FORBIDDEN)
+
+    s = MechanicClientCreateSerializer(data=request.data)
+    if not s.is_valid():
+        return Response(s.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    d = s.validated_data
+
+    if services.get_customer_by_email(d["email"]):
+        return Response({"detail": "E-mail já cadastrado"}, status=status.HTTP_409_CONFLICT)
+
+    cid = new_id()
+    customer = services.create_customer({
+        "id": cid,
+        "name": d["name"],
+        "email": d["email"],
+        "phone": d["phone"],
+        "cpf": d["document"],
+        "pincode": pw_hash(d["pincode"]),
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    })
+
+    if not customer:
+        return Response({"detail": "Erro ao criar cliente"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({
+        "id": customer["id"],
+        "name": customer["name"],
+        "email": customer["email"],
+        "phone": customer.get("phone", ""),
+    }, status=status.HTTP_201_CREATED)
+
+
 # ════════════════════════════════════════════════════════════════════════════════
 # PROFILE
 # ════════════════════════════════════════════════════════════════════════════════

@@ -22,4 +22,4 @@ ON appointments (vehicle_id, date, time_slot);
 COMMENT ON INDEX idx_appointments_vehicle_date_time_unique IS 'Evita agendamentos duplicados para o mesmo veículo na mesma data/hora quando status é pendente ou confirmado';
 COMMENT ON INDEX idx_availability_slots_date_time IS 'Melhora desempenho das consultas de disponibilidade por data e horário';
 COMMENT ON INDEX idx_availability_slots_available IS 'Melhora desempenho das consultas de slots disponíveis';
-COMMENT ON INDEX idx_appointments_vehicle_date_time IS 'Melhora desempenho das consultas de agendamentos por veículo, data e horário';
+COMMENT ON INDEX idx_appointments_vehicle_date_time IS 'Melhora desempenho das consultas de agendamentos por veículo, data e horário';ALTER TABLE customers ADD COLUMN pin_hash VARCHAR(255);

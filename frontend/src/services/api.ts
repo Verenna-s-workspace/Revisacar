@@ -69,6 +69,9 @@ export const authApi = {
   login: (email: string, password: string) =>
     apiClient.post<AuthTokens & { customer: { id: string; name: string; email: string } }>('/customer/auth/login', { email, password }),
 
+  pinLogin: (data: { documento: string; pincode: string }) =>
+    apiClient.post<AuthTokens & { customer: { id: string; name: string; email: string } }>('/customer/auth/pin-login', data),
+
   forgotPassword: (email: string) =>
     apiClient.post('/customer/auth/forgot-password', { email }),
 };
