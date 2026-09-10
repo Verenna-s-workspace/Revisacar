@@ -70,12 +70,41 @@ def get_customer_by_pin(pin: str):
     # Note: This is not optimal for large datasets. For production with many customers,
     # consider adding an index or using a different approach.
     try:
-        r = get_client().table("customers").select("id, name, email, pincode").execute()
+        r = get_client().table("customers").select("id, name, email, pin_hash").execute()
         for customer in (r.data or []):
-            if pin_check(pin, customer.get("pincode", "")):
+            if pin_check(pin, customer.get("pin_hash", "")):
                 return customer
         return None
     except Exception:
+        return None
+
+
+def get_precadastro_by_document_and_pin(documento: str, pin: str):
+    """Check for pre-cadastro in mechanic app's backuprevisa.clientes table"""
+    try:
+        # Get client with schema set to backuprevisa
+        client = get_client()
+        # Temporarily set schema to backuprevisa for this query
+        client.postgrest.schema('backuprevisa')
+        r = client.table("clientes").select("id, nome, email, telefone, pin_hash, cpfCnpj").eq("cpfCnpj", documento).execute()
+        # Reset schema to public
+        client.postgrest.schema('public')
+
+        precadastros = r.data or []
+        for precadastro in precadastros:
+            if pin_check(pin, precadastro.get("pin_hash", "")):
+                return precadastro
+        return None
+    except Exception as e:
+        # If schema approach fails, try direct table reference
+        try:
+            r = get_client().table('backuprevisa.clientes').select("id, nome, email, telefone, pin_hash, cpfCnpj").eq("cpfCnpj", documento).execute()
+            precadastros = r.data or []
+            for precadastro in precadastros:
+                if pin_check(pin, precadastro.get("pin_hash", "")):
+                    return precadastro
+        except Exception:
+            pass
         return None
 
 

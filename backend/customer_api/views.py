@@ -21,6 +21,7 @@ from .serializers import (
     CustomerProfileSerializer, VehicleSerializer, VehicleUpdateSerializer,
     AppointmentCreateSerializer, EstimateActionSerializer,
     AvailableMonthSerializer, NotificationSerializer,
+    CustomerPinLoginSerializer, MechanicClientCreateSerializer,
     pw_hash, pw_check, new_id, now_iso,
 )
 from . import services
@@ -199,17 +200,46 @@ def pin_login(request):
     documento = d["documento"]
     pincode = d["pincode"]
 
-    # Find client by documento (CPF/CNPJ)
+    # First try to find existing customer
     customer = services.get_customer_by_document(documento)
-    if not customer or not pw_check(pincode, customer.get("pincode", "")):
-        return Response({"detail": "Documento ou PIN incorretos"},
-                       status=status.HTTP_401_UNAUTHORIZED)
+    if customer and services.pw_check(pincode, customer.get("pin_hash", "")):
+        # Existing customer found and PIN matches
+        tokens = _make_tokens(customer["id"], customer["name"])
+        return Response({
+            **tokens,
+            "customer": {"id": customer["id"], "name": customer["name"], "email": customer["email"]},
+        })
 
-    tokens = _make_tokens(customer["id"], customer["name"])
-    return Response({
-        **tokens,
-        "customer": {"id": customer["id"], "name": customer["name"], "email": customer["email"]},
-    })
+    # If not found or PIN doesn't match, check for pre-cadastro in mechanic app
+    precadastro = services.get_precadastro_by_document_and_pin(documento, pincode)
+    if precadastro:
+        # Pre-cadastro found - automatically create customer record
+        cid = new_id()
+        customer_data = {
+            "id": cid,
+            "name": precadastro["nome"],
+            "email": precadastro["email"],
+            "phone": precadastro.get("telefone", ""),
+            "cpf": precadastro["cpfCnpj"],  # Store document as CPF
+            "pin_hash": precadastro["pin_hash"],  # Use the same hashed PIN
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+        }
+
+        customer = services.create_customer(customer_data)
+        if not customer:
+            return Response({"detail": "Erro ao criar conta do pré-cadastro"},
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        tokens = _make_tokens(customer["id"], customer["name"])
+        return Response({
+            **tokens,
+            "customer": {"id": customer["id"], "name": customer["name"], "email": customer["email"]},
+        }, status=status.HTTP_201_CREATED)  # 201 since we just created it
+
+    # If neither existing customer nor valid pre-cadastro found
+    return Response({"detail": "Documento ou PIN incorretos"},
+                   status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(["POST"])
@@ -239,7 +269,7 @@ def mechanic_create_client(request):
         "email": d["email"],
         "phone": d["phone"],
         "cpf": d["document"],
-        "pincode": pw_hash(d["pincode"]),
+        "pin_hash": pw_hash(d["pincode"]),
         "created_at": now_iso(),
         "updated_at": now_iso(),
     })
