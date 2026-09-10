@@ -24,6 +24,7 @@ export interface Cliente {
   endereco?: string;
   fotoPrincipal?: string; // data URL ou caminho remoto
   observacoes?: string;
+  pin?: string; // PIN de 6 dígitos para acesso ao app do cliente (opcional)
   createdAt: string;
   updatedAt?: string;
 }
@@ -37,6 +38,7 @@ export interface NovoClienteInput {
   endereco?: string;
   fotoPrincipal?: string;
   observacoes?: string;
+  pin?: string; // PIN de 6 dígitos para acesso ao app do cliente (opcional)
 }
 
 /**

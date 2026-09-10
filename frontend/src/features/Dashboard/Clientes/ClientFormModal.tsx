@@ -14,7 +14,7 @@ interface ClientFormModalProps {
 }
 
 interface FormState {
-  nome: string; cpfCnpj: string; telefone: string; email: string; endereco: string; observacoes: string;
+  nome: string; cpfCnpj: string; telefone: string; email: string; endereco: string; observacoes: string; pin: string;
 }
 
 function buildInitialState(c?: Cliente): FormState {
@@ -25,6 +25,7 @@ function buildInitialState(c?: Cliente): FormState {
     email: c?.email ?? '',
     endereco: c?.endereco ?? '',
     observacoes: c?.observacoes ?? '',
+    pin: c?.pin ?? '',
   };
 }
 
@@ -59,7 +60,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
   const removeVeiculo = (idx: number) => setVeiculosNovos(prev => prev.filter((_, i) => i !== idx));
   const addVeiculo = () => setVeiculosNovos(prev => [...prev, buildEmptyVeiculo()]);
 
-  const step1Valid = form.nome.trim() !== '';
+  const step1Valid = form.nome.trim() !== '' && (form.pin === '' || /^\d{6}$/.test(form.pin));
   const veiculosValid = veiculosNovos.every(v => v.marca.trim() && v.modelo.trim() && v.placa.trim());
 
   const handleSubmit = () => {
@@ -72,6 +73,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
       endereco: form.endereco.trim() || undefined,
       observacoes: form.observacoes.trim() || undefined,
       fotoPrincipal,
+      pin: form.pin.trim() || undefined,
     };
     onSave(input, veiculosNovos);
     onClose();
@@ -181,6 +183,18 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                   placeholder="Observações gerais sobre o cliente..."
                   value={form.observacoes}
                   onChange={setField('observacoes')}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>PIN (opcional)</label>
+                <input
+                  style={inputStyle}
+                  placeholder="6 dígitos"
+                  type="number"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={form.pin}
+                  onChange={e => setForm(prev => ({ ...prev, pin: e.target.value }))}
                 />
               </div>
             </div>

@@ -44,6 +44,7 @@ export function useClientes() {
       endereco: input.endereco,
       fotoPrincipal: input.fotoPrincipal,
       observacoes: input.observacoes,
+      pin: input.pin,
       createdAt: new Date().toISOString(),
     };
 
@@ -51,15 +52,16 @@ export function useClientes() {
     setClientes(prev => [novo, ...prev]);
 
     try {
-      await api.criarCliente(input);
+      const createdCliente = await api.criarCliente(input);
+      // Replace the optimistic client with the real one from the backend
+      setClientes(prev => prev.map(c => c.id === novo.id ? createdCliente : c));
+      return createdCliente;
     } catch (error) {
       // Rollback optimistic update on failure
       setClientes(prev => prev.filter(c => c.id !== novo.id));
       console.error('Failed to create client', error);
       throw error; // Re-throw to allow caller to handle if needed
     }
-
-    return novo;
   }, []);
 
   const updateCliente = useCallback(async (id: string, patch: Partial<NovoClienteInput>) => {

@@ -23,7 +23,7 @@ const INITIAL_OS_HEADER = (): OSHeader => ({
   os_km:   '',
 });
 
-const INITIAL_CLIENTE: Cliente = { nome: '', doc: '', tel: '', email: '' };
+const INITIAL_CLIENTE: Cliente = { nome: '', doc: '', tel: '', email: '', pin: '' };
 const INITIAL_VEICULO: Veiculo = {
   placa: '', modelo: '', ano: '', cor: '',
   combustivel: '', nivel_combustivel: '', chassi: '', obs_entrada: '', obs_cliente: '',

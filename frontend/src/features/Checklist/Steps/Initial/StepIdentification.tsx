@@ -135,6 +135,14 @@ export function Step1({ os }: StepProps) {
               onChangeValue={(v) => setCliente((p) => ({ ...p, email: v }))}
             />
           </Field>
+          <Field label="PIN (opcional)">
+            <Input
+              name="cliente_pin" placeholder="6 dígitos" maxLength={6} onlyNumbers
+              value={cliente.pin ?? ''}
+              error={hasErr('cli_pin') ? 'PIN deve ter 6 dígitos' : undefined}
+              onChangeValue={(v) => setCliente((p) => ({ ...p, pin: v }))}
+            />
+          </Field>
         </div>
       </FormBlock>
 

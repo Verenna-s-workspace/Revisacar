@@ -39,6 +39,7 @@ class ClienteSerializer(serializers.Serializer):
     email = serializers.CharField(default="")
     endereco = serializers.CharField(default="")
     observacoes = serializers.CharField(default="")
+    pin = serializers.CharField(required=False, allow_blank=True)  # PIN de 6 dígitos (opcional)
     createdAt = serializers.CharField(default="")
     updatedAt = serializers.CharField(default="")
 
@@ -64,7 +65,7 @@ class ClienteSerializer(serializers.Serializer):
 
         if not value_str:
             raise serializers.ValidationError("CPF/CNPJ é obrigatório")
-            
+
         if not utils.validate_cpf_cnpj(value_str):
             # Provide more specific error message based on what we can detect
             normalized = utils.normalize_cpf_cnpj(value_str)
@@ -81,6 +82,15 @@ class ClienteSerializer(serializers.Serializer):
         if not utils.validate_phone(value):
             raise serializers.ValidationError("Telefone inválido")
         return utils.normalize_phone(value)
+
+    def validate_pin(self, value):
+        # PIN is optional, but if provided must be exactly 6 digits
+        if value is None or value == "":
+            return value
+        v = str(value).strip()
+        if not re.match(r"^\d{6}$", v):
+            raise serializers.ValidationError("PIN deve ter exatamente 6 dígitos numéricos")
+        return v
 
 
 # ── Funcionários (RBAC) ──────────────────────────────────────────────────────

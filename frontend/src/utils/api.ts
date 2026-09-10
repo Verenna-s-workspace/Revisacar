@@ -150,7 +150,7 @@ export const api = {
     authFetch(`${API_BASE}/clientes`, {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
+    }).then(data => Array.isArray(data) ? data[0] : data),
 
   atualizarCliente: (id: string, payload: unknown) =>
     authFetch(`${API_BASE}/clientes/${id}`, {

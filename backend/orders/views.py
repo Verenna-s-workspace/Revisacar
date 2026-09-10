@@ -861,6 +861,12 @@ def clientes_list(request):
     cliente_id = str(uuid.uuid4())
     now = _now()
 
+    # Hash PIN if provided
+    pin_hash = None
+    pin = cliente.get("pin")
+    if pin and pin.strip():
+        pin_hash = pwhash(pin)
+
     data = {
         "id": cliente_id,
         "nome": cliente["nome"],
@@ -869,6 +875,7 @@ def clientes_list(request):
         "email": cliente["email"],
         "endereco": cliente["endereco"],
         "observacoes": cliente["observacoes"],
+        "pin_hash": pin_hash,  # hash do PIN (opcional)
         "createdAt": now,
         "updatedAt": now,
     }
@@ -906,6 +913,15 @@ def cliente_detail(request, cliente_id):
             "endereco": cliente.get("endereco"),
             "observacoes": cliente.get("observacoes"),
         }
+
+        # Handle PIN update if provided
+        pin = cliente.get("pin")
+        if pin is not None:  # Allow empty string to clear PIN
+            if pin and pin.strip():
+                update["pin_hash"] = pwhash(pin)
+            else:
+                update["pin_hash"] = None  # Clear PIN if empty string provided
+
         # Remove campos que não foram fornecidos (None values)
         update = {k: v for k, v in update.items() if v is not None}
 
@@ -922,31 +938,6 @@ def cliente_detail(request, cliente_id):
     delete_response = supabase.table("clientes").delete().eq("id", cliente_id).execute()
     if not delete_response.data:
         return Response({"detail": "Não encontrado"}, status=status.HTTP_404_NOT_FOUND)
-    return Response({"message": "Deletado"})
-
-    # DELETE
-    print(f"DEBUG: ====== DELETE OPERATION START =======")
-    print(f"DEBUG: Attempting to delete cliente with ID: {cliente_id}")
-
-    row, err = _get_by_id("clientes", cliente_id)
-    print(f"DEBUG: _get_by_id returned: row={row}, err={err}")
-
-    if err:
-        print(f"DEBUG: _get_by_id returned error, returning early")
-        return err
-
-    print(f"DEBUG: Record found, proceeding with delete operation")
-    delete_response = supabase.table("clientes").delete().eq("id", cliente_id).execute()
-    print(f"DEBUG: Delete response received: {delete_response}")
-    print(f"DEBUG: Delete response data: {delete_response.data}")
-    print(f"DEBUG: Delete response count: {len(delete_response.data) if delete_response.data else 0}")
-    print(f"DEBUG: ====== DELETE OPERATION END =======")
-
-    if not delete_response.data:
-        print(f"DEBUG: Delete operation affected 0 rows, returning 404")
-        return Response({"detail": "Não encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
-    print(f"DEBUG: Delete operation successful, returning success message")
     return Response({"message": "Deletado"})
 
 
