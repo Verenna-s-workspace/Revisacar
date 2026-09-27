@@ -223,6 +223,7 @@ def pin_login(request):
             "cpf": precadastro["cpfCnpj"],  # Store document as CPF
             "pin_hash": precadastro["pin_hash"],  # Use the same hashed PIN
             "created_at": now_iso(),
+            "pwhash": pw_hash(""),  # Initialize empty password hash
             "updated_at": now_iso(),
         }
 
@@ -270,10 +271,10 @@ def mechanic_create_client(request):
         "phone": d["phone"],
         "cpf": d["document"],
         "pin_hash": pw_hash(d["pincode"]),
+        "pwhash": pw_hash(""),  # Initialize empty password hash
         "created_at": now_iso(),
         "updated_at": now_iso(),
     })
-
     if not customer:
         return Response({"detail": "Erro ao criar cliente"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
