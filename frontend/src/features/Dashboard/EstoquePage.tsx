@@ -48,6 +48,12 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
   const [editandoKit, setEditandoKit] = useState<EstoqueKit | undefined>(undefined);
   const [excluindoKit, setExcluindoKit] = useState<EstoqueKit | null>(null);
 
+  // Erros do servidor: ao salvar, ficam dentro do modal (que continua aberto);
+  // ao excluir, vão pra um aviso no topo da página (o modal de confirmação fecha).
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null);
+
   const [aplicandoKitId, setAplicandoKitId] = useState<string | null>(null);
   const [erroAplicarKit, setErroAplicarKit] = useState<Record<string, string>>({});
 
@@ -68,33 +74,62 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
   }, [itens, visao, somenteBaixo]);
 
   function abrirNovoProduto() {
+    setErroSalvar(null);
     setEditandoItem(undefined);
     setModalProdutoAberto(true);
   }
   function abrirEdicaoProduto(item: EstoqueItem) {
+    setErroSalvar(null);
     setEditandoItem(item);
     setModalProdutoAberto(true);
   }
-  function salvarProduto(input: NovoEstoqueItemInput) {
-    if (editandoItem) atualizarItem(editandoItem.id, input);
-    else criarItem(input);
-    setModalProdutoAberto(false);
-    setEditandoItem(undefined);
+  async function salvarProduto(input: NovoEstoqueItemInput) {
+    setSalvando(true);
+    setErroSalvar(null);
+    try {
+      if (editandoItem) await atualizarItem(editandoItem.id, input);
+      else await criarItem(input);
+      setModalProdutoAberto(false);
+      setEditandoItem(undefined);
+    } catch (e) {
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o item.');
+    } finally {
+      setSalvando(false);
+    }
   }
 
   function abrirNovoKit() {
+    setErroSalvar(null);
     setEditandoKit(undefined);
     setModalKitAberto(true);
   }
   function abrirEdicaoKit(kit: EstoqueKit) {
+    setErroSalvar(null);
     setEditandoKit(kit);
     setModalKitAberto(true);
   }
-  function salvarKit(input: NovoEstoqueKitInput) {
-    if (editandoKit) atualizarKit(editandoKit.id, input);
-    else criarKit(input);
-    setModalKitAberto(false);
-    setEditandoKit(undefined);
+  async function salvarKit(input: NovoEstoqueKitInput) {
+    setSalvando(true);
+    setErroSalvar(null);
+    try {
+      if (editandoKit) await atualizarKit(editandoKit.id, input);
+      else await criarKit(input);
+      setModalKitAberto(false);
+      setEditandoKit(undefined);
+    } catch (e) {
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o kit.');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function confirmarExclusao(acao: () => Promise<void>) {
+    setErroExcluir(null);
+    try {
+      await acao();
+    } catch (e) {
+      setErroExcluir(e instanceof Error ? e.message : 'Não foi possível excluir.');
+    }
   }
 
   async function handleAplicarKit(kit: EstoqueKit) {
@@ -196,6 +231,21 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
           display: 'flex', flexDirection: 'column', gap: 16,
         }}
       >
+        {erroExcluir && (
+          <Card style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ color: tokens.color.crit, display: 'flex' }}>{Icons.alert}</span>
+              <span style={{ fontSize: '0.85rem', color: tokens.color.text }}>{erroExcluir}</span>
+            </div>
+            <button
+              onClick={() => setErroExcluir(null)}
+              style={{ padding: '6px 12px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, cursor: 'pointer', fontSize: '0.78rem', color: tokens.color.text }}
+            >
+              Fechar
+            </button>
+          </Card>
+        )}
+
         {erro && !carregando && (
           <Card style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -373,6 +423,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
           item={editandoItem}
           categoriaInicial={visao.tipo === 'categoria' ? visao.categoria : undefined}
           onSave={salvarProduto}
+          erro={erroSalvar}
+          salvando={salvando}
           onClose={() => { setModalProdutoAberto(false); setEditandoItem(undefined); }}
         />
       )}
@@ -380,7 +432,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
         <ConfirmDeleteModal
           nome={excluindoItem.nome}
           entidadeLabel="produto"
-          onConfirm={() => excluirItem(excluindoItem.id)}
+          onConfirm={() => confirmarExclusao(() => excluirItem(excluindoItem.id))}
           onClose={() => setExcluindoItem(null)}
         />
       )}
@@ -389,6 +441,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
           kit={editandoKit}
           itensDisponiveis={itens}
           onSave={salvarKit}
+          erro={erroSalvar}
+          salvando={salvando}
           onClose={() => { setModalKitAberto(false); setEditandoKit(undefined); }}
         />
       )}
@@ -396,7 +450,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
         <ConfirmDeleteModal
           nome={excluindoKit.nome}
           entidadeLabel="kit"
-          onConfirm={() => excluirKit(excluindoKit.id)}
+          onConfirm={() => confirmarExclusao(() => excluirKit(excluindoKit.id))}
           onClose={() => setExcluindoKit(null)}
         />
       )}

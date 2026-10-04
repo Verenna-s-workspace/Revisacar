@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import financeiro_views
+from . import estoque_views
 
 urlpatterns = [
     # Root
@@ -44,6 +45,18 @@ urlpatterns = [
     path("financeiro/resumo", financeiro_views.resumo),
     path("financeiro/transacoes", financeiro_views.transacoes),
     path("financeiro/transacoes/<str:transacao_id>", financeiro_views.transacao_detail),
+
+    # Estoque — protegido por estoque.ver / estoque.editar.
+    # "estoque/movimentos" ANTES de "estoque/<item_id>", senão "movimentos"
+    # seria interpretado como um id.
+    path("estoque", estoque_views.estoque_list),
+    path("estoque/movimentos", estoque_views.movimentos_list),
+    path("estoque/<str:item_id>", estoque_views.estoque_detail),
+
+    # Kits de estoque (receitas) — aplicar dá baixa em todos os componentes
+    path("kits", estoque_views.kits_list),
+    path("kits/<str:kit_id>", estoque_views.kit_detail),
+    path("kits/<str:kit_id>/aplicar", estoque_views.kit_aplicar),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

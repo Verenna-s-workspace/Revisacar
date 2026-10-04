@@ -6,7 +6,8 @@ interface ConfirmDeleteModalProps {
   nome: string;
   /** Ex.: "produto", "kit" — encaixa na frase "excluir o <entidadeLabel> X?". */
   entidadeLabel: string;
-  onConfirm: () => void;
+  /** Pode ser assíncrono. O modal fecha ao terminar; erros devem ser tratados por quem passa a função. */
+  onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -39,7 +40,7 @@ export function ConfirmDeleteModal({ nome, entidadeLabel, onConfirm, onClose }: 
             Cancelar
           </button>
           <button
-            onClick={() => { onConfirm(); onClose(); }}
+            onClick={async () => { try { await onConfirm(); } finally { onClose(); } }}
             style={{ padding: '11px 16px', borderRadius: 11, border: 'none', background: tokens.color.crit, color: 'white', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}
           >
             Sim, Excluir

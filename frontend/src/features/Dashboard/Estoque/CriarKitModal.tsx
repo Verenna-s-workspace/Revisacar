@@ -19,10 +19,13 @@ interface CriarKitModalProps {
   kit?: EstoqueKit;                  // presente = modo edição
   itensDisponiveis: EstoqueItem[];   // reaproveita o que já existe — kit não cadastra item novo aqui
   onSave: (input: NovoEstoqueKitInput) => void;
+  /** Erro devolvido pelo servidor ao salvar — o modal fica aberto pra corrigir. */
+  erro?: string | null;
+  salvando?: boolean;
   onClose: () => void;
 }
 
-export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarKitModalProps) {
+export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, onClose }: CriarKitModalProps) {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [fotoDataUrl, setFotoDataUrl] = useState<string | undefined>(undefined);
@@ -234,6 +237,12 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarK
             </div>
           </div>
 
+          {erro && (
+            <div role="alert" style={{ margin: '0 24px 12px', padding: '10px 12px', borderRadius: 8, background: tokens.color.critBg, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
+              {erro}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${tokens.color.border}` }}>
             <button
               type="button"
@@ -244,7 +253,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarK
             </button>
             <button
               type="submit"
-              disabled={!nome.trim() || receita.length === 0}
+              disabled={!nome.trim() || receita.length === 0 || salvando}
               style={{
                 padding: '10px 20px', borderRadius: 8, border: 'none', fontSize: '0.85rem', fontWeight: 700,
                 background: !nome.trim() || receita.length === 0 ? tokens.color.surfaceHigh : tokens.color.ferrari,
@@ -252,7 +261,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, onClose }: CriarK
                 cursor: !nome.trim() || receita.length === 0 ? 'not-allowed' : 'pointer',
               }}
             >
-              {editando ? 'Salvar Alterações' : 'Criar Kit'}
+              {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Criar Kit'}
             </button>
           </div>
         </form>
