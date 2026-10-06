@@ -33,10 +33,13 @@ interface ProdutoModalProps {
   item?: EstoqueItem;                 // presente = modo edição
   categoriaInicial?: string;          // pré-preenche ao abrir de dentro de uma categoria
   onSave: (input: NovoEstoqueItemInput) => void;
+  /** Erro devolvido pelo servidor ao salvar — o modal fica aberto pra corrigir e tentar de novo. */
+  erro?: string | null;
+  salvando?: boolean;
   onClose: () => void;
 }
 
-export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: ProdutoModalProps) {
+export function ProdutoModal({ item, categoriaInicial, onSave, erro, salvando, onClose }: ProdutoModalProps) {
   const [form, setForm] = useState<NovoEstoqueItemInput>(FORM_VAZIO);
   const [comprimindo, setComprimindo] = useState(false);
   const [erroFoto, setErroFoto] = useState<string | null>(null);
@@ -276,6 +279,12 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
             </div>
           </div>
 
+          {erro && (
+            <div role="alert" style={{ margin: '0 24px 12px', padding: '10px 12px', borderRadius: 8, background: tokens.color.critBg, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
+              {erro}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${tokens.color.border}` }}>
             <button
               type="button"
@@ -286,9 +295,10 @@ export function ProdutoModal({ item, categoriaInicial, onSave, onClose }: Produt
             </button>
             <button
               type="submit"
-              style={{ padding: '10px 20px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
+              disabled={salvando}
+              style={{ padding: '10px 20px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: salvando ? 'wait' : 'pointer', opacity: salvando ? 0.7 : 1 }}
             >
-              {editando ? 'Salvar Alterações' : 'Salvar Produto'}
+              {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Salvar Produto'}
             </button>
           </div>
         </form>

@@ -1,0 +1,3 @@
+pytest>=8
+pixeltable-pgserver
+psycopg2-binary
