@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../utils/api';
+import { mensagemDoErro } from '../utils/api_erro';
 import { buildSeedServicos } from '../utils/servicos_utils';
 import type { NovoServicoInput, ServicoItem } from '../types/servico';
 
@@ -51,7 +52,20 @@ export function useServicos() {
     load();
   }, [load]);
 
+  // Com a API no ar o servidor é a fonte da verdade: nada aparece na lista
+  // antes dele confirmar, e o item mostrado é o que ele devolveu (id real,
+  // valores normalizados). Se falhar, a função lança com a mensagem do
+  // servidor pra tela mostrar. Em modo demo (dev, API fora) segue local.
   const addServico = useCallback(async (input: NovoServicoInput) => {
+    if (usingApi) {
+      try {
+        const criado: ServicoItem = await api.criarServico(input);
+        setServicos(prev => [criado, ...prev]);
+        return criado;
+      } catch (e) {
+        throw new Error(mensagemDoErro(e, 'Não foi possível salvar o serviço. Tente novamente.'));
+      }
+    }
     const novo: ServicoItem = {
       id: makeId(),
       nome: input.nome,
@@ -62,41 +76,32 @@ export function useServicos() {
       ativo: input.ativo ?? true,
       createdAt: new Date().toISOString(),
     };
-
     setServicos(prev => [novo, ...prev]);
-
-    if (usingApi) {
-      try {
-        await api.criarServico(input);
-      } catch {
-        // mantém o registro local mesmo se a chamada falhar
-      }
-    }
     return novo;
   }, [usingApi]);
 
   const updateServico = useCallback(async (id: string, patch: Partial<NovoServicoInput>) => {
-    setServicos(prev => prev.map(s => (s.id === id ? { ...s, ...patch, updatedAt: new Date().toISOString() } : s)));
-
     if (usingApi) {
       try {
-        await api.atualizarServico(id, patch);
-      } catch {
-        // segue com o estado local
+        const atualizado: ServicoItem = await api.atualizarServico(id, patch);
+        setServicos(prev => prev.map(s => (s.id === id ? atualizado : s)));
+        return;
+      } catch (e) {
+        throw new Error(mensagemDoErro(e, 'Não foi possível atualizar o serviço. Tente novamente.'));
       }
     }
+    setServicos(prev => prev.map(s => (s.id === id ? { ...s, ...patch, updatedAt: new Date().toISOString() } : s)));
   }, [usingApi]);
 
   const deleteServico = useCallback(async (id: string) => {
-    setServicos(prev => prev.filter(s => s.id !== id));
-
     if (usingApi) {
       try {
         await api.deletarServico(id);
-      } catch {
-        // já removido localmente
+      } catch (e) {
+        throw new Error(mensagemDoErro(e, 'Não foi possível excluir o serviço. Tente novamente.'));
       }
     }
+    setServicos(prev => prev.filter(s => s.id !== id));
   }, [usingApi]);
 
   const toggleAtivo = useCallback(async (id: string) => {

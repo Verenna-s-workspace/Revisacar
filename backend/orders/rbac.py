@@ -31,6 +31,9 @@ PERMISSOES = {
     # Estoque
     "estoque.ver",
     "estoque.editar",
+    # Catálogo de serviços
+    "servicos.ver",
+    "servicos.editar",
     # Clientes e veículos
     "clientes.ver",
     "clientes.editar",
@@ -55,6 +58,7 @@ CARGO_PERMISSOES: dict[str, frozenset[str]] = {
         "ordens.ver",
         "ordens.editar",
         "estoque.ver",
+        "servicos.ver",
         "clientes.ver",
         "agendamentos.ver",
     }),
@@ -66,6 +70,7 @@ CARGO_PERMISSOES: dict[str, frozenset[str]] = {
         "agendamentos.ver",
         "agendamentos.editar",
         "estoque.ver",
+        "servicos.ver",
     }),
 }
 

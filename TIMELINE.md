@@ -7,7 +7,8 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 |---|---|
 | Estoque | 🟡 Backend + SQL + testes prontos; hooks/telas do frontend ajustados (tsc + build ok). Falta: rodar SQL no Supabase e validar fim-a-fim |
 | Clientes | ⏸️ Pausado a pedido (backend feito na cópia anterior, fora deste repo) |
-| Veículos, Agendamentos, Catálogo | 🔴 não iniciados |
+| Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
+| Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 parcial |
 
 ## Estoque — backend (2026-10-04)
@@ -37,3 +38,15 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 Arquivos: `hooks/useEstoque.ts`, `EstoquePage.tsx`, `Estoque/ProdutoModal.tsx`, `Estoque/CriarKitModal.tsx`, `Estoque/ConfirmDeleteModal.tsx`.
 Validado: `tsc --noEmit` limpo e `vite build` ok. NÃO validado: execução no navegador contra o backend (sem testes de frontend no projeto).
 Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento — cada um tem seu próprio estado e carrega por conta própria.
+
+## Catálogo de Serviços (2026-10-06) — branch feat/catalogo-servicos (parte de feat/estoque-backend)
+**Arquivos:** `backend/sql/servicos.sql`, `orders/servicos_views.py`, `ServicoSerializer` em serializers.py, rotas em urls.py, permissões em rbac.py, `tests/test_servicos.py`; frontend: `hooks/useServicos.ts`, `utils/api_erro.ts` (helpers compartilhados com useEstoque), `ServicosPage.tsx`, `Servicos/ServicoFormModal.tsx`, `Servicos/DeleteConfirmModal.tsx`.
+**Rotas:** `GET/POST /servicos`, `GET/PATCH/DELETE /servicos/<id>`.
+**Decisões**
+- Tabela `servicos` multi-tenant (`oficina_doc`), preço ≥ 0 (o modal exige > 0), `duracao` e `categoria` texto livre.
+- Novas permissões `servicos.ver` (todos os cargos) e `servicos.editar` (dono e gerente). **Tokens emitidos antes disso não têm as permissões novas: relogar.**
+- Excluir é a função SQL `servicos_excluir`: limpa `estoque_kits.servico_id` (texto, sem FK) da mesma oficina e apaga, na mesma transação. Kit nunca fica apontando pra serviço inexistente.
+- Frontend igual ao Estoque: com a API no ar mostra só o que o servidor confirmou; erros aparecem no modal (salvar) ou em aviso (excluir/ativar). Demo local só em DEV com API fora.
+- Erro 42501 (permissão no banco) vira mensagem clara apontando o supabase.env (também no Estoque).
+**Validado:** 86 testes (pytest) contra Postgres real; `tsc --noEmit` e `vite build` limpos. **Não validado:** navegador contra o Supabase real.
+**Pendências:** rodar `servicos.sql` (depois de `estoque.sql`); relogar; testar criar/editar/ativar/excluir; botões ainda não são escondidos por permissão na UI (a proteção real é o backend).

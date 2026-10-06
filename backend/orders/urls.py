@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import financeiro_views
 from . import estoque_views
+from . import servicos_views
 
 urlpatterns = [
     # Root
@@ -57,6 +58,10 @@ urlpatterns = [
     path("kits", estoque_views.kits_list),
     path("kits/<str:kit_id>", estoque_views.kit_detail),
     path("kits/<str:kit_id>/aplicar", estoque_views.kit_aplicar),
+
+    # Catálogo de serviços — protegido por servicos.ver / servicos.editar
+    path("servicos", servicos_views.servicos_list),
+    path("servicos/<str:servico_id>", servicos_views.servico_detail),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

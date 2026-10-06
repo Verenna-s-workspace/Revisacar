@@ -39,6 +39,12 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   const [editando, setEditando] = useState<ServicoItem | undefined>(undefined);
   const [excluindo, setExcluindo] = useState<ServicoItem | null>(null);
 
+  // Erros do servidor: ao salvar, ficam dentro do modal (que continua aberto);
+  // ao excluir/ativar, vão pro aviso no topo (o modal de confirmação fecha).
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+
   const categoriasDisponiveis = useMemo(
     () => Array.from(new Set(servicos.map(s => s.categoria))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
     [servicos]
@@ -54,23 +60,39 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   }, [servicos, search, categoria]);
 
   function abrirNovo() {
+    setErroSalvar(null);
     setEditando(undefined);
     setModalAberto(true);
   }
 
   function abrirEdicao(servico: ServicoItem) {
+    setErroSalvar(null);
     setEditando(servico);
     setModalAberto(true);
   }
 
-  function salvar(input: Parameters<typeof addServico>[0]) {
-    if (editando) {
-      updateServico(editando.id, input);
-    } else {
-      addServico(input);
+  async function salvar(input: Parameters<typeof addServico>[0]) {
+    setSalvando(true);
+    setErroSalvar(null);
+    try {
+      if (editando) await updateServico(editando.id, input);
+      else await addServico(input);
+      setModalAberto(false);
+      setEditando(undefined);
+    } catch (e) {
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o serviço.');
+    } finally {
+      setSalvando(false);
     }
-    setModalAberto(false);
-    setEditando(undefined);
+  }
+
+  async function executarAcao(acao: () => Promise<void>) {
+    setErroAcao(null);
+    try {
+      await acao();
+    } catch (e) {
+      setErroAcao(e instanceof Error ? e.message : 'Não foi possível concluir a ação.');
+    }
   }
 
   const temFiltroAtivo = search !== '' || categoria !== 'todas';
@@ -131,6 +153,20 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
         </button>
       </div>
 
+      {erroAcao && (
+        <div role="alert" style={{
+          margin: isMobile ? '12px 16px 0' : '14px 28px 0',
+          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
+          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
+          display: 'flex', justifyContent: 'space-between', gap: 12,
+        }}>
+          <span>{erroAcao}</span>
+          <button onClick={() => setErroAcao(null)} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 700 }}>
+            Fechar
+          </button>
+        </div>
+      )}
+
       {erro && (
         <div style={{
           margin: isMobile ? '12px 16px 0' : '14px 28px 0',
@@ -189,7 +225,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
                 servico={s}
                 onEdit={() => abrirEdicao(s)}
                 onDelete={() => setExcluindo(s)}
-                onToggleAtivo={() => toggleAtivo(s.id)}
+                onToggleAtivo={() => executarAcao(() => toggleAtivo(s.id))}
                 kitVinculadoNome={kitPorServicoId.get(s.id)}
               />
             ))}
@@ -206,13 +242,15 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
           servico={editando}
           categoriasDisponiveis={categoriasDisponiveis}
           onSave={salvar}
+          erro={erroSalvar}
+          salvando={salvando}
           onClose={() => { setModalAberto(false); setEditando(undefined); }}
         />
       )}
       {excluindo && (
         <DeleteConfirmModal
           servico={excluindo}
-          onConfirm={() => deleteServico(excluindo.id)}
+          onConfirm={() => executarAcao(() => deleteServico(excluindo.id))}
           onClose={() => setExcluindo(null)}
         />
       )}

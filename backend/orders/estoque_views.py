@@ -72,6 +72,12 @@ def _tratar_erros_banco(view_func):
                                "Rode backend/sql/estoque.sql no SQL Editor do Supabase."},
                     status=http_status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
+            if codigo == "42501":
+                logger.error("Estoque: permissão negada no banco. A SUPABASE_KEY precisa ser a service_role.")
+                return Response(
+                    {"detail": "O backend não tem permissão para acessar o banco. Confira a chave no supabase.env."},
+                    status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             logger.exception("Estoque: erro do banco (%s)", codigo)
             return Response(
                 {"detail": "Erro ao acessar o banco de dados."},
