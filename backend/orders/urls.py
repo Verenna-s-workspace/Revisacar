@@ -3,6 +3,7 @@ from . import views
 from . import financeiro_views
 from . import estoque_views
 from . import servicos_views
+from . import relatorios_views
 
 urlpatterns = [
     # Root
@@ -62,6 +63,9 @@ urlpatterns = [
     # Catálogo de serviços — protegido por servicos.ver / servicos.editar
     path("servicos", servicos_views.servicos_list),
     path("servicos/<str:servico_id>", servicos_views.servico_detail),
+
+    # Relatórios — protegido por relatorios.ver (dono e gerente)
+    path("relatorios", relatorios_views.relatorios),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

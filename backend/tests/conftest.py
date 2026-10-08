@@ -65,11 +65,45 @@ def pg_dsn():
         """,
         (OFICINA_A, OFICINA_B),
     )
+    # Stubs das tabelas legadas que o Supabase já tem (criadas fora destes scripts).
+    # `fotos_paths` é jsonb aqui só porque o emulador adapta listas como json;
+    # no Supabase real é text[] e os testes nunca leem esse campo.
+    cur.execute(
+        """
+        create table public.ordens (
+          id text primary key,
+          created_at text not null,
+          updated_at text not null,
+          os_num text, placa text, modelo text, cliente text,
+          status text default 'rascunho',
+          payload text not null,
+          fotos_paths jsonb
+        );
+        create table public.financeiro_transacoes (
+          id uuid primary key default gen_random_uuid(),
+          oficina_doc text not null,
+          tipo text not null check (tipo in ('entrada','saida')),
+          categoria text not null,
+          descricao text default '',
+          valor numeric not null check (valor > 0),
+          forma_pagamento text,
+          status text not null default 'pendente' check (status in ('pendente','pago','cancelado')),
+          data_competencia date not null,
+          data_vencimento date,
+          data_pagamento timestamptz,
+          cliente_nome text default '',
+          ordem_servico_id text,
+          criado_por_nome text default '',
+          criado_por_tipo text default '',
+          created_at timestamptz not null default now()
+        );
+        """
+    )
     # No Supabase esse papel já existe; os GRANTs dos scripts dependem dele.
     cur.execute("do $$ begin if not exists (select 1 from pg_roles where rolname='service_role') "
                 "then create role service_role; end if; end $$")
     # Ordem importa: servicos.sql usa estoque_kits (limpeza do vínculo ao excluir).
-    for nome in ("estoque.sql", "servicos.sql"):
+    for nome in ("estoque.sql", "servicos.sql", "ordens_oficina.sql"):
         sql = (BACKEND_DIR / "sql" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência: rodar duas vezes não pode falhar
@@ -81,7 +115,7 @@ def pg_dsn():
 
 @pytest.fixture()
 def db(pg_dsn):
-    """Conexão autocommit com as tabelas de estoque limpas."""
+    """Conexão autocommit com as tabelas de estoque, serviços, ordens e financeiro limpas."""
     import psycopg2
 
     conn = psycopg2.connect(pg_dsn)
@@ -89,7 +123,8 @@ def db(pg_dsn):
     cur = conn.cursor()
     cur.execute(
         "truncate public.estoque_movimentos, public.estoque_kit_itens, "
-        "public.estoque_kits, public.estoque_itens, public.servicos cascade"
+        "public.estoque_kits, public.estoque_itens, public.servicos, "
+        "public.ordens, public.financeiro_transacoes cascade"
     )
     yield conn
     conn.close()

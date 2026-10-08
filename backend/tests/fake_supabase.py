@@ -2,7 +2,7 @@
 Emulador mínimo do cliente Supabase (PostgREST) em cima de um Postgres REAL.
 
 Só existe nos testes: traduz a parte do supabase-py que o backend de Estoque
-usa (table().select/insert/update/delete + eq/in_/gte/order/range/limit, e
+usa (table().select/insert/update/delete + eq/neq/in_/gt*/lt*/order/range/limit, e
 rpc) para SQL, e devolve linhas no mesmo formato JSON que o PostgREST devolve
 (numeric → número, timestamptz → ISO, uuid → string). Assim as views rodam
 contra as tabelas e funções SQL de verdade; só a tradução HTTP→SQL é simulada.
@@ -79,6 +79,18 @@ class _Consulta:
 
     def gte(self, col, val):
         self.filtros.append((col, ">=", val))
+        return self
+
+    def lt(self, col, val):
+        self.filtros.append((col, "<", val))
+        return self
+
+    def lte(self, col, val):
+        self.filtros.append((col, "<=", val))
+        return self
+
+    def neq(self, col, val):
+        self.filtros.append((col, "<>", val))
         return self
 
     def in_(self, col, vals):

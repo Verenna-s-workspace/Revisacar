@@ -1,63 +1,48 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../utils/api';
-import type { OrdemRow } from '../types/dashboard';
-import type { FiltroPeriodo, KpisRelatorio, MediaDiaria } from '../types/relatorios';
+import { mensagemDoErro } from '../utils/api_erro';
+import type {
+  FaturamentoOrigem,
+  FiltroPeriodo,
+  KpisRelatorio,
+  MediaDiaria,
+  RelatorioResposta,
+} from '../types/relatorios';
 import {
-  apenasFinalizadas,
+  agregarOrdensLocal,
+  agruparServicosMaisRealizados,
   buildSeedOrdens,
-  calcularServicosMaisRealizados,
   calcularVariacao,
-  filtrarPorIntervalo,
+  chaveDia,
   formatarMes,
-  montarSerieTemporal,
+  montarSerieDeDias,
   resolverIntervalo,
   resolverIntervaloAnterior,
-  valorOS,
 } from '../utils/relatorios';
 
 const FILTRO_PADRAO: FiltroPeriodo = { preset: 'ultimos_30_dias' };
 
+const SEM_DADOS: RelatorioResposta = {
+  faturamentoOrigem: 'estimado',
+  totais: { atual: { faturamento: 0, ordens: 0, finalizadas: 0 }, anterior: null },
+  dias: [],
+  servicos: [],
+};
+
+function fusoDoNavegador(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function useRelatorios() {
-  const [ordens, setOrdens] = useState<OrdemRow[]>([]);
+  const [dados, setDados] = useState<RelatorioResposta>(SEM_DADOS);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [usandoDadosDemo, setUsandoDadosDemo] = useState(false);
   const [filtro, setFiltro] = useState<FiltroPeriodo>(FILTRO_PADRAO);
-
-  // Busca a lista completa de ordens uma única vez — sem paginação/filtro no
-  // backend, igual ao padrão já usado na Visão Geral (useDashboard.ts).
-  // Todo filtro e agrupamento por período acontece no cliente a partir daqui.
-  //
-  // Se a chamada falhar, cai para dados de demonstração — mas só em
-  // desenvolvimento (import.meta.env.DEV). É o mesmo padrão de
-  // useVeiculos/useClientes/useAgendamentos, com uma diferença de propósito:
-  // aqui é faturamento de verdade, então em produção um backend fora do ar
-  // continua mostrando o erro real em vez de números fictícios — isso é só
-  // uma facilidade pra testar a tela localmente sem precisar do Supabase
-  // configurado. Uma resposta bem sucedida com lista vazia (Supabase sem OS
-  // ainda) nunca é substituída por dados falsos, em nenhum ambiente.
-  const carregar = useCallback(async () => {
-    setCarregando(true);
-    setErro(null);
-    try {
-      const dados: OrdemRow[] = await api.listarOrdens();
-      setOrdens(dados);
-      setUsandoDadosDemo(false);
-    } catch {
-      if (import.meta.env.DEV) {
-        setOrdens(buildSeedOrdens());
-        setUsandoDadosDemo(true);
-      } else {
-        setErro('Não foi possível carregar as ordens de serviço.');
-      }
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    carregar();
-  }, [carregar]);
 
   const intervaloAtual = useMemo(
     () => resolverIntervalo(filtro.preset, filtro.personalizado),
@@ -68,54 +53,87 @@ export function useRelatorios() {
     [filtro.preset, intervaloAtual]
   );
 
-  const ordensNoPeriodo = useMemo(() => filtrarPorIntervalo(ordens, intervaloAtual), [ordens, intervaloAtual]);
-  const ordensPeriodoAnterior = useMemo(
-    () => filtrarPorIntervalo(ordens, intervaloAnterior),
-    [ordens, intervaloAnterior]
-  );
+  // Chaves de texto dos intervalos: dependência estável do efeito (os objetos
+  // Date mudam de identidade a cada render do useMemo mesmo com o mesmo dia).
+  const de = chaveDia(intervaloAtual.inicio);
+  const ate = chaveDia(intervaloAtual.fim);
+  const deAnterior = chaveDia(intervaloAnterior.inicio);
+  const ateAnterior = chaveDia(intervaloAnterior.fim);
 
-  const finalizadasNoPeriodo = useMemo(() => apenasFinalizadas(ordensNoPeriodo), [ordensNoPeriodo]);
-  const finalizadasPeriodoAnterior = useMemo(
-    () => apenasFinalizadas(ordensPeriodoAnterior),
-    [ordensPeriodoAnterior]
-  );
+  // Só a resposta da ÚLTIMA chamada vale: trocar de período rápido não pode
+  // deixar a resposta lenta do período antigo sobrescrever a do novo.
+  const ultimaChamada = useRef(0);
 
-  const temPeriodoAnteriorComDados = ordensPeriodoAnterior.length > 0;
+  // O servidor agrega (GET /relatorios) e devolve só totais e séries por dia;
+  // aqui sobra agrupar em semana/mês e desenhar. Muda o período, busca de novo.
+  //
+  // Se a chamada falhar, cai para dados de demonstração — mas só em
+  // desenvolvimento (import.meta.env.DEV), igual aos outros hooks. Aqui é
+  // faturamento de verdade, então em produção um backend fora do ar mostra o
+  // erro real em vez de números fictícios. Uma resposta bem-sucedida com
+  // período vazio nunca é substituída por dados falsos, em nenhum ambiente.
+  const carregar = useCallback(async () => {
+    const chamada = ++ultimaChamada.current;
+    setCarregando(true);
+    setErro(null);
+    try {
+      const resposta: RelatorioResposta = await api.relatorios({
+        de,
+        ate,
+        deAnterior,
+        ateAnterior,
+        tz: fusoDoNavegador(),
+      });
+      if (chamada !== ultimaChamada.current) return;
+      setDados(resposta);
+      setUsandoDadosDemo(false);
+    } catch (e) {
+      if (chamada !== ultimaChamada.current) return;
+      if (import.meta.env.DEV) {
+        setDados(agregarOrdensLocal(buildSeedOrdens(), intervaloAtual, intervaloAnterior));
+        setUsandoDadosDemo(true);
+      } else {
+        setDados(SEM_DADOS);
+        setErro(mensagemDoErro(e, 'Não foi possível carregar os relatórios.'));
+      }
+    } finally {
+      if (chamada === ultimaChamada.current) setCarregando(false);
+    }
+    // intervaloAtual/intervaloAnterior só entram no demo; mudam junto com as chaves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [de, ate, deAnterior, ateAnterior]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const { atual, anterior } = dados.totais;
+  const temPeriodoAnteriorComDados = anterior !== null;
 
   const kpis: KpisRelatorio = useMemo(() => {
-    const faturamentoAtual = finalizadasNoPeriodo.reduce((s, o) => s + valorOS(o), 0);
-    const faturamentoAnterior = temPeriodoAnteriorComDados
-      ? finalizadasPeriodoAnterior.reduce((s, o) => s + valorOS(o), 0)
-      : null;
-
-    const qtdAtual = ordensNoPeriodo.length;
-    const qtdAnterior = temPeriodoAnteriorComDados ? ordensPeriodoAnterior.length : null;
-
-    const qtdFinalizadasAtual = finalizadasNoPeriodo.length;
-    const qtdFinalizadasAnterior = temPeriodoAnteriorComDados ? finalizadasPeriodoAnterior.length : null;
-
     // Ticket médio = faturamento ÷ OS finalizadas — mesma população usada no
     // faturamento, para o número continuar significando "valor médio por
     // serviço concluído" (dividir pelo total de OS, incluindo as ainda em
     // andamento, distorceria a média para baixo).
-    const ticketAtual = qtdFinalizadasAtual > 0 ? faturamentoAtual / qtdFinalizadasAtual : 0;
-    const ticketAnterior =
-      !temPeriodoAnteriorComDados
-        ? null
-        : qtdFinalizadasAnterior && qtdFinalizadasAnterior > 0 && faturamentoAnterior !== null
-        ? faturamentoAnterior / qtdFinalizadasAnterior
-        : 0;
+    const ticketAtual = atual.finalizadas > 0 ? atual.faturamento / atual.finalizadas : 0;
+    const ticketAnterior = !anterior
+      ? null
+      : anterior.finalizadas > 0
+      ? anterior.faturamento / anterior.finalizadas
+      : 0;
+    const faturamentoAnterior = anterior ? anterior.faturamento : null;
+    const ordensAnterior = anterior ? anterior.ordens : null;
 
     return {
       faturamento: {
-        atual: faturamentoAtual,
+        atual: atual.faturamento,
         anterior: faturamentoAnterior,
-        variacaoPercentual: calcularVariacao(faturamentoAtual, faturamentoAnterior),
+        variacaoPercentual: calcularVariacao(atual.faturamento, faturamentoAnterior),
       },
       ordensServico: {
-        atual: qtdAtual,
-        anterior: qtdAnterior,
-        variacaoPercentual: calcularVariacao(qtdAtual, qtdAnterior),
+        atual: atual.ordens,
+        anterior: ordensAnterior,
+        variacaoPercentual: calcularVariacao(atual.ordens, ordensAnterior),
       },
       ticketMedio: {
         atual: ticketAtual,
@@ -123,35 +141,21 @@ export function useRelatorios() {
         variacaoPercentual: calcularVariacao(ticketAtual, ticketAnterior),
       },
     };
-  }, [
-    finalizadasNoPeriodo,
-    finalizadasPeriodoAnterior,
-    ordensNoPeriodo,
-    ordensPeriodoAnterior,
-    temPeriodoAnteriorComDados,
-  ]);
+  }, [atual, anterior]);
 
   const serieFaturamento = useMemo(
-    () =>
-      montarSerieTemporal(
-        finalizadasNoPeriodo,
-        finalizadasPeriodoAnterior,
-        intervaloAtual,
-        intervaloAnterior,
-        valorOS
-      ),
-    [finalizadasNoPeriodo, finalizadasPeriodoAnterior, intervaloAtual, intervaloAnterior]
+    () => montarSerieDeDias(dados.dias, intervaloAtual, intervaloAnterior, (d) => d.faturamento),
+    [dados.dias, intervaloAtual, intervaloAnterior]
   );
 
   const serieOrdens = useMemo(
-    () =>
-      montarSerieTemporal(ordensNoPeriodo, ordensPeriodoAnterior, intervaloAtual, intervaloAnterior, () => 1),
-    [ordensNoPeriodo, ordensPeriodoAnterior, intervaloAtual, intervaloAnterior]
+    () => montarSerieDeDias(dados.dias, intervaloAtual, intervaloAnterior, (d) => d.ordens),
+    [dados.dias, intervaloAtual, intervaloAnterior]
   );
 
   const servicosMaisRealizados = useMemo(
-    () => calcularServicosMaisRealizados(finalizadasNoPeriodo),
-    [finalizadasNoPeriodo]
+    () => agruparServicosMaisRealizados(dados.servicos),
+    [dados.servicos]
   );
 
   // Média diária só é exibida em comparações mensais (este mês / mês
@@ -162,25 +166,28 @@ export function useRelatorios() {
     if (filtro.preset !== 'este_mes' && filtro.preset !== 'mes_passado') return null;
 
     const diasAtual = Math.max(1, contarDiasEntre(intervaloAtual.inicio, intervaloAtual.fim));
-    const atual = {
-      total: ordensNoPeriodo.length,
+    const periodoAtual = {
+      total: atual.ordens,
       dias: diasAtual,
-      media: ordensNoPeriodo.length / diasAtual,
+      media: atual.ordens / diasAtual,
       rotulo: formatarMes(intervaloAtual.inicio),
     };
 
-    if (!temPeriodoAnteriorComDados) return { atual, anterior: null };
+    if (!anterior) return { atual: periodoAtual, anterior: null };
 
     const diasAnterior = Math.max(1, contarDiasEntre(intervaloAnterior.inicio, intervaloAnterior.fim));
-    const anterior = {
-      total: ordensPeriodoAnterior.length,
-      dias: diasAnterior,
-      media: ordensPeriodoAnterior.length / diasAnterior,
-      rotulo: formatarMes(intervaloAnterior.inicio),
+    return {
+      atual: periodoAtual,
+      anterior: {
+        total: anterior.ordens,
+        dias: diasAnterior,
+        media: anterior.ordens / diasAnterior,
+        rotulo: formatarMes(intervaloAnterior.inicio),
+      },
     };
+  }, [filtro.preset, intervaloAtual, intervaloAnterior, atual, anterior]);
 
-    return { atual, anterior };
-  }, [filtro.preset, intervaloAtual, intervaloAnterior, ordensNoPeriodo, ordensPeriodoAnterior, temPeriodoAnteriorComDados]);
+  const faturamentoOrigem: FaturamentoOrigem = dados.faturamentoOrigem;
 
   return {
     carregando,
@@ -194,7 +201,10 @@ export function useRelatorios() {
     serieOrdens,
     servicosMaisRealizados,
     mediaDiaria,
-    temDadosNoPeriodo: ordensNoPeriodo.length > 0,
+    faturamentoOrigem,
+    temPeriodoAnteriorComDados,
+    // Período com OS, ou só com entradas lançadas no Financeiro.
+    temDadosNoPeriodo: atual.ordens > 0 || atual.faturamento > 0,
     recarregar: carregar,
   };
 }

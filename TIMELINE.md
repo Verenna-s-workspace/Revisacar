@@ -9,7 +9,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Clientes | ⏸️ Pausado a pedido (backend feito na cópia anterior, fora deste repo) |
 | Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
 | Veículos, Agendamentos | 🔴 não iniciados |
-| Relatórios | 🟡 parcial |
+| Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
 ## Estoque — backend (2026-10-04)
 **Arquivos:** `backend/sql/estoque.sql`, `backend/orders/estoque_views.py`, seção "Estoque" em `serializers.py`, rotas em `urls.py`, `backend/tests/*`, `requirements-dev.txt`.
@@ -50,3 +50,28 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 - Erro 42501 (permissão no banco) vira mensagem clara apontando o supabase.env (também no Estoque).
 **Validado:** 86 testes (pytest) contra Postgres real; `tsc --noEmit` e `vite build` limpos. **Não validado:** navegador contra o Supabase real.
 **Pendências:** rodar `servicos.sql` (depois de `estoque.sql`); relogar; testar criar/editar/ativar/excluir; botões ainda não são escondidos por permissão na UI (a proteção real é o backend).
+
+## Relatórios (2026-10-07) — branch feat/relatorios-backend (parte de feat/catalogo-servicos)
+**O que faltava (diagnóstico)**
+1. `ordens` não tinha `oficina_doc` e `/ordens` não filtrava: toda oficina via as OS de todas (inclusive nos relatórios).
+2. Relatórios baixava todas as OS e calculava no navegador, sem exigir `relatorios.ver`.
+3. Bug: `payload` é `text` no banco e chega como string JSON; `payload.servicos_selecionados` dava `undefined` → "serviços mais realizados" vazio e todo valor caía no ticket fixo (R$ 480). Só funcionava no demo (payload objeto).
+4. Faturamento era estimativa fixa (tabela chumbada no front).
+5. `created_at` das OS era gravado sem fuso (`datetime.now().isoformat()`).
+
+**Arquivos:** `backend/sql/ordens_oficina.sql`, `orders/relatorios_views.py`, ajustes em `orders/views.py` (ordens escopadas por oficina; `_now()` com fuso), rota em `urls.py`, `tests/test_relatorios.py` (+ stubs de `ordens`/`financeiro_transacoes` no conftest, `lt/lte/neq` no emulador), `tzdata` em requirements.txt; frontend: `types/relatorios.ts`, `utils/api.ts` (`api.relatorios`), `utils/relatorios.ts`, `hooks/useRelatorios.ts`, texto do card em `RelatoriosPage.tsx`.
+**Rota:** `GET /relatorios?de&ate[&de_anterior&ate_anterior][&tz]` (permissão `relatorios.ver`: dono e gerente). Devolve `totais` (atual/anterior), `dias` (série esparsa por dia no fuso `tz`), `servicos` (OS finalizadas do período) e `faturamentoOrigem`.
+**Decisões**
+- Faturamento: se a oficina tem ao menos uma entrada não cancelada no Financeiro → soma das entradas por `data_competencia` (mesma conta de `/financeiro/resumo`, pendentes incluídas); senão estimativa por OS finalizada (tabela de preços + ticket R$ 480, espelho do que o front usava). A tela diz qual está em uso.
+- Dia da OS = dia no fuso do navegador (`tz`; padrão America/Sao_Paulo). OS antigas sem fuso são lidas como horário do servidor.
+- `anterior = null` quando não há nenhuma OS no período anterior (a tela esconde a variação).
+- Semana/mês continuam sendo agrupados no front a partir dos dias; presets de período continuam no front.
+- Itens de estoque mais movimentados seguem vindo de `useEstoque` (`GET /estoque/movimentos`), não de `/relatorios`.
+- Todas as rotas de `/ordens` filtram por `oficina_doc`; OS de outra oficina = 404. Se a coluna não existe, 503 mandando rodar `ordens_oficina.sql`.
+**Validado:** 133 testes (pytest) contra Postgres real; `tsc --noEmit` e `vite build` limpos; série do front confere com os totais. **Não validado:** navegador contra o Supabase real.
+**Pendências**
+1. Rodar `backend/sql/ordens_oficina.sql` ANTES de subir o backend novo (sem a coluna, `/ordens` responde 503). Com uma oficina só, as OS antigas são associadas sozinhas; com mais de uma, preencher na mão (exemplo no fim do script) — OS sem oficina deixam de aparecer.
+2. Relogar (tokens antigos não têm permissões novas).
+3. `useDashboard` (Visão Geral) ainda lê `o.payload?.servicos_selecionados` direto: mesmo bug do payload em string (top serviços vazio). Não mexido (fora de Relatórios).
+4. `GET /fotos/<path>` não exige login (já era assim).
+5. App do cliente / `customers`: continua sem `oficina_doc` (ver `customer_app_oficina_doc.sql`, não aplicado).
