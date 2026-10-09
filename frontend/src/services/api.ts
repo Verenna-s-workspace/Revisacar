@@ -126,3 +126,8 @@ export const notificationsApi = {
 export const remindersApi = {
   list: () => apiClient.get<MaintenanceReminder[]>('/customer/reminders'),
 };
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────────
+export const dashboardApi = {
+  get: () => apiClient.get<DashboardSummary>('/customer/dashboard'),
+};
