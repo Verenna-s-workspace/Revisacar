@@ -9,7 +9,7 @@ import { OSRow } from '../OrdensPage';
 import { ownerInitial, formatKm } from '../../../utils/veiculos_utils';
 import { formatAgendadoBadge, formatDataCurta } from '../../../utils/clientes_utils';
 import { formatBRL } from '../../../utils/dashboard';
-import { TICKET } from '../../../hooks/useDashboard';
+import { TICKET } from '../../../utils/relatorios';
 import type { ClienteComDados } from '../../../types/cliente';
 import type { VeiculoCadastrado } from '../../../types/veiculo';
 import type { Agendamento } from '../../../types/agendamento';

@@ -4,6 +4,7 @@ from . import financeiro_views
 from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
+from . import visao_geral_views
 
 urlpatterns = [
     # Root
@@ -66,6 +67,11 @@ urlpatterns = [
 
     # Relatórios — protegido por relatorios.ver (dono e gerente)
     path("relatorios", relatorios_views.relatorios),
+
+    # Visão Geral — leitura p/ qualquer usuário logado (blocos de dinheiro só por permissão);
+    # meta mensal: configuracoes.editar
+    path("visao-geral", visao_geral_views.visao_geral),
+    path("visao-geral/meta", visao_geral_views.meta_mensal),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

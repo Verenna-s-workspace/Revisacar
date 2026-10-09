@@ -26,34 +26,8 @@ export interface FaturamentoDia {
   ordens: number;
 }
 
-export interface TopServico {
-  nome: string;
-  valor: number;
-  heatmap: number[];
-}
-
 export interface Alerta {
   tipo: 'crit' | 'warn' | 'info';
   msg: string;
   detalhe: string;
-}
-
-export interface DashData {
-  ordens: OrdemRow[];
-  fatAtual: number;
-  fatAnterior: number;
-  fatPct: number;
-  ordAtual: number;
-  ordAnterior: number;
-  ordPct: number;
-  metaMensal: number;
-  metaAlc: number;
-  metaPct: number;
-  fatDiario: FaturamentoDia[];
-  topServicos: TopServico[];
-  receitas: number;
-  custos: number;
-  lucro: number;
-  alertas: Alerta[];
-  isDemo: boolean;
 }

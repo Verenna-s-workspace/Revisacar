@@ -12,7 +12,7 @@ import { formatBRL } from '../../utils/dashboard';
 
 // ── Custom Tooltip ─────────────────────────────────────────────────────────────
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, formato }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
@@ -25,7 +25,9 @@ function CustomTooltip({ active, payload, label }: any) {
       fontFamily: 'DM Sans, sans-serif',
     }}>
       <div style={{ fontSize: '0.65rem', opacity: 0.85 }}>{label}</div>
-      <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{formatBRL(payload[0].value)}</div>
+      <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>
+        {formato === 'numero' ? `${payload[0].value} ${payload[0].value === 1 ? 'ordem' : 'ordens'}` : formatBRL(payload[0].value)}
+      </div>
     </div>
   );
 }
@@ -35,9 +37,17 @@ function CustomTooltip({ active, payload, label }: any) {
 interface FaturamentoChartProps {
   data: FaturamentoDia[];
   height?: number;
+  /** 'moeda' (padrão): `valor` é faturamento em R$. 'numero': `valor` é quantidade (quem não vê dinheiro). */
+  formato?: 'moeda' | 'numero';
 }
 
-export function FaturamentoChart({ data, height = 220 }: FaturamentoChartProps) {
+/** Rótulo do eixo Y: 0, 480, 1,5 mil, 12 mil. (Antes: `${v/1000}.000` → "0.48.000" pra valores pequenos.) */
+function rotuloEixoY(v: number, formato: 'moeda' | 'numero'): string {
+  if (formato === 'numero' || v < 1000) return String(v);
+  return `${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`;
+}
+
+export function FaturamentoChart({ data, height = 220, formato = 'moeda' }: FaturamentoChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ReAreaChart
@@ -70,13 +80,14 @@ export function FaturamentoChart({ data, height = 220 }: FaturamentoChartProps) 
           tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: '#9A958C' }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => v === 0 ? '0' : `${v / 1000}.000`}
+          tickFormatter={(v) => rotuloEixoY(v, formato)}
+          allowDecimals={false}
           domain={[0, 'auto']}
-          width={46}
+          width={52}
         />
 
         <Tooltip
-          content={<CustomTooltip />}
+          content={<CustomTooltip formato={formato} />}
           cursor={{ stroke: '#CC1400', strokeWidth: 0.8, strokeDasharray: '3 2' }}
         />
 

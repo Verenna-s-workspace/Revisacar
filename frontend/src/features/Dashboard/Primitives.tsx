@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { tokens } from '../../constants';
@@ -112,7 +113,7 @@ export function HeatmapRow({ heatmap }: { heatmap: number[] }) {
   const max = Math.max(...heatmap, 1);
   return (
     <div className="dashboard-heatmap-row">
-      {heatmap.slice(0, 6).map((v, i) => {
+      {heatmap.slice(0, 7).map((v, i) => {
         const ratio = v / max;
         const alpha = ratio < 0.01 ? 0.08 : 0.12 + ratio * 0.88;
         return (
@@ -188,11 +189,62 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
 
 // ── MetaCard ──────────────────────────────────────────────────────────────────
 
-import type { DashData } from '../../types/dashboard';
 import { Icons } from './Icons';
 import { formatBRL } from '../../utils/dashboard';
 
-export function MetaCard({ d, loading }: { d: DashData; loading: boolean }) {
+interface MetaCardProps {
+  /** null = a oficina ainda não definiu a meta. */
+  meta: number | null;
+  /** Faturamento do mês até agora. */
+  alcancado: number;
+  /** Pode definir/alterar a meta (configuracoes.editar). */
+  editavel: boolean;
+  /** Salva a meta (null remove). Deve lançar Error com a mensagem se falhar. */
+  onSalvar: (valor: number | null) => Promise<void>;
+  loading: boolean;
+}
+
+export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaCardProps) {
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const pct = meta && meta > 0 ? Math.min(100, Math.round((alcancado / meta) * 100)) : 0;
+
+  const abrirEdicao = () => {
+    setTexto(meta !== null ? String(meta).replace('.', ',') : '');
+    setErro(null);
+    setEditando(true);
+  };
+
+  const salvar = async (valor: number | null) => {
+    setSalvando(true);
+    setErro(null);
+    try {
+      await onSalvar(valor);
+      setEditando(false);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível salvar a meta.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const confirmar = () => {
+    const numero = Number(texto.trim().replace(/\./g, '').replace(',', '.'));
+    if (texto.trim() === '' || !Number.isFinite(numero) || numero < 0) {
+      setErro('Informe um valor válido (ex.: 20000 ou 20.000,00).');
+      return;
+    }
+    salvar(numero);
+  };
+
+  const botao: React.CSSProperties = {
+    border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.74rem',
+    fontWeight: 700, cursor: 'pointer', padding: 0,
+  };
+
   return (
     <Card style={{ padding: '18px 20px', flex: 1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -203,15 +255,49 @@ export function MetaCard({ d, loading }: { d: DashData; loading: boolean }) {
           META MENSAL
         </span>
       </div>
-      {loading ? <Skeleton h={80} /> : (
+      {loading ? <Skeleton h={80} /> : editando ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ fontSize: '0.7rem', color: tokens.color.muted }} htmlFor="meta-mensal-input">Meta de faturamento do mês (R$)</label>
+          <input
+            id="meta-mensal-input"
+            autoFocus
+            inputMode="decimal"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setEditando(false); }}
+            disabled={salvando}
+            style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${tokens.color.border}`, fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }}
+          />
+          {erro && <div style={{ fontSize: '0.72rem', color: tokens.color.crit }}>{erro}</div>}
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <button style={botao} onClick={confirmar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</button>
+            <button style={{ ...botao, color: tokens.color.muted }} onClick={() => setEditando(false)} disabled={salvando}>Cancelar</button>
+            {meta !== null && (
+              <button style={{ ...botao, color: tokens.color.muted, marginLeft: 'auto' }} onClick={() => salvar(null)} disabled={salvando}>Remover meta</button>
+            )}
+          </div>
+        </div>
+      ) : meta === null ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: '0.84rem', fontWeight: 600, color: tokens.color.text }}>Meta não definida</div>
+          <div style={{ fontSize: '0.72rem', color: tokens.color.muted }}>
+            Faturado no mês: <strong style={{ color: tokens.color.text }}>{formatBRL(alcancado)}</strong>
+          </div>
+          {editavel
+            ? <button style={{ ...botao, textAlign: 'left' }} onClick={abrirEdicao}>Definir meta</button>
+            : <div style={{ fontSize: '0.72rem', color: tokens.color.muted }}>Peça ao dono para definir a meta.</div>}
+        </div>
+      ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div>
-            <div style={{ fontSize: '0.7rem', color: tokens.color.muted }}>Meta</div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(d.metaMensal)}</div>
+            <div style={{ fontSize: '0.7rem', color: tokens.color.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Meta {editavel && <button style={botao} onClick={abrirEdicao}>Editar</button>}
+            </div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(meta)}</div>
             <div style={{ fontSize: '0.7rem', color: tokens.color.muted, marginTop: 8 }}>Alcançado</div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(d.metaAlc)}</div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(alcancado)}</div>
           </div>
-          <Donut pct={d.metaPct} />
+          <Donut pct={pct} />
         </div>
       )}
     </Card>

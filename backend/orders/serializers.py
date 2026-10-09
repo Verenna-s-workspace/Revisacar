@@ -443,3 +443,10 @@ class ServicoSerializer(serializers.Serializer):
         attrs["descricao"] = (attrs.get("descricao") or "").strip()
         attrs["preco"] = round(attrs["preco"], 2)
         return attrs
+
+
+# ── Visão Geral ───────────────────────────────────────────────────────────────
+
+class MetaMensalSerializer(serializers.Serializer):
+    """Meta de faturamento mensal da oficina. `null` = remover a meta."""
+    valor = _NumeroFinito(min_value=0, max_value=99_999_999, allow_null=True)

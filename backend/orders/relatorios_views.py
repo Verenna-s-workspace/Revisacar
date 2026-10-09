@@ -216,13 +216,19 @@ def _usa_financeiro(oficina_doc) -> bool:
     return bool(linhas)
 
 
-def _buscar_entradas(oficina_doc, janela_ini: date, janela_fim: date):
+def _buscar_lancamentos(oficina_doc, tipo: str, janela_ini: date, janela_fim: date):
+    """Lançamentos do Financeiro (tipo 'entrada' ou 'saida'), sem os cancelados,
+    por data de competência — a mesma regra de /financeiro/resumo."""
     return _listar_todos(lambda: (
         supabase.table("financeiro_transacoes").select("id,valor,data_competencia")
-        .eq("oficina_doc", oficina_doc).eq("tipo", "entrada").neq("status", "cancelado")
+        .eq("oficina_doc", oficina_doc).eq("tipo", tipo).neq("status", "cancelado")
         .gte("data_competencia", janela_ini.isoformat()).lte("data_competencia", janela_fim.isoformat())
         .order("data_competencia").order("id")
     ))
+
+
+def _buscar_entradas(oficina_doc, janela_ini: date, janela_fim: date):
+    return _buscar_lancamentos(oficina_doc, "entrada", janela_ini, janela_fim)
 
 
 # ── Agregação ─────────────────────────────────────────────────────────────────

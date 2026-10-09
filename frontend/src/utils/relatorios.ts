@@ -17,13 +17,13 @@ import type {
 
 /**
  * Ticket usado como fallback quando a OS não tem nenhum serviço reconhecido
- * na tabela de preços abaixo. Mesmo valor usado hoje pela Visão Geral
- * (useDashboard.ts) — centralizado aqui para não duplicar o "número mágico"
- * em mais uma tela.
+ * na tabela de preços abaixo. Visão Geral e Relatórios agora calculam isso no
+ * servidor (relatorios_views.py usa o mesmo valor); aqui sobra para o modo
+ * demo e para "Gastos estimados" no perfil do cliente.
  */
 export const TICKET = 480;
 
-/** Tabela de preços por nome de serviço — mesma tabela já usada em useDashboard.ts. */
+/** Tabela de preços por nome de serviço — espelho da tabela do servidor (relatorios_views.py). */
 export const SVC_PRECO: Record<string, number> = {
   'Troca de Óleo': 180,
   Freios: 320,

@@ -8,6 +8,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Estoque | 🟡 Backend + SQL + testes prontos; hooks/telas do frontend ajustados (tsc + build ok). Falta: rodar SQL no Supabase e validar fim-a-fim |
 | Clientes | ⏸️ Pausado a pedido (backend feito na cópia anterior, fora deste repo) |
 | Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
+| Visão Geral | 🟡 Backend + SQL + testes + frontend prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `visao_geral.sql`, relogar, validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -75,3 +76,31 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 3. `useDashboard` (Visão Geral) ainda lê `o.payload?.servicos_selecionados` direto: mesmo bug do payload em string (top serviços vazio). Não mexido (fora de Relatórios).
 4. `GET /fotos/<path>` não exige login (já era assim).
 5. App do cliente / `customers`: continua sem `oficina_doc` (ver `customer_app_oficina_doc.sql`, não aplicado).
+
+## Visão Geral (2026-10-09) — branch feat/visao-geral (parte de feat/relatorios-backend)
+**O que estava errado**
+1. Mesmo bug do `payload` em string: Top serviços vazio fora do demo.
+2. Faturamento = nº de OS finalizadas × R$ 480 (contradizia os Relatórios); mês parcial comparado com o mês anterior INTEIRO.
+3. Meta mensal fixa em R$ 20.000, sem onde editar.
+4. Resumo Financeiro: custos e lucro sempre 0; frase "seu lucro aumentou X%" inventada (usava % de receita, `Math.abs`, sempre "aumentou").
+5. Alertas fictícios ("aguardando aprovação" contava rascunhos) — a sidebar já tinha os reais (`useAlertasResumo`).
+6. Mapa de calor: 6 colunas (sem domingo), rótulos "Seg Ter Qua Qux Sáb Dom" (sem Sex, "Qux") → tudo deslocado.
+7. Selects do gráfico (7/30 dias/mês) e do Top serviços não faziam nada.
+8. Mecânico/atendente viam faturamento. Saudação com nome fixo ("Lucas Andrelo"). Eixo Y quebrado (`${v/1000}.000` → "0.48.000"). Falha da API virava zeros silenciosos.
+
+**Arquivos:** `backend/sql/visao_geral.sql`, `orders/visao_geral_views.py`, `MetaMensalSerializer`, rotas em `urls.py`, `tests/test_visao_geral.py` (45), refatoração mínima em `relatorios_views.py` (`_buscar_lancamentos`); frontend: `types/visao_geral.ts`, `utils/visao_geral.ts`, `hooks/useVisaoGeral.ts`, `hooks/useOrdens.ts` (lista de OS; `useDashboard.ts` removido), `pages/Dashboard.tsx`, `Primitives.tsx` (MetaCard editável, heatmap 7 colunas), `FaturamentoChart.tsx`, `utils/dashboard.ts` (HEAT_DAYS), `ClientesPage`/`ClientDetailsModal` (imports), `utils/api.ts`.
+**Rotas:** `GET /visao-geral[?tz]` (qualquer usuário logado), `PUT /visao-geral/meta` (`configuracoes.editar`, `{"valor": n|null}`).
+**Decisões**
+- Blocos de dinheiro só vêm pra quem pode: `faturamento`/`meta`/`serie[].faturamento`/`servicos[].valorEstimado` (relatorios.ver ou financeiro.ver), `financeiro` (financeiro.ver), `financeiro.lucro*` (financeiro.ver_margem). A UI desenha pela presença do bloco; sem dinheiro, o gráfico vira "Ordens por dia" e o Top serviços mostra quantidade.
+- Mês = dia 1 até hoje × MESMO trecho do mês anterior. Faturamento igual ao dos Relatórios (entradas do Financeiro, senão estimativa por OS).
+- Resumo Financeiro = lançamentos do Financeiro no mês (receitas/custos); sem nenhum lançamento mostra "lance no Financeiro" em vez de zeros. Variação do lucro só quando há lucro anterior ≠ 0.
+- Top serviços: OS **finalizadas** dos últimos 30 dias (antes: todas as OS, desde sempre); valor é ESTIMADO (tabela de preços × quantidade; fora da tabela = R$ 200) — cabeçalho "Fat. est.". Ordenação Faturamento/Quantidade funciona. Dia da semana: 0 = segunda.
+- Série de 31 dias (o "Este mês" no dia 31 precisa do dia 1); o front recorta 7/30/mês.
+- Meta por oficina em `admins.meta_mensal` (null = não definida). Sem a coluna a tela segue, só sem meta editável (PUT responde 503 com instrução).
+- Alertas = os da sidebar (`useAlertasResumo`). Sem dados demo na Visão Geral: API fora do ar = erro com "tentar novamente".
+**Validado:** 178 testes (pytest) contra Postgres real; `tsc` e `vite build` limpos; smoke no Chromium com API simulada (dono e mecânico; definir meta envia o valor certo). **Não validado:** contra o Supabase real.
+**Pendências**
+1. Rodar `backend/sql/visao_geral.sql` (depois de `ordens_oficina.sql`); relogar.
+2. Alertas: `useAlertasResumo` é chamado na sidebar e na página (2 buscas de ordens/estoque); dá pra compartilhar depois.
+3. `GET /ordens` ainda devolve TODAS as OS (com payload) pro "Ordens recentes", Ordens e Clientes — paginar é trabalho futuro.
+4. "Gastos estimados" no perfil do cliente ainda usa OS finalizadas × R$ 480 (fora da Visão Geral).

@@ -1,9 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import '../styles/dashboard.css';
 import { tokens } from '../constants';
 import { useResponsive } from '../components/ui';
-import { useDashboard } from '../hooks/useDashboard';
+import { useOrdens } from '../hooks/useOrdens';
+import { useVisaoGeral } from '../hooks/useVisaoGeral';
+import { useAlertasResumo } from '../hooks/useAlertasResumo';
 import { formatBRL, HEAT_DAYS } from '../utils/dashboard';
+import { calcularVariacao } from '../utils/relatorios';
+import {
+  ORDEM_TOP_SERVICOS, PERIODOS_GRAFICO, limitarPct, serieDoPeriodo, topServicos as ordenarTopServicos,
+  type OrdemTopServicos, type PeriodoGrafico,
+} from '../utils/visao_geral';
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +35,7 @@ import { AtendimentoPage } from '../features/Dashboard/Atendimento/AtendimentoPa
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
+import type { Alerta } from '../types/dashboard';
 import type { OSPrefillInput } from '../types/atendimento';
 
 // ── PlaceholderPage ───────────────────────────────────────────────────────────
@@ -84,14 +92,15 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
 export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void; onOpenLearningCenter?: () => void }) {
   const { user } = useAuth();
   const { isMobile } = useResponsive();
-  const { loading, data } = useDashboard();
+  const { ordens, loading: ordensLoading, erro: ordensErro } = useOrdens();
+  const { dados: vg, loading, erro: vgErro, recarregar: recarregarVg, salvarMeta } = useVisaoGeral();
+  const alertasResumo = useAlertasResumo();
   const [page, setPage] = useState<NavPage>('dashboard');
   const [sel, setSel] = useState<OrdemRow | null>(null);
-  // Selects puramente de exibição do card de Faturamento/Top Serviços — ainda
-  // não afetam os dados mostrados (mesmo comportamento de antes da migração
-  // pro componente padronizado, só que agora controlados em vez de soltos).
-  const [periodoFaturamento, setPeriodoFaturamento] = useState('Últimos 7 dias');
-  const [ordemTopServicos, setOrdemTopServicos] = useState('Ordenar por: Faturamento');
+  // Período do gráfico e critério do Top Serviços: recortam/ordenam os dados que
+  // o servidor já mandou (série de 31 dias, serviços dos últimos 30).
+  const [periodoGrafico, setPeriodoGrafico] = useState<PeriodoGrafico>('Últimos 7 dias');
+  const [ordemTopServicos, setOrdemTopServicos] = useState<OrdemTopServicos>('Por faturamento');
   // Foco pendente para a tela de Agendamentos (definido ao navegar a partir da
   // badge "Agendado" ou da aba Agendamentos no perfil de um cliente). Qualquer
   // navegação "normal" (sidebar, menu mobile, botão voltar) passa por
@@ -116,7 +125,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   };
 
   if (page === 'ordens') {
-    return <OrdensPage ordens={data.ordens} loading={loading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
+    return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
   }
   if (page === 'atendimento') {
     return (
@@ -195,71 +204,142 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     return <PlaceholderPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
   }
 
-  const spark7 = data.fatDiario.map(d => d.valor);
-  const sparkOS = data.fatDiario.map(d => Math.max(d.ordens, 1));
+  // ── Dados da Visão Geral (vêm prontos do servidor) ────────────────────────
+  // Falhou de verdade (e não está carregando): esconde os blocos que dependem
+  // desses números e mostra o erro com "tentar novamente" — nunca zeros fictícios.
+  const semDados = !loading && !vg;
+  const fat = vg?.faturamento;                 // só existe pra quem pode ver dinheiro
+  const comDinheiro = !!fat;
+  const fin = vg?.financeiro;
+
+  const serieGrafico = useMemo(
+    () => (vg ? serieDoPeriodo(vg.serie, vg.hoje, periodoGrafico, comDinheiro) : []),
+    [vg, periodoGrafico, comDinheiro]
+  );
+  const topServicosLista = useMemo(
+    () => (vg ? ordenarTopServicos(vg.servicos, ordemTopServicos, comDinheiro) : []),
+    [vg, ordemTopServicos, comDinheiro]
+  );
+
+  const spark7Fat = (vg?.serie ?? []).slice(-7).map(d => d.faturamento ?? 0);
+  const spark7Os = (vg?.serie ?? []).slice(-7).map(d => Math.max(d.ordens, 1));
+
+  const erroCard = vgErro && !loading ? (
+    <Card style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: tokens.color.crit, display: 'flex' }}>{Icons.alert}</span>
+        <span style={{ fontSize: '0.85rem', color: tokens.color.text }}>{vgErro}</span>
+      </div>
+      <button
+        onClick={recarregarVg}
+        style={{ padding: '7px 14px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+      >
+        Tentar novamente
+      </button>
+    </Card>
+  ) : null;
 
   // ── KPI Row ────────────────────────────────────────────────────────────────
-  const kpiRow = (
+  // "Faturamento do mês": mês corrente até hoje × MESMO trecho do mês anterior.
+  const kpiRow = semDados ? null : (
     <div style={{ display: 'flex', gap: 14, flexDirection: isMobile ? 'column' : 'row' }}>
-      <KpiCard icon={Icons.dollar} title="Faturamento Total" value={formatBRL(data.fatAtual)} pct={data.fatPct} spark={spark7} loading={loading} />
-      <KpiCard icon={Icons.orders} title="Ordens de Serviço" value={data.ordAtual.toLocaleString('pt-BR')} pct={data.ordPct} spark={sparkOS} loading={loading} />
-      <MetaCard d={data} loading={loading} />
+      {(loading || fat) && (
+        <KpiCard
+          icon={Icons.dollar}
+          title="Faturamento do mês"
+          value={formatBRL(fat?.atual ?? 0)}
+          pct={fat ? calcularVariacao(fat.atual, fat.anterior) : null}
+          spark={spark7Fat}
+          loading={loading}
+        />
+      )}
+      <KpiCard
+        icon={Icons.orders}
+        title="Ordens de Serviço"
+        value={(vg?.ordens.atual ?? 0).toLocaleString('pt-BR')}
+        pct={vg ? calcularVariacao(vg.ordens.atual, vg.ordens.anterior) : null}
+        spark={spark7Os}
+        loading={loading}
+      />
+      {(loading || vg?.meta) && (
+        <MetaCard
+          meta={vg?.meta?.valor ?? null}
+          alcancado={fat?.atual ?? 0}
+          editavel={vg?.meta?.editavel ?? false}
+          onSalvar={salvarMeta}
+          loading={loading}
+        />
+      )}
     </div>
   );
 
   // ── Chart Section ──────────────────────────────────────────────────────────
-  const chartSection = (
+  const chartSection = semDados ? null : (
     <Card style={{ padding: isMobile ? '16px' : '20px 24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>ANÁLISE DE FATURAMENTO</div>
-          {!isMobile && <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>Faturamento (R$)</div>}
+          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
+            {comDinheiro || loading ? 'ANÁLISE DE FATURAMENTO' : 'ORDENS POR DIA'}
+          </div>
+          {!isMobile && (
+            <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+              {comDinheiro || loading
+                ? (fat?.origem === 'estimado' ? 'Faturamento estimado (R$) — sem entradas no Financeiro' : 'Faturamento (R$)')
+                : 'Ordens de serviço abertas'}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {!isMobile && data.fatDiario.length > 0 && (
+          {!isMobile && serieGrafico.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: tokens.color.muted }}>
               <span style={{ display: 'flex' }}>{Icons.cal}</span>
-              {data.fatDiario[0].dia} – {data.fatDiario[6].dia}, {new Date().getFullYear()}
+              {serieGrafico[0].dia} – {serieGrafico[serieGrafico.length - 1].dia}, {new Date().getFullYear()}
             </div>
           )}
           <div style={{ width: 155 }}>
             <Select
               name="dash_periodo_faturamento"
-              value={periodoFaturamento}
-              onChangeValue={setPeriodoFaturamento}
-              options={['Últimos 7 dias', 'Últimos 30 dias', 'Este mês']}
+              value={periodoGrafico}
+              onChangeValue={(v: string) => setPeriodoGrafico(v as PeriodoGrafico)}
+              options={[...PERIODOS_GRAFICO]}
             />
           </div>
-          <button className="dashboard-card__icon-button">⋮</button>
         </div>
       </div>
       {loading
         ? <Skeleton h={isMobile ? 160 : 220} r={8} />
-        : <FaturamentoChart data={data.fatDiario} height={isMobile ? 160 : 220} />
+        : <FaturamentoChart data={serieGrafico} height={isMobile ? 160 : 220} formato={comDinheiro ? 'moeda' : 'numero'} />
       }
     </Card>
   );
 
   // ── Top Serviços ───────────────────────────────────────────────────────────
-  const topServicosSection = (
+  // OS finalizadas dos últimos 30 dias. O valor é ESTIMADO (preço por tipo de
+  // serviço × quantidade), não faturamento real — por isso "est." no cabeçalho.
+  const topServicosSection = semDados ? null : (
     <Card style={{ padding: isMobile ? '16px' : '20px 22px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div className="dashboard-card__header-title">TOP SERVIÇOS</div>
-        <div style={{ width: 190 }}>
-          <Select
-            name="dash_ordenar_top_servicos"
-            value={ordemTopServicos}
-            onChangeValue={setOrdemTopServicos}
-            options={['Ordenar por: Faturamento', 'Ordenar por: Quantidade']}
-          />
+        <div>
+          <div className="dashboard-card__header-title">TOP SERVIÇOS</div>
+          <div style={{ fontSize: '0.68rem', color: tokens.color.muted, marginTop: 2 }}>OS finalizadas nos últimos 30 dias</div>
         </div>
+        {comDinheiro && (
+          <div style={{ width: 160 }}>
+            <Select
+              name="dash_ordenar_top_servicos"
+              value={ordemTopServicos}
+              onChangeValue={(v: string) => setOrdemTopServicos(v as OrdemTopServicos)}
+              options={[...ORDEM_TOP_SERVICOS]}
+            />
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${tokens.color.border}` }}>
         <span style={{ fontSize: '0.65rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Serviço</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em', width: 72, textAlign: 'right' }}>
-            Faturamento (R$)
+            {comDinheiro ? 'Fat. est. (R$)' : 'Qtd.'}
           </span>
           <div style={{ display: 'flex', gap: 4 }}>
             {HEAT_DAYS.map(d => (
@@ -272,20 +352,24 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loading
           ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={22} />)
-          : data.topServicos.map(s => (
-            <div key={s.nome} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(204,20,0,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CC1400', flexShrink: 0 }}>
-                {SVC_ICON[s.nome] ?? Icons.wrench}
+          : topServicosLista.length === 0
+            ? <div style={{ fontSize: '0.82rem', color: tokens.color.muted, textAlign: 'center', padding: '14px 0' }}>Nenhum serviço finalizado nos últimos 30 dias.</div>
+            : topServicosLista.map(s => (
+              <div key={s.nome} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(204,20,0,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CC1400', flexShrink: 0 }}>
+                  {SVC_ICON[s.nome] ?? Icons.wrench}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 500, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</div>
+                </div>
+                <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 72, textAlign: 'right', flexShrink: 0, fontWeight: 500 }}>
+                  {comDinheiro
+                    ? (s.valorEstimado ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                    : s.quantidade.toLocaleString('pt-BR')}
+                </div>
+                <HeatmapRow heatmap={s.semana} />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.84rem', fontWeight: 500, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</div>
-              </div>
-              <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 72, textAlign: 'right', flexShrink: 0, fontWeight: 500 }}>
-                {s.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <HeatmapRow heatmap={s.heatmap} />
-            </div>
-          ))
+            ))
         }
       </div>
 
@@ -302,24 +386,26 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   );
 
   // ── Resumo Financeiro ──────────────────────────────────────────────────────
-  const financeChartData = [
-    { name: 'Receitas', value: data.receitas, color: '#CC1400' },
-    { name: 'Custos', value: data.custos, color: '#D4A020' },
-    { name: 'Lucro Líquido', value: data.lucro, color: '#1A7F4B' },
-  ];
+  // Só pra quem tem financeiro.ver (o servidor omite o bloco). Receitas/custos
+  // são os lançamentos do Financeiro no mês; lucro só pro dono (ver_margem).
+  const financeChartData = fin
+    ? [
+        { name: 'Receitas', value: fin.receitas, color: '#CC1400' },
+        { name: 'Custos', value: fin.despesas, color: '#D4A020' },
+        ...(fin.lucro !== undefined ? [{ name: 'Lucro Líquido', value: fin.lucro, color: '#1A7F4B' }] : []),
+      ]
+    : [];
 
-  const revenueBase = Math.max(data.receitas, 1);
-
+  const revenueBase = Math.max(fin?.receitas ?? 0, 1);
   const financeRows = financeChartData.map(row => ({
     ...row,
     pct: row.name === 'Receitas' ? 100 : Math.round((row.value / revenueBase) * 100),
   }));
 
-  const resumoFinanceiro = (
+  const resumoFinanceiro = !loading && !fin ? null : (
     <Card style={{ padding: '20px 22px' }}>
       <div className="dashboard-card__header">
         <div className="dashboard-card__header-title">RESUMO FINANCEIRO</div>
-        <button className="dashboard-card__icon-button">⋮</button>
       </div>
 
       {loading ? (
@@ -329,11 +415,20 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
           <Skeleton h={22} />
           <Skeleton h={140} />
         </div>
+      ) : fin && !fin.temLancamentos ? (
+        <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: '0.82rem', color: tokens.color.muted, lineHeight: 1.5 }}>
+          Ainda não há entradas nem saídas lançadas no Financeiro neste período.
+          <div style={{ marginTop: 10 }}>
+            <button onClick={() => handleNav('financeiro')} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+              Ir para o Financeiro →
+            </button>
+          </div>
+        </div>
       ) : (
         <>
           <div style={{ width: '100%', height: 190, marginBottom: 18 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={financeChartData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+              <BarChart data={financeChartData} margin={{ top: 24, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={tokens.color.border} vertical={false} />
                 <XAxis
                   dataKey="name"
@@ -360,20 +455,23 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
           {financeRows.map(row => (
             <div key={row.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 96, flexShrink: 0 }}>{row.name}</span>
-              <ProgressBar pct={row.pct} color={row.color} />
+              <ProgressBar pct={limitarPct(row.pct)} color={row.color} />
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text, width: 90, textAlign: 'right', flexShrink: 0 }}>{formatBRL(row.value)}</span>
               <span style={{ fontSize: '0.7rem', color: tokens.color.muted, width: 36, flexShrink: 0 }}>{row.pct}%</span>
             </div>
           ))}
+
+          {fin?.lucroVariacaoPercentual !== undefined && (
+            <div style={{ marginTop: 6, padding: '10px 13px', background: '#EFF8FF', borderRadius: 9, border: '1px solid #BAE0FD', display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+              <span style={{ color: '#1565C0', flexShrink: 0, marginTop: 1, display: 'flex' }}>{Icons.info}</span>
+              <span style={{ fontSize: '0.77rem', color: '#1565C0', lineHeight: 1.5 }}>
+                Seu lucro líquido {fin.lucroVariacaoPercentual >= 0 ? 'aumentou' : 'diminuiu'}{' '}
+                {Math.abs(fin.lucroVariacaoPercentual).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% em relação ao mesmo trecho do mês anterior.
+              </span>
+            </div>
+          )}
         </>
       )}
-
-      <div style={{ marginTop: 6, padding: '10px 13px', background: '#EFF8FF', borderRadius: 9, border: '1px solid #BAE0FD', display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-        <span style={{ color: '#1565C0', flexShrink: 0, marginTop: 1, display: 'flex' }}>{Icons.info}</span>
-        <span style={{ fontSize: '0.77rem', color: '#1565C0', lineHeight: 1.5 }}>
-          Seu lucro líquido aumentou {Math.abs(data.fatPct).toFixed(1)}% em relação ao mês anterior. Continue assim!
-        </span>
-      </div>
     </Card>
   );
 
@@ -386,21 +484,34 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
           Ver todas
         </button>
       </div>
-      {loading
+      {ordensLoading
         ? Array.from({ length: 3 }).map((_, i) => (
           <div key={i} style={{ padding: '14px 0', borderBottom: `1px solid ${tokens.color.border}` }}>
             <Skeleton h={58} r={8} />
           </div>
         ))
-        : data.ordens.slice(0, 3).map(o => <OSRow key={o.id} ordem={o} onClick={() => setSel(o)} />)
+        : ordens.slice(0, 3).map(o => <OSRow key={o.id} ordem={o} onClick={() => setSel(o)} />)
       }
-      {!loading && data.ordens.length === 0 && (
+      {!ordensLoading && ordensErro && (
+        <div className="dashboard-orders-empty">{ordensErro}</div>
+      )}
+      {!ordensLoading && !ordensErro && ordens.length === 0 && (
         <div className="dashboard-orders-empty">Nenhuma ordem ainda</div>
       )}
     </Card>
   );
 
   // ── Alertas ────────────────────────────────────────────────────────────────
+  // Os mesmos alertas reais da sidebar (useAlertasResumo): OS bloqueadas, clientes
+  // a avisar, estoque baixo e itens em quarentena. Antes eram frases fixas
+  // (ex.: "aguardando aprovação" contava rascunhos).
+  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+  const alertasLista: Alerta[] = [
+    ...(alertasResumo.bloqueados > 0 ? [{ tipo: 'crit' as const, msg: `${plural(alertasResumo.bloqueados, 'ordem bloqueada', 'ordens bloqueadas')}`, detalhe: 'Aguardando liberação' }] : []),
+    ...(alertasResumo.clientesNaoAvisados > 0 ? [{ tipo: 'warn' as const, msg: `${plural(alertasResumo.clientesNaoAvisados, 'cliente', 'clientes')} para avisar`, detalhe: 'Serviço finalizado hoje' }] : []),
+    ...(alertasResumo.baixoEstoque > 0 ? [{ tipo: 'crit' as const, msg: `${plural(alertasResumo.baixoEstoque, 'item com estoque baixo', 'itens com estoque baixo')}`, detalhe: '' }] : []),
+    ...(alertasResumo.quarentena > 0 ? [{ tipo: 'warn' as const, msg: `${plural(alertasResumo.quarentena, 'item em quarentena', 'itens em quarentena')}`, detalhe: '' }] : []),
+  ];
   // O card inteiro e o último item da lista navegam para Atendimento (ainda a
   // única tela com detalhe de alertas — ver mesmo padrão em Sidebar/alertas).
   const alertasSection = (
@@ -413,13 +524,19 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         <button onClick={(e) => e.stopPropagation()} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {data.alertas.map((a, i) => {
+        {alertasResumo.loading && Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} h={46} r={10} />)}
+        {!alertasResumo.loading && alertasLista.length === 0 && (
+          <div style={{ padding: '14px 13px', borderRadius: 10, background: '#F0FAF4', border: '1px solid rgba(26,127,75,0.18)', fontSize: '0.84rem', fontWeight: 600, color: '#1A7F4B' }}>
+            Nenhum alerta no momento
+          </div>
+        )}
+        {!alertasResumo.loading && alertasLista.map((a, i) => {
           const cfg = {
             crit: { bg: '#FFF0EE', border: 'rgba(204,20,0,0.18)', color: '#CC1400', icon: Icons.alert },
             warn: { bg: '#FFF8EC', border: 'rgba(179,92,0,0.18)', color: '#B35C00', icon: Icons.clock },
             info: { bg: '#F0FAF4', border: 'rgba(26,127,75,0.18)', color: '#1A7F4B', icon: Icons.cal },
           }[a.tipo];
-          const isUltimo = i === data.alertas.length - 1;
+          const isUltimo = i === alertasLista.length - 1;
           return (
             <div
               key={i}
@@ -481,14 +598,15 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       <MobileTopbar active={page} onNav={handleNav} />
       <div style={{ padding: '16px 14px 0' }}>
         <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: tokens.color.text, margin: '0 0 2px' }}>
-          Olá, {user?.nome ?? 'Lucas Andrelo'} 👋
+          Olá{user?.nome ? `, ${user.nome}` : ''} 👋
         </h2>
         <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '0 0 16px' }}>Aqui está o desempenho da sua oficina hoje.</p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '0 14px' }}>
+        {erroCard}
         {kpiRow}
         {chartSection}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: topServicosSection ? '1fr 1fr' : '1fr', gap: 14 }}>
           {topServicosSection}
           {acessosRapidos}
         </div>
@@ -507,12 +625,15 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <DesktopHeader onNav={handleNav} />
         <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {erroCard}
           {kpiRow}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 18 }}>
-            {chartSection}
-            {topServicosSection}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr 310px', gap: 18 }}>
+          {(chartSection || topServicosSection) && (
+            <div style={{ display: 'grid', gridTemplateColumns: chartSection && topServicosSection ? '1fr 420px' : '1fr', gap: 18 }}>
+              {chartSection}
+              {topServicosSection}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: `${resumoFinanceiro ? '320px ' : ''}1fr 310px`, gap: 18 }}>
             {resumoFinanceiro}
             {ordensRecentes}
             {alertasSection}

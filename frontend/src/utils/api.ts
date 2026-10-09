@@ -349,6 +349,14 @@ export const api = {
     return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
   },
 
+  // ── Visão Geral ──────────────────────────────────────────────────────────────
+  // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.
+  visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  // Exige configuracoes.editar. `null` remove a meta.
+  definirMetaMensal: (valor: number | null) =>
+    authFetch(`${API_BASE}/visao-geral/meta`, { method: 'PUT', body: JSON.stringify({ valor }) }),
+
   // ── Relatórios ───────────────────────────────────────────────────────────────
   // Exige relatorios.ver (dono e gerente). Datas YYYY-MM-DD; o servidor agrega
   // por dia no fuso `tz` e devolve só os totais/séries (ver RelatorioResposta).
