@@ -1,11 +1,14 @@
 import type { OrdemRow } from '../types/dashboard';
 import type {
-  FiltroPeriodo,
+  DiaRelatorio,
   Granularidade,
   IntervaloDatas,
   PeriodoPreset,
   PontoSerieTemporal,
+  RelatorioResposta,
+  ServicoContado,
   ServicoRealizado,
+  TotaisPeriodo,
 } from '../types/relatorios';
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -34,8 +37,22 @@ export const SVC_PRECO: Record<string, number> = {
   Funilaria: 900,
 };
 
+/**
+ * `payload` é coluna `text` no banco: do backend chega como STRING JSON, não
+ * como objeto. Ler `payload.servicos_selecionados` direto dava sempre
+ * `undefined` fora do modo demo — por isso o parse aqui.
+ */
 function servicosDaOrdem(ordem: OrdemRow): string[] {
-  return (ordem.payload?.servicos_selecionados as string[] | undefined) ?? [];
+  let payload: unknown = ordem.payload;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch {
+      return [];
+    }
+  }
+  const lista = (payload as { servicos_selecionados?: unknown } | null | undefined)?.servicos_selecionados;
+  return Array.isArray(lista) ? lista.filter((n): n is string => typeof n === 'string' && n.trim() !== '') : [];
 }
 
 function estimativaAtual(ordem: OrdemRow): number {
@@ -46,26 +63,22 @@ function estimativaAtual(ordem: OrdemRow): number {
 }
 
 /**
- * Valor estimado de uma OS: usa `valor_total` real quando o backend expuser
- * (ainda não existe), com fallback para a soma por serviço selecionado
- * (ou o ticket padrão quando nenhum serviço é reconhecido na tabela).
+ * Valor estimado de uma OS (soma por serviço selecionado, ou o ticket padrão
+ * quando nenhum serviço é reconhecido na tabela).
  *
- * TODO: backend precisa expor valor_total em OrdemServicoSerializer / tabela
- * ordens no Supabase. Quando isso existir, esta função passa a usar o valor
- * real automaticamente, sem precisar tocar em nenhuma tela.
+ * Na tela de Relatórios, quem calcula faturamento agora é o servidor
+ * (GET /relatorios: entradas do Financeiro, ou esta mesma estimativa quando a
+ * oficina ainda não lança entradas — a tabela do servidor é espelho desta, em
+ * relatorios_views.py). Esta função só sobrevive para o modo demo (DEV com a
+ * API fora do ar) e para quem usa `valor_total` de OS.
  *
  * Nota: esta estimativa (soma por serviço) é mais granular do que a usada
  * hoje na Visão Geral (nº de OS finalizadas × R$480 fixo). A Visão Geral
  * continua com a conta simples de propósito, para não mudar um número que
- * o usuário já vê hoje — os Relatórios usam a estimativa mais detalhada.
+ * o usuário já vê hoje.
  */
 export function valorOS(ordem: OrdemRow): number {
   return ordem.valor_total ?? estimativaAtual(ordem);
-}
-
-/** Apenas OS finalizadas — base de faturamento, ticket médio e serviços realizados. */
-export function apenasFinalizadas(ordens: OrdemRow[]): OrdemRow[] {
-  return ordens.filter((o) => o.status === 'finalizada');
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -171,15 +184,6 @@ export function resolverIntervaloAnterior(preset: PeriodoPreset, intervaloAtual:
   return { inicio: inicioDoDia(inicioAnterior), fim: fimDoDia(fimAnterior) };
 }
 
-export function filtrarPorIntervalo(ordens: OrdemRow[], intervalo: IntervaloDatas): OrdemRow[] {
-  const inicio = intervalo.inicio.getTime();
-  const fim = intervalo.fim.getTime();
-  return ordens.filter((o) => {
-    const t = new Date(o.created_at).getTime();
-    return t >= inicio && t <= fim;
-  });
-}
-
 export function formatarIntervalo(intervalo: IntervaloDatas): string {
   const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
   return `${intervalo.inicio.toLocaleDateString('pt-BR', opts)} – ${intervalo.fim.toLocaleDateString('pt-BR', opts)}`;
@@ -275,26 +279,29 @@ function gerarBuckets(intervalo: IntervaloDatas, granularidade: Granularidade): 
 /* Séries temporais (faturamento e contagem de OS)                            */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function somarPorBucket(ordens: OrdemRow[], bucket: Bucket, extrair: (o: OrdemRow) => number): number {
-  const inicio = bucket.inicio.getTime();
-  const fim = bucket.fim.getTime();
-  return ordens.reduce((soma, o) => {
-    const t = new Date(o.created_at).getTime();
-    return t >= inicio && t <= fim ? soma + extrair(o) : soma;
-  }, 0);
+/** YYYY-MM-DD no fuso local — mesma chave que o servidor devolve em `dia`. */
+export function chaveDia(data: Date): string {
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+}
+
+function somarDiasDoBucket(dias: DiaRelatorio[], bucket: Bucket, extrair: (d: DiaRelatorio) => number): number {
+  // Chaves YYYY-MM-DD comparam certo como texto.
+  const inicio = chaveDia(bucket.inicio);
+  const fim = chaveDia(bucket.fim);
+  return dias.reduce((soma, d) => (d.dia >= inicio && d.dia <= fim ? soma + extrair(d) : soma), 0);
 }
 
 /**
  * Monta a série temporal comparando período atual × período anterior,
  * bucket a bucket, alinhados por posição relativa (o 1º bucket do período
  * atual é comparado ao 1º bucket do período anterior — não por data).
+ * Parte dos dias já agregados pelo servidor; aqui só agrupa em dia/semana/mês.
  */
-export function montarSerieTemporal(
-  ordensAtual: OrdemRow[],
-  ordensAnterior: OrdemRow[],
+export function montarSerieDeDias(
+  dias: DiaRelatorio[],
   intervaloAtual: IntervaloDatas,
   intervaloAnterior: IntervaloDatas,
-  extrair: (o: OrdemRow) => number
+  extrair: (d: DiaRelatorio) => number
 ): PontoSerieTemporal[] {
   const granularidade = determinarGranularidade(intervaloAtual);
   const bucketsAtual = gerarBuckets(intervaloAtual, granularidade);
@@ -307,8 +314,8 @@ export function montarSerieTemporal(
     const bAnterior = bucketsAnterior[i];
     pontos.push({
       rotulo: bAtual ? bAtual.rotulo : bAnterior?.rotulo ?? '',
-      atual: bAtual ? somarPorBucket(ordensAtual, bAtual, extrair) : null,
-      anterior: bAnterior ? somarPorBucket(ordensAnterior, bAnterior, extrair) : null,
+      atual: bAtual ? somarDiasDoBucket(dias, bAtual, extrair) : null,
+      anterior: bAnterior ? somarDiasDoBucket(dias, bAnterior, extrair) : null,
     });
   }
   return pontos;
@@ -320,19 +327,11 @@ export function montarSerieTemporal(
 
 const LIMITE_SERVICOS_EXIBIDOS = 8;
 
-export function calcularServicosMaisRealizados(ordens: OrdemRow[]): ServicoRealizado[] {
-  const contagem = new Map<string, number>();
-  let total = 0;
-
-  ordens.forEach((o) => {
-    servicosDaOrdem(o).forEach((nome) => {
-      contagem.set(nome, (contagem.get(nome) ?? 0) + 1);
-      total += 1;
-    });
-  });
-
-  const ordenado = Array.from(contagem.entries())
-    .map(([nome, quantidade]) => ({ nome, quantidade, percentual: total > 0 ? (quantidade / total) * 100 : 0 }))
+/** Calcula % do total e junta a cauda em "Outros". `servicos` já vem contado (do servidor ou da agregação demo). */
+export function agruparServicosMaisRealizados(servicos: ServicoContado[]): ServicoRealizado[] {
+  const total = servicos.reduce((s, x) => s + x.quantidade, 0);
+  const ordenado = servicos
+    .map(({ nome, quantidade }) => ({ nome, quantidade, percentual: total > 0 ? (quantidade / total) * 100 : 0 }))
     .sort((a, b) => b.quantidade - a.quantidade);
 
   if (ordenado.length <= LIMITE_SERVICOS_EXIBIDOS) return ordenado;
@@ -346,6 +345,67 @@ export function calcularServicosMaisRealizados(ordens: OrdemRow[]): ServicoReali
     percentual: total > 0 ? (quantidadeOutros / total) * 100 : 0,
   });
   return principais;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Agregação local (só modo demo)                                             */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Mesma agregação que o servidor faz (GET /relatorios), sobre uma lista de OS
+ * em memória — usada APENAS no modo demo (DEV com a API fora do ar), para a
+ * tela ter um único caminho de renderização: sempre parte de RelatorioResposta.
+ * Faturamento = estimativa por OS finalizada.
+ */
+export function agregarOrdensLocal(
+  ordens: OrdemRow[],
+  atual: IntervaloDatas,
+  anterior: IntervaloDatas
+): RelatorioResposta {
+  const porDia = new Map<string, DiaRelatorio>();
+  const contagem = new Map<string, number>();
+  const inicio = Math.min(atual.inicio.getTime(), anterior.inicio.getTime());
+  const fim = Math.max(atual.fim.getTime(), anterior.fim.getTime());
+
+  for (const o of ordens) {
+    const t = new Date(o.created_at).getTime();
+    if (Number.isNaN(t) || t < inicio || t > fim) continue;
+    const chave = chaveDia(new Date(t));
+    const d = porDia.get(chave) ?? { dia: chave, ordens: 0, finalizadas: 0, faturamento: 0 };
+    d.ordens += 1;
+    if (o.status === 'finalizada') {
+      d.finalizadas += 1;
+      d.faturamento += valorOS(o);
+      if (t >= atual.inicio.getTime() && t <= atual.fim.getTime()) {
+        servicosDaOrdem(o).forEach((nome) => contagem.set(nome, (contagem.get(nome) ?? 0) + 1));
+      }
+    }
+    porDia.set(chave, d);
+  }
+
+  const dias = Array.from(porDia.values()).sort((a, b) => a.dia.localeCompare(b.dia));
+  const totais = (intervalo: IntervaloDatas): TotaisPeriodo => {
+    const ini = chaveDia(intervalo.inicio);
+    const fimChave = chaveDia(intervalo.fim);
+    return dias
+      .filter((d) => d.dia >= ini && d.dia <= fimChave)
+      .reduce(
+        (t, d) => ({
+          faturamento: t.faturamento + d.faturamento,
+          ordens: t.ordens + d.ordens,
+          finalizadas: t.finalizadas + d.finalizadas,
+        }),
+        { faturamento: 0, ordens: 0, finalizadas: 0 }
+      );
+  };
+  const totalAnterior = totais(anterior);
+
+  return {
+    faturamentoOrigem: 'estimado',
+    totais: { atual: totais(atual), anterior: totalAnterior.ordens > 0 ? totalAnterior : null },
+    dias,
+    servicos: Array.from(contagem.entries()).map(([nome, quantidade]) => ({ nome, quantidade })),
+  };
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */

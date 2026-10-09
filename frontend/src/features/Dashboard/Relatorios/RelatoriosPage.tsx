@@ -37,6 +37,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
     serieOrdens,
     servicosMaisRealizados,
     mediaDiaria,
+    faturamentoOrigem,
     temDadosNoPeriodo,
     usandoDadosDemo,
     recarregar,
@@ -153,7 +154,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
             <div style={{ width: 56, height: 56, borderRadius: 16, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
               {Icons.chart}
             </div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: tokens.color.text }}>Nenhuma ordem de serviço neste período</div>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: tokens.color.text }}>Nenhum dado neste período</div>
             <div style={{ fontSize: '0.82rem', color: tokens.color.muted, maxWidth: 320 }}>
               Ainda não há dados suficientes para gerar relatórios no intervalo selecionado. Tente escolher um período maior.
             </div>
@@ -202,7 +203,9 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                   <div>
                     <div className="dashboard-card__header-title">FATURAMENTO</div>
                     <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
-                      Valor estimado das OS finalizadas, por período, comparado ao período anterior.
+                      {faturamentoOrigem === 'financeiro'
+                        ? 'Entradas lançadas no Financeiro (exceto canceladas), por período, comparado ao período anterior.'
+                        : 'Valor estimado das OS finalizadas (ainda sem entradas no Financeiro), por período, comparado ao período anterior.'}
                     </div>
                   </div>
                 </div>

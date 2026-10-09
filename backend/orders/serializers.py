@@ -423,3 +423,23 @@ class EstoqueKitSerializer(serializers.Serializer):
         attrs["descricao"] = (attrs.get("descricao") or "").strip() or None
         attrs["servico_id"] = (attrs.get("servico_id") or "").strip() or None
         return attrs
+
+# ── Catálogo de serviços ──────────────────────────────────────────────────────
+
+class ServicoSerializer(serializers.Serializer):
+    """Entrada de criação/edição de serviço. `validated_data` sai no formato das
+    colunas de `servicos`. Preço 0 é aceito (ex.: cortesia); o modal do frontend
+    já exige preço > 0 pro cadastro normal."""
+    nome = serializers.CharField(max_length=200)
+    categoria = serializers.CharField(max_length=100)
+    preco = _NumeroFinito(min_value=0, max_value=99_999_999)
+    duracao = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    descricao = serializers.CharField(max_length=2000, required=False, allow_blank=True, allow_null=True, default="")
+    ativo = serializers.BooleanField(required=False, default=True)
+
+    def validate(self, attrs):
+        for campo in ("nome", "categoria", "duracao"):
+            attrs[campo] = (attrs.get(campo) or "").strip()
+        attrs["descricao"] = (attrs.get("descricao") or "").strip()
+        attrs["preco"] = round(attrs["preco"], 2)
+        return attrs

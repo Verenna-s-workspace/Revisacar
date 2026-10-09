@@ -349,5 +349,18 @@ export const api = {
     return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
   },
 
+  // ── Relatórios ───────────────────────────────────────────────────────────────
+  // Exige relatorios.ver (dono e gerente). Datas YYYY-MM-DD; o servidor agrega
+  // por dia no fuso `tz` e devolve só os totais/séries (ver RelatorioResposta).
+  relatorios: (params: { de: string; ate: string; deAnterior?: string; ateAnterior?: string; tz?: string }) => {
+    const qs = new URLSearchParams({ de: params.de, ate: params.ate });
+    if (params.deAnterior && params.ateAnterior) {
+      qs.set('de_anterior', params.deAnterior);
+      qs.set('ate_anterior', params.ateAnterior);
+    }
+    if (params.tz) qs.set('tz', params.tz);
+    return authFetch(`${API_BASE}/relatorios?${qs.toString()}`);
+  },
+
   baixarFoto: (filename: string) => fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
 };

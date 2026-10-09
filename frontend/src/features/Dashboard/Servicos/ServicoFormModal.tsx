@@ -11,10 +11,13 @@ interface ServicoFormModalProps {
   servico?: ServicoItem;              // presente = modo edição
   categoriasDisponiveis: string[];
   onSave: (input: NovoServicoInput) => void;
+  /** Erro devolvido pelo servidor ao salvar — o modal fica aberto pra corrigir. */
+  erro?: string | null;
+  salvando?: boolean;
   onClose: () => void;
 }
 
-export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, onClose }: ServicoFormModalProps) {
+export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, erro, salvando, onClose }: ServicoFormModalProps) {
   const [form, setForm] = useState<NovoServicoInput>(FORM_VAZIO);
   const editando = !!servico;
 
@@ -112,6 +115,12 @@ export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, onClo
             </label>
           </div>
 
+          {erro && (
+            <div role="alert" style={{ margin: '0 24px 12px', padding: '10px 12px', borderRadius: 8, background: tokens.color.critBg, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
+              {erro}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${tokens.color.border}` }}>
             <button
               type="button"
@@ -122,9 +131,10 @@ export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, onClo
             </button>
             <button
               type="submit"
-              style={{ padding: '10px 20px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
+              disabled={salvando}
+              style={{ padding: '10px 20px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: salvando ? 'wait' : 'pointer', opacity: salvando ? 0.7 : 1 }}
             >
-              {editando ? 'Salvar Alterações' : 'Salvar Serviço'}
+              {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Salvar Serviço'}
             </button>
           </div>
         </form>

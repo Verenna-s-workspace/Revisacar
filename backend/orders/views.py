@@ -18,6 +18,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from postgrest.exceptions import APIError
 from supabase import create_client
 
 from .serializers import (
@@ -89,12 +90,40 @@ def decode_jwt(token: str) -> dict | None:
 
 
 def _now():
-    return datetime.now().isoformat()
+    # Com fuso (+00:00, -03:00...). Antes era `datetime.now().isoformat()`, sem
+    # fuso — ambíguo pra qualquer relatório por dia. Linhas antigas continuam
+    # sem fuso e são lidas como horário do servidor (ver relatorios_views).
+    return datetime.now().astimezone().isoformat()
 
 
-def _get_ordem_or_404(ordem_id: str):
-    """Busca ordem no Supabase; retorna (row, None) ou (None, Response 404)."""
-    res = supabase.table("ordens").select("*").eq("id", ordem_id).execute()
+def _ordens_precisam_do_sql(view_func):
+    """Se `ordens.oficina_doc` ainda não existe (ordens_oficina.sql não foi
+    rodado), responde 503 com a instrução em vez de um 500 genérico."""
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view_func(request, *args, **kwargs)
+        except APIError as e:
+            codigo = getattr(e, "code", None)
+            if codigo in ("42703", "PGRST204") or "oficina_doc" in str(getattr(e, "message", "")):
+                logger.error("Ordens: coluna oficina_doc ausente (%s): %s", codigo, getattr(e, "message", e))
+                return Response(
+                    {"detail": "A tabela de ordens ainda não tem a coluna da oficina. "
+                               "Rode backend/sql/ordens_oficina.sql no SQL Editor do Supabase."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            raise
+    wrapper.__name__ = view_func.__name__
+    return wrapper
+
+
+def _get_ordem_or_404(ordem_id: str, oficina_doc: str):
+    """Busca a ordem DESTA oficina; retorna (row, None) ou (None, Response 404).
+    Ordem de outra oficina é 404 de propósito — não revela que o id existe."""
+    res = (
+        supabase.table("ordens").select("*")
+        .eq("id", ordem_id).eq("oficina_doc", oficina_doc)
+        .execute()
+    )
     if not res.data:
         return None, Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
     return res.data[0], None
@@ -635,13 +664,20 @@ def me(request):
 
 @api_view(["GET", "POST"])
 @require_auth
+@_ordens_precisam_do_sql
 def ordens_list(request):
     """
-    GET  /ordens        → lista ordens (filtrável por ?status=)
+    GET  /ordens        → lista as ordens da oficina (filtrável por ?status=)
     POST /ordens        → cria nova ordem
     """
+    oficina_doc = _oficina_doc_do_token(request.admin)
+
     if request.method == "GET":
-        query = supabase.table("ordens").select("*").order("created_at", desc=True)
+        query = (
+            supabase.table("ordens").select("*")
+            .eq("oficina_doc", oficina_doc)
+            .order("created_at", desc=True)
+        )
         status_filter = request.query_params.get("status")
         if status_filter:
             query = query.eq("status", status_filter)
@@ -659,6 +695,7 @@ def ordens_list(request):
 
     data = {
         "id": ordem_id,
+        "oficina_doc": oficina_doc,
         "created_at": now,
         "updated_at": now,
         "os_num": ordem["os_header"]["os_num"],
@@ -676,14 +713,17 @@ def ordens_list(request):
 
 @api_view(["GET", "PUT", "DELETE"])
 @require_auth
+@_ordens_precisam_do_sql
 def ordem_detail(request, ordem_id):
     """
     GET    /ordens/<id>  → detalhe
     PUT    /ordens/<id>  → atualiza
     DELETE /ordens/<id>  → remove
     """
+    oficina_doc = _oficina_doc_do_token(request.admin)
+
     if request.method == "GET":
-        row, err = _get_ordem_or_404(ordem_id)
+        row, err = _get_ordem_or_404(ordem_id, oficina_doc)
         if err:
             return err
         return Response(row)
@@ -694,7 +734,10 @@ def ordem_detail(request, ordem_id):
             return Response(serializer.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
         # Preserva fotos já existentes
-        existing = supabase.table("ordens").select("fotos_paths").eq("id", ordem_id).execute()
+        existing = (
+            supabase.table("ordens").select("fotos_paths")
+            .eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
+        )
         existing_paths = existing.data[0].get("fotos_paths", []) if existing.data else []
 
         ordem = serializer.validated_data
@@ -709,13 +752,16 @@ def ordem_detail(request, ordem_id):
             "payload": serializer.data,
         }
 
-        res = supabase.table("ordens").update(update).eq("id", ordem_id).execute()
+        res = (
+            supabase.table("ordens").update(update)
+            .eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
+        )
         if not res.data:
             return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
         return Response(res.data[0])
 
     # DELETE
-    row, err = _get_ordem_or_404(ordem_id)
+    row, err = _get_ordem_or_404(ordem_id, oficina_doc)
     if err:
         return err
 
@@ -725,12 +771,13 @@ def ordem_detail(request, ordem_id):
     if paths:
         supabase.storage.from_(BUCKET).remove(paths)
 
-    supabase.table("ordens").delete().eq("id", ordem_id).execute()
+    supabase.table("ordens").delete().eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
     return Response({"message": "Deletada"})
 
 
 @api_view(["PATCH"])
 @require_auth
+@_ordens_precisam_do_sql
 def ordem_status(request, ordem_id):
     """PATCH /ordens/<id>/status?status=<novo_status>"""
     novo_status = request.query_params.get("status") or request.data.get("status")
@@ -740,7 +787,7 @@ def ordem_status(request, ordem_id):
     res = supabase.table("ordens").update({
         "status": novo_status,
         "updated_at": _now(),
-    }).eq("id", ordem_id).execute()
+    }).eq("id", ordem_id).eq("oficina_doc", _oficina_doc_do_token(request.admin)).execute()
 
     if not res.data:
         return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
@@ -752,9 +799,11 @@ def ordem_status(request, ordem_id):
 @api_view(["POST"])
 @parser_classes([MultiPartParser])
 @require_auth
+@_ordens_precisam_do_sql
 def upload_fotos(request, ordem_id):
     """POST /ordens/<id>/fotos  — multipart/form-data, campo 'files'"""
-    row, err = _get_ordem_or_404(ordem_id)
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    row, err = _get_ordem_or_404(ordem_id, oficina_doc)
     if err:
         return err
 
@@ -808,18 +857,23 @@ def upload_fotos(request, ordem_id):
     supabase.table("ordens").update({
         "fotos_paths": all_paths,
         "updated_at": _now(),
-    }).eq("id", ordem_id).execute()
+    }).eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
 
     return Response({"paths": all_paths})
 
 
 @api_view(["DELETE"])
 @require_auth
+@_ordens_precisam_do_sql
 def delete_foto(request, ordem_id, foto_path):
     """DELETE /ordens/<id>/fotos/<foto_path>"""
     foto_path = urllib.parse.unquote(foto_path)
+    oficina_doc = _oficina_doc_do_token(request.admin)
 
-    res = supabase.table("ordens").select("fotos_paths").eq("id", ordem_id).execute()
+    res = (
+        supabase.table("ordens").select("fotos_paths")
+        .eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
+    )
     if not res.data:
         return Response({"detail": "Ordem não encontrada"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -836,7 +890,7 @@ def delete_foto(request, ordem_id, foto_path):
     supabase.table("ordens").update({
         "fotos_paths": new_paths,
         "updated_at": _now(),
-    }).eq("id", ordem_id).execute()
+    }).eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
 
     return Response({"message": "Foto deletada", "paths": new_paths})
 
