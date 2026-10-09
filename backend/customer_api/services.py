@@ -9,6 +9,7 @@ Tables required:
 from __future__ import annotations
 import os
 from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
 from supabase import create_client, Client
 
 _client: Client | None = None
@@ -25,6 +26,16 @@ def get_client() -> Client:
     return _client
 
 
+def pin_hash(pin: str) -> str:
+    """Hash a PIN using the same mechanism as passwords"""
+    return make_password(pin)
+
+
+def pin_check(pin: str, hashed_pin: str) -> bool:
+    """Check PIN against hashed value"""
+    return check_password(pin, hashed_pin)
+
+
 # ── Customers ─────────────────────────────────────────────────────────────────
 
 def get_customer_by_email(email: str):
@@ -35,6 +46,66 @@ def get_customer_by_email(email: str):
 def get_customer_by_id(customer_id: str):
     r = get_client().table("customers").select("*").eq("id", customer_id).limit(1).execute()
     return r.data[0] if r.data else None
+
+
+def get_customer_by_document(documento: str):
+    """Get customer by CPF/CNPJ document"""
+    r = get_client().table("customers").select("*").eq("cpf", documento).limit(1).execute()
+    return r.data[0] if r.data else None
+
+
+def get_funcionario_by_id(funcionario_id: str):
+    """Get funcionario by ID"""
+    # Note: Using raw SQL since we don't have a funcionarios service yet
+    # This is a simplified version - in production you might want to add proper error handling
+    try:
+        r = get_client().table("funcionarios").select("*").eq("id", funcionario_id).limit(1).execute()
+        return r.data[0] if r.data else None
+    except Exception:
+        return None
+
+
+def get_customer_by_pin(pin: str):
+    """Get customer by PIN (iterates through all customers - for small datasets)"""
+    # Note: This is not optimal for large datasets. For production with many customers,
+    # consider adding an index or using a different approach.
+    try:
+        r = get_client().table("customers").select("id, name, email, pin_hash").execute()
+        for customer in (r.data or []):
+            if pin_check(pin, customer.get("pin_hash", "")):
+                return customer
+        return None
+    except Exception:
+        return None
+
+
+def get_precadastro_by_document_and_pin(documento: str, pin: str):
+    """Check for pre-cadastro in mechanic app's backuprevisa.clientes table"""
+    try:
+        # Get client with schema set to backuprevisa
+        client = get_client()
+        # Temporarily set schema to backuprevisa for this query
+        client.postgrest.schema('backuprevisa')
+        r = client.table("clientes").select("id, nome, email, telefone, pin_hash, cpfCnpj").eq("cpfCnpj", documento).execute()
+        # Reset schema to public
+        client.postgrest.schema('public')
+
+        precadastros = r.data or []
+        for precadastro in precadastros:
+            if pin_check(pin, precadastro.get("pin_hash", "")):
+                return precadastro
+        return None
+    except Exception as e:
+        # If schema approach fails, try direct table reference
+        try:
+            r = get_client().table('backuprevisa.clientes').select("id, nome, email, telefone, pin_hash, cpfCnpj").eq("cpfCnpj", documento).execute()
+            precadastros = r.data or []
+            for precadastro in precadastros:
+                if pin_check(pin, precadastro.get("pin_hash", "")):
+                    return precadastro
+        except Exception:
+            pass
+        return None
 
 
 def create_customer(data: dict):
@@ -129,6 +200,40 @@ def get_appointment(appointment_id: str, customer_id: str):
 
 
 def create_appointment(data: dict):
+    # Verificar disponibilidade
+    date_str = str(data["date"])
+    time_str = str(data["time_slot"])
+
+    # Verificar se o horário está marcado como disponível
+    available_slot = (
+        get_client()
+        .table("availability_slots")
+        .select("id")
+        .eq("date", date_str)
+        .eq("time_slot", time_str)
+        .eq("is_available", True)
+        .execute()
+    )
+
+    if not available_slot.data:
+        raise Exception("Horário selecionado não está disponível")
+
+    # Verificar se não há agendamento existente para o mesmo veículo na mesma data/hora
+    existing_appointment = (
+        get_client()
+        .table("appointments")
+        .select("id")
+        .eq("vehicle_id", data["vehicle_id"])
+        .eq("date", date_str)
+        .eq("time_slot", time_str)
+        .in_("status", ["pendente", "confirmado"])
+        .execute()
+    )
+
+    if existing_appointment.data:
+        raise Exception("Já existe um agendamento para este veículo neste horário")
+
+    # Criar o agendamento se todas as verificações passarem
     r = get_client().table("appointments").insert(data).execute()
     return r.data[0] if r.data else None
 

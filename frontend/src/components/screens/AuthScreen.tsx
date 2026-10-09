@@ -27,8 +27,22 @@ const registerSchema = z.object({
   message: 'As senhas não coincidem',
 });
 
+const pinSchema = z.object({
+  documento: z.string()
+    .refine(
+      (value) => {
+        const digits = value.replace(/\D/g, '');
+        return digits.length === 11 || digits.length === 14;
+      },
+      { message: 'Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)' }
+    )
+    .transform((value) => value.replace(/\D/g, '')),
+  pincode: z.string().length(6, 'PIN deve ter exatamente 6 dígitos').regex(/^\d+$/, 'PIN deve conter apenas números'),
+});
+
 type LoginForm    = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
+type PinForm      = z.infer<typeof pinSchema>;
 
 /* ─── Hero ──────────────────────────────────────────────── */
 function Hero() {
@@ -227,9 +241,61 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+/* ─── PIN Form ─────────────────────────────────────────── */
+function PinForm({ onSuccess }: { onSuccess: () => void }) {
+  const { setSession } = useAuthStore();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<PinForm>({
+    resolver: zodResolver(pinSchema),
+  });
+
+  const onSubmit = async (data: PinForm) => {
+    try {
+      const res = await authApi.pinLogin(data);
+      setSession({
+        id: res.data.customer.id,
+        name: res.data.customer.name,
+        email: res.data.customer.email,
+        access: res.data.access,
+        refresh: res.data.refresh,
+      });
+      toast.success(`Bem-vindo de volta, ${res.data.customer.name.split(' ')[0]}!`);
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Documento ou PIN incorretos');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <Input
+        label="CPF ou CNPJ"
+        type="tel"
+        placeholder="000.000.000-00 ou 00.000.000/0000-00"
+        error={errors.documento?.message}
+        {...register('documento')}
+      />
+      <Input
+        label="PIN"
+        type="password"
+        placeholder="Digite seu PIN de 6 dígitos"
+        error={errors.pincode?.message}
+        {...register('pincode')}
+      />
+
+      <Button type="submit" fullWidth size="lg" loading={isSubmitting} className="mt-1">
+        <LogIn size={17} />
+        Entrar com PIN
+      </Button>
+
+      <Divider label="ou" className="my-1" />
+      <GoogleButton />
+    </form>
+  );
+}
+
 /* ─── Auth Screen ───────────────────────────────────────── */
 export function AuthScreen() {
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState<'login' | 'register' | 'pin'>('login');
   const navigate = useNavigate();
 
   return (
@@ -239,7 +305,7 @@ export function AuthScreen() {
       <div className="flex-1 bg-bg px-5 py-6">
         {/* Segmented control */}
         <div className="flex bg-surface-3 rounded-2xl p-1 mb-6 gap-1">
-          {(['login', 'register'] as const).map(t => (
+          {(['login', 'register', 'pin'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -253,7 +319,7 @@ export function AuthScreen() {
                 />
               )}
               <span className={`relative z-10 ${tab === t ? 'text-text' : 'text-text-muted'}`}>
-                {t === 'login' ? 'Entrar' : 'Cadastrar'}
+                {t === 'login' ? 'Entrar' : t === 'register' ? 'Cadastrar' : 'Login com PIN'}
               </span>
             </button>
           ))}
@@ -270,7 +336,9 @@ export function AuthScreen() {
           >
             {tab === 'login'
               ? <LoginForm onSuccess={() => navigate('/')} />
-              : <RegisterForm onSuccess={() => navigate('/')} />
+              : tab === 'register'
+                ? <RegisterForm onSuccess={() => navigate('/')} />
+                : <PinForm onSuccess={() => navigate('/')} />
             }
           </motion.div>
         </AnimatePresence>

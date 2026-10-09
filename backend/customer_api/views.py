@@ -7,11 +7,13 @@ from __future__ import annotations
 import jwt as pyjwt
 from datetime import datetime, timedelta
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
+from django.utils.translation import gettext_lazy as _
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import (
     CustomerRegisterSerializer, CustomerLoginSerializer,
@@ -19,6 +21,7 @@ from .serializers import (
     CustomerProfileSerializer, VehicleSerializer, VehicleUpdateSerializer,
     AppointmentCreateSerializer, EstimateActionSerializer,
     AvailableMonthSerializer, NotificationSerializer,
+    CustomerPinLoginSerializer, MechanicClientCreateSerializer,
     pw_hash, pw_check, new_id, now_iso,
 )
 from . import services
@@ -37,6 +40,7 @@ def _make_tokens(customer_id: str, name: str) -> dict:
     refresh = RT()
     refresh["customer_id"] = customer_id
     refresh["name"] = name
+    refresh["user_id"] = customer_id  # for JWTAuthentication user identification
     # Override subject (sub) claim
     refresh.payload["sub"] = customer_id
     return {
@@ -54,6 +58,29 @@ class _FakeUser:
         self.name = name
         self.is_authenticated = True
         self.is_anonymous = False
+
+
+class CustomJWTAuthentication(JWTAuthentication):
+    """
+    Custom authentication that returns a simple user object based on the token,
+    avoiding a database lookup for the User model.
+    """
+    def get_user(self, validated_token):
+        try:
+            user_id = validated_token.get("user_id")
+        except KeyError:
+            raise InvalidToken(_("Token contained no recognizable user identification"))
+
+        # Create a simple user-like object
+        class User:
+            def __init__(self, user_id):
+                self.id = user_id
+                # Use customer_id as username for compatibility with _get_customer_id
+                self.username = user_id
+                self.is_authenticated = True
+                self.is_anonymous = False
+
+        return User(user_id)
 
 
 def _decode_bearer(request):
@@ -78,9 +105,9 @@ def _require_auth(request):
     return c, None
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # AUTH
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -161,9 +188,107 @@ def forgot_password(request):
     return Response({"detail": "Se o e-mail existir, você receberá as instruções."})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def pin_login(request):
+    """POST /api/customer/auth/pin-login - Login with document and 6-digit PIN"""
+    s = CustomerPinLoginSerializer(data=request.data)
+    if not s.is_valid():
+        return Response(s.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    d = s.validated_data
+    documento = d["documento"]
+    pincode = d["pincode"]
+
+    # First try to find existing customer
+    customer = services.get_customer_by_document(documento)
+    if customer and services.pw_check(pincode, customer.get("pin_hash", "")):
+        # Existing customer found and PIN matches
+        tokens = _make_tokens(customer["id"], customer["name"])
+        return Response({
+            **tokens,
+            "customer": {"id": customer["id"], "name": customer["name"], "email": customer["email"]},
+        })
+
+    # If not found or PIN doesn't match, check for pre-cadastro in mechanic app
+    precadastro = services.get_precadastro_by_document_and_pin(documento, pincode)
+    if precadastro:
+        # Pre-cadastro found - automatically create customer record
+        cid = new_id()
+        customer_data = {
+            "id": cid,
+            "name": precadastro["nome"],
+            "email": precadastro["email"],
+            "phone": precadastro.get("telefone", ""),
+            "cpf": precadastro["cpfCnpj"],  # Store document as CPF
+            "pin_hash": precadastro["pin_hash"],  # Use the same hashed PIN
+            "created_at": now_iso(),
+            "pwhash": pw_hash(""),  # Initialize empty password hash
+            "updated_at": now_iso(),
+        }
+
+        customer = services.create_customer(customer_data)
+        if not customer:
+            return Response({"detail": "Erro ao criar conta do pré-cadastro"},
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        tokens = _make_tokens(customer["id"], customer["name"])
+        return Response({
+            **tokens,
+            "customer": {"id": customer["id"], "name": customer["name"], "email": customer["email"]},
+        }, status=status.HTTP_201_CREATED)  # 201 since we just created it
+
+    # If neither existing customer nor valid pre-cadastro found
+    return Response({"detail": "Documento ou PIN incorretos"},
+                   status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(["POST"])
+@authentication_classes([CustomJWTAuthentication])
+@permission_classes([IsAuthenticated])
+def mechanic_create_client(request):
+    """POST /api/customer/mechanic/clients"""
+    # Verify user is a mechanic
+    user_id = _get_customer_id(request)
+    funcionario = services.get_funcionario_by_id(user_id)
+    if not funcionario or funcionario.get('cargo') != 'mecanico':
+        return Response({"detail": "Acesso negado"}, status=status.HTTP_403_FORBIDDEN)
+
+    s = MechanicClientCreateSerializer(data=request.data)
+    if not s.is_valid():
+        return Response(s.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    d = s.validated_data
+
+    if services.get_customer_by_email(d["email"]):
+        return Response({"detail": "E-mail já cadastrado"}, status=status.HTTP_409_CONFLICT)
+
+    cid = new_id()
+    customer = services.create_customer({
+        "id": cid,
+        "name": d["name"],
+        "email": d["email"],
+        "phone": d["phone"],
+        "cpf": d["document"],
+        "pin_hash": pw_hash(d["pincode"]),
+        "pwhash": pw_hash(""),  # Initialize empty password hash
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    })
+    if not customer:
+        return Response({"detail": "Erro ao criar cliente"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({
+        "id": customer["id"],
+        "name": customer["name"],
+        "email": customer["email"],
+        "phone": customer.get("phone", ""),
+    }, status=status.HTTP_201_CREATED)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 # PROFILE
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET", "PUT", "PATCH"])
 def profile(request):
@@ -218,9 +343,9 @@ def change_password(request):
     return Response({"detail": "Senha alterada com sucesso"})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def dashboard(request):
@@ -232,11 +357,12 @@ def dashboard(request):
     return Response(summary)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # VEHICLES
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET", "POST"])
+@authentication_classes([CustomJWTAuthentication])
 def vehicles_list(request):
     """GET/POST /api/customer/vehicles"""
     c, err = _require_auth(request)
@@ -289,9 +415,9 @@ def vehicle_detail(request, vehicle_id: str):
     return Response(updated)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # APPOINTMENTS
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET", "POST"])
 def appointments_list(request):
@@ -315,21 +441,24 @@ def appointments_list(request):
     if not vehicle:
         return Response({"detail": "Veículo não encontrado"}, status=status.HTTP_400_BAD_REQUEST)
 
-    appt = services.create_appointment({
-        "id": new_id(),
-        "customer_id": c["id"],
-        "vehicle_id": d["vehicle_id"],
-        "vehicle_label": f"{vehicle['brand']} {vehicle['model']} {vehicle['year']} — {vehicle['plate']}",
-        "service_type": d["service_type"],
-        "service_description": d.get("service_description", ""),
-        "date": str(d["date"]),
-        "time_slot": str(d["time_slot"]),
-        "status": "pendente",
-        "notes": d.get("notes", ""),
-        "created_at": now_iso(),
-        "updated_at": now_iso(),
-    })
-    return Response(appt, status=status.HTTP_201_CREATED)
+    try:
+        appt = services.create_appointment({
+            "id": new_id(),
+            "customer_id": c["id"],
+            "vehicle_id": d["vehicle_id"],
+            "vehicle_label": f"{vehicle['brand']} {vehicle['model']} {vehicle['year']} — {vehicle['plate']}",
+            "service_type": d["service_type"],
+            "service_description": d.get("service_description", ""),
+            "date": str(d["date"]),
+            "time_slot": str(d["time_slot"]),
+            "status": "pendente",
+            "notes": d.get("notes", ""),
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+        })
+        return Response(appt, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["GET", "DELETE"])
@@ -352,9 +481,9 @@ def appointment_detail(request, appointment_id: str):
     return Response({"detail": "Agendamento cancelado"})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # AVAILABILITY
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -379,9 +508,9 @@ def available_times(request):
     return Response({"date": date_str, "times": times})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # ESTIMATES
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def estimates_list(request):
@@ -421,9 +550,9 @@ def estimate_detail(request, estimate_id: str):
     return Response(updated)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # SERVICE HISTORY
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def history_list(request):
@@ -447,9 +576,9 @@ def history_detail(request, history_id: str):
     return Response(item)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # NOTIFICATIONS
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def notifications_list(request):
@@ -481,9 +610,9 @@ def notifications_read_all(request):
     return Response({"detail": "Todas marcadas como lidas"})
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # REMINDERS
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 
 @api_view(["GET"])
 def reminders_list(request):

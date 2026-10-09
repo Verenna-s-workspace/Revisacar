@@ -12,6 +12,10 @@ urlpatterns = [
     path("customer/auth/login", views.login, name="login"),
     path("customer/auth/refresh", views.token_refresh, name="token-refresh"),
     path("customer/auth/forgot-password", views.forgot_password, name="forgot-password"),
+    path("customer/auth/pin-login", views.pin_login, name="pin-login"),
+
+    # ── Mechanic ──────────────────────────────────────────────────────────
+    path("customer/mechanic/clients", views.mechanic_create_client, name="mechanic-create-client"),
 
     # ── Profile ───────────────────────────────────────────────────────────────
     path("customer/me", views.profile, name="profile"),

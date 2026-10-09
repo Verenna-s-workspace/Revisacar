@@ -1,85 +1,39 @@
-# RevisaCar — Customer PWA
+TODAS AS TABELAS:
 
-Complete customer-facing Progressive Web App for the RevisaCar mechanic platform.
+create table public.admins (
+  id int generated always as identity primary key,
+  nome text not null,
+  doc text not null unique,
+  pwhash text not null,
+  created_at timestamptz not null default now()
+);
 
-## Stack
+create table public.ordens (
+  id text not null,
+  created_at text not null,
+  updated_at text not null,
+  os_num text null,
+  placa text null,
+  modelo text null,
+  cliente text null,
+  status text null default 'rascunho'::text,
+  payload text not null,
+  fotos_paths text[] null,
+  constraint ordens_pkey primary key (id)
+) TABLESPACE pg_default;
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18 · TypeScript · Vite · TailwindCSS · Framer Motion |
-| State | Zustand (auth + schedule wizard) · React Query (server state) |
-| Forms | React Hook Form + Zod validation |
-| Backend | Python · Django 4.2 · Django REST Framework |
-| Auth | JWT (SimpleJWT) — access + refresh tokens |
-| Database | Supabase (shared with mechanic app) |
-| PWA | vite-plugin-pwa · Workbox · Service Worker |
-| Deploy | Docker + Docker Compose + Nginx |
+create table clientes(
+    id uuid primary key default gen_random_uuid(),
+    nome text not null,
+    cpfCnpj varchar(14) not null,      -- CPF ou CNPJ ( apenas números )
+    telefone text,
+    email text,
+    endereco text,
+    observacoes text,
+    createdAt timestamptz default now(),
+    updatedAt timestamptz default now()
+);
 
----
-
-## Screens
-
-| Route | Screen |
-|---|---|
-| `/login` | Login / Register |
-| `/` | Dashboard (summary, vehicle hero, reminders, notifications) |
-| `/veiculos` | My Vehicles (add/edit/delete with modal) |
-| `/agendar` | Schedule Maintenance (4-step wizard) |
-| `/historico` | Service History (search + filter + detail modal) |
-| `/manutencoes` | Scheduled Maintenance (progress bars + urgency) |
-| `/orcamentos` | Estimates (approve/reject with comment) |
-| `/notificacoes` | Notifications (mark read, mark all) |
-| `/perfil` | Profile (edit + change password + logout) |
-
----
-
-## Backend API Endpoints
-
-```
-POST   /api/customer/auth/register
-POST   /api/customer/auth/login
-POST   /api/customer/auth/refresh
-POST   /api/customer/auth/forgot-password
-
-GET    /api/customer/dashboard
-GET    /api/customer/me
-PUT    /api/customer/me
-POST   /api/customer/me/change-password
-
-GET    /api/customer/vehicles
-POST   /api/customer/vehicles
-GET    /api/customer/vehicles/:id
-PATCH  /api/customer/vehicles/:id
-DELETE /api/customer/vehicles/:id
-
-GET    /api/customer/appointments
-POST   /api/customer/appointments
-GET    /api/customer/appointments/:id
-DELETE /api/customer/appointments/:id   (cancel)
-
-GET    /api/customer/availability?year=&month=
-GET    /api/customer/availability/times?date=
-
-GET    /api/customer/estimates
-GET    /api/customer/estimates/:id
-POST   /api/customer/estimates/:id      (approve/reject)
-
-GET    /api/customer/history
-GET    /api/customer/history/:id
-
-GET    /api/customer/notifications
-POST   /api/customer/notifications/read-all
-POST   /api/customer/notifications/:id/read
-
-GET    /api/customer/reminders
-```
-
----
-
-## Supabase Tables Required
-
-```sql
--- customers
 create table customers (
   id uuid primary key,
   name text not null,
@@ -93,7 +47,6 @@ create table customers (
   updated_at timestamptz default now()
 );
 
--- customer_vehicles
 create table customer_vehicles (
   id uuid primary key,
   customer_id uuid references customers(id),
@@ -113,7 +66,6 @@ create table customer_vehicles (
   updated_at timestamptz default now()
 );
 
--- appointments
 create table appointments (
   id uuid primary key,
   customer_id uuid references customers(id),
@@ -130,7 +82,6 @@ create table appointments (
   updated_at timestamptz default now()
 );
 
--- availability_slots
 create table availability_slots (
   id uuid primary key default gen_random_uuid(),
   date date not null,
@@ -138,7 +89,6 @@ create table availability_slots (
   is_available boolean default true
 );
 
--- estimates
 create table estimates (
   id uuid primary key,
   number text unique not null,
@@ -157,7 +107,6 @@ create table estimates (
   updated_at timestamptz default now()
 );
 
--- estimate_items
 create table estimate_items (
   id uuid primary key default gen_random_uuid(),
   estimate_id uuid references estimates(id) on delete cascade,
@@ -168,7 +117,6 @@ create table estimate_items (
   subtotal numeric(10,2) generated always as (quantity * unit_price) stored
 );
 
--- service_history
 create table service_history (
   id uuid primary key,
   customer_id uuid references customers(id),
@@ -183,7 +131,6 @@ create table service_history (
   created_at timestamptz default now()
 );
 
--- service_history_items
 create table service_history_items (
   id uuid primary key default gen_random_uuid(),
   service_history_id uuid references service_history(id) on delete cascade,
@@ -192,7 +139,6 @@ create table service_history_items (
   part_name text
 );
 
--- notifications
 create table notifications (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references customers(id),
@@ -204,7 +150,6 @@ create table notifications (
   created_at timestamptz default now()
 );
 
--- maintenance_reminders
 create table maintenance_reminders (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references customers(id),
@@ -221,67 +166,29 @@ create table maintenance_reminders (
   progress_pct numeric(5,2) default 0,
   km_remaining integer
 );
-```
 
----
+create table funcionarios(
+    id uuid primary key default gen_random_uuid(),
+    nome varchar(100) not null,
+    email varchar(255) not null unique,
+    pin_hash varchar(255) not null,  
+    cargo varchar(20) not null check (cargo in ('gerente', 'mecanico', 'atendente')),
+    ativo boolean not null default true,
+    created_at timestamptz default now(),
+    oficina_doc varchar(14) not null, 
+    foreign key (oficina_doc) references admins(doc)
+);
 
-## Quick Start
+CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_vehicle_date_time_unique
+ON appointments (vehicle_id, date, time_slot)
+WHERE status IN ('pendente', 'confirmado');
 
-### 1. Clone & configure
+CREATE INDEX IF NOT EXISTS idx_availability_slots_date_time
+ON availability_slots (date, time_slot);
 
-```bash
-git clone <repo>
-cd revisacar-customer
+CREATE INDEX IF NOT EXISTS idx_availability_slots_available
+ON availability_slots (is_available)
+WHERE is_available = true;
 
-# Backend env
-cp backend/.env.example backend/.env
-# Fill in SUPABASE_URL and SUPABASE_KEY
-
-# Frontend env
-cp frontend/.env.example frontend/.env
-# VITE_API_URL=http://localhost:8001/api
-```
-
-### 2. Docker (recommended)
-
-```bash
-docker compose up --build
-# Customer App: http://localhost:5174
-# Customer API: http://localhost:8001/api
-```
-
-### 3. Local dev
-
-```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-python manage.py runserver 8001
-
-# Frontend
-cd frontend
-npm install
-npm run dev   # → http://localhost:5174
-```
-
----
-
-## PWA Features
-
-- ✅ Installable on iOS / Android / Desktop
-- ✅ Offline fallback (cached shell + last API responses)
-- ✅ Service Worker with Workbox
-- ✅ App shortcuts (Schedule, Vehicles)
-- ✅ Splash screen + theme color
-- ✅ Safe-area insets for notch phones
-
----
-
-## Architecture Decisions
-
-- **Separate app, shared backend** — the customer app runs on port 5174/8001, the mechanic app keeps its existing ports. They share the same Supabase project and can be deployed independently.
-- **JWT stateless auth** — tokens stored in Zustand (persisted) + localStorage (for Axios interceptor). Refresh token auto-rotates on 401.
-- **React Query for server state** — all API data is cached, refetched on focus, and invalidated after mutations. No prop drilling.
-- **Zustand for client state** — auth session and schedule wizard state only. Everything else is React Query.
-- **Bottom sheet modals** — all add/edit/confirm flows use bottom sheets with spring animations (Framer Motion) to match the mobile-first design.
-- **Soft deletes** — vehicles are never hard-deleted (`deleted: true` flag).
+CREATE INDEX IF NOT EXISTS idx_appointments_vehicle_date_time
+ON appointments (vehicle_id, date, time_slot);
