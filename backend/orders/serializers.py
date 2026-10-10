@@ -254,7 +254,7 @@ FORMAS_PAGAMENTO = ("pix", "dinheiro", "debito", "credito", "boleto", "transfere
 class FinanceiroTransacaoSerializer(serializers.Serializer):
     tipo = serializers.ChoiceField(choices=["entrada", "saida"])
     categoria = serializers.CharField()
-    descricao = serializers.CharField(required=False, allow_blank=True, default="")
+    descricao = serializers.CharField(required=False, allow_blank=True, default="", max_length=200)
     valor = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     forma_pagamento = serializers.ChoiceField(choices=list(FORMAS_PAGAMENTO), required=False, allow_null=True, default=None)
     # 'vencido' nunca é gravado — é calculado na leitura (status='pendente' + venceu).
@@ -262,7 +262,7 @@ class FinanceiroTransacaoSerializer(serializers.Serializer):
     data_competencia = serializers.DateField()
     data_vencimento = serializers.DateField(required=False, allow_null=True, default=None)
     data_pagamento = serializers.DateTimeField(required=False, allow_null=True, default=None)
-    cliente_nome = serializers.CharField(required=False, allow_blank=True, default="")
+    cliente_nome = serializers.CharField(required=False, allow_blank=True, default="", max_length=120)
     # Preparado pra quando a OS gerar a entrada sozinha — ninguém preenche isso ainda.
     ordem_servico_id = serializers.CharField(required=False, allow_null=True, default=None)
 
