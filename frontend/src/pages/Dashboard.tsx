@@ -111,6 +111,18 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
 
+  // Hooks SEMPRE antes dos `return` antecipados das outras páginas (senão trocar
+  // de página muda a quantidade de hooks → React error #300).
+  const comDinheiro = !!vg?.faturamento;
+  const serieGrafico = useMemo(
+    () => (vg ? serieDoPeriodo(vg.serie, vg.hoje, periodoGrafico, comDinheiro) : []),
+    [vg, periodoGrafico, comDinheiro]
+  );
+  const topServicosLista = useMemo(
+    () => (vg ? ordenarTopServicos(vg.servicos, ordemTopServicos, comDinheiro) : []),
+    [vg, ordemTopServicos, comDinheiro]
+  );
+
   const handleNav = (p: NavPage) => {
     if (p === 'dicas') { onOpenLearningCenter?.(); return; }
     setAgendaFocus(null); setEstoqueFocus(null); setPage(p);
@@ -209,17 +221,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // desses números e mostra o erro com "tentar novamente" — nunca zeros fictícios.
   const semDados = !loading && !vg;
   const fat = vg?.faturamento;                 // só existe pra quem pode ver dinheiro
-  const comDinheiro = !!fat;
   const fin = vg?.financeiro;
-
-  const serieGrafico = useMemo(
-    () => (vg ? serieDoPeriodo(vg.serie, vg.hoje, periodoGrafico, comDinheiro) : []),
-    [vg, periodoGrafico, comDinheiro]
-  );
-  const topServicosLista = useMemo(
-    () => (vg ? ordenarTopServicos(vg.servicos, ordemTopServicos, comDinheiro) : []),
-    [vg, ordemTopServicos, comDinheiro]
-  );
 
   const spark7Fat = (vg?.serie ?? []).slice(-7).map(d => d.faturamento ?? 0);
   const spark7Os = (vg?.serie ?? []).slice(-7).map(d => Math.max(d.ordens, 1));
