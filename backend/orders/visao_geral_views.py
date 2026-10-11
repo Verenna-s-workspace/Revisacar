@@ -25,6 +25,7 @@ ou o mês); `servicos` são as OS finalizadas dos últimos 30 dias, com a distri
 Faturamento: igual ao dos Relatórios — entradas do Financeiro quando a
 oficina usa o Financeiro, senão estimativa por OS finalizada.
 """
+import calendar
 import logging
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -117,13 +118,17 @@ def visao_geral(request):
     ini_serie = hoje - timedelta(days=DIAS_DA_SERIE - 1)
     ini_servicos = hoje - timedelta(days=DIAS_DOS_SERVICOS - 1)
     janela_ini = min(anterior[0], ini_serie)
+    # Lançamentos do Financeiro com competência ainda neste mês (ex.: dia 12
+    # lançado hoje, dia 11) fazem parte do faturamento/receitas/despesas do mês.
+    fim_do_mes = hoje.replace(day=calendar.monthrange(hoje.year, hoje.month)[1])
+    mes_total = (mes[0], fim_do_mes)
 
     usa_financeiro = rel._usa_financeiro(oficina_doc) if pode_fat else False
     entradas = saidas = []
     if (pode_fat and usa_financeiro) or pode_fin:
-        entradas = rel._buscar_lancamentos(oficina_doc, "entrada", janela_ini, hoje)
+        entradas = rel._buscar_lancamentos(oficina_doc, "entrada", janela_ini, fim_do_mes)
     if pode_fin:
-        saidas = rel._buscar_lancamentos(oficina_doc, "saida", janela_ini, hoje)
+        saidas = rel._buscar_lancamentos(oficina_doc, "saida", janela_ini, fim_do_mes)
 
     dias: dict[date, dict] = defaultdict(lambda: {"ordens": 0, "faturamento": 0.0})
     servicos: dict[str, dict] = {}
@@ -192,7 +197,7 @@ def visao_geral(request):
     if pode_fat:
         fat_ant = soma_fat(anterior)
         resposta["faturamento"] = {
-            "atual": soma_fat(mes),
+            "atual": soma_fat(mes_total),
             "anterior": fat_ant if tem_anterior else None,
             "origem": "financeiro" if usa_financeiro else "estimado",
         }
@@ -209,7 +214,7 @@ def visao_geral(request):
                 if (d := _dia_lancamento(l)) is not None and _dentro(d, periodo)
             ), 2)
 
-        receitas, despesas = total(entradas, mes), total(saidas, mes)
+        receitas, despesas = total(entradas, mes_total), total(saidas, mes_total)
         receitas_ant, despesas_ant = total(entradas, anterior), total(saidas, anterior)
         bloco = {
             "receitas": receitas,

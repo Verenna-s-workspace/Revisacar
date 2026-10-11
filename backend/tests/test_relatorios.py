@@ -454,3 +454,16 @@ def test_ordens_sem_a_coluna_vira_503_com_instrucao(fake):
     fake.falhar_em[("insert", "ordens")] = "PGRST204"
     r = _cliente().post("/ordens", _corpo_ordem(), format="json")
     assert r.status_code == 503 and "ordens_oficina.sql" in r.json()["detail"]
+
+
+def test_lancamentos_de_varias_datas_caem_no_dia_e_no_periodo_certos(api, db):
+    _entrada(db, 100, "2026-10-09")
+    _entrada(db, 10, "2026-10-11")
+    _entrada(db, 1000, "2026-10-12")    # futura
+    _entrada(db, 7, "2026-11-01")       # fora do período
+    corpo = _get(api).json()
+    assert corpo["totais"]["atual"]["faturamento"] == 1110
+    assert {d["dia"]: d["faturamento"] for d in corpo["dias"]} == {"2026-10-09": 100, "2026-10-11": 10, "2026-10-12": 1000}
+    # Período que acaba hoje (11/10): a futura fica de fora, as outras não.
+    ate_hoje = _get(api, ate="2026-10-11").json()
+    assert ate_hoje["totais"]["atual"]["faturamento"] == 110

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/dashboard.css';
 import { tokens } from '../constants';
 import { useResponsive } from '../components/ui';
@@ -96,6 +96,15 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   const { dados: vg, loading, erro: vgErro, recarregar: recarregarVg, salvarMeta } = useVisaoGeral();
   const alertasResumo = useAlertasResumo();
   const [page, setPage] = useState<NavPage>('dashboard');
+  // Esta tela fica montada enquanto se navega pelas outras páginas: sem isto,
+  // lançamentos feitos no Financeiro (ou OS criadas) não apareciam aqui até
+  // recarregar o navegador. Ao VOLTAR pra Visão Geral, busca de novo.
+  const jaMontou = useRef(false);
+  useEffect(() => {
+    if (!jaMontou.current) { jaMontou.current = true; return; }
+    if (page === 'dashboard') recarregarVg();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
   const [sel, setSel] = useState<OrdemRow | null>(null);
   // Período do gráfico e critério do Top Serviços: recortam/ordenam os dados que
   // o servidor já mandou (série de 31 dias, serviços dos últimos 30).
