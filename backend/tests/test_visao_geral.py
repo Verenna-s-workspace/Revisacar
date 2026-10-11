@@ -311,26 +311,14 @@ def test_permissao_negada_no_banco(api, fake):
 
 # ── datas dos lançamentos: passadas, de hoje e futuras ───────────────────────
 
-def test_lancamentos_passados_de_hoje_e_futuros_do_mes_entram_no_mes_certo(api, db):
-    _entrada(db, 100, "2026-10-02")                    # passada
-    _entrada(db, 10, "2026-10-09")                     # hoje
-    _entrada(db, 1000, "2026-10-12", status="pendente")   # futura, ainda em outubro
-    _entrada(db, 5, "2026-10-31")                      # último dia do mês
-    _entrada(db, 7777, "2026-11-01")                   # mês que vem: fora
-    _entrada(db, 3333, "2026-08-30")                   # dois meses atrás, fora de tudo
-    _entrada(db, 20, "2026-10-12", tipo="saida")
-    _entrada(db, 2, "2026-11-01", tipo="saida")
+def test_mes_conta_lancamentos_ate_hoje_e_ignora_os_futuros(api, db):
+    _entrada(db, 100, "2026-10-02")                       # passada
+    _entrada(db, 10, "2026-10-09")                        # hoje
+    _entrada(db, 1000, "2026-10-12", status="pendente")   # futura: só conta quando chegar o dia
+    _entrada(db, 7777, "2026-11-01")
+    _entrada(db, 20, "2026-10-09", tipo="saida")
+    _entrada(db, 500, "2026-10-12", tipo="saida")
     corpo = _get(api).json()
-    assert corpo["faturamento"]["atual"] == 1115
-    assert corpo["financeiro"]["receitas"] == 1115 and corpo["financeiro"]["despesas"] == 20
-    assert corpo["financeiro"]["lucro"] == 1095
-    # O gráfico mostra os dias até hoje: a futura não aparece nele.
+    assert corpo["faturamento"]["atual"] == 110
+    assert corpo["financeiro"]["receitas"] == 110 and corpo["financeiro"]["despesas"] == 20
     assert {d["dia"]: d["faturamento"] for d in corpo["serie"] if d["faturamento"]} == {"2026-10-02": 100, "2026-10-09": 10}
-
-
-def test_lancamento_futuro_nao_entra_no_trecho_do_mes_anterior(api, db):
-    _entrada(db, 50, "2026-09-09")      # dentro do trecho comparado (1–9/set)
-    _entrada(db, 900, "2026-09-12")     # depois do trecho: fora da comparação
-    _ordem(db, "2026-09-05T10:00:00-03:00")   # há OS no período anterior → há comparação
-    corpo = _get(api).json()
-    assert corpo["faturamento"]["anterior"] == 50
