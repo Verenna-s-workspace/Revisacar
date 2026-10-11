@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { tokens } from '../../../constants';
 import { labelCategoria, LABEL_FORMA_PAGAMENTO } from './categoriaLabels';
-import type { Categorias } from './types';
+import type { Categorias, Transacao } from './types';
+import { mensagemDoErro } from '../../../utils/api_erro';
+import { hojeLocal } from '../../../utils/financeiro_utils';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
 
@@ -10,32 +12,32 @@ const labelStyle: React.CSSProperties = {
   color: tokens.color.textSecond, marginBottom: 5,
 };
 
-function hoje(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 interface Props {
   categorias: Categorias;
+  /** Quando vem, o modal edita este lançamento (o tipo não muda). */
+  transacao?: Transacao;
   onFechar: () => void;
   onSalvar: (payload: Record<string, unknown>) => Promise<void>;
 }
 
-export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
-  const [tipo, setTipo] = useState<'entrada' | 'saida'>('entrada');
-  const [categoria, setCategoria] = useState(categorias.entrada[0] ?? '');
-  const [descricao, setDescricao] = useState('');
-  const [valor, setValor] = useState('');
-  const [formaPagamento, setFormaPagamento] = useState('pix');
-  const [statusPago, setStatusPago] = useState(true);
-  const [dataCompetencia, setDataCompetencia] = useState(hoje());
-  const [dataVencimento, setDataVencimento] = useState('');
-  const [clienteNome, setClienteNome] = useState('');
+export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Props) {
+  const editando = !!transacao;
+  const [tipo, setTipo] = useState<'entrada' | 'saida'>(transacao?.tipo ?? 'entrada');
+  const [categoria, setCategoria] = useState(transacao?.categoria ?? categorias.entrada[0] ?? '');
+  const [descricao, setDescricao] = useState(transacao?.descricao ?? '');
+  const [valor, setValor] = useState(transacao ? String(transacao.valor) : '');
+  const [formaPagamento, setFormaPagamento] = useState(transacao?.forma_pagamento ?? 'pix');
+  const [statusPago, setStatusPago] = useState(transacao ? transacao.status === 'pago' : true);
+  const [dataCompetencia, setDataCompetencia] = useState(transacao?.data_competencia ?? hojeLocal());
+  const [dataVencimento, setDataVencimento] = useState(transacao?.data_vencimento ?? '');
+  const [clienteNome, setClienteNome] = useState(transacao?.cliente_nome ?? '');
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
   const listaCategorias = tipo === 'entrada' ? categorias.entrada : categorias.saida;
 
   const trocarTipo = (novo: 'entrada' | 'saida') => {
+    if (editando) return;
     setTipo(novo);
     const lista = novo === 'entrada' ? categorias.entrada : categorias.saida;
     setCategoria(lista[0] ?? '');
@@ -52,7 +54,8 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
     setErro('');
     try {
       await onSalvar({
-        tipo,
+        // Na edição o tipo não vai: o backend não deixa mudar.
+        ...(editando ? {} : { tipo }),
         categoria,
         descricao,
         valor: valorNum,
@@ -60,10 +63,10 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
         status: statusPago ? 'pago' : 'pendente',
         data_competencia: dataCompetencia,
         data_vencimento: !statusPago && dataVencimento ? dataVencimento : null,
-        cliente_nome: clienteNome,
+        cliente_nome: tipo === 'entrada' ? clienteNome : '',
       });
     } catch (err) {
-      setErro(err instanceof Error ? err.message.replace(/"/g, '') : 'Erro ao salvar lançamento');
+      setErro(mensagemDoErro(err, 'Erro ao salvar lançamento'));
     } finally {
       setSalvando(false);
     }
@@ -81,7 +84,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
         overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ padding: '18px 24px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>Novo Lançamento</h3>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>{editando ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
           <button onClick={onFechar} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
         </div>
 
@@ -89,7 +92,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
           <div>
             <label style={labelStyle}>TIPO</label>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" onClick={() => trocarTipo('entrada')} style={{
+              <button type="button" disabled={editando} onClick={() => trocarTipo('entrada')} style={{
                 flex: 1, padding: 12, background: tipo === 'entrada' ? 'var(--color-ok-bg)' : 'transparent',
                 color: tipo === 'entrada' ? 'var(--color-ok)' : tokens.color.textSecond,
                 border: `1px solid ${tipo === 'entrada' ? 'var(--color-ok)' : tokens.color.border}`,
@@ -97,7 +100,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
               }}>
                 Entrada (+)
               </button>
-              <button type="button" onClick={() => trocarTipo('saida')} style={{
+              <button type="button" disabled={editando} onClick={() => trocarTipo('saida')} style={{
                 flex: 1, padding: 12, background: tipo === 'saida' ? 'var(--color-crit-bg)' : 'transparent',
                 color: tipo === 'saida' ? 'var(--color-crit)' : tokens.color.textSecond,
                 border: `1px solid ${tipo === 'saida' ? 'var(--color-crit)' : tokens.color.border}`,
@@ -167,7 +170,7 @@ export function TransacaoModal({ categorias, onFechar, onSalvar }: Props) {
               Cancelar
             </button>
             <button type="submit" disabled={salvando} style={{ padding: '10px 20px', background: 'var(--color-ferrari)', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.7 : 1 }}>
-              {salvando ? 'Salvando…' : 'Registrar Lançamento'}
+              {salvando ? 'Salvando…' : editando ? 'Salvar alterações' : 'Registrar Lançamento'}
             </button>
           </div>
         </form>

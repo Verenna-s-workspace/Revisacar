@@ -9,6 +9,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Clientes | ⏸️ Pausado a pedido (backend feito na cópia anterior, fora deste repo) |
 | Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
 | Visão Geral | 🟡 Backend + SQL + testes + frontend prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `visao_geral.sql`, relogar, validar contra o Supabase real |
+| Financeiro | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `financeiro.sql`, validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -104,3 +105,21 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 2. Alertas: `useAlertasResumo` é chamado na sidebar e na página (2 buscas de ordens/estoque); dá pra compartilhar depois.
 3. `GET /ordens` ainda devolve TODAS as OS (com payload) pro "Ordens recentes", Ordens e Clientes — paginar é trabalho futuro.
 4. "Gastos estimados" no perfil do cliente ainda usa OS finalizadas × R$ 480 (fora da Visão Geral).
+
+## Financeiro (2026-10-11) — branch feat/financeiro (parte de feat/visao-geral)
+
+**Problemas achados:** (1) a tabela `financeiro_transacoes` não tinha script no repositório (sem índices, travas nem FK); (2) listagem e resumo sem paginação — o Supabase corta em 1000 linhas e os totais ficavam errados; `/resumo` baixava o histórico inteiro da oficina; (3) `de`/`ate` sem validação; "hoje" (período padrão e `vencido`) vinha do relógio do servidor; (4) erros do banco viravam 500 sem explicação; (5) PATCH buscava por id e só depois checava a oficina, devolvia só "Atualizado" e dava 422 em linha antiga com `descricao` nula; voltar para pendente mantinha `data_pagamento`; (6) front: data padrão do lançamento e limites do período usavam `toISOString()` (UTC — depois das 21h no Brasil viravam o dia seguinte), erros genéricos, sem edição de lançamento, resposta antiga podia sobrescrever a nova.
+
+**Arquivos:** `backend/sql/financeiro.sql` (idempotente: cria a tabela ou só completa colunas; CHECKs de tipo/status/valor e FK da oficina como NOT VALID; índices por oficina+competência e pendentes), `orders/financeiro_views.py` (reescrito), limites de tamanho em `FinanceiroTransacaoSerializer`, `tests/test_financeiro.py` (76 testes; conftest roda `financeiro.sql` 2×); frontend: `hooks/useFinanceiro.ts`, `FinanceiroPage.tsx`, `Financeiro/TransacaoModal.tsx` (criar/editar), `utils/financeiro_utils.ts` (`isoLocal`/`hojeLocal`), `utils/api.ts` (`tz`).
+
+**Regras:**
+- Respostas continuam em snake_case (formato que o front já usava). PATCH/POST devolvem a linha completa.
+- `de`+`ate` juntos ou nenhum (aí é o mês atual no fuso `?tz`, padrão America/Sao_Paulo); inválido/invertido/maior que 800 dias → 422. `vencido` = pendente com vencimento antes de "hoje" no fuso do usuário.
+- Pendente nunca guarda `data_pagamento`; marcar pago grava agora; voltar a pendente apaga. Não se cria lançamento já cancelado; cancelado não se edita (409); cancelar é `DELETE` (soft, idempotente). `tipo` não muda.
+- `/resumo`: totais do período por `data_competencia` (pendentes contam como faturamento, igual Relatórios/Visão Geral); `a_receber/a_pagar/vencido_*` são a dívida em aberto agora, sem corte de período; soma em Decimal; lucro/margem só com `financeiro.ver_margem`.
+- Tabela ausente/coluna faltando → 503 mandando rodar `financeiro.sql`; chave sem service_role → 500 apontando o `supabase.env`.
+
+**Pendências / decisões:**
+- Rodar `backend/sql/financeiro.sql` no Supabase (as travas entram NOT VALID; para checar o histórico: `alter table ... validate constraint <nome>`).
+- OS finalizada ainda NÃO gera entrada no Financeiro (`ordem_servico_id` fica vazio). Gerar automático mudaria o faturamento de Relatórios/Visão Geral (regra "tem ≥1 entrada → só entradas") — decisão de produto.
+- `saldo` = recebido − saídas pagas por competência (não por data de pagamento).

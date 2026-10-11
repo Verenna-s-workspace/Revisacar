@@ -321,8 +321,9 @@ export const api = {
 
   categoriasFinanceiro: () => fetch(`${API_BASE}/financeiro/categorias`, { headers: baseHeaders }).then(handleResponse),
 
-  listarTransacoes: (params?: { de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago'; semPeriodo?: boolean }) => {
+  listarTransacoes: (params?: { de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago'; semPeriodo?: boolean; tz?: string }) => {
     const qs = new URLSearchParams();
+    if (params?.tz) qs.set('tz', params.tz);
     if (params?.de) qs.set('de', params.de);
     if (params?.ate) qs.set('ate', params.ate);
     if (params?.tipo) qs.set('tipo', params.tipo);
@@ -341,8 +342,9 @@ export const api = {
   removerTransacao: (id: string) =>
     authFetch(`${API_BASE}/financeiro/transacoes/${id}`, { method: 'DELETE' }),
 
-  resumoFinanceiro: (params?: { de?: string; ate?: string }) => {
+  resumoFinanceiro: (params?: { de?: string; ate?: string; tz?: string }) => {
     const qs = new URLSearchParams();
+    if (params?.tz) qs.set('tz', params.tz);
     if (params?.de) qs.set('de', params.de);
     if (params?.ate) qs.set('ate', params.ate);
     const query = qs.toString();
