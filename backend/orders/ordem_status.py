@@ -69,3 +69,16 @@ def status_no_salvamento(atual, enviado):
 
 def transicao_permitida(atual, novo):
     return novo in TRANSICOES.get(atual, set())
+
+
+def origens_para(novo):
+    """Status de OS dos quais dá pra ir para `novo` (ou que já são `novo`).
+    O orçamento passa essa lista ao banco, que confere com a OS TRAVADA — assim
+    a tabela de transições continua só aqui."""
+    return [s for s in TODOS if s == novo or transicao_permitida(s, novo)]
+
+
+# Status de OS que aceitam um orçamento NOVO (rascunho de nova versão):
+# antes do checklist completo não há o que orçar; depois de concluída, não há
+# mais o que mudar. Em execução / aprovada / pendente: é uma revisão do orçamento.
+ACEITAM_NOVO_ORCAMENTO = (EM_ORCAMENTO, PENDENTE_APROVACAO, APROVADA, EM_EXECUCAO, RECUSADA)

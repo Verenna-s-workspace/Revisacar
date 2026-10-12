@@ -11,6 +11,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Visão Geral | 🟡 Backend + SQL + testes + frontend prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `visao_geral.sql`, relogar, validar contra o Supabase real |
 | Financeiro | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `financeiro.sql`, validar contra o Supabase real |
 | Orçamento — Fase 0 (status da OS) | 🟡 Backend + SQL + testes + front prontos (tsc + build ok, 296 testes). Falta: rodar `ordens_status.sql` no Supabase e validar no navegador |
+| Orçamento — Fase 1 (backend) | 🟡 SQL + API + testes prontos (361 testes). Sem frontend ainda (Fase 2). Falta: rodar `orcamentos.sql` (depois de `ordens_oficina.sql` e `ordens_status.sql`) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -143,3 +144,25 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 **Pendências**
 - Rodar `backend/sql/ordens_status.sql` no Supabase. OS antigas já `finalizada` NÃO são alteradas e seguem contando como concluídas.
 - Próxima: Fase 1 (modelos/backend do orçamento) — só quando for pedido.
+
+## Orçamento — Fase 1: modelo e API (2026-10-12) — branch feat/orcamento (parte de feat/os-status)
+
+**Modelo** (`backend/sql/orcamentos.sql`, idempotente): `orcamentos` = uma linha por VERSÃO da OS (`versao` 1, 2…; status `rascunho → enviado → aprovado | recusado | substituido`; validade em dias, total, dados de aprovação/recusa) e `orcamento_itens` (tipo `peca`/`servico`, descrição, marca, quantidade, `preco_unitario` = o que o cliente paga, `custo_unitario` interno, motivo, `estoque_item_id`/`servico_id` SEM FK — o item guarda um retrato e sobrevive se o cadastro for apagado). FK composta `(oficina_doc, ordem_id)` → `ordens` (exige o `unique (oficina_doc, id)` que o script acrescenta em `ordens`); apagar a OS leva os orçamentos. Índices únicos parciais: no máximo 1 rascunho e 1 orçamento ativo (enviado/aprovado) por OS.
+
+**Funções SQL (atômicas, travam OS e orçamento nesta ordem):** `orcamento_criar_versao`, `orcamento_salvar` (troca a lista de itens inteira + recalcula total), `orcamento_enviar`, `orcamento_aprovar`, `orcamento_recusar`. Os status de OS que aceitam cada operação vêm do backend (`ordem_status.origens_para`, `ACEITAM_NOVO_ORCAMENTO`) — a tabela de transições continua só em Python.
+
+**Rotas** (`orders/orcamento_views.py`, JSON camelCase): `GET/POST /ordens/<id>/orcamentos`, `GET/PATCH /orcamentos/<id>`, `POST /orcamentos/<id>/enviar|aprovar|recusar`. Leitura: `ordens.ver`; escrita: `ordens.editar` (atendente só lê). 422 validação / `sem_itens`; 409 estado (`status_invalido`, `os_status`, `rascunho_existente`, `vencido`); 404 outra oficina ou id ruim; 503 sem o script.
+
+**Regras**
+- Criar versão copia itens (e custo) e validade da mais recente. Não mexe na OS, exceto OS `recusada` → `em_orcamento` ("refazer"). Aceitam: em_orcamento, pendente_aprovacao, aprovada, em_execucao, recusada. Rascunho (checklist incompleto), aguardando e finalizada → 409.
+- Enviar: exige ≥1 item; versões ativas anteriores viram `substituido`; OS → `pendente_aprovacao` (também a partir de aprovada/em_execucao = revisão). Validade = dia do envio no fuso do usuário (`?tz`, padrão America/Sao_Paulo) + `validadeDias` (padrão 7, 1–90).
+- Aprovar (mecânico registra a resposta do cliente: `canal` whatsapp|presencial|telefone|app|outro, `observacao`): só `enviado`; **orçamento vencido NÃO aprova** (refazer = nova versão); OS → `aprovada`. Recusar (`motivo` opcional): de `enviado` ou `aprovado`, exceto se a OS já está em execução; OS → `recusada`.
+- Editar orçamento aprovado = nova versão; a aprovação antiga segue valendo até a nova ser enviada.
+- Custo/margem: `custoUnitario`, `custoTotal`, `margem`, `margemPercentual` só vão pra quem tem `financeiro.ver_margem` (hoje só o dono). Quem edita sem essa permissão não apaga o custo gravado: item com `id` conhecido e sem `custoUnitario` preserva; `null` limpa.
+- Totais: por linha `round(qtd × preço, 2)` (meio pra cima), somados — banco e API calculam igual.
+
+**Pendências / decisões**
+- Rodar `backend/sql/orcamentos.sql` no Supabase (depois de `ordens_oficina.sql`).
+- Fase 4 acrescenta nas funções aprovar/recusar/enviar: lançamento pendente no Financeiro e reserva de estoque (mesma transação). Hoje aprovar NÃO cria entrada no Financeiro nem reserva estoque.
+- A validade padrão é fixa em 7 dias por orçamento (configuração da oficina fica pra depois).
+- Próxima: Fase 2 (tela da etapa 3, pré-preenchida das etapas 1 e 2, peças do Estoque e serviços do Catálogo) — quando for pedido.
