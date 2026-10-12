@@ -375,7 +375,7 @@ def _corpo_ordem(num="OS-1", placa="ABC1D23", servicos=("Motor",)):
         "cliente": {"nome": "Maria", "tel": "11999999999"},
         "veiculo": {"placa": placa, "modelo": "Onix"},
         "servicos_selecionados": list(servicos),
-        "status": "finalizada",
+        "status": "em_orcamento",
     }
 
 
@@ -392,7 +392,11 @@ def test_criar_ordem_grava_oficina_e_data_com_fuso(fake, db):
 
 def test_ordem_criada_pela_api_aparece_no_relatorio_do_dia(fake, db):
     api = _cliente()
-    assert api.post("/ordens", _corpo_ordem(), format="json").status_code == 201
+    criada = api.post("/ordens", _corpo_ordem(), format="json")
+    assert criada.status_code == 201
+    # Salvar o checklist não conclui a OS: ela só entra no relatório depois de finalizada.
+    for novo in ("aprovada", "em_execucao", "finalizada"):
+        assert api.patch(f"/ordens/{criada.json()['id']}/status", {"status": novo}, format="json").status_code == 200
     # janela em volta de hoje (o período máximo é de 400 dias)
     from datetime import date, timedelta
     hoje = date.today()
@@ -432,7 +436,7 @@ def test_crud_da_propria_ordem_continua_funcionando(fake, db):
     assert a.get(f"/ordens/{oid}").status_code == 200
     r = a.put(f"/ordens/{oid}", _corpo_ordem(num="OS-2"), format="json")
     assert r.status_code == 200 and r.json()["os_num"] == "OS-2"
-    assert a.patch(f"/ordens/{oid}/status", {"status": "aguardando"}, format="json").json()["status"] == "aguardando"
+    assert a.patch(f"/ordens/{oid}/status", {"status": "pendente_aprovacao"}, format="json").json()["status"] == "pendente_aprovacao"
     assert a.delete(f"/ordens/{oid}").status_code == 200
     assert a.get(f"/ordens/{oid}").status_code == 404
 

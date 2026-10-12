@@ -131,7 +131,7 @@ export function useAtendimento() {
       setOrdensRaw(prev => prev.map(o => (o.id === ordemId ? { ...o, status: 'rascunho' } : o)));
       atualizarOverlay(ordemId, { motivoBloqueio: undefined });
       try {
-        await api.atualizarOrdem(ordemId, { status: 'rascunho' });
+        await api.definirStatusOrdem(ordemId, 'rascunho');
       } catch {
         carregarOrdens();
       }

@@ -86,6 +86,13 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  /** Muda o status da OS (transições conferidas no servidor: 409 se não for permitida). */
+  definirStatusOrdem: (id: string, status: string) =>
+    authFetch(`${API_BASE}/ordens/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
   uploadFotos: (orderId: string, formData: FormData) =>
     authFetch(`${API_BASE}/ordens/${orderId}/fotos`, {
       method: 'POST',

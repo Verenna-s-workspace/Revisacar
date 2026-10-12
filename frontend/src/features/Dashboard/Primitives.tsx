@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { tokens } from '../../constants';
+import { ROTULO_STATUS } from '../../utils/ordem_status';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -29,9 +30,14 @@ export function Card({ children, style, className = '', onClick }: CardProps) {
 // ── StatusBadge ───────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, { l: string; cls: string }> = {
-  rascunho:   { l: 'Em andamento',     cls: 'status-badge--rascunho' },
-  finalizada: { l: 'Finalizada',       cls: 'status-badge--finalizada' },
-  aguardando: { l: 'Aguardando peças', cls: 'status-badge--aguardando' },
+  rascunho:           { l: ROTULO_STATUS.rascunho,          cls: 'status-badge--rascunho' },
+  em_orcamento:       { l: ROTULO_STATUS.em_orcamento,      cls: 'status-badge--rascunho' },
+  pendente_aprovacao: { l: ROTULO_STATUS.pendente_aprovacao, cls: 'status-badge--aguardando' },
+  aprovada:           { l: ROTULO_STATUS.aprovada,          cls: 'status-badge--finalizada' },
+  em_execucao:        { l: ROTULO_STATUS.em_execucao,       cls: 'status-badge--rascunho' },
+  aguardando:         { l: ROTULO_STATUS.aguardando,        cls: 'status-badge--aguardando' },
+  finalizada:         { l: ROTULO_STATUS.finalizada,        cls: 'status-badge--finalizada' },
+  recusada:           { l: ROTULO_STATUS.recusada,          cls: 'status-badge--recusada' },
 };
 
 export function StatusBadge({ status }: { status: string }) {

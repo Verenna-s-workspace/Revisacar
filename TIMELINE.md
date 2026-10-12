@@ -10,6 +10,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
 | Visão Geral | 🟡 Backend + SQL + testes + frontend prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `visao_geral.sql`, relogar, validar contra o Supabase real |
 | Financeiro | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `financeiro.sql`, validar contra o Supabase real |
+| Orçamento — Fase 0 (status da OS) | 🟡 Backend + SQL + testes + front prontos (tsc + build ok, 296 testes). Falta: rodar `ordens_status.sql` no Supabase e validar no navegador |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -123,3 +124,22 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 - Rodar `backend/sql/financeiro.sql` no Supabase (as travas entram NOT VALID; para checar o histórico: `alter table ... validate constraint <nome>`).
 - OS finalizada ainda NÃO gera entrada no Financeiro (`ordem_servico_id` fica vazio). Gerar automático mudaria o faturamento de Relatórios/Visão Geral (regra "tem ≥1 entrada → só entradas") — decisão de produto.
 - `saldo` = recebido − saídas pagas por competência (não por data de pagamento).
+
+## Orçamento — Fase 0: status da OS (2026-10-12) — branch feat/os-status (parte de feat/financeiro)
+
+**Problema:** salvar o checklist completo marcava a OS como `finalizada` (que conta como faturamento antes do serviço existir) e todo salvamento sobrescrevia o status. "Checklist preenchido" e "serviço concluído" eram a mesma coisa.
+
+**Vocabulário** (`backend/orders/ordem_status.py`, espelho em `frontend/src/utils/ordem_status.ts`): `rascunho`, `em_orcamento`, `pendente_aprovacao`, `aprovada`, `em_execucao`, `aguardando`, `finalizada` (= serviço CONCLUÍDO; nome mantido para não quebrar Relatórios/Visão Geral), `recusada`.
+
+**Transições:** rascunho→{em_orcamento, recusada}; em_orcamento→{rascunho, pendente_aprovacao, aprovada, recusada}; pendente_aprovacao→{em_orcamento, aprovada, recusada}; aprovada→{pendente_aprovacao, em_execucao, recusada}; em_execucao→{aguardando, pendente_aprovacao, finalizada}; aguardando→{em_execucao, rascunho, finalizada}; finalizada→∅; recusada→{em_orcamento}.
+
+**Regras**
+- POST/PUT de OS: o front só pode mandar `rascunho`/`em_orcamento` (checklist incompleto/completo) e só enquanto a OS está nessas fases; depois disso o salvamento mantém o status atual. Qualquer outro valor vira `rascunho` (OS nova).
+- `PATCH /ordens/<id>/status` (`ordens.editar`): 400 sem status, 422 desconhecido, 404, 409 transição proibida ou OS alterada por outra pessoa (update otimista `.eq("status", atual)`); mesmo status = 200.
+- Front: Kanban (fila / em execução / bloqueado / concluído hoje; recusada fora), filtros de Ordens (Em andamento / Aguardando / Concluídas / Recusadas), selos de todos os status; `desbloquear` usa o PATCH (o PUT só com `{status}` sempre dava 422).
+
+**Arquivos:** `backend/orders/ordem_status.py`, `views.py`, `serializers.py`, `backend/sql/ordens_status.sql` (default, NULL→rascunho, CHECK `ordens_status_check` NOT VALID, aviso de linhas fora do vocabulário), `tests/test_ordem_status.py` (~40), ajustes em `tests/test_relatorios.py`; front: `utils/ordem_status.ts`, `useOrdemServico`, `useAtendimento`, `api.definirStatusOrdem`, `Primitives`, `atendimento_utils`, `OSKanbanCard`, `OrdensPage`, `dashboard.css`.
+
+**Pendências**
+- Rodar `backend/sql/ordens_status.sql` no Supabase. OS antigas já `finalizada` NÃO são alteradas e seguem contando como concluídas.
+- Próxima: Fase 1 (modelos/backend do orçamento) — só quando for pedido.

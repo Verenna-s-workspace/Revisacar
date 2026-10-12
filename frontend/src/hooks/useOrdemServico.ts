@@ -332,7 +332,8 @@ export function useOrdemServico() {
         ...buildPayload(),
         fotos_base64: [],
         fotos_paths:  [],
-        status: isComplete ? 'finalizada' : 'rascunho',
+        // Checklist completo leva ao orçamento — NÃO conclui a OS (ver utils/ordem_status.ts).
+        status: isComplete ? 'em_orcamento' : 'rascunho',
       };
 
       let data;

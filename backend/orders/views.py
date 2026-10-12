@@ -27,6 +27,7 @@ from .serializers import (
     validate_pin_format,
 )
 from .rbac import permissoes_do_cargo, FUNCIONARIO_CARGOS
+from . import ordem_status as os_status
 
 # ── Supabase client (singleton) ───────────────────────────────────────────────
 
@@ -692,6 +693,8 @@ def ordens_list(request):
     ordem = serializer.validated_data
     ordem_id = str(uuid.uuid4())
     now = _now()
+    status_final = os_status.status_no_salvamento(None, ordem.get("status"))
+    payload = {**serializer.data, "status": status_final}
 
     data = {
         "id": ordem_id,
@@ -702,9 +705,9 @@ def ordens_list(request):
         "placa": ordem["veiculo"]["placa"],
         "modelo": ordem["veiculo"]["modelo"],
         "cliente": ordem["cliente"]["nome"],
-        "status": ordem["status"],
+        "status": status_final,
         "fotos_paths": ordem.get("fotos_paths", []),
-        "payload": serializer.data,
+        "payload": payload,
     }
 
     supabase.table("ordens").insert(data).execute()
@@ -735,21 +738,25 @@ def ordem_detail(request, ordem_id):
 
         # Preserva fotos já existentes
         existing = (
-            supabase.table("ordens").select("fotos_paths")
+            supabase.table("ordens").select("fotos_paths,status")
             .eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
         )
-        existing_paths = existing.data[0].get("fotos_paths", []) if existing.data else []
+        if not existing.data:
+            return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        existing_paths = existing.data[0].get("fotos_paths") or []
+        status_atual = existing.data[0].get("status") or os_status.RASCUNHO
 
         ordem = serializer.validated_data
+        status_final = os_status.status_no_salvamento(status_atual, ordem.get("status"))
         update = {
             "updated_at": _now(),
             "os_num": ordem["os_header"]["os_num"],
             "placa": ordem["veiculo"]["placa"],
             "modelo": ordem["veiculo"]["modelo"],
             "cliente": ordem["cliente"]["nome"],
-            "status": ordem["status"],
+            "status": status_final,
             "fotos_paths": existing_paths,
-            "payload": serializer.data,
+            "payload": {**serializer.data, "status": status_final},
         }
 
         res = (
@@ -776,21 +783,45 @@ def ordem_detail(request, ordem_id):
 
 
 @api_view(["PATCH"])
-@require_auth
+@require_permission("ordens.editar")
 @_ordens_precisam_do_sql
 def ordem_status(request, ordem_id):
-    """PATCH /ordens/<id>/status?status=<novo_status>"""
-    novo_status = request.query_params.get("status") or request.data.get("status")
-    if not novo_status:
+    """PATCH /ordens/<id>/status  {"status": "<novo>"}  (também aceita ?status=)
+
+    Único caminho para mudar o status além de rascunho/em_orcamento (que o
+    salvamento do checklist decide). Confere se a mudança é permitida a partir
+    do status atual (ver ordem_status.TRANSICOES): 422 se o valor não existe,
+    409 se a transição não é permitida. Repetir o status atual é inofensivo.
+    """
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    novo = request.query_params.get("status") or (
+        request.data.get("status") if isinstance(request.data, dict) else None
+    )
+    if not novo:
         return Response({"detail": "Parâmetro 'status' obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
+    if novo not in os_status.TODOS:
+        return Response({"status": [f"Status inválido: '{novo}'."], "validos": list(os_status.TODOS)},
+                        status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-    res = supabase.table("ordens").update({
-        "status": novo_status,
-        "updated_at": _now(),
-    }).eq("id", ordem_id).eq("oficina_doc", _oficina_doc_do_token(request.admin)).execute()
+    row, err = _get_ordem_or_404(ordem_id, oficina_doc)
+    if err:
+        return err
+    atual = row.get("status") or os_status.RASCUNHO
+    if novo == atual:
+        return Response(row)
+    if not os_status.transicao_permitida(atual, novo):
+        return Response({"detail": f"Não é possível mudar a OS de '{atual}' para '{novo}'."},
+                        status=status.HTTP_409_CONFLICT)
 
+    res = (
+        supabase.table("ordens").update({"status": novo, "updated_at": _now()})
+        .eq("id", ordem_id).eq("oficina_doc", oficina_doc)
+        # Só grava se ninguém mudou o status no meio do caminho.
+        .eq("status", atual).execute()
+    )
     if not res.data:
-        return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "A OS foi alterada por outra pessoa. Recarregue e tente de novo."},
+                        status=status.HTTP_409_CONFLICT)
     return Response(res.data[0])
 
 

@@ -217,7 +217,8 @@ class OrdemServicoSerializer(serializers.Serializer):
         child=serializers.CharField(), default=list
     )
     tecnico = TecnicoSerializer(required=False, allow_null=True)
-    status = serializers.CharField(default="rascunho")
+    # Só uma sugestão (rascunho/em_orcamento): quem decide é ordem_status.status_no_salvamento.
+    status = serializers.CharField(default="rascunho", required=False)
 
     def validate(self, data):
         # Valida sub-serializers aninhados manualmente
