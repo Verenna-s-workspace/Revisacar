@@ -14,6 +14,8 @@ export interface EstoqueItem {
   nome: string;
   categoria: string;          // ver CATEGORIA_GRUPOS em utils/estoque_utils.ts
   quantidade: number;
+  /** Reservado por OS com orçamento aprovado (ainda não baixou do estoque). Ausente = nada reservado. */
+  reservado?: number;
   minimo: number;
   preco: number;
   localizacao: string;        // texto livre

@@ -14,6 +14,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 1 (backend) | 🟡 SQL + API + testes prontos (361 testes). Sem frontend ainda (Fase 2). Falta: rodar `orcamentos.sql` (depois de `ordens_oficina.sql` e `ordens_status.sql`) e validar contra o Supabase real |
 | Orçamento — Fase 2 (tela da etapa 3) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: desktop dono/mecânico/atendente, mobile 390px e fluxo entrada→diagnóstico→orçamento). Falta: rodar os SQLs no Supabase e validar contra o backend real |
 | Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
+| Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -205,4 +206,26 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 - Instalar dependências novas (`reportlab`, `pillow`; `pypdf` só nos testes) e rodar `orcamentos.sql` de novo.
 - O PDF de versão `recusado`/`substituido` fica como foi enviado (reflete o estado do envio/aprovação).
 - Não há envio automático do PDF ao cliente (WhatsApp/e-mail) nem link público — Fase 6 (app do cliente) consome pela API.
-- Próxima: Fase 4 (aprovação gera lançamento pendente no Financeiro e reserva estoque) — quando for pedido.
+- Próxima: Fase 4 — feita, ver abaixo.
+
+## Orçamento — Fase 4: Financeiro + reserva de estoque (2026-10-13) — branch feat/orcamento-financeiro (parte de feat/orcamento-pdf)
+
+Tudo em `backend/sql/orcamentos.sql` (idempotente; agora exige `estoque.sql` e `financeiro.sql` rodados antes) e dentro das MESMAS funções/transações de enviar/aprovar/recusar — não existe estado "aprovou mas o lançamento não foi criado".
+
+**Financeiro** (`financeiro_transacoes` ganha `origem` e `orcamento_id`; índice único parcial: 1 lançamento vivo por OS+categoria de orçamento):
+- **Aprovar** → até 2 lançamentos de ENTRADA `pendente`, ligados à OS (`ordem_servico_id`): categoria `pecas` e `servicos` (cada um com a soma `round(qtd×preço,2)` dos itens do tipo; categoria com total 0 não gera). Competência = dia da aprovação (fuso do usuário), cliente = da OS, descrição "OS-77 · Peças (orçamento v1)". Total do orçamento = soma dos lançamentos (teste).
+- **Revisar** (nova versão de orçamento aprovado) → ao ENVIAR a versão nova, os lançamentos pendentes passam a refletir o novo total (categoria que zerou é cancelada), a OS volta a `pendente_aprovacao`; reaprovar não duplica.
+- **Recusar/cancelar** (também da revisão) → lançamentos pendentes viram `cancelado`. **Lançamento já PAGO nunca é alterado**: vira o aviso `lancamento_pago` (ajuste manual no Financeiro). Apagar a OS faz o mesmo cancelamento.
+- Editar/excluir o lançamento à mão no Financeiro vale até a próxima sincronização (nova versão enviada sobrescreve o valor dos pendentes).
+
+**Estoque** (`estoque_reservas`, única por OS+item; some com a OS ou com o item): só itens ligados ao Estoque (`estoqueItemId`) reservam. Aprovar/enviar revisão REFAZ as reservas da OS a partir do orçamento. **Reservar além do que há não bloqueia** (a peça pode ser comprada): a resposta traz `efeitos.faltas` (reservado × disponível, descontando reservas de outras OS) e a tela avisa. `GET /estoque` traz `reservado` por item (omitido se 0; funciona sem o script). A BAIXA real do estoque é da Fase 5 (conclusão do serviço) — hoje a reserva não altera `quantidade`.
+
+**API:** respostas de enviar/aprovar/recusar trazem `efeitos` (omitido se nada mudou): `financeiro[{categoria, acao: criado|atualizado|cancelado, valor}]`, `reservas`, `liberadas`, `faltas[{itemId, nome, reservado, disponivel}]`, `avisos[{codigo, categoria}]`. `orcamento_enviar` ganhou o parâmetro `p_nome` (o script remove a assinatura antiga da função).
+
+**Frontend:** caixa de resumo na tela do orçamento depois de cada operação (verde; amarela quando há falta de estoque ou lançamento pago); "N reservado" no card do Estoque e no seletor de peças do orçamento.
+
+**Pendências / decisões**
+- Rodar de novo `backend/sql/orcamentos.sql` (e antes `estoque.sql`, `financeiro.sql` se ainda não rodou).
+- Os lançamentos entram como PENDENTES por competência na data da aprovação, então Relatórios/Visão Geral já os contam como faturamento (regra atual: entradas não canceladas). Se for melhor contar só o pago, é ajuste nessas telas — não feito.
+- A tela do Financeiro ainda não marca visualmente "veio de orçamento" (o campo `origem` já vem na API).
+- Próxima: Fase 5 (execução e fechamento: baixa do estoque na conclusão, etapa 4 opcional, relatórios com valores reais) — quando for pedido.

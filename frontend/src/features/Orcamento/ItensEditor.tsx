@@ -59,7 +59,7 @@ export function ItensEditor({ itens, erros, mostrarErros, podeVerCusto, estoque,
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <datalist id="orc-lista-pecas">
-        {estoqueAtivo.map(e => <option key={e.id} value={e.nome}>{formatBRL(e.preco)} · {e.quantidade} em estoque</option>)}
+        {estoqueAtivo.map(e => <option key={e.id} value={e.nome}>{formatBRL(e.preco)} · {e.quantidade} em estoque{e.reservado ? ` (${e.reservado} reservado)` : ''}</option>)}
       </datalist>
       <datalist id="orc-lista-servicos">
         {servicosAtivos.map(s => <option key={s.id} value={s.nome}>{formatBRL(s.preco)}</option>)}

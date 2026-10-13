@@ -103,7 +103,7 @@ export function EstoqueItemCard({ item, onEdit, onDelete }: EstoqueItemCardProps
             color: emQuarentena || baixo ? tokens.color.warn : tokens.color.muted,
           }}
         >
-          {item.quantidade} un.
+          {item.quantidade} un.{item.reservado ? ` · ${String(item.reservado).replace('.', ',')} reservado${item.reservado === 1 ? '' : 's'}` : ''}
         </span>
       </div>
 

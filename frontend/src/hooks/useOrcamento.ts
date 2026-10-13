@@ -7,7 +7,7 @@ import {
 } from '../utils/orcamento_utils';
 import type { EstoqueItem } from '../types/estoque';
 import type { ServicoItem } from '../types/servico';
-import type { CanalAprovacao, ItemRascunho, Orcamento, TipoItemOrcamento } from '../types/orcamento';
+import type { CanalAprovacao, EfeitosOrcamento, ItemRascunho, Orcamento, TipoItemOrcamento } from '../types/orcamento';
 
 interface Opcoes {
   /** OS aberta. Sem id (OS ainda não salva) o hook fica parado. */
@@ -36,6 +36,8 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   /** Aviso (não é erro): envio/aprovação deu certo mas o PDF/assinatura não foi guardado agora. */
   const [avisoPdf, setAvisoPdf] = useState<string | null>(null);
+  /** O que a última operação fez no Financeiro/Estoque (some na próxima operação). */
+  const [efeitos, setEfeitos] = useState<EfeitosOrcamento | null>(null);
   const [acao, setAcao] = useState<Acao | null>(null);
 
   // Rascunho em edição.
@@ -172,6 +174,7 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
     setAcao(qual);
     setErroAcao(null);
     setAvisoPdf(null);
+    setEfeitos(null);
     try {
       return await fn();
     } catch (e) {
@@ -233,6 +236,7 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
 
   /** Salva (se preciso) e envia ao cliente. Devolve o status da OS depois do envio, ou null. */
   const avisarPdf = useCallback((v: Orcamento) => {
+    setEfeitos(v.efeitos ?? null);
     if (v.assinaturaSalva === false) {
       setAvisoPdf('A aprovação foi registrada, mas a assinatura não pôde ser guardada agora. O PDF sai sem ela.');
     } else if (v.pdfGerado === false) {
@@ -285,6 +289,7 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
       return null;
     }
     aplicarVersao(v);
+    setEfeitos(v.efeitos ?? null);
     return v.osStatus ?? 'recusada';
   }, [atual, podeEditar, executar, aplicarVersao, carregar]);
 
@@ -296,7 +301,7 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
 
   return {
     versoes, atual, rascunho,
-    carregando, erro, erroAcao, setErroAcao, avisoPdf, acao,
+    carregando, erro, erroAcao, setErroAcao, avisoPdf, efeitos, acao,
     recarregar: carregar,
 
     // rascunho em edição

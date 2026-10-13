@@ -778,6 +778,14 @@ def ordem_detail(request, ordem_id):
     if paths:
         supabase.storage.from_(BUCKET).remove(paths)
 
+    # Orçamento aprovado deixa lançamento pendente no Financeiro: cancela antes de apagar a OS
+    # (a reserva de estoque some sozinha pela chave estrangeira). Sem o script da Fase 4, segue.
+    try:
+        supabase.rpc("orcamento_desfazer_efeitos", {"p_oficina_doc": oficina_doc, "p_ordem_id": ordem_id}).execute()
+    except APIError as e:
+        if e.code not in ("42883", "PGRST202", "42P01", "PGRST205"):
+            raise
+
     supabase.table("ordens").delete().eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
     return Response({"message": "Deletada"})
 

@@ -5,7 +5,8 @@
 -- rodar de novo sem quebrar nada nem apagar dado.
 --
 -- Pré-requisitos: public.admins, public.ordens (rode ordens_oficina.sql antes,
--- pra `ordens.oficina_doc` existir).
+-- pra `ordens.oficina_doc` existir), public.estoque_itens (estoque.sql) e
+-- public.financeiro_transacoes (financeiro.sql) — a Fase 4 mexe nessas duas.
 --
 -- Modelo
 --   • Cada OS tem uma ou mais VERSÕES de orçamento (`orcamentos`, versao 1, 2…).
@@ -19,6 +20,17 @@
 --   • `estoque_item_id` / `servico_id` ligam o item ao Estoque / Catálogo SEM
 --     chave estrangeira de propósito: o item guarda um retrato (descrição, preço)
 --     e continua válido se o cadastro original for apagado.
+--
+-- Fase 4 — efeitos da aprovação (tudo na MESMA transação das funções abaixo):
+--   • Financeiro: ao aprovar, até 2 lançamentos de ENTRADA pendentes por OS
+--     (categoria 'pecas' e 'servicos', origem = 'orcamento', ligados à OS).
+--     Ao enviar uma REVISÃO de um orçamento já aprovado, os lançamentos
+--     pendentes acompanham o novo total. Ao recusar/cancelar, os pendentes são
+--     cancelados. Lançamento já PAGO nunca é alterado (vira aviso).
+--   • Estoque: `estoque_reservas` guarda o que a OS aprovada vai usar (só itens
+--     ligados ao Estoque). Reservar além do que existe NÃO bloqueia (a peça pode
+--     ser comprada depois): a resposta lista as `faltas`. A baixa real do estoque
+--     é da Fase 5 (conclusão do serviço).
 --
 -- As mudanças que mexem no orçamento E no status da OS são funções (atômicas,
 -- com trava de linha), chamadas pelo backend via supabase.rpc. Quais status de
@@ -116,6 +128,177 @@ create table if not exists public.orcamento_itens (
 
 create index if not exists orcamento_itens_orcamento_idx
   on public.orcamento_itens (orcamento_id, posicao);
+
+
+-- ── Fase 4: Financeiro e reservas de estoque ─────────────────────────────
+
+alter table public.financeiro_transacoes add column if not exists origem text;
+alter table public.financeiro_transacoes add column if not exists orcamento_id uuid;
+
+-- No máximo um lançamento "vivo" de orçamento por OS e categoria.
+create unique index if not exists financeiro_orcamento_os_uk
+  on public.financeiro_transacoes (oficina_doc, ordem_servico_id, categoria)
+  where origem = 'orcamento' and status <> 'cancelado';
+
+create table if not exists public.estoque_reservas (
+  id            uuid primary key default gen_random_uuid(),
+  oficina_doc   text not null,
+  item_id       uuid not null,
+  ordem_id      text not null,
+  orcamento_id  uuid,
+  quantidade    numeric(12,3) not null check (quantidade > 0),
+  created_at    timestamptz not null default now(),
+
+  constraint estoque_reservas_os_item_uk unique (oficina_doc, ordem_id, item_id),
+  -- Apagar o item do Estoque ou a OS leva a reserva junto.
+  foreign key (oficina_doc, item_id) references public.estoque_itens (oficina_doc, id) on delete cascade,
+  foreign key (oficina_doc, ordem_id) references public.ordens (oficina_doc, id) on delete cascade
+);
+
+create index if not exists estoque_reservas_item_idx on public.estoque_reservas (oficina_doc, item_id);
+
+
+-- ── Função: aplicar os efeitos do orçamento (Financeiro + reserva) ────────
+-- Idempotente: pode rodar várias vezes pro mesmo orçamento. Chamada de dentro
+-- de orcamento_aprovar / orcamento_enviar (que já seguram as travas da OS e do
+-- orçamento). Retorna jsonb: {financeiro: [{categoria, acao, valor}],
+-- reservas: n, faltas: [{item_id, nome, reservado, disponivel}], avisos: [{codigo, categoria}]}.
+
+create or replace function public.orcamento_aplicar_efeitos(
+  p_oficina_doc  text,
+  p_ordem_id     text,
+  p_orcamento_id uuid,
+  p_hoje         date,
+  p_nome         text
+) returns jsonb
+language plpgsql
+as $$
+declare
+  v_versao   integer;
+  v_os_num   text;
+  v_cliente  text;
+  v_cat      text;
+  v_valor    numeric;
+  v_row      public.financeiro_transacoes%rowtype;
+  v_desc     text;
+  v_fin      jsonb := '[]'::jsonb;
+  v_avisos   jsonb := '[]'::jsonb;
+  v_faltas   jsonb;
+  v_reservas integer;
+begin
+  select versao into v_versao from public.orcamentos where id = p_orcamento_id;
+  select os_num, cliente into v_os_num, v_cliente
+    from public.ordens where id = p_ordem_id and oficina_doc = p_oficina_doc;
+
+  foreach v_cat in array array['pecas', 'servicos'] loop
+    select coalesce(sum(round(quantidade * preco_unitario, 2)), 0) into v_valor
+      from public.orcamento_itens
+     where orcamento_id = p_orcamento_id
+       and tipo = case v_cat when 'pecas' then 'peca' else 'servico' end;
+
+    v_desc := format('%s · %s (orçamento v%s)', coalesce(v_os_num, p_ordem_id),
+                     case v_cat when 'pecas' then 'Peças' else 'Serviços' end, v_versao);
+
+    select * into v_row from public.financeiro_transacoes
+     where oficina_doc = p_oficina_doc and ordem_servico_id = p_ordem_id
+       and origem = 'orcamento' and categoria = v_cat and status <> 'cancelado'
+     for update;
+
+    if found then
+      if v_row.status = 'pago' then
+        if v_row.valor is distinct from v_valor then
+          v_avisos := v_avisos || jsonb_build_object('codigo', 'lancamento_pago', 'categoria', v_cat);
+        end if;
+      elsif v_valor > 0 then
+        update public.financeiro_transacoes
+           set valor = v_valor, descricao = v_desc, orcamento_id = p_orcamento_id
+         where id = v_row.id;
+        v_fin := v_fin || jsonb_build_object('categoria', v_cat, 'acao', 'atualizado', 'valor', v_valor);
+      else
+        update public.financeiro_transacoes set status = 'cancelado' where id = v_row.id;
+        v_fin := v_fin || jsonb_build_object('categoria', v_cat, 'acao', 'cancelado', 'valor', v_row.valor);
+      end if;
+    elsif v_valor > 0 then
+      insert into public.financeiro_transacoes (
+        oficina_doc, tipo, categoria, descricao, valor, status, data_competencia,
+        cliente_nome, ordem_servico_id, origem, orcamento_id, criado_por_nome, criado_por_tipo
+      ) values (
+        p_oficina_doc, 'entrada', v_cat, v_desc, v_valor, 'pendente', p_hoje,
+        coalesce(v_cliente, ''), p_ordem_id, 'orcamento', p_orcamento_id, coalesce(p_nome, ''), 'orcamento'
+      );
+      v_fin := v_fin || jsonb_build_object('categoria', v_cat, 'acao', 'criado', 'valor', v_valor);
+    end if;
+  end loop;
+
+  -- Reserva: troca as reservas da OS pelas peças (ligadas ao Estoque) deste orçamento.
+  delete from public.estoque_reservas where oficina_doc = p_oficina_doc and ordem_id = p_ordem_id;
+  insert into public.estoque_reservas (oficina_doc, item_id, ordem_id, orcamento_id, quantidade)
+  select p_oficina_doc, i.estoque_item_id, p_ordem_id, p_orcamento_id, sum(i.quantidade)
+    from public.orcamento_itens i
+    join public.estoque_itens e on e.oficina_doc = p_oficina_doc and e.id = i.estoque_item_id
+   where i.orcamento_id = p_orcamento_id and i.tipo = 'peca' and i.estoque_item_id is not null
+   group by i.estoque_item_id;
+  get diagnostics v_reservas = row_count;
+
+  -- Falta = reservado pra esta OS maior que o físico menos o que outras OS já reservaram.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item_id', x.item_id, 'nome', x.nome, 'reservado', x.reservado, 'disponivel', x.disponivel
+         ) order by x.nome), '[]'::jsonb)
+    into v_faltas
+    from (
+      select r.item_id, e.nome, r.quantidade as reservado,
+             greatest(e.quantidade - coalesce((
+               select sum(o.quantidade) from public.estoque_reservas o
+                where o.oficina_doc = p_oficina_doc and o.item_id = r.item_id and o.ordem_id <> p_ordem_id
+             ), 0), 0) as disponivel
+        from public.estoque_reservas r
+        join public.estoque_itens e on e.oficina_doc = r.oficina_doc and e.id = r.item_id
+       where r.oficina_doc = p_oficina_doc and r.ordem_id = p_ordem_id
+    ) x
+   where x.reservado > x.disponivel;
+
+  return jsonb_build_object('financeiro', v_fin, 'reservas', v_reservas, 'faltas', v_faltas, 'avisos', v_avisos);
+end;
+$$;
+
+
+-- ── Função: desfazer os efeitos (recusa/cancelamento) ─────────────────────
+-- Cancela os lançamentos PENDENTES de orçamento da OS e libera a reserva.
+-- Lançamento pago é preservado (vira aviso).
+
+create or replace function public.orcamento_desfazer_efeitos(
+  p_oficina_doc text,
+  p_ordem_id    text
+) returns jsonb
+language plpgsql
+as $$
+declare
+  v_fin    jsonb := '[]'::jsonb;
+  v_avisos jsonb := '[]'::jsonb;
+  v_row    public.financeiro_transacoes%rowtype;
+  v_reservas integer;
+begin
+  for v_row in
+    select * from public.financeiro_transacoes
+     where oficina_doc = p_oficina_doc and ordem_servico_id = p_ordem_id
+       and origem = 'orcamento' and status <> 'cancelado'
+     for update
+  loop
+    if v_row.status = 'pago' then
+      v_avisos := v_avisos || jsonb_build_object('codigo', 'lancamento_pago', 'categoria', v_row.categoria);
+    else
+      update public.financeiro_transacoes set status = 'cancelado' where id = v_row.id;
+      v_fin := v_fin || jsonb_build_object('categoria', v_row.categoria, 'acao', 'cancelado', 'valor', v_row.valor);
+    end if;
+  end loop;
+
+  delete from public.estoque_reservas where oficina_doc = p_oficina_doc and ordem_id = p_ordem_id;
+  get diagnostics v_reservas = row_count;
+
+  return jsonb_build_object('financeiro', v_fin, 'reservas', 0, 'liberadas', v_reservas,
+                            'faltas', '[]'::jsonb, 'avisos', v_avisos);
+end;
+$$;
 
 
 -- ── Função: nova versão (rascunho) ───────────────────────────────────────
@@ -271,13 +454,18 @@ $$;
 -- A validade vale até p_hoje (data do envio no fuso do usuário) + validade_dias.
 -- Retorna jsonb: {ok, codigo, mensagem, os_status, validade_ate}.
 
+-- A assinatura mudou na Fase 4 (entrou p_nome): remove a antiga, senão o
+-- PostgREST ficaria com duas funções de mesmo nome.
+drop function if exists public.orcamento_enviar(text, uuid, jsonb, text, date, text);
+
 create or replace function public.orcamento_enviar(
   p_oficina_doc   text,
   p_orcamento_id  uuid,
   p_os_permitidos jsonb,
   p_os_novo       text,
   p_hoje          date,
-  p_agora         text
+  p_agora         text,
+  p_nome          text default ''
 ) returns jsonb
 language plpgsql
 as $$
@@ -286,6 +474,7 @@ declare
   v_status    text;
   v_itens     integer;
   v_os_status text;
+  v_efeitos   jsonb := null;
 begin
   -- Trava na mesma ordem em todas as funções: primeiro a OS, depois o orçamento.
   select ordem_id into v_ordem_id
@@ -329,7 +518,17 @@ begin
      where id = v_ordem_id and oficina_doc = p_oficina_doc;
   end if;
 
-  return jsonb_build_object('ok', true, 'os_status', p_os_novo,
+  -- REVISÃO de um orçamento já aprovado: lançamentos pendentes e reserva
+  -- passam a refletir a versão nova (a OS volta pra "aguardando aprovação").
+  if exists (
+    select 1 from public.financeiro_transacoes
+     where oficina_doc = p_oficina_doc and ordem_servico_id = v_ordem_id
+       and origem = 'orcamento' and status <> 'cancelado'
+  ) then
+    v_efeitos := public.orcamento_aplicar_efeitos(p_oficina_doc, v_ordem_id, p_orcamento_id, p_hoje, p_nome);
+  end if;
+
+  return jsonb_build_object('ok', true, 'os_status', p_os_novo, 'efeitos', v_efeitos,
     'validade_ate', (select validade_ate from public.orcamentos where id = p_orcamento_id));
 end;
 $$;
@@ -357,6 +556,7 @@ declare
   v_ordem_id  text;
   v_orc       public.orcamentos%rowtype;
   v_os_status text;
+  v_efeitos   jsonb;
 begin
   select ordem_id into v_ordem_id
     from public.orcamentos where id = p_orcamento_id and oficina_doc = p_oficina_doc;
@@ -392,7 +592,9 @@ begin
      where id = v_ordem_id and oficina_doc = p_oficina_doc;
   end if;
 
-  return jsonb_build_object('ok', true, 'os_status', p_os_novo);
+  v_efeitos := public.orcamento_aplicar_efeitos(p_oficina_doc, v_ordem_id, p_orcamento_id, p_hoje, p_nome);
+
+  return jsonb_build_object('ok', true, 'os_status', p_os_novo, 'efeitos', v_efeitos);
 end;
 $$;
 
@@ -415,6 +617,7 @@ declare
   v_ordem_id  text;
   v_status    text;
   v_os_status text;
+  v_efeitos   jsonb;
 begin
   select ordem_id into v_ordem_id
     from public.orcamentos where id = p_orcamento_id and oficina_doc = p_oficina_doc;
@@ -445,7 +648,9 @@ begin
      where id = v_ordem_id and oficina_doc = p_oficina_doc;
   end if;
 
-  return jsonb_build_object('ok', true, 'os_status', p_os_novo);
+  v_efeitos := public.orcamento_desfazer_efeitos(p_oficina_doc, v_ordem_id);
+
+  return jsonb_build_object('ok', true, 'os_status', p_os_novo, 'efeitos', v_efeitos);
 end;
 $$;
 
@@ -454,9 +659,13 @@ $$;
 -- liberar tabelas criadas pelo SQL Editor sem GRANT explícito.
 grant all on public.orcamentos to service_role;
 grant all on public.orcamento_itens to service_role;
+grant all on public.estoque_reservas to service_role;
+grant all on public.financeiro_transacoes to service_role;
 grant execute on function public.orcamento_criar_versao(text, text, jsonb, text, text, text) to service_role;
 grant execute on function public.orcamento_salvar(text, uuid, integer, text, jsonb, timestamptz) to service_role;
-grant execute on function public.orcamento_enviar(text, uuid, jsonb, text, date, text) to service_role;
+grant execute on function public.orcamento_enviar(text, uuid, jsonb, text, date, text, text) to service_role;
+grant execute on function public.orcamento_aplicar_efeitos(text, text, uuid, date, text) to service_role;
+grant execute on function public.orcamento_desfazer_efeitos(text, text) to service_role;
 grant execute on function public.orcamento_aprovar(text, uuid, jsonb, text, date, text, text, text, text) to service_role;
 grant execute on function public.orcamento_recusar(text, uuid, jsonb, text, text, text) to service_role;
 

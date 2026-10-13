@@ -21,6 +21,18 @@ export interface OrcamentoItem {
   custoUnitario?: number;
 }
 
+/** O que enviar/aprovar/recusar fez no Financeiro e no Estoque (resposta do servidor). */
+export interface EfeitosOrcamento {
+  financeiro: { categoria: 'pecas' | 'servicos'; acao: 'criado' | 'atualizado' | 'cancelado'; valor: number }[];
+  /** Quantos itens de estoque ficaram reservados pra OS. */
+  reservas: number;
+  /** Quantos itens tiveram a reserva liberada. */
+  liberadas: number;
+  /** Reservado além do que há em estoque (não bloqueia — é preciso comprar). */
+  faltas: { itemId: string; nome: string; reservado: number; disponivel: number }[];
+  avisos: { codigo: 'lancamento_pago'; categoria: 'pecas' | 'servicos' }[];
+}
+
 export interface Orcamento {
   id: string;
   ordemId: string;
@@ -51,6 +63,7 @@ export interface Orcamento {
   /** Status da OS depois da operação (resposta de criar/enviar/aprovar/recusar). */
   osStatus?: string;
   /** Já existe PDF guardado dessa versão. */
+  efeitos?: EfeitosOrcamento;
   pdfDisponivel?: boolean;
   /** Foi aprovado com assinatura desenhada. */
   assinado?: boolean;

@@ -5,7 +5,7 @@ import { SECTIONS } from '../constants';
 import type { EstoqueItem } from '../types/estoque';
 import type { ServicoItem } from '../types/servico';
 import type {
-  CanalAprovacao, ItemRascunho, Orcamento, OrcamentoItem, StatusOrcamento, TipoItemOrcamento,
+  CanalAprovacao, EfeitosOrcamento, ItemRascunho, Orcamento, OrcamentoItem, StatusOrcamento, TipoItemOrcamento,
 } from '../types/orcamento';
 
 // ── Rótulos ───────────────────────────────────────────────────────────────────
@@ -380,3 +380,44 @@ export function fusoDoNavegador(): string | undefined {
     return undefined;
   }
 }
+
+// ── Efeitos no Financeiro e no Estoque ────────────────────────────────────────
+
+const ROTULO_CATEGORIA = { pecas: 'Peças', servicos: 'Serviços' } as const;
+
+function brl(valor: number): string {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function unidades(n: number): string {
+  return String(n).replace('.', ',');
+}
+
+/** Texto (uma frase por linha) do que a operação fez, e o tom do aviso: 'warn' se pede atenção. */
+export function resumoEfeitos(efeitos: EfeitosOrcamento | undefined | null): { linhas: string[]; tom: 'ok' | 'warn' } | null {
+  if (!efeitos) return null;
+  const linhas: string[] = [];
+  const porAcao = (acao: string) => efeitos.financeiro
+    .filter(f => f.acao === acao)
+    .map(f => `${ROTULO_CATEGORIA[f.categoria]} ${brl(f.valor)}`)
+    .join(' · ');
+  const criados = porAcao('criado');
+  const atualizados = porAcao('atualizado');
+  const cancelados = porAcao('cancelado');
+  if (criados) linhas.push(`Lançamento pendente criado no Financeiro: ${criados}.`);
+  if (atualizados) linhas.push(`Lançamento pendente atualizado no Financeiro: ${atualizados}.`);
+  if (cancelados) linhas.push(`Lançamento cancelado no Financeiro: ${cancelados}.`);
+  if (efeitos.reservas > 0) {
+    linhas.push(`${efeitos.reservas} ${efeitos.reservas === 1 ? 'item reservado' : 'itens reservados'} no Estoque.`);
+  }
+  if (efeitos.liberadas > 0) linhas.push('Reserva do Estoque liberada.');
+  for (const f of efeitos.faltas) {
+    linhas.push(`Estoque insuficiente de "${f.nome}": reservado ${unidades(f.reservado)}, disponível ${unidades(f.disponivel)} — será preciso comprar o restante.`);
+  }
+  for (const a of efeitos.avisos) {
+    linhas.push(`O lançamento de ${ROTULO_CATEGORIA[a.categoria].toLowerCase()} já está pago e não foi alterado — ajuste no Financeiro, se precisar.`);
+  }
+  if (linhas.length === 0) return null;
+  return { linhas, tom: efeitos.faltas.length > 0 || efeitos.avisos.length > 0 ? 'warn' : 'ok' };
+}
+

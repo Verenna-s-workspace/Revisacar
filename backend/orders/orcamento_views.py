@@ -23,6 +23,16 @@ Rotas:
   POST  /orcamentos/<id>/recusar     registra a recusa, com motivo (OS → recusada)
   GET   /orcamentos/<id>/pdf         PDF da versão (só preço cobrado), guardado no Storage
 
+Efeitos da aprovação (Fase 4, mesma transação das funções SQL; ver orcamentos.sql):
+  aprovar → lançamentos de ENTRADA pendentes no Financeiro (peças e serviços, ligados à
+            OS) + reserva das peças ligadas ao Estoque. Estoque insuficiente não bloqueia:
+            vem em `efeitos.faltas`.
+  enviar  → se a OS já tinha lançamentos (revisão de orçamento aprovado), eles acompanham
+            o novo total e a reserva é refeita.
+  recusar → cancela os lançamentos pendentes e libera a reserva (pago nunca é mexido:
+            vira aviso `lancamento_pago`).
+Toda resposta de enviar/aprovar/recusar traz `efeitos` (ou omite quando nada mudou).
+
 PDF (Fase 3): gerado ao ENVIAR e refeito ao APROVAR (com a assinatura desenhada, se veio
 em `assinatura`). Fica em <ordem_id>/orcamento-vN.pdf no mesmo bucket das fotos — apagar a
 OS apaga junto. Falha ao gerar/guardar NÃO desfaz envio nem aprovação: o GET /pdf tenta de
@@ -239,6 +249,38 @@ def _responder_orcamento(request, oficina_doc, orcamento_id, http=http_status.HT
     if extra:
         corpo.update(extra)
     return Response(corpo, status=http)
+
+
+def efeitos_para_api(efeitos):
+    """`efeitos` devolvido pelas funções SQL → JSON camelCase (ou None quando não houve efeito)."""
+    if not efeitos:
+        return None
+    financeiro = [
+        {"categoria": f["categoria"], "acao": f["acao"], "valor": _num(f["valor"])}
+        for f in efeitos.get("financeiro") or []
+    ]
+    faltas = [
+        {"itemId": str(f["item_id"]), "nome": f["nome"],
+         "reservado": _num(f["reservado"]), "disponivel": _num(f["disponivel"])}
+        for f in efeitos.get("faltas") or []
+    ]
+    saida = {
+        "financeiro": financeiro,
+        "reservas": efeitos.get("reservas") or 0,
+        "liberadas": efeitos.get("liberadas") or 0,
+        "faltas": faltas,
+        "avisos": efeitos.get("avisos") or [],
+    }
+    vazio = not (financeiro or saida["reservas"] or saida["liberadas"] or faltas or saida["avisos"])
+    return None if vazio else saida
+
+
+def _extra_com_efeitos(resultado: dict, **outros) -> dict:
+    extra = {"osStatus": resultado["os_status"], **outros}
+    efeitos = efeitos_para_api(resultado.get("efeitos"))
+    if efeitos:
+        extra["efeitos"] = efeitos
+    return extra
 
 
 def _falha_da_funcao(resultado: dict):
@@ -539,12 +581,13 @@ def orcamento_enviar(request, orcamento_id):
         "p_os_novo": os_status.PENDENTE_APROVACAO,
         "p_hoje": hoje.isoformat(),
         "p_agora": _now(),
+        "p_nome": request.admin.get("nome", ""),
     }).execute().data)
     if not resultado["ok"]:
         return _falha_da_funcao(resultado)
     pdf_ok = _tentar_pdf(oficina_doc, orcamento_id)
     return _responder_orcamento(request, oficina_doc, orcamento_id,
-                                extra={"osStatus": resultado["os_status"], "pdfGerado": pdf_ok})
+                                extra=_extra_com_efeitos(resultado, pdfGerado=pdf_ok))
 
 
 @api_view(["POST"])
@@ -584,9 +627,9 @@ def orcamento_aprovar(request, orcamento_id):
     assinatura = serializer.validated_data.get("assinatura")
     assinatura_ok = _guardar_assinatura(oficina_doc, orcamento_id, assinatura) if assinatura else True
     pdf_ok = _tentar_pdf(oficina_doc, orcamento_id)
-    return _responder_orcamento(request, oficina_doc, orcamento_id, extra={
-        "osStatus": resultado["os_status"], "pdfGerado": pdf_ok, "assinaturaSalva": assinatura_ok,
-    })
+    return _responder_orcamento(request, oficina_doc, orcamento_id, extra=_extra_com_efeitos(
+        resultado, pdfGerado=pdf_ok, assinaturaSalva=assinatura_ok,
+    ))
 
 
 @api_view(["POST"])
@@ -616,7 +659,7 @@ def orcamento_recusar(request, orcamento_id):
     }).execute().data)
     if not resultado["ok"]:
         return _falha_da_funcao(resultado)
-    return _responder_orcamento(request, oficina_doc, orcamento_id, extra={"osStatus": resultado["os_status"]})
+    return _responder_orcamento(request, oficina_doc, orcamento_id, extra=_extra_com_efeitos(resultado))
 
 
 @api_view(["GET"])

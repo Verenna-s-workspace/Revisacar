@@ -10,7 +10,7 @@ import { mensagemDoErro } from '../../utils/api_erro';
 import { ROTULO_STATUS } from '../../utils/ordem_status';
 import {
   apontamentosDoDiagnostico, custoDosItens, dadosDoPayload, dataBR, itensSemPreco, LIMITES,
-  mesclarPecasDoDiagnostico, pecasDoDiagnostico, ROTULO_CANAL, servicoDoApontamento, totalDosItens,
+  mesclarPecasDoDiagnostico, pecasDoDiagnostico, resumoEfeitos, ROTULO_CANAL, servicoDoApontamento, totalDosItens,
 } from '../../utils/orcamento_utils';
 import { ItensEditor } from './ItensEditor';
 import { ItensLeitura } from './ItensLeitura';
@@ -166,6 +166,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
     }
   };
 
+  const resumoFx = useMemo(() => resumoEfeitos(orc.efeitos), [orc.efeitos]);
   const nomeOS = os.osHeader.os_num || 'OS';
   const statusOS = os.ordemStatus as StatusOrdem | null;
 
@@ -359,6 +360,11 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
 
       {faixa}
       {orc.erroAcao && modal === null && <Aviso tom="crit">{orc.erroAcao}</Aviso>}
+      {resumoFx && (
+        <Aviso tom={resumoFx.tom}>
+          {resumoFx.linhas.map(l => <div key={l}>{l}</div>)}
+        </Aviso>
+      )}
       {orc.avisoPdf && <Aviso tom="warn">{orc.avisoPdf}</Aviso>}
       {erroPdf && <Aviso tom="crit">{erroPdf}</Aviso>}
 
