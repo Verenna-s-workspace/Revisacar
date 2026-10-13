@@ -358,6 +358,32 @@ export const api = {
     return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
   },
 
+  // ── Orçamento da OS ──────────────────────────────────────────────────────────
+  // Ler: ordens.ver. Criar versão/editar/enviar/aprovar/recusar: ordens.editar.
+  // Custo e margem só vêm pra quem tem financeiro.ver_margem. `tz` = fuso do usuário
+  // (a validade conta em dias desse fuso).
+
+  listarOrcamentos: (ordemId: string, tz?: string) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/orcamentos${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  criarVersaoOrcamento: (ordemId: string) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/orcamentos`, { method: 'POST' }),
+
+  atualizarOrcamento: (id: string, payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/orcamentos/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  enviarOrcamento: (id: string, tz?: string) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/enviar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, { method: 'POST' }),
+
+  aprovarOrcamento: (id: string, payload: { canal?: string; observacao?: string }, tz?: string) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/aprovar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  recusarOrcamento: (id: string, payload: { motivo?: string }) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),
+
   // ── Visão Geral ──────────────────────────────────────────────────────────────
   // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.
   visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),

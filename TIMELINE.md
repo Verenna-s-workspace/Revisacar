@@ -12,6 +12,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Financeiro | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `financeiro.sql`, validar contra o Supabase real |
 | Orçamento — Fase 0 (status da OS) | 🟡 Backend + SQL + testes + front prontos (tsc + build ok, 296 testes). Falta: rodar `ordens_status.sql` no Supabase e validar no navegador |
 | Orçamento — Fase 1 (backend) | 🟡 SQL + API + testes prontos (361 testes). Sem frontend ainda (Fase 2). Falta: rodar `orcamentos.sql` (depois de `ordens_oficina.sql` e `ordens_status.sql`) e validar contra o Supabase real |
+| Orçamento — Fase 2 (tela da etapa 3) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: desktop dono/mecânico/atendente, mobile 390px e fluxo entrada→diagnóstico→orçamento). Falta: rodar os SQLs no Supabase e validar contra o backend real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -165,4 +166,24 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 - Rodar `backend/sql/orcamentos.sql` no Supabase (depois de `ordens_oficina.sql`).
 - Fase 4 acrescenta nas funções aprovar/recusar/enviar: lançamento pendente no Financeiro e reserva de estoque (mesma transação). Hoje aprovar NÃO cria entrada no Financeiro nem reserva estoque.
 - A validade padrão é fixa em 7 dias por orçamento (configuração da oficina fica pra depois).
-- Próxima: Fase 2 (tela da etapa 3, pré-preenchida das etapas 1 e 2, peças do Estoque e serviços do Catálogo) — quando for pedido.
+- Próxima: Fase 2 (tela da etapa 3) — feita, ver abaixo.
+
+## Orçamento — Fase 2: tela da etapa 3 (2026-10-13) — branch feat/orcamento-front (parte de feat/orcamento)
+
+**Correção estrutural descoberta:** as etapas 1 e 2 não compartilhavam estado (cada uma criava seu `useOrdemServico`) e abrir uma OS existente nunca a carregava. Agora há UMA instância no `App` (`os`), passada para Entrada, Diagnóstico e Orçamento. Efeitos: não cria OS duplicada ao ir da etapa 1 para a 2, abrir OS existente carrega os dados, "nova OS" zera tudo (`novaOrdem()`), e o orçamento enxerga o diagnóstico. `saveOrder()` agora devolve `Promise<boolean>`; o botão "Ir para o orçamento" (último passo do diagnóstico) salva e só navega se salvou. O hook também guarda `ordemStatus`.
+
+**Tela** (`features/Orcamento/`: `OrcamentoPage`, `ItensEditor`, `ItensLeitura`, `VersoesLista`, `DecisaoModais`; `hooks/useOrcamento.ts`, `types/orcamento.ts`, `utils/orcamento_utils.ts`, métodos em `utils/api.ts`): cabeçalho com cliente/veículo/status da OS, versão atual (rascunho editável ou leitura), histórico de versões, resumo com total, validade e observações; modais de enviar/aprovar (canal + observação)/recusar (motivo).
+
+**Regras de pré-preenchimento (sugestões, nada é gravado sem o usuário montar):**
+- Peças vêm do diagnóstico (`tabela_pecas` e itens do checklist em atenção/crítico); serviços vêm de sugestões do diagnóstico — **serviços NÃO são preenchidos automaticamente**, só sugeridos.
+- Casamento com Estoque/Catálogo é unidirecional: o nome do item de estoque precisa CONTER o digitado (evita "Vela"/"Óleo" genéricos casarem com peças específicas). Sugestão some quando o diagnóstico já citou o item.
+- Preço padrão da peça = `preco` do Estoque (Estoque não tem custo separado); do serviço = preço do Catálogo. Sugestões via `datalist`; digitar não desvincula, há botão "desvincular".
+- Selo "do diagnóstico" existe só no cliente e some após ir ao servidor (aceito).
+- Custo/margem só aparecem para quem tem `financeiro.ver_margem`; quem edita sem a permissão não envia `custoUnitario` (o backend preserva o gravado).
+- Atendente só lê (sem botão de montar/editar).
+
+**Limitações / pendências**
+- O orçamento ainda não gera lançamento no Financeiro nem reserva estoque (Fase 4); não há PDF (Fase 3).
+- Frontend sem runner de testes: utils puros checados por bundle esbuild + node; UI por smoke Playwright com API simulada (fora do repo).
+- Rodar `ordens_status.sql` e `orcamentos.sql` no Supabase e validar fim a fim.
+- Próxima: Fase 3 (PDF no backend, só preço cobrado, assinatura desenhada, salvo no Storage) — quando for pedido.

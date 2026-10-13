@@ -40,6 +40,9 @@ export function useOrdemServico() {
   const [step, setStep]             = useState(1);
   const [stepDir, setStepDir]       = useState<'forward' | 'back'>('forward');
   const [orderId, setOrderId]       = useState<string | null>(null);
+  // Status da OS no servidor (null = OS ainda não salva). Quem decide é o backend:
+  // salvar o checklist só alterna rascunho/em_orcamento; o resto vem do orçamento.
+  const [ordemStatus, setOrdemStatus] = useState<string | null>(null);
   const [savedAt, setSavedAt]       = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('');
   const [errors, setErrors]         = useState<ValidationErrors>({});
@@ -318,7 +321,8 @@ export function useOrdemServico() {
     [osHeader, cliente, veiculo, tecnico, selected, checklist, itensAdicionais, trocaSet, tabelaPecas]
   );
 
-  const saveOrder = useCallback(async () => {
+  /** Salva a OS (cria ou atualiza). Devolve true se o servidor aceitou. */
+  const saveOrder = useCallback(async (): Promise<boolean> => {
     setSaveStatus('saving');
     try {
       const isComplete = !!(
@@ -343,6 +347,7 @@ export function useOrdemServico() {
         data = await api.criarOrdem(payload);
         setOrderId(data.id);
       }
+      if (typeof data?.status === 'string') setOrdemStatus(data.status);
 
       if (newPhotos.length > 0) {
         const formData = new FormData();
@@ -357,10 +362,12 @@ export function useOrdemServico() {
       setSavedAt(nowTime());
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(''), 2500);
+      return true;
     } catch (err) {
       console.error('Erro ao salvar ordem:', err);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(''), 3000);
+      return false;
     }
   }, [buildPayload, orderId, newPhotos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
 
@@ -405,6 +412,7 @@ export function useOrdemServico() {
     }
 
     setOrderId(ordem.id);
+    setOrdemStatus(typeof ordem.status === 'string' ? ordem.status : null);
     setOsHeader(payload.os_header || INITIAL_OS_HEADER());
     setCliente(payload.cliente    || INITIAL_CLIENTE);
     setVeiculo(payload.veiculo    || INITIAL_VEICULO);
@@ -459,8 +467,9 @@ export function useOrdemServico() {
     }
   }, [clearSig]);
 
-  const resetAll = useCallback(() => {
-    if (!window.confirm('Limpar toda a OS e começar do zero?')) return;
+  // Zera tudo sem perguntar — usado ao começar uma OS nova (o estado vive no App
+  // e sobrevive à ida e volta pro painel, então precisa ser limpo explicitamente).
+  const novaOrdem = useCallback(() => {
     setOsHeader(INITIAL_OS_HEADER());
     setCliente(INITIAL_CLIENTE);
     setVeiculo(INITIAL_VEICULO);
@@ -473,7 +482,9 @@ export function useOrdemServico() {
     setPhotos([]);
     setNewPhotos([]);
     setOrderId(null);
+    setOrdemStatus(null);
     setSavedAt(null);
+    setSaveStatus('');
     setErrors({});
     setShowErrors(false);
 
@@ -488,6 +499,11 @@ export function useOrdemServico() {
     clearSig();
   }, [clearSig]);
 
+  const resetAll = useCallback(() => {
+    if (!window.confirm('Limpar toda a OS e começar do zero?')) return;
+    novaOrdem();
+  }, [novaOrdem]);
+
   // ── Derived state ─────────────────────────────────────────────────────────
 
   const stats     = getChecklistStats(selected, checklist, itensAdicionais);
@@ -498,7 +514,7 @@ export function useOrdemServico() {
 
   return {
     // Core OS
-    step, stepDir, orderId, savedAt, saveStatus,
+    step, stepDir, orderId, ordemStatus, setOrdemStatus, savedAt, saveStatus,
     errors, showErrors, hasErr,
     osHeader, setOsHeader,
     cliente,  setCliente,
@@ -546,6 +562,7 @@ export function useOrdemServico() {
     handleNextStep1,
     handleExport,
     loadOrder,
+    novaOrdem,
     resetAll,
     buildPayload,
   };

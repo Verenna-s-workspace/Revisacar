@@ -3,13 +3,15 @@ import { useOrdemServico } from '../../../../hooks/useOrdemServico';
 import { tokens } from '../../../../constants';
 import {
   FormBlock, PanelFooter,
-  btnGhost, btnSolid, pfNote,
+  btnGhost, btnSolid, btnAccent, pfNote,
   useResponsive,
 } from '../../../../components/ui';
 
 interface StepProps {
   os: ReturnType<typeof useOrdemServico>;
   onExportPDF?: () => void;
+  /** Etapa 3: orçamento. */
+  onNextChecklist?: () => void;
 }
 
 function StepWrapper({ children, direction = 'forward' }: {
@@ -173,7 +175,7 @@ function PreviewCard({ peca, index }: PreviewCardProps) {
 
 // ── Step4 ─────────────────────────────────────────────────────────────────────
 
-export function Step4({ os }: StepProps) {
+export function Step4({ os, onNextChecklist }: StepProps) {
   const {
     tabelaPecas,
     savedAt,
@@ -436,6 +438,14 @@ export function Step4({ os }: StepProps) {
             <button onClick={saveOrder} style={btnSolid}>
               Salvar
             </button>
+            {onNextChecklist && (
+              <button
+                onClick={async () => { if (await saveOrder()) onNextChecklist(); }}
+                style={btnAccent}
+              >
+                Ir para o orçamento
+              </button>
+            )}
             {!isEmpty && (
               <button onClick={copyToClipboard} style={{
                 fontFamily: tokens.fontMono, fontSize: '0.72rem', fontWeight: 500,

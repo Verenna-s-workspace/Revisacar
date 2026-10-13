@@ -1,23 +1,27 @@
 import { useState } from 'react';
 import Check  from './pages/InitialChecklist';
 import Check2 from './pages/InspectionChecklist';
+import OrcamentoPage from './features/Orcamento/OrcamentoPage';
+import { useOrdemServico } from './hooks/useOrdemServico';
 import { Dashboard } from './pages/Dashboard';
 import { AuthScreen } from './pages/AuthScreen';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { FuncionarioLoginScreen } from './pages/FuncionarioLogin/FuncionarioLoginScreen';
 import { LearningCenterModal } from './features/Dashboard/LearningCenter/LearningCenterModal';
 import { api } from './utils/api';
-import type { OrdemServico, AuthResult } from './types';
+import type { AuthResult } from './types';
 import type { OSPrefillInput } from './types/atendimento';
 import { useAuth } from './context/AuthContext';
 
-type View = 'dashboard' | 'os' | 'os2' | 'login' | 'reset-password';
+type View = 'dashboard' | 'os' | 'os2' | 'orcamento' | 'login' | 'reset-password';
 
 export default function App() {
   const { user, loading, login, logout } = useAuth();
 
   const [view, setView]                 = useState<View>('dashboard');
-  const [selectedOrdem, setSelectedOrdem] = useState<(OrdemServico & { id: string }) | null>(null);
+  // UMA instância do estado da OS, compartilhada por entrada (os), diagnóstico (os2) e
+  // orçamento: sem isso cada tela começava uma OS em branco e salvar criava OS duplicada.
+  const os = useOrdemServico();
   const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
   const [authMode, setAuthMode]         = useState<'login' | 'reset-password' | 'funcionario'>('login');
   // Central de Aprendizado — vive aqui (acima de Dashboard) porque o botão
@@ -49,7 +53,7 @@ export default function App() {
 
   // ── Navegação ──────────────────────────────────────────────────────────────
   const handleStartNew = () => {
-    setSelectedOrdem(null);
+    os.novaOrdem();
     setPrefillOS(null);
     setView('os');            // sempre abre o Check (fluxo de entrada)
   };
@@ -57,31 +61,44 @@ export default function App() {
   // Igual a handleStartNew, mas pré-preenchendo cliente/veículo (usado pelo
   // botão "Iniciar Atendimento" da tela de Atendimento — ver Seção 8 do prompt).
   const handleStartNewComPrefill = (prefill: OSPrefillInput) => {
-    setSelectedOrdem(null);
+    os.novaOrdem();
     setPrefillOS(prefill);
     setView('os');
   };
 
-  const handleLoadRascunho = (ordem: OrdemServico & { id: string }) => {
-    setSelectedOrdem(ordem);
+  // Abre uma OS existente. Rascunho volta pro checklist; a partir de "em orçamento"
+  // o trabalho está no orçamento (as etapas 1 e 2 continuam a um clique).
+  const handleLoadRascunho = async (ordem: { id: string; status?: string }) => {
+    await os.loadOrder(ordem);
     setPrefillOS(null);
-    setView('os');
+    setView(ordem.status && ordem.status !== 'rascunho' ? 'orcamento' : 'os');
   };
 
   const handleBackToDashboard = () => {
     setView('dashboard');
-    setSelectedOrdem(null);
     setPrefillOS(null);
   };
 
+  // As etapas começam sempre na primeira aba: o `step` é do hook compartilhado.
   const handleGoToCheck2 = () => {
+    os.goStep(1, 1);
     setView('os2');           // chamado pelo botão "Próxima etapa" do Step3
+  };
+
+  const handleGoToEntrada = () => {
+    os.goStep(1, 1);
+    setView('os');
+  };
+
+  const handleGoToOrcamento = () => {
+    setView('orcamento');
+    window.scrollTo({ top: 0 });
   };
 
   const handleLoadOS = async (id: string) => {
     try {
       const ordem = await api.obterOrdem(id);
-      handleLoadRascunho(ordem);
+      await handleLoadRascunho(ordem);
     } catch (e) {
       console.error('Erro ao carregar OS:', e);
     }
@@ -188,14 +205,22 @@ export default function App() {
             onNewOSComPrefill={handleStartNewComPrefill}
             onOpenLearningCenter={() => setShowLearningCenter(true)}
           />
+        ) : view === 'orcamento' ? (
+          <OrcamentoPage
+            os={os}
+            onBackToStart={handleBackToDashboard}
+            onGoEntrada={handleGoToEntrada}
+            onGoDiagnostico={handleGoToCheck2}
+          />
         ) : view === 'os2' ? (
           <Check2
-            initialOrdem={selectedOrdem}
+            os={os}
             onBackToStart={handleBackToDashboard}
+            onNextChecklist={handleGoToOrcamento}
           />
         ) : view === 'os' ? (
           <Check
-            initialOrdem={selectedOrdem}
+            os={os}
             prefill={prefillOS}
             onBackToStart={handleBackToDashboard}
             onNextChecklist={handleGoToCheck2}   // ← permite ir para Check2
