@@ -9,9 +9,9 @@ from django.contrib.auth.hashers import make_password, check_password
 
 class OSHeaderSerializer(serializers.Serializer):
     os_num = serializers.CharField()
-    os_date = serializers.CharField(default="")
-    os_time = serializers.CharField(default="")
-    os_km = serializers.CharField(default="")
+    os_date = serializers.CharField(default="", allow_blank=True)
+    os_time = serializers.CharField(default="", allow_blank=True)
+    os_km = serializers.CharField(default="", allow_blank=True)
 
     def validate_os_num(self, value):
         if not value.strip():
@@ -165,12 +165,12 @@ class FuncionarioPinLoginSerializer(serializers.Serializer):
 class VeiculoSerializer(serializers.Serializer):
     placa = serializers.CharField()
     modelo = serializers.CharField()
-    ano = serializers.CharField(default="")
-    cor = serializers.CharField(default="")
-    combustivel = serializers.CharField(default="")
-    nivel_combustivel = serializers.CharField(default="")
-    chassi = serializers.CharField(default="")
-    obs_entrada = serializers.CharField(default="")
+    ano = serializers.CharField(default="", allow_blank=True)
+    cor = serializers.CharField(default="", allow_blank=True)
+    combustivel = serializers.CharField(default="", allow_blank=True)
+    nivel_combustivel = serializers.CharField(default="", allow_blank=True)
+    chassi = serializers.CharField(default="", allow_blank=True)
+    obs_entrada = serializers.CharField(default="", allow_blank=True)
 
     def validate_placa(self, value):
         v = value.upper().strip()
@@ -186,7 +186,7 @@ class VeiculoSerializer(serializers.Serializer):
 
 class ChecklistItemSerializer(serializers.Serializer):
     status = serializers.CharField(allow_null=True, required=False)
-    obs = serializers.CharField(default="")
+    obs = serializers.CharField(default="", allow_blank=True)
 
 
 class TecnicoSerializer(serializers.Serializer):
