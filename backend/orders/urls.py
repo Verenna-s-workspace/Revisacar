@@ -22,6 +22,7 @@ urlpatterns = [
     path("orcamentos/<str:orcamento_id>/enviar", orcamento_views.orcamento_enviar),
     path("orcamentos/<str:orcamento_id>/aprovar", orcamento_views.orcamento_aprovar),
     path("orcamentos/<str:orcamento_id>/recusar", orcamento_views.orcamento_recusar),
+    path("orcamentos/<str:orcamento_id>/pdf", orcamento_views.orcamento_pdf_view),
 
     # Fotos de uma ordem
     path("ordens/<str:ordem_id>/fotos", views.upload_fotos),

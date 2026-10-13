@@ -6,3 +6,5 @@ python-dotenv>=1.0
 gunicorn>=22.0.0
 psycopg2-binary>=2.9
 tzdata
+reportlab>=4.0
+pillow>=10.0

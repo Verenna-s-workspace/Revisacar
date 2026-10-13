@@ -76,6 +76,12 @@ create table if not exists public.orcamentos (
     references public.ordens (oficina_doc, id) on delete cascade
 );
 
+-- Fase 3 (PDF): caminhos no Supabase Storage (bucket das fotos, pasta da OS).
+-- O PDF de uma versão enviada não muda; ao aprovar é refeito com a assinatura.
+alter table public.orcamentos add column if not exists pdf_path        text;
+alter table public.orcamentos add column if not exists pdf_gerado_em   timestamptz;
+alter table public.orcamentos add column if not exists assinatura_path text;
+
 -- Uma OS tem no máximo um rascunho e um orçamento ativo por vez.
 create unique index if not exists orcamentos_um_rascunho_idx
   on public.orcamentos (ordem_id) where status = 'rascunho';

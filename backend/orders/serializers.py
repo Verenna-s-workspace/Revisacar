@@ -494,6 +494,18 @@ class OrcamentoAprovacaoSerializer(serializers.Serializer):
     """O mecânico registra a resposta que o cliente deu fora do sistema."""
     canal = serializers.ChoiceField(choices=CANAIS_APROVACAO, required=False, default="whatsapp")
     observacao = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    # Assinatura desenhada do cliente (canvas.toDataURL('image/png')). Opcional.
+    # Vira bytes de um PNG limpo, ou None se o traço veio em branco.
+    assinatura = serializers.CharField(max_length=600_000, required=False, allow_blank=True, allow_null=True)
+
+    def validate_assinatura(self, value):
+        if not value:
+            return None
+        from .orcamento_pdf import decodificar_assinatura
+        try:
+            return decodificar_assinatura(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
 
 
 class OrcamentoRecusaSerializer(serializers.Serializer):

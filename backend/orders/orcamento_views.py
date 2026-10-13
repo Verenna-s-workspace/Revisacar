@@ -21,26 +21,35 @@ Rotas:
   POST  /orcamentos/<id>/enviar      rascunho → enviado (OS → pendente_aprovacao)
   POST  /orcamentos/<id>/aprovar     registra a aprovação do cliente (OS → aprovada)
   POST  /orcamentos/<id>/recusar     registra a recusa, com motivo (OS → recusada)
+  GET   /orcamentos/<id>/pdf         PDF da versão (só preço cobrado), guardado no Storage
+
+PDF (Fase 3): gerado ao ENVIAR e refeito ao APROVAR (com a assinatura desenhada, se veio
+em `assinatura`). Fica em <ordem_id>/orcamento-vN.pdf no mesmo bucket das fotos — apagar a
+OS apaga junto. Falha ao gerar/guardar NÃO desfaz envio nem aprovação: o GET /pdf tenta de
+novo na hora. Rascunho gera um PDF de pré-visualização (marca d'água), sem guardar.
 
 Convenções: JSON em camelCase; opcionais vazios são omitidos; 422 validação,
 409 conflito de estado, 503 se orcamentos.sql não foi rodado. "Hoje" (validade)
 vem do fuso do usuário (?tz=...), padrão America/Sao_Paulo.
 """
+import json
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.http import HttpResponse
 from postgrest.exceptions import APIError
 from rest_framework import status as http_status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from . import ordem_status as os_status
+from . import orcamento_pdf
 from . import visao_geral_views as vg
 from .estoque_views import _corpo_valido, _jsonb, _listar_todos, _negado, _nao_encontrado, _uuid_valido
 from .serializers import (
     OrcamentoAprovacaoSerializer, OrcamentoRecusaSerializer, OrcamentoSerializer,
 )
-from .views import supabase, require_auth, _oficina_doc_do_token, _now
+from .views import BUCKET, supabase, require_auth, _oficina_doc_do_token, _now
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +180,8 @@ def orcamento_para_api(row: dict, itens: list, ver_margem: bool, hoje=None) -> d
     ):
         if row.get(campo):
             out[chave] = row[campo]
+    out["pdfDisponivel"] = bool(row.get("pdf_path"))
+    out["assinado"] = bool(row.get("assinatura_path"))
     if hoje is not None and row["status"] == "enviado" and row.get("validade_ate"):
         out["vencido"] = row["validade_ate"] < hoje.isoformat()
 
@@ -253,6 +264,111 @@ def _ordem_da_oficina(ordem_id: str, oficina_doc: str):
         .eq("id", ordem_id).eq("oficina_doc", oficina_doc).limit(1).execute()
     )
     return res.data[0] if res.data else None
+
+
+# ── PDF ───────────────────────────────────────────────────────────────────────
+
+def _caminho_pdf(row: dict) -> str:
+    return f"{row['ordem_id']}/orcamento-v{row['versao']}.pdf"
+
+
+def _caminho_assinatura(row: dict) -> str:
+    return f"{row['ordem_id']}/orcamento-v{row['versao']}-assinatura.png"
+
+
+def _payload_da_ordem(ordem: dict) -> dict:
+    payload = ordem.get("payload") or {}
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except ValueError:
+            payload = {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _dados_para_pdf(oficina_doc: str, row: dict, itens: list, assinatura_png) -> dict:
+    """Monta SÓ o que o cliente pode ver. Custo, margem e vínculos internos não entram."""
+    ordem = (
+        supabase.table("ordens").select("os_num,payload")
+        .eq("id", row["ordem_id"]).eq("oficina_doc", oficina_doc).limit(1).execute()
+    ).data
+    ordem = ordem[0] if ordem else {}
+    payload = _payload_da_ordem(ordem)
+    cliente, veiculo = payload.get("cliente") or {}, payload.get("veiculo") or {}
+    adm = supabase.table("admins").select("nome").eq("doc", oficina_doc).limit(1).execute().data
+    aprovado = row["status"] == "aprovado" or (row["status"] == "substituido" and row.get("aprovado_em"))
+    return {
+        "oficina_nome": (adm[0]["nome"] if adm else "") or "Oficina",
+        "os_num": ordem.get("os_num") or row["ordem_id"],
+        "versao": row["versao"],
+        "status": row["status"],
+        "emitido_em": row.get("enviado_em") or row.get("created_at"),
+        "validade_ate": row.get("validade_ate"),
+        "cliente": {k: cliente.get(k, "") for k in ("nome", "tel", "doc")},
+        "veiculo": {k: veiculo.get(k, "") for k in ("placa", "modelo", "ano", "cor")},
+        "itens": [{
+            "tipo": i["tipo"], "descricao": i["descricao"], "marca": i.get("marca") or "",
+            "quantidade": i["quantidade"], "preco_unitario": i["preco_unitario"],
+            "subtotal": _centavos(Decimal(str(i["quantidade"])) * Decimal(str(i["preco_unitario"]))),
+            "motivo": i.get("motivo") or "",
+        } for i in itens],
+        "total": row["total"],
+        "observacoes": row.get("observacoes") or "",
+        "aprovacao": {
+            "em": row.get("aprovado_em"), "canal": row.get("aprovacao_canal"),
+            "obs": row.get("aprovacao_obs") or "",
+        } if aprovado and row.get("aprovado_em") else None,
+        "assinatura_png": assinatura_png,
+    }
+
+
+def _assinatura_guardada(row: dict):
+    if not row.get("assinatura_path"):
+        return None
+    try:
+        return bytes(supabase.storage.from_(BUCKET).download(row["assinatura_path"]))
+    except Exception as e:  # noqa: BLE001 — a assinatura é opcional no PDF
+        logger.warning("Orçamento %s: não consegui ler a assinatura do Storage: %s", row["id"], e)
+        return None
+
+
+def _gerar_pdf(oficina_doc: str, row: dict, itens: list) -> bytes:
+    return orcamento_pdf.gerar_pdf(_dados_para_pdf(oficina_doc, row, itens, _assinatura_guardada(row)))
+
+
+def _gerar_e_guardar_pdf(oficina_doc: str, row: dict, itens: list) -> bytes:
+    """Gera o PDF da versão e grava no Storage (sobrescreve). Levanta se falhar."""
+    conteudo = _gerar_pdf(oficina_doc, row, itens)
+    caminho = _caminho_pdf(row)
+    supabase.storage.from_(BUCKET).upload(caminho, conteudo, {"content-type": "application/pdf", "upsert": "true"})
+    supabase.table(ORCAMENTOS).update({"pdf_path": caminho, "pdf_gerado_em": _now()}) \
+        .eq("id", str(row["id"])).eq("oficina_doc", oficina_doc).execute()
+    return conteudo
+
+
+def _tentar_pdf(oficina_doc: str, orcamento_id: str) -> bool:
+    """Relê a versão e guarda o PDF. Nunca levanta: envio/aprovação já foram gravados."""
+    try:
+        row = _buscar_orcamento(str(orcamento_id), oficina_doc)
+        itens = _itens_de([str(row["id"])]).get(str(row["id"]), [])
+        _gerar_e_guardar_pdf(oficina_doc, row, itens)
+        return True
+    except Exception as e:  # noqa: BLE001
+        logger.error("Orçamento %s: falha ao gerar/guardar o PDF: %s", orcamento_id, e)
+        return False
+
+
+def _guardar_assinatura(oficina_doc: str, orcamento_id: str, png: bytes) -> bool:
+    try:
+        row = _buscar_orcamento(str(orcamento_id), oficina_doc)
+        caminho = _caminho_assinatura(row)
+        supabase.storage.from_(BUCKET).upload(caminho, png, {"content-type": "image/png", "upsert": "true"})
+        supabase.table(ORCAMENTOS).update({"assinatura_path": caminho}) \
+            .eq("id", str(row["id"])).eq("oficina_doc", oficina_doc).execute()
+        return True
+    except Exception as e:  # noqa: BLE001
+        logger.error("Orçamento %s: falha ao guardar a assinatura: %s", orcamento_id, e)
+        return False
 
 
 # ── Rotas ─────────────────────────────────────────────────────────────────────
@@ -426,7 +542,9 @@ def orcamento_enviar(request, orcamento_id):
     }).execute().data)
     if not resultado["ok"]:
         return _falha_da_funcao(resultado)
-    return _responder_orcamento(request, oficina_doc, orcamento_id, extra={"osStatus": resultado["os_status"]})
+    pdf_ok = _tentar_pdf(oficina_doc, orcamento_id)
+    return _responder_orcamento(request, oficina_doc, orcamento_id,
+                                extra={"osStatus": resultado["os_status"], "pdfGerado": pdf_ok})
 
 
 @api_view(["POST"])
@@ -462,7 +580,13 @@ def orcamento_aprovar(request, orcamento_id):
     }).execute().data)
     if not resultado["ok"]:
         return _falha_da_funcao(resultado)
-    return _responder_orcamento(request, oficina_doc, orcamento_id, extra={"osStatus": resultado["os_status"]})
+    # A aprovação já está gravada; assinatura e PDF são "melhor esforço" (o GET /pdf refaz).
+    assinatura = serializer.validated_data.get("assinatura")
+    assinatura_ok = _guardar_assinatura(oficina_doc, orcamento_id, assinatura) if assinatura else True
+    pdf_ok = _tentar_pdf(oficina_doc, orcamento_id)
+    return _responder_orcamento(request, oficina_doc, orcamento_id, extra={
+        "osStatus": resultado["os_status"], "pdfGerado": pdf_ok, "assinaturaSalva": assinatura_ok,
+    })
 
 
 @api_view(["POST"])
@@ -493,3 +617,47 @@ def orcamento_recusar(request, orcamento_id):
     if not resultado["ok"]:
         return _falha_da_funcao(resultado)
     return _responder_orcamento(request, oficina_doc, orcamento_id, extra={"osStatus": resultado["os_status"]})
+
+
+@api_view(["GET"])
+@require_auth
+@_tratar_erros_banco
+def orcamento_pdf_view(request, orcamento_id):
+    """GET /orcamentos/<id>/pdf — o PDF da versão (application/pdf). Versão enviada/aprovada/…
+    usa o arquivo guardado (e o gera na hora se ainda não existir); rascunho gera uma
+    pré-visualização com marca d'água e não guarda nada. Versão sem itens → 422."""
+    negado = _negado(request, "ordens.ver")
+    if negado:
+        return negado
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    row = _buscar_orcamento(orcamento_id, oficina_doc)
+    if row is None:
+        return _nao_encontrado("Orçamento não encontrado.")
+    itens = _itens_de([str(row["id"])]).get(str(row["id"]), [])
+    if not itens:
+        return Response({"detail": "O orçamento ainda não tem itens.", "codigo": "sem_itens"},
+                        status=http_status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+    conteudo = None
+    if row["status"] != "rascunho" and row.get("pdf_path"):
+        try:
+            conteudo = bytes(supabase.storage.from_(BUCKET).download(row["pdf_path"]))
+        except Exception as e:  # noqa: BLE001 — arquivo sumiu: refaz abaixo
+            logger.warning("Orçamento %s: PDF do Storage indisponível (%s); gerando de novo.", orcamento_id, e)
+    if conteudo is None:
+        if row["status"] == "rascunho":
+            conteudo = _gerar_pdf(oficina_doc, row, itens)
+        else:
+            try:
+                conteudo = _gerar_e_guardar_pdf(oficina_doc, row, itens)
+            except APIError:
+                raise
+            except Exception as e:  # noqa: BLE001 — Storage fora do ar: entrega sem guardar
+                logger.error("Orçamento %s: não consegui guardar o PDF: %s", orcamento_id, e)
+                conteudo = _gerar_pdf(oficina_doc, row, itens)
+
+    nome = f"orcamento-{row['ordem_id']}-v{row['versao']}.pdf"
+    resposta = HttpResponse(conteudo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{nome}"'
+    resposta["Cache-Control"] = "private, no-store"
+    return resposta
