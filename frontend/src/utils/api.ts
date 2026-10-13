@@ -63,6 +63,25 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   return handleResponse(response);
 };
 
+/** Baixa um arquivo (PDF) autenticado como Blob; renova o token uma vez se preciso. */
+const authFetchBlob = async (url: string): Promise<Blob> => {
+  const buscar = () => fetch(url, { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  let res = await buscar();
+  if (res.status === 401 && refreshToken) {
+    const nova = await api.refreshToken(refreshToken);
+    if (nova.accessToken) {
+      accessToken = nova.accessToken;
+      refreshToken = nova.refreshToken;
+      res = await buscar();
+    }
+  }
+  if (!res.ok) {
+    const msg = await res.text().catch(() => `HTTP ${res.status}`);
+    throw new Error(msg || `HTTP ${res.status}`);
+  }
+  return res.blob();
+};
+
 export const api = {
   setAuthTokens: (access: string, refresh: string) => {
     accessToken = access;
@@ -375,11 +394,14 @@ export const api = {
   enviarOrcamento: (id: string, tz?: string) =>
     authFetch(`${API_BASE}/orcamentos/${id}/enviar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, { method: 'POST' }),
 
-  aprovarOrcamento: (id: string, payload: { canal?: string; observacao?: string }, tz?: string) =>
+  aprovarOrcamento: (id: string, payload: { canal?: string; observacao?: string; assinatura?: string | null }, tz?: string) =>
     authFetch(`${API_BASE}/orcamentos/${id}/aprovar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  /** PDF da versão (só preço cobrado). */
+  baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
 
   recusarOrcamento: (id: string, payload: { motivo?: string }) =>
     authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),

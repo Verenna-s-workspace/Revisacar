@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { tokens } from '../../constants';
 import { btnAccent, btnGhost } from '../../components/ui';
+import { AssinaturaPad } from '../../components/AssinaturaPad';
 import { CANAIS, ROTULO_CANAL, LIMITES } from '../../utils/orcamento_utils';
 import type { CanalAprovacao } from '../../types/orcamento';
 
@@ -44,17 +45,18 @@ interface AprovarProps {
   ocupado: boolean;
   erro: string | null;
   onFechar: () => void;
-  onConfirmar: (canal: CanalAprovacao, observacao: string) => void;
+  onConfirmar: (canal: CanalAprovacao, observacao: string, assinatura: string | null) => void;
 }
 
 /** O mecânico registra a resposta que o cliente deu fora do sistema (ex.: WhatsApp). */
 export function AprovarModal({ versao, total, ocupado, erro, onFechar, onConfirmar }: AprovarProps) {
   const [canal, setCanal] = useState<CanalAprovacao>('whatsapp');
   const [obs, setObs] = useState('');
+  const [assinatura, setAssinatura] = useState<string | null>(null);
   return (
     <Casca titulo="Registrar aprovação do cliente" onFechar={onFechar}>
       <form
-        onSubmit={e => { e.preventDefault(); if (!ocupado) onConfirmar(canal, obs); }}
+        onSubmit={e => { e.preventDefault(); if (!ocupado) onConfirmar(canal, obs, assinatura); }}
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         <p style={{ margin: 0, fontSize: '0.86rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
@@ -70,6 +72,10 @@ export function AprovarModal({ versao, total, ocupado, erro, onFechar, onConfirm
           <label style={rotulo} htmlFor="aprov-obs">OBSERVAÇÃO (OPCIONAL)</label>
           <textarea id="aprov-obs" value={obs} maxLength={500} rows={3} onChange={e => setObs(e.target.value)}
             placeholder="Ex.: respondeu 'pode fazer' às 14h12" style={{ ...campo, resize: 'vertical' }} />
+        </div>
+        <div>
+          <span style={rotulo}>ASSINATURA DO CLIENTE (OPCIONAL)</span>
+          <AssinaturaPad onChange={setAssinatura} disabled={ocupado} />
         </div>
         {erro && <div role="alert" style={{ fontSize: '0.82rem', color: tokens.color.crit }}>{erro}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

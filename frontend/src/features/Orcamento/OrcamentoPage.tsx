@@ -5,6 +5,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { tokens } from '../../constants';
 import { btnAccent, btnGhost, btnSolid, btnDisabled, pfNote, useResponsive } from '../../components/ui';
 import { formatBRL } from '../../utils/dashboard';
+import { api } from '../../utils/api';
+import { mensagemDoErro } from '../../utils/api_erro';
 import { ROTULO_STATUS } from '../../utils/ordem_status';
 import {
   apontamentosDoDiagnostico, custoDosItens, dadosDoPayload, dataBR, itensSemPreco, LIMITES,
@@ -126,11 +128,33 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
     }
   };
 
-  const aprovar = async (canal: Parameters<typeof orc.aprovar>[0], obs: string) => {
-    const statusOS = await orc.aprovar(canal, obs);
+  const aprovar = async (canal: Parameters<typeof orc.aprovar>[0], obs: string, assinatura: string | null) => {
+    const statusOS = await orc.aprovar(canal, obs, assinatura);
     if (statusOS) {
       setModal(null);
       sincronizarOS(statusOS);
+    }
+  };
+
+  const [baixando, setBaixando] = useState(false);
+  const [erroPdf, setErroPdf] = useState<string | null>(null);
+  const baixarPdf = async (id: string, versao: number) => {
+    setBaixando(true);
+    setErroPdf(null);
+    try {
+      const blob = await api.baixarPdfOrcamento(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orcamento-${(os.osHeader.os_num || 'OS').replace(/[^\w-]+/g, '_')}-v${versao}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (e) {
+      setErroPdf(mensagemDoErro(e, 'Não foi possível gerar o PDF.'));
+    } finally {
+      setBaixando(false);
     }
   };
 
@@ -314,6 +338,16 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
     }
   }
 
+  if (visto.itens.length > 0 && !(emEdicao && orc.sujo)) {
+    acoes.push(
+      <button key="pdf" type="button" onClick={() => { void baixarPdf(visto.id, visto.versao); }} disabled={baixando}
+        style={baixando ? btnDisabled : btnGhost}
+        title={visto.status === 'rascunho' ? 'Pré-visualização com marca d\'água' : 'PDF para o cliente (só preço cobrado)'}>
+        {baixando ? 'Gerando PDF…' : visto.status === 'rascunho' ? 'Pré-visualizar PDF' : 'Baixar PDF'}
+      </button>,
+    );
+  }
+
   // ── Coluna principal ─────────────────────────────────────────────────────
   const principal = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
@@ -325,6 +359,8 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
 
       {faixa}
       {orc.erroAcao && modal === null && <Aviso tom="crit">{orc.erroAcao}</Aviso>}
+      {orc.avisoPdf && <Aviso tom="warn">{orc.avisoPdf}</Aviso>}
+      {erroPdf && <Aviso tom="crit">{erroPdf}</Aviso>}
 
       <div style={{ ...cartao, padding: 14 }}>
         {emEdicao ? (

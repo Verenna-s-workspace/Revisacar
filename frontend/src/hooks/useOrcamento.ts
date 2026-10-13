@@ -34,6 +34,8 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  /** Aviso (não é erro): envio/aprovação deu certo mas o PDF/assinatura não foi guardado agora. */
+  const [avisoPdf, setAvisoPdf] = useState<string | null>(null);
   const [acao, setAcao] = useState<Acao | null>(null);
 
   // Rascunho em edição.
@@ -169,6 +171,7 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
   const executar = useCallback(async <T,>(qual: Acao, padrao: string, fn: () => Promise<T>): Promise<T | null> => {
     setAcao(qual);
     setErroAcao(null);
+    setAvisoPdf(null);
     try {
       return await fn();
     } catch (e) {
@@ -229,6 +232,14 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
   }, [ordemId, podeEditar, executar, podeVerCusto, aplicarVersao, sincronizar, carregar]);
 
   /** Salva (se preciso) e envia ao cliente. Devolve o status da OS depois do envio, ou null. */
+  const avisarPdf = useCallback((v: Orcamento) => {
+    if (v.assinaturaSalva === false) {
+      setAvisoPdf('A aprovação foi registrada, mas a assinatura não pôde ser guardada agora. O PDF sai sem ela.');
+    } else if (v.pdfGerado === false) {
+      setAvisoPdf('Registrado, mas o PDF não pôde ser guardado agora. Ele será gerado na hora ao baixar.');
+    }
+  }, []);
+
   const enviar = useCallback(async (): Promise<string | null> => {
     if (!rascunho || !podeEditar) return null;
     if (sujo || mostrarErros) {
@@ -248,20 +259,22 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
     }
     aplicarVersao(enviado);
     sincronizar(enviado);
+    avisarPdf(enviado);
     return enviado.osStatus ?? 'pendente_aprovacao';
-  }, [rascunho, podeEditar, sujo, mostrarErros, formularioValido, salvar, executar, aplicarVersao, sincronizar, carregar]);
+  }, [rascunho, podeEditar, sujo, mostrarErros, formularioValido, salvar, executar, aplicarVersao, sincronizar, carregar, avisarPdf]);
 
-  const aprovar = useCallback(async (canal: CanalAprovacao, observacao: string): Promise<string | null> => {
+  const aprovar = useCallback(async (canal: CanalAprovacao, observacao: string, assinatura: string | null = null): Promise<string | null> => {
     if (!atual || atual.status !== 'enviado' || !podeEditar) return null;
     const v = await executar('aprovando', 'Não foi possível registrar a aprovação.', async () =>
-      (await api.aprovarOrcamento(atual.id, { canal, observacao: observacao.trim() }, fusoDoNavegador())) as Orcamento);
+      (await api.aprovarOrcamento(atual.id, { canal, observacao: observacao.trim(), assinatura }, fusoDoNavegador())) as Orcamento);
     if (!v) {
       carregar();
       return null;
     }
     aplicarVersao(v);
+    avisarPdf(v);
     return v.osStatus ?? 'aprovada';
-  }, [atual, podeEditar, executar, aplicarVersao, carregar]);
+  }, [atual, podeEditar, executar, aplicarVersao, carregar, avisarPdf]);
 
   const recusar = useCallback(async (motivo: string): Promise<string | null> => {
     if (!atual || (atual.status !== 'enviado' && atual.status !== 'aprovado') || !podeEditar) return null;
@@ -283,7 +296,7 @@ export function useOrcamento({ ordemId, podeVerCusto, podeEditar }: Opcoes) {
 
   return {
     versoes, atual, rascunho,
-    carregando, erro, erroAcao, setErroAcao, acao,
+    carregando, erro, erroAcao, setErroAcao, avisoPdf, acao,
     recarregar: carregar,
 
     // rascunho em edição

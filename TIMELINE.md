@@ -13,6 +13,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 0 (status da OS) | 🟡 Backend + SQL + testes + front prontos (tsc + build ok, 296 testes). Falta: rodar `ordens_status.sql` no Supabase e validar no navegador |
 | Orçamento — Fase 1 (backend) | 🟡 SQL + API + testes prontos (361 testes). Sem frontend ainda (Fase 2). Falta: rodar `orcamentos.sql` (depois de `ordens_oficina.sql` e `ordens_status.sql`) e validar contra o Supabase real |
 | Orçamento — Fase 2 (tela da etapa 3) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: desktop dono/mecânico/atendente, mobile 390px e fluxo entrada→diagnóstico→orçamento). Falta: rodar os SQLs no Supabase e validar contra o backend real |
+| Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -186,4 +187,22 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 - O orçamento ainda não gera lançamento no Financeiro nem reserva estoque (Fase 4); não há PDF (Fase 3).
 - Frontend sem runner de testes: utils puros checados por bundle esbuild + node; UI por smoke Playwright com API simulada (fora do repo).
 - Rodar `ordens_status.sql` e `orcamentos.sql` no Supabase e validar fim a fim.
-- Próxima: Fase 3 (PDF no backend, só preço cobrado, assinatura desenhada, salvo no Storage) — quando for pedido.
+- Próxima: Fase 3 (PDF) — feita, ver abaixo.
+
+## Orçamento — Fase 3: PDF (2026-10-13) — branch feat/orcamento-pdf (parte de feat/orcamento-front)
+
+**Gerador** (`orders/orcamento_pdf.py`, reportlab, função pura): cabeçalho (oficina = `admins.nome`, OS, versão, data), status, validade, cliente/veículo (do payload da OS), tabela de itens (descrição, tipo/marca, motivo, qtd, valor un., subtotal), total, observações e bloco de aprovação com a assinatura. **Só o preço cobrado**: quem monta o dict (`_dados_para_pdf`) usa lista branca de campos — custo, margem e vínculos de estoque/catálogo nunca chegam ao gerador (teste confere que o custo não aparece no texto do PDF). Rascunho sai com marca d'água "RASCUNHO".
+
+**Quando é gerado/guardado:** ao ENVIAR (documento enviado ao cliente) e REFEITO ao APROVAR (com aprovação e assinatura). Arquivo em `<ordem_id>/orcamento-vN.pdf` (e `-assinatura.png`) no mesmo bucket das fotos — apagar a OS já apaga junto (teste). Colunas novas em `orcamentos`: `pdf_path`, `pdf_gerado_em`, `assinatura_path` (idempotente em `orcamentos.sql`). Falha no Storage/PDF NÃO desfaz envio nem aprovação: a resposta traz `pdfGerado`/`assinaturaSalva` = false (a tela mostra aviso) e o `GET /pdf` gera na hora e tenta guardar de novo. Rascunho: `GET /pdf` gera pré-visualização sem guardar.
+
+**Rota:** `GET /orcamentos/<id>/pdf` (`ordens.ver`; 404 outra oficina/id ruim; 422 sem itens). `application/pdf`, `Cache-Control: private, no-store`. API de orçamento ganha `pdfDisponivel` e `assinado`.
+
+**Assinatura:** `POST /orcamentos/<id>/aprovar` aceita `assinatura` (data URL PNG do canvas, opcional). Validação: só PNG, ≤400 KB, 20–1600 × 10–800 px; é reencodada (fundo branco, sem metadados); traço em branco = sem assinatura; inválida → 422 e a aprovação NÃO acontece. É a assinatura do CLIENTE, desenhada na tela (sem validade jurídica — fora de escopo).
+
+**Frontend:** `components/AssinaturaPad.tsx` (pointer events, funciona em touch); modal de aprovação ganha o campo de assinatura; botão "Baixar PDF" / "Pré-visualizar PDF" (rascunho salvo) na tela do orçamento; avisos quando o PDF/assinatura não foi guardado.
+
+**Pendências / decisões**
+- Instalar dependências novas (`reportlab`, `pillow`; `pypdf` só nos testes) e rodar `orcamentos.sql` de novo.
+- O PDF de versão `recusado`/`substituido` fica como foi enviado (reflete o estado do envio/aprovação).
+- Não há envio automático do PDF ao cliente (WhatsApp/e-mail) nem link público — Fase 6 (app do cliente) consome pela API.
+- Próxima: Fase 4 (aprovação gera lançamento pendente no Financeiro e reserva estoque) — quando for pedido.

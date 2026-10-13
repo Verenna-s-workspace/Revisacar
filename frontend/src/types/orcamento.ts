@@ -50,6 +50,13 @@ export interface Orcamento {
   margemPercentual?: number;
   /** Status da OS depois da operação (resposta de criar/enviar/aprovar/recusar). */
   osStatus?: string;
+  /** Já existe PDF guardado dessa versão. */
+  pdfDisponivel?: boolean;
+  /** Foi aprovado com assinatura desenhada. */
+  assinado?: boolean;
+  /** Só nas respostas de enviar/aprovar: false = o PDF/assinatura não foi guardado agora (o download refaz). */
+  pdfGerado?: boolean;
+  assinaturaSalva?: boolean;
 }
 
 /** Item em edição na tela: números como texto (o usuário digita "1,5"), `chave` só pro React. */
