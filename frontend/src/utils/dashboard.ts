@@ -2,8 +2,8 @@
 export const formatBRL = (v: number) =>
   'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** Heatmap days header labels */
-export const HEAT_DAYS = ['Seg', 'Ter', 'Qua', 'Qux', 'Sáb', 'Dom'];
+/** Rótulos do mapa de calor — 7 colunas, segunda a domingo (mesma ordem de `semana` da API). */
+export const HEAT_DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
 /** Service name → price mapping */
 export const SVC_PRECO: Record<string, number> = {

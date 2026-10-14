@@ -170,8 +170,39 @@ class _Rpc:
         return _Resposta(linhas[0]["resultado"])
 
 
+class FakeStorage:
+    """Storage em memória: {caminho: bytes}. Imita upload/download/list/remove do supabase-py."""
+    def __init__(self):
+        self.arquivos = {}
+        self.falhar_upload = False
+        self.opcoes = {}
+
+    def from_(self, _bucket):
+        return self
+
+    def upload(self, caminho, conteudo, opcoes=None):
+        if self.falhar_upload:
+            raise RuntimeError("storage fora do ar")
+        self.arquivos[caminho] = bytes(conteudo)
+        self.opcoes[caminho] = opcoes or {}
+
+    def download(self, caminho):
+        if caminho not in self.arquivos:
+            raise KeyError(caminho)
+        return self.arquivos[caminho]
+
+    def list(self, path=""):
+        pref = f"{path}/" if path else ""
+        return [{"name": c[len(pref):]} for c in self.arquivos if c.startswith(pref)]
+
+    def remove(self, caminhos):
+        for c in caminhos:
+            self.arquivos.pop(c, None)
+
+
 class FakeSupabase:
     def __init__(self, dsn, max_linhas=1000):
+        self.storage = FakeStorage()
         self.conn = psycopg2.connect(dsn)
         self.conn.autocommit = True
         with self.conn.cursor() as cur:

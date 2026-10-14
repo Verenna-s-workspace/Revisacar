@@ -1,20 +1,21 @@
 import { useRef, useEffect } from 'react';
-import { useOrdemServico } from '../hooks/useOrdemServico';
+import type { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
 import { StepTabs } from '../components/StepTabs';
 import { Lightbox } from '../components/ui';
 import { DiagnosticoConfig } from '../features/Checklist/configs/inspection';
 import { tokens } from '../constants';
-import type { OrdemServico } from '../types';
 
 interface Check2Props {
-  initialOrdem?: (OrdemServico & { id: string }) | null;
+  /** Estado da OS — o mesmo da etapa 1 e do orçamento (vive no App). */
+  os: ReturnType<typeof useOrdemServico>;
   onBackToStart?: () => void;
+  /** Vai para a etapa 3 (orçamento). */
+  onNextChecklist?: () => void;
 }
 
-export default function Check2({ initialOrdem, onBackToStart }: Check2Props) {
-  const os = useOrdemServico();
+export default function Check2({ os, onBackToStart, onNextChecklist }: Check2Props) {
 
   // Auto-scroll active tab into view when step changes
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -61,7 +62,7 @@ export default function Check2({ initialOrdem, onBackToStart }: Check2Props) {
       </div>
 
       {CurrentComponent && (
-        <CurrentComponent os={os} onExportPDF={handleExportPDF} />
+        <CurrentComponent os={os} onExportPDF={handleExportPDF} onNextChecklist={onNextChecklist} />
       )}
 
       <Lightbox src={os.lightbox} onClose={() => os.setLightbox(null)} />

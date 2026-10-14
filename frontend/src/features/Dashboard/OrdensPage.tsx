@@ -236,11 +236,21 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 
 
 
-type FilterStatus = 'todas' | 'rascunho' | 'finalizada' | 'aguardando';
+type FilterStatus = 'todas' | 'andamento' | 'aguardando' | 'finalizada' | 'recusada';
 
 const FILTER_LABELS: Record<FilterStatus, string> = {
-  todas: 'Todas', rascunho: 'Em andamento', finalizada: 'Finalizadas', aguardando: 'Aguardando',
+  todas: 'Todas', andamento: 'Em andamento', aguardando: 'Aguardando', finalizada: 'Concluídas', recusada: 'Recusadas',
 };
+
+// Cada filtro agrupa os status que fazem sentido juntos pra quem olha a lista.
+const FILTER_STATUS: Record<Exclude<FilterStatus, 'todas'>, readonly string[]> = {
+  andamento: ['rascunho', 'em_orcamento', 'aprovada', 'em_execucao'],
+  aguardando: ['aguardando', 'pendente_aprovacao'],
+  finalizada: ['finalizada'],
+  recusada: ['recusada'],
+};
+const FILTROS: FilterStatus[] = ['todas', 'andamento', 'aguardando', 'finalizada', 'recusada'];
+const noFiltro = (status: string, f: FilterStatus) => f === 'todas' || FILTER_STATUS[f].includes(status);
 
 interface OrdensPageProps {
   ordens: OrdemRow[];
@@ -258,19 +268,16 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
   const [del, setDel] = useState<string | null>(null);
 
   const filtered = ordens.filter(o => {
-    if (filter !== 'todas' && o.status !== filter) return false;
+    if (!noFiltro(o.status, filter)) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return o.os_num.includes(q) || o.cliente.toLowerCase().includes(q) ||
       o.placa.toLowerCase().includes(q) || (o.modelo ?? '').toLowerCase().includes(q);
   });
 
-  const counts = {
-    todas: ordens.length,
-    rascunho: ordens.filter(o => o.status === 'rascunho').length,
-    finalizada: ordens.filter(o => o.status === 'finalizada').length,
-    aguardando: ordens.filter(o => o.status === 'aguardando').length,
-  };
+  const counts = Object.fromEntries(
+    FILTROS.map(f => [f, ordens.filter(o => noFiltro(o.status, f)).length])
+  ) as Record<FilterStatus, number>;
 
   const handleDel = async (id: string) => {
     if (!window.confirm('Excluir esta OS permanentemente?')) return;
@@ -304,7 +311,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
       {/* Filters */}
       <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: 10, padding: isMobile ? '12px 14px' : '14px 28px', background: 'white', borderBottom: `1px solid ${tokens.color.border}`, flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {(['todas', 'rascunho', 'finalizada', 'aguardando'] as FilterStatus[]).map(f => (
+          {FILTROS.map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}

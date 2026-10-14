@@ -8,6 +8,14 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Estoque | 🟡 Backend + SQL + testes prontos; hooks/telas do frontend ajustados (tsc + build ok). Falta: rodar SQL no Supabase e validar fim-a-fim |
 | Clientes | ⏸️ Pausado a pedido (backend feito na cópia anterior, fora deste repo) |
 | Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
+| Visão Geral | 🟡 Backend + SQL + testes + frontend prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `visao_geral.sql`, relogar, validar contra o Supabase real |
+| Financeiro | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `financeiro.sql`, validar contra o Supabase real |
+| Orçamento — Fase 0 (status da OS) | 🟡 Backend + SQL + testes + front prontos (tsc + build ok, 296 testes). Falta: rodar `ordens_status.sql` no Supabase e validar no navegador |
+| Orçamento — Fase 1 (backend) | 🟡 SQL + API + testes prontos (361 testes). Sem frontend ainda (Fase 2). Falta: rodar `orcamentos.sql` (depois de `ordens_oficina.sql` e `ordens_status.sql`) e validar contra o Supabase real |
+| Orçamento — Fase 2 (tela da etapa 3) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: desktop dono/mecânico/atendente, mobile 390px e fluxo entrada→diagnóstico→orçamento). Falta: rodar os SQLs no Supabase e validar contra o backend real |
+| Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
+| Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
+| Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -75,3 +83,169 @@ Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento �
 3. `useDashboard` (Visão Geral) ainda lê `o.payload?.servicos_selecionados` direto: mesmo bug do payload em string (top serviços vazio). Não mexido (fora de Relatórios).
 4. `GET /fotos/<path>` não exige login (já era assim).
 5. App do cliente / `customers`: continua sem `oficina_doc` (ver `customer_app_oficina_doc.sql`, não aplicado).
+
+## Visão Geral (2026-10-09) — branch feat/visao-geral (parte de feat/relatorios-backend)
+**O que estava errado**
+1. Mesmo bug do `payload` em string: Top serviços vazio fora do demo.
+2. Faturamento = nº de OS finalizadas × R$ 480 (contradizia os Relatórios); mês parcial comparado com o mês anterior INTEIRO.
+3. Meta mensal fixa em R$ 20.000, sem onde editar.
+4. Resumo Financeiro: custos e lucro sempre 0; frase "seu lucro aumentou X%" inventada (usava % de receita, `Math.abs`, sempre "aumentou").
+5. Alertas fictícios ("aguardando aprovação" contava rascunhos) — a sidebar já tinha os reais (`useAlertasResumo`).
+6. Mapa de calor: 6 colunas (sem domingo), rótulos "Seg Ter Qua Qux Sáb Dom" (sem Sex, "Qux") → tudo deslocado.
+7. Selects do gráfico (7/30 dias/mês) e do Top serviços não faziam nada.
+8. Mecânico/atendente viam faturamento. Saudação com nome fixo ("Lucas Andrelo"). Eixo Y quebrado (`${v/1000}.000` → "0.48.000"). Falha da API virava zeros silenciosos.
+
+**Arquivos:** `backend/sql/visao_geral.sql`, `orders/visao_geral_views.py`, `MetaMensalSerializer`, rotas em `urls.py`, `tests/test_visao_geral.py` (45), refatoração mínima em `relatorios_views.py` (`_buscar_lancamentos`); frontend: `types/visao_geral.ts`, `utils/visao_geral.ts`, `hooks/useVisaoGeral.ts`, `hooks/useOrdens.ts` (lista de OS; `useDashboard.ts` removido), `pages/Dashboard.tsx`, `Primitives.tsx` (MetaCard editável, heatmap 7 colunas), `FaturamentoChart.tsx`, `utils/dashboard.ts` (HEAT_DAYS), `ClientesPage`/`ClientDetailsModal` (imports), `utils/api.ts`.
+**Rotas:** `GET /visao-geral[?tz]` (qualquer usuário logado), `PUT /visao-geral/meta` (`configuracoes.editar`, `{"valor": n|null}`).
+**Decisões**
+- Blocos de dinheiro só vêm pra quem pode: `faturamento`/`meta`/`serie[].faturamento`/`servicos[].valorEstimado` (relatorios.ver ou financeiro.ver), `financeiro` (financeiro.ver), `financeiro.lucro*` (financeiro.ver_margem). A UI desenha pela presença do bloco; sem dinheiro, o gráfico vira "Ordens por dia" e o Top serviços mostra quantidade.
+- Mês = dia 1 até hoje × MESMO trecho do mês anterior. Faturamento igual ao dos Relatórios (entradas do Financeiro, senão estimativa por OS).
+- Resumo Financeiro = lançamentos do Financeiro no mês (receitas/custos); sem nenhum lançamento mostra "lance no Financeiro" em vez de zeros. Variação do lucro só quando há lucro anterior ≠ 0.
+- Top serviços: OS **finalizadas** dos últimos 30 dias (antes: todas as OS, desde sempre); valor é ESTIMADO (tabela de preços × quantidade; fora da tabela = R$ 200) — cabeçalho "Fat. est.". Ordenação Faturamento/Quantidade funciona. Dia da semana: 0 = segunda.
+- Série de 31 dias (o "Este mês" no dia 31 precisa do dia 1); o front recorta 7/30/mês.
+- Meta por oficina em `admins.meta_mensal` (null = não definida). Sem a coluna a tela segue, só sem meta editável (PUT responde 503 com instrução).
+- Alertas = os da sidebar (`useAlertasResumo`). Sem dados demo na Visão Geral: API fora do ar = erro com "tentar novamente".
+**Validado:** 178 testes (pytest) contra Postgres real; `tsc` e `vite build` limpos; smoke no Chromium com API simulada (dono e mecânico; definir meta envia o valor certo). **Não validado:** contra o Supabase real.
+**Pendências**
+1. Rodar `backend/sql/visao_geral.sql` (depois de `ordens_oficina.sql`); relogar.
+2. Alertas: `useAlertasResumo` é chamado na sidebar e na página (2 buscas de ordens/estoque); dá pra compartilhar depois.
+3. `GET /ordens` ainda devolve TODAS as OS (com payload) pro "Ordens recentes", Ordens e Clientes — paginar é trabalho futuro.
+4. "Gastos estimados" no perfil do cliente ainda usa OS finalizadas × R$ 480 (fora da Visão Geral).
+
+## Financeiro (2026-10-11) — branch feat/financeiro (parte de feat/visao-geral)
+
+**Problemas achados:** (1) a tabela `financeiro_transacoes` não tinha script no repositório (sem índices, travas nem FK); (2) listagem e resumo sem paginação — o Supabase corta em 1000 linhas e os totais ficavam errados; `/resumo` baixava o histórico inteiro da oficina; (3) `de`/`ate` sem validação; "hoje" (período padrão e `vencido`) vinha do relógio do servidor; (4) erros do banco viravam 500 sem explicação; (5) PATCH buscava por id e só depois checava a oficina, devolvia só "Atualizado" e dava 422 em linha antiga com `descricao` nula; voltar para pendente mantinha `data_pagamento`; (6) front: data padrão do lançamento e limites do período usavam `toISOString()` (UTC — depois das 21h no Brasil viravam o dia seguinte), erros genéricos, sem edição de lançamento, resposta antiga podia sobrescrever a nova.
+
+**Arquivos:** `backend/sql/financeiro.sql` (idempotente: cria a tabela ou só completa colunas; CHECKs de tipo/status/valor e FK da oficina como NOT VALID; índices por oficina+competência e pendentes), `orders/financeiro_views.py` (reescrito), limites de tamanho em `FinanceiroTransacaoSerializer`, `tests/test_financeiro.py` (76 testes; conftest roda `financeiro.sql` 2×); frontend: `hooks/useFinanceiro.ts`, `FinanceiroPage.tsx`, `Financeiro/TransacaoModal.tsx` (criar/editar), `utils/financeiro_utils.ts` (`isoLocal`/`hojeLocal`), `utils/api.ts` (`tz`).
+
+**Regras:**
+- Respostas continuam em snake_case (formato que o front já usava). PATCH/POST devolvem a linha completa.
+- `de`+`ate` juntos ou nenhum (aí é o mês atual no fuso `?tz`, padrão America/Sao_Paulo); inválido/invertido/maior que 800 dias → 422. `vencido` = pendente com vencimento antes de "hoje" no fuso do usuário.
+- Pendente nunca guarda `data_pagamento`; marcar pago grava agora; voltar a pendente apaga. Não se cria lançamento já cancelado; cancelado não se edita (409); cancelar é `DELETE` (soft, idempotente). `tipo` não muda.
+- `/resumo`: totais do período por `data_competencia` (pendentes contam como faturamento, igual Relatórios/Visão Geral); `a_receber/a_pagar/vencido_*` são a dívida em aberto agora, sem corte de período; soma em Decimal; lucro/margem só com `financeiro.ver_margem`.
+- Tabela ausente/coluna faltando → 503 mandando rodar `financeiro.sql`; chave sem service_role → 500 apontando o `supabase.env`.
+
+**Pendências / decisões:**
+- Rodar `backend/sql/financeiro.sql` no Supabase (as travas entram NOT VALID; para checar o histórico: `alter table ... validate constraint <nome>`).
+- OS finalizada ainda NÃO gera entrada no Financeiro (`ordem_servico_id` fica vazio). Gerar automático mudaria o faturamento de Relatórios/Visão Geral (regra "tem ≥1 entrada → só entradas") — decisão de produto.
+- `saldo` = recebido − saídas pagas por competência (não por data de pagamento).
+
+## Orçamento — Fase 0: status da OS (2026-10-12) — branch feat/os-status (parte de feat/financeiro)
+
+**Problema:** salvar o checklist completo marcava a OS como `finalizada` (que conta como faturamento antes do serviço existir) e todo salvamento sobrescrevia o status. "Checklist preenchido" e "serviço concluído" eram a mesma coisa.
+
+**Vocabulário** (`backend/orders/ordem_status.py`, espelho em `frontend/src/utils/ordem_status.ts`): `rascunho`, `em_orcamento`, `pendente_aprovacao`, `aprovada`, `em_execucao`, `aguardando`, `finalizada` (= serviço CONCLUÍDO; nome mantido para não quebrar Relatórios/Visão Geral), `recusada`.
+
+**Transições:** rascunho→{em_orcamento, recusada}; em_orcamento→{rascunho, pendente_aprovacao, aprovada, recusada}; pendente_aprovacao→{em_orcamento, aprovada, recusada}; aprovada→{pendente_aprovacao, em_execucao, recusada}; em_execucao→{aguardando, pendente_aprovacao, finalizada}; aguardando→{em_execucao, rascunho, finalizada}; finalizada→∅; recusada→{em_orcamento}.
+
+**Regras**
+- POST/PUT de OS: o front só pode mandar `rascunho`/`em_orcamento` (checklist incompleto/completo) e só enquanto a OS está nessas fases; depois disso o salvamento mantém o status atual. Qualquer outro valor vira `rascunho` (OS nova).
+- `PATCH /ordens/<id>/status` (`ordens.editar`): 400 sem status, 422 desconhecido, 404, 409 transição proibida ou OS alterada por outra pessoa (update otimista `.eq("status", atual)`); mesmo status = 200.
+- Front: Kanban (fila / em execução / bloqueado / concluído hoje; recusada fora), filtros de Ordens (Em andamento / Aguardando / Concluídas / Recusadas), selos de todos os status; `desbloquear` usa o PATCH (o PUT só com `{status}` sempre dava 422).
+
+**Arquivos:** `backend/orders/ordem_status.py`, `views.py`, `serializers.py`, `backend/sql/ordens_status.sql` (default, NULL→rascunho, CHECK `ordens_status_check` NOT VALID, aviso de linhas fora do vocabulário), `tests/test_ordem_status.py` (~40), ajustes em `tests/test_relatorios.py`; front: `utils/ordem_status.ts`, `useOrdemServico`, `useAtendimento`, `api.definirStatusOrdem`, `Primitives`, `atendimento_utils`, `OSKanbanCard`, `OrdensPage`, `dashboard.css`.
+
+**Pendências**
+- Rodar `backend/sql/ordens_status.sql` no Supabase. OS antigas já `finalizada` NÃO são alteradas e seguem contando como concluídas.
+- Próxima: Fase 1 (modelos/backend do orçamento) — só quando for pedido.
+
+## Orçamento — Fase 1: modelo e API (2026-10-12) — branch feat/orcamento (parte de feat/os-status)
+
+**Modelo** (`backend/sql/orcamentos.sql`, idempotente): `orcamentos` = uma linha por VERSÃO da OS (`versao` 1, 2…; status `rascunho → enviado → aprovado | recusado | substituido`; validade em dias, total, dados de aprovação/recusa) e `orcamento_itens` (tipo `peca`/`servico`, descrição, marca, quantidade, `preco_unitario` = o que o cliente paga, `custo_unitario` interno, motivo, `estoque_item_id`/`servico_id` SEM FK — o item guarda um retrato e sobrevive se o cadastro for apagado). FK composta `(oficina_doc, ordem_id)` → `ordens` (exige o `unique (oficina_doc, id)` que o script acrescenta em `ordens`); apagar a OS leva os orçamentos. Índices únicos parciais: no máximo 1 rascunho e 1 orçamento ativo (enviado/aprovado) por OS.
+
+**Funções SQL (atômicas, travam OS e orçamento nesta ordem):** `orcamento_criar_versao`, `orcamento_salvar` (troca a lista de itens inteira + recalcula total), `orcamento_enviar`, `orcamento_aprovar`, `orcamento_recusar`. Os status de OS que aceitam cada operação vêm do backend (`ordem_status.origens_para`, `ACEITAM_NOVO_ORCAMENTO`) — a tabela de transições continua só em Python.
+
+**Rotas** (`orders/orcamento_views.py`, JSON camelCase): `GET/POST /ordens/<id>/orcamentos`, `GET/PATCH /orcamentos/<id>`, `POST /orcamentos/<id>/enviar|aprovar|recusar`. Leitura: `ordens.ver`; escrita: `ordens.editar` (atendente só lê). 422 validação / `sem_itens`; 409 estado (`status_invalido`, `os_status`, `rascunho_existente`, `vencido`); 404 outra oficina ou id ruim; 503 sem o script.
+
+**Regras**
+- Criar versão copia itens (e custo) e validade da mais recente. Não mexe na OS, exceto OS `recusada` → `em_orcamento` ("refazer"). Aceitam: em_orcamento, pendente_aprovacao, aprovada, em_execucao, recusada. Rascunho (checklist incompleto), aguardando e finalizada → 409.
+- Enviar: exige ≥1 item; versões ativas anteriores viram `substituido`; OS → `pendente_aprovacao` (também a partir de aprovada/em_execucao = revisão). Validade = dia do envio no fuso do usuário (`?tz`, padrão America/Sao_Paulo) + `validadeDias` (padrão 7, 1–90).
+- Aprovar (mecânico registra a resposta do cliente: `canal` whatsapp|presencial|telefone|app|outro, `observacao`): só `enviado`; **orçamento vencido NÃO aprova** (refazer = nova versão); OS → `aprovada`. Recusar (`motivo` opcional): de `enviado` ou `aprovado`, exceto se a OS já está em execução; OS → `recusada`.
+- Editar orçamento aprovado = nova versão; a aprovação antiga segue valendo até a nova ser enviada.
+- Custo/margem: `custoUnitario`, `custoTotal`, `margem`, `margemPercentual` só vão pra quem tem `financeiro.ver_margem` (hoje só o dono). Quem edita sem essa permissão não apaga o custo gravado: item com `id` conhecido e sem `custoUnitario` preserva; `null` limpa.
+- Totais: por linha `round(qtd × preço, 2)` (meio pra cima), somados — banco e API calculam igual.
+
+**Pendências / decisões**
+- Rodar `backend/sql/orcamentos.sql` no Supabase (depois de `ordens_oficina.sql`).
+- Fase 4 acrescenta nas funções aprovar/recusar/enviar: lançamento pendente no Financeiro e reserva de estoque (mesma transação). Hoje aprovar NÃO cria entrada no Financeiro nem reserva estoque.
+- A validade padrão é fixa em 7 dias por orçamento (configuração da oficina fica pra depois).
+- Próxima: Fase 2 (tela da etapa 3) — feita, ver abaixo.
+
+## Orçamento — Fase 2: tela da etapa 3 (2026-10-13) — branch feat/orcamento-front (parte de feat/orcamento)
+
+**Correção estrutural descoberta:** as etapas 1 e 2 não compartilhavam estado (cada uma criava seu `useOrdemServico`) e abrir uma OS existente nunca a carregava. Agora há UMA instância no `App` (`os`), passada para Entrada, Diagnóstico e Orçamento. Efeitos: não cria OS duplicada ao ir da etapa 1 para a 2, abrir OS existente carrega os dados, "nova OS" zera tudo (`novaOrdem()`), e o orçamento enxerga o diagnóstico. `saveOrder()` agora devolve `Promise<boolean>`; o botão "Ir para o orçamento" (último passo do diagnóstico) salva e só navega se salvou. O hook também guarda `ordemStatus`.
+
+**Tela** (`features/Orcamento/`: `OrcamentoPage`, `ItensEditor`, `ItensLeitura`, `VersoesLista`, `DecisaoModais`; `hooks/useOrcamento.ts`, `types/orcamento.ts`, `utils/orcamento_utils.ts`, métodos em `utils/api.ts`): cabeçalho com cliente/veículo/status da OS, versão atual (rascunho editável ou leitura), histórico de versões, resumo com total, validade e observações; modais de enviar/aprovar (canal + observação)/recusar (motivo).
+
+**Regras de pré-preenchimento (sugestões, nada é gravado sem o usuário montar):**
+- Peças vêm do diagnóstico (`tabela_pecas` e itens do checklist em atenção/crítico); serviços vêm de sugestões do diagnóstico — **serviços NÃO são preenchidos automaticamente**, só sugeridos.
+- Casamento com Estoque/Catálogo é unidirecional: o nome do item de estoque precisa CONTER o digitado (evita "Vela"/"Óleo" genéricos casarem com peças específicas). Sugestão some quando o diagnóstico já citou o item.
+- Preço padrão da peça = `preco` do Estoque (Estoque não tem custo separado); do serviço = preço do Catálogo. Sugestões via `datalist`; digitar não desvincula, há botão "desvincular".
+- Selo "do diagnóstico" existe só no cliente e some após ir ao servidor (aceito).
+- Custo/margem só aparecem para quem tem `financeiro.ver_margem`; quem edita sem a permissão não envia `custoUnitario` (o backend preserva o gravado).
+- Atendente só lê (sem botão de montar/editar).
+
+**Limitações / pendências**
+- O orçamento ainda não gera lançamento no Financeiro nem reserva estoque (Fase 4); não há PDF (Fase 3).
+- Frontend sem runner de testes: utils puros checados por bundle esbuild + node; UI por smoke Playwright com API simulada (fora do repo).
+- Rodar `ordens_status.sql` e `orcamentos.sql` no Supabase e validar fim a fim.
+- Próxima: Fase 3 (PDF) — feita, ver abaixo.
+
+## Orçamento — Fase 3: PDF (2026-10-13) — branch feat/orcamento-pdf (parte de feat/orcamento-front)
+
+**Gerador** (`orders/orcamento_pdf.py`, reportlab, função pura): cabeçalho (oficina = `admins.nome`, OS, versão, data), status, validade, cliente/veículo (do payload da OS), tabela de itens (descrição, tipo/marca, motivo, qtd, valor un., subtotal), total, observações e bloco de aprovação com a assinatura. **Só o preço cobrado**: quem monta o dict (`_dados_para_pdf`) usa lista branca de campos — custo, margem e vínculos de estoque/catálogo nunca chegam ao gerador (teste confere que o custo não aparece no texto do PDF). Rascunho sai com marca d'água "RASCUNHO".
+
+**Quando é gerado/guardado:** ao ENVIAR (documento enviado ao cliente) e REFEITO ao APROVAR (com aprovação e assinatura). Arquivo em `<ordem_id>/orcamento-vN.pdf` (e `-assinatura.png`) no mesmo bucket das fotos — apagar a OS já apaga junto (teste). Colunas novas em `orcamentos`: `pdf_path`, `pdf_gerado_em`, `assinatura_path` (idempotente em `orcamentos.sql`). Falha no Storage/PDF NÃO desfaz envio nem aprovação: a resposta traz `pdfGerado`/`assinaturaSalva` = false (a tela mostra aviso) e o `GET /pdf` gera na hora e tenta guardar de novo. Rascunho: `GET /pdf` gera pré-visualização sem guardar.
+
+**Rota:** `GET /orcamentos/<id>/pdf` (`ordens.ver`; 404 outra oficina/id ruim; 422 sem itens). `application/pdf`, `Cache-Control: private, no-store`. API de orçamento ganha `pdfDisponivel` e `assinado`.
+
+**Assinatura:** `POST /orcamentos/<id>/aprovar` aceita `assinatura` (data URL PNG do canvas, opcional). Validação: só PNG, ≤400 KB, 20–1600 × 10–800 px; é reencodada (fundo branco, sem metadados); traço em branco = sem assinatura; inválida → 422 e a aprovação NÃO acontece. É a assinatura do CLIENTE, desenhada na tela (sem validade jurídica — fora de escopo).
+
+**Frontend:** `components/AssinaturaPad.tsx` (pointer events, funciona em touch); modal de aprovação ganha o campo de assinatura; botão "Baixar PDF" / "Pré-visualizar PDF" (rascunho salvo) na tela do orçamento; avisos quando o PDF/assinatura não foi guardado.
+
+**Pendências / decisões**
+- Instalar dependências novas (`reportlab`, `pillow`; `pypdf` só nos testes) e rodar `orcamentos.sql` de novo.
+- O PDF de versão `recusado`/`substituido` fica como foi enviado (reflete o estado do envio/aprovação).
+- Não há envio automático do PDF ao cliente (WhatsApp/e-mail) nem link público — Fase 6 (app do cliente) consome pela API.
+- Próxima: Fase 4 — feita, ver abaixo.
+
+## Orçamento — Fase 4: Financeiro + reserva de estoque (2026-10-13) — branch feat/orcamento-financeiro (parte de feat/orcamento-pdf)
+
+Tudo em `backend/sql/orcamentos.sql` (idempotente; agora exige `estoque.sql` e `financeiro.sql` rodados antes) e dentro das MESMAS funções/transações de enviar/aprovar/recusar — não existe estado "aprovou mas o lançamento não foi criado".
+
+**Financeiro** (`financeiro_transacoes` ganha `origem` e `orcamento_id`; índice único parcial: 1 lançamento vivo por OS+categoria de orçamento):
+- **Aprovar** → até 2 lançamentos de ENTRADA `pendente`, ligados à OS (`ordem_servico_id`): categoria `pecas` e `servicos` (cada um com a soma `round(qtd×preço,2)` dos itens do tipo; categoria com total 0 não gera). Competência = dia da aprovação (fuso do usuário), cliente = da OS, descrição "OS-77 · Peças (orçamento v1)". Total do orçamento = soma dos lançamentos (teste).
+- **Revisar** (nova versão de orçamento aprovado) → ao ENVIAR a versão nova, os lançamentos pendentes passam a refletir o novo total (categoria que zerou é cancelada), a OS volta a `pendente_aprovacao`; reaprovar não duplica.
+- **Recusar/cancelar** (também da revisão) → lançamentos pendentes viram `cancelado`. **Lançamento já PAGO nunca é alterado**: vira o aviso `lancamento_pago` (ajuste manual no Financeiro). Apagar a OS faz o mesmo cancelamento.
+- Editar/excluir o lançamento à mão no Financeiro vale até a próxima sincronização (nova versão enviada sobrescreve o valor dos pendentes).
+
+**Estoque** (`estoque_reservas`, única por OS+item; some com a OS ou com o item): só itens ligados ao Estoque (`estoqueItemId`) reservam. Aprovar/enviar revisão REFAZ as reservas da OS a partir do orçamento. **Reservar além do que há não bloqueia** (a peça pode ser comprada): a resposta traz `efeitos.faltas` (reservado × disponível, descontando reservas de outras OS) e a tela avisa. `GET /estoque` traz `reservado` por item (omitido se 0; funciona sem o script). A BAIXA real do estoque é da Fase 5 (conclusão do serviço) — hoje a reserva não altera `quantidade`.
+
+**API:** respostas de enviar/aprovar/recusar trazem `efeitos` (omitido se nada mudou): `financeiro[{categoria, acao: criado|atualizado|cancelado, valor}]`, `reservas`, `liberadas`, `faltas[{itemId, nome, reservado, disponivel}]`, `avisos[{codigo, categoria}]`. `orcamento_enviar` ganhou o parâmetro `p_nome` (o script remove a assinatura antiga da função).
+
+**Frontend:** caixa de resumo na tela do orçamento depois de cada operação (verde; amarela quando há falta de estoque ou lançamento pago); "N reservado" no card do Estoque e no seletor de peças do orçamento.
+
+**Pendências / decisões**
+- Rodar de novo `backend/sql/orcamentos.sql` (e antes `estoque.sql`, `financeiro.sql` se ainda não rodou).
+- Os lançamentos entram como PENDENTES por competência na data da aprovação, então Relatórios/Visão Geral já os contam como faturamento (regra atual: entradas não canceladas). Se for melhor contar só o pago, é ajuste nessas telas — não feito.
+- A tela do Financeiro ainda não marca visualmente "veio de orçamento" (o campo `origem` já vem na API).
+- Próxima: Fase 5 — feita, ver abaixo.
+
+## Orçamento — Fase 5: execução e fechamento (2026-10-14) — branch feat/orcamento-fechamento (parte de feat/orcamento-financeiro)
+
+Novo script `backend/sql/ordens_execucao.sql` (idempotente; exige `ordens_status.sql`, `estoque.sql` e `orcamentos.sql` rodados antes).
+
+**Conclusão atômica** (`ordem_concluir`, via RPC; trava a OS e os itens de estoque): status → `finalizada` e BAIXA do estoque o que a OS reservou (1 movimento de `saida` por item, ligado à OS; reserva liberada). Se reservado > quantidade física, **nada muda** e a API responde 409 `estoque_insuficiente` com `faltas`; com `ignorarFaltas: true` baixa só o que existe (estoque nunca negativo) e informa o que faltou em `baixasFeitas`. Concluir de novo é 409 (não baixa duas vezes). `ordens` ganha `concluida_em`, `concluida_por_nome`, `obs_conclusao`.
+- `POST /ordens/<id>/concluir` `{observacao, ignorarFaltas}` (permissão `ordens.editar`).
+- `PATCH /ordens/<id>/status` com `finalizada` passa pelo MESMO caminho (não há como finalizar sem baixar o estoque).
+- `GET /ordens/<id>/fechamento`: orçamento aprovado, reservas (com `falta`), baixas e, só com `financeiro.ver`, os lançamentos da OS. Custo/margem só com `financeiro.ver_margem`.
+- **Concluir NÃO recebe pagamento**: os lançamentos pendentes continuam pendentes até alguém registrar o recebimento no Financeiro.
+- **Relatórios e Visão Geral usam os valores reais** do orçamento aprovado (serviços e `valorReal`); nome do serviço agrupado é determinístico.
+
+**Frontend:** tela `Fechamento` (etapa 4, opcional): Iniciar execução (aprovada), Pausar/Retomar (em_execucao/aguardando), Concluir serviço com observação e aviso de estoque insuficiente ("Tentar de novo" / "Concluir mesmo assim"); depois de concluída mostra quem/quando, baixas e lançamentos. Botão "Fechamento" na tela do orçamento; OS em execução/aguardando/finalizada abre direto no fechamento. Atendente só consulta.
+
+**Pendências / decisões**
+- Rodar `ordens_execucao.sql` no Supabase (e os anteriores se faltar algum).
+- Não há reabrir OS finalizada nem estorno da baixa (ajuste manual no Estoque).
+- Itens do orçamento sem vínculo com o Estoque não baixam nada (só os ligados via `estoqueItemId`).
+- Fase 6 (app do cliente consome o orçamento pela API) — só quando for pedida.

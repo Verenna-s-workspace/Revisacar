@@ -22,6 +22,16 @@ export function mensagemDoErro(e: unknown, padrao: string): string {
   return padrao;
 }
 
+/** Corpo JSON do erro (o que o backend mandou), ou null se não for JSON. */
+export function corpoDoErro<T = Record<string, unknown>>(e: unknown): T | null {
+  try {
+    const dado = JSON.parse(e instanceof Error ? e.message : '');
+    return dado && typeof dado === 'object' ? (dado as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Chave presente com valor `undefined` = "limpar o campo": JSON.stringify
  *  descartaria a chave e o backend entenderia "não mexer", então vira null. */
 export function limparOpcionais<T extends object>(patch: T, chaves: (keyof T)[]): Record<string, unknown> {

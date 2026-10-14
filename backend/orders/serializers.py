@@ -9,9 +9,9 @@ from django.contrib.auth.hashers import make_password, check_password
 
 class OSHeaderSerializer(serializers.Serializer):
     os_num = serializers.CharField()
-    os_date = serializers.CharField(default="")
-    os_time = serializers.CharField(default="")
-    os_km = serializers.CharField(default="")
+    os_date = serializers.CharField(default="", allow_blank=True)
+    os_time = serializers.CharField(default="", allow_blank=True)
+    os_km = serializers.CharField(default="", allow_blank=True)
 
     def validate_os_num(self, value):
         if not value.strip():
@@ -165,12 +165,12 @@ class FuncionarioPinLoginSerializer(serializers.Serializer):
 class VeiculoSerializer(serializers.Serializer):
     placa = serializers.CharField()
     modelo = serializers.CharField()
-    ano = serializers.CharField(default="")
-    cor = serializers.CharField(default="")
-    combustivel = serializers.CharField(default="")
-    nivel_combustivel = serializers.CharField(default="")
-    chassi = serializers.CharField(default="")
-    obs_entrada = serializers.CharField(default="")
+    ano = serializers.CharField(default="", allow_blank=True)
+    cor = serializers.CharField(default="", allow_blank=True)
+    combustivel = serializers.CharField(default="", allow_blank=True)
+    nivel_combustivel = serializers.CharField(default="", allow_blank=True)
+    chassi = serializers.CharField(default="", allow_blank=True)
+    obs_entrada = serializers.CharField(default="", allow_blank=True)
 
     def validate_placa(self, value):
         v = value.upper().strip()
@@ -186,7 +186,7 @@ class VeiculoSerializer(serializers.Serializer):
 
 class ChecklistItemSerializer(serializers.Serializer):
     status = serializers.CharField(allow_null=True, required=False)
-    obs = serializers.CharField(default="")
+    obs = serializers.CharField(default="", allow_blank=True)
 
 
 class TecnicoSerializer(serializers.Serializer):
@@ -217,7 +217,8 @@ class OrdemServicoSerializer(serializers.Serializer):
         child=serializers.CharField(), default=list
     )
     tecnico = TecnicoSerializer(required=False, allow_null=True)
-    status = serializers.CharField(default="rascunho")
+    # Só uma sugestão (rascunho/em_orcamento): quem decide é ordem_status.status_no_salvamento.
+    status = serializers.CharField(default="rascunho", required=False)
 
     def validate(self, data):
         # Valida sub-serializers aninhados manualmente
@@ -254,7 +255,7 @@ FORMAS_PAGAMENTO = ("pix", "dinheiro", "debito", "credito", "boleto", "transfere
 class FinanceiroTransacaoSerializer(serializers.Serializer):
     tipo = serializers.ChoiceField(choices=["entrada", "saida"])
     categoria = serializers.CharField()
-    descricao = serializers.CharField(required=False, allow_blank=True, default="")
+    descricao = serializers.CharField(required=False, allow_blank=True, default="", max_length=200)
     valor = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     forma_pagamento = serializers.ChoiceField(choices=list(FORMAS_PAGAMENTO), required=False, allow_null=True, default=None)
     # 'vencido' nunca é gravado — é calculado na leitura (status='pendente' + venceu).
@@ -262,7 +263,7 @@ class FinanceiroTransacaoSerializer(serializers.Serializer):
     data_competencia = serializers.DateField()
     data_vencimento = serializers.DateField(required=False, allow_null=True, default=None)
     data_pagamento = serializers.DateTimeField(required=False, allow_null=True, default=None)
-    cliente_nome = serializers.CharField(required=False, allow_blank=True, default="")
+    cliente_nome = serializers.CharField(required=False, allow_blank=True, default="", max_length=120)
     # Preparado pra quando a OS gerar a entrada sozinha — ninguém preenche isso ainda.
     ordem_servico_id = serializers.CharField(required=False, allow_null=True, default=None)
 
@@ -443,3 +444,82 @@ class ServicoSerializer(serializers.Serializer):
         attrs["descricao"] = (attrs.get("descricao") or "").strip()
         attrs["preco"] = round(attrs["preco"], 2)
         return attrs
+
+
+# ── Orçamento ─────────────────────────────────────────────────────────────────
+
+MAX_ITENS_ORCAMENTO = 100
+MAX_VALOR_UNITARIO = 99_999_999
+
+
+class OrcamentoItemSerializer(serializers.Serializer):
+    """Um item (peça ou serviço) do orçamento. `id` só serve pra reaproveitar o
+    custo já gravado quando o cliente não manda `custoUnitario` (quem não tem
+    financeiro.ver_margem nunca recebe o custo, então não tem como devolvê-lo)."""
+    id = serializers.UUIDField(required=False, allow_null=True)
+    tipo = serializers.ChoiceField(choices=("peca", "servico"))
+    descricao = serializers.CharField(max_length=300)
+    marca = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    quantidade = _NumeroFinito(min_value=0.001, max_value=MAX_QUANTIDADE)
+    precoUnitario = _NumeroFinito(min_value=0, max_value=MAX_VALOR_UNITARIO)
+    # Ausente = "não mexer" (preserva o que existe); null = limpar.
+    custoUnitario = _NumeroFinito(min_value=0, max_value=MAX_VALOR_UNITARIO, required=False, allow_null=True)
+    motivo = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    estoqueItemId = serializers.UUIDField(required=False, allow_null=True)
+    servicoId = serializers.UUIDField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        attrs["descricao"] = attrs["descricao"].strip()
+        if not attrs["descricao"]:
+            raise serializers.ValidationError({"descricao": ["Informe a descrição do item."]})
+        if attrs.get("estoqueItemId") and attrs["tipo"] != "peca":
+            raise serializers.ValidationError({"estoqueItemId": ["Só peças se ligam ao Estoque."]})
+        if attrs.get("servicoId") and attrs["tipo"] != "servico":
+            raise serializers.ValidationError({"servicoId": ["Só serviços se ligam ao Catálogo."]})
+        return attrs
+
+
+class OrcamentoSerializer(serializers.Serializer):
+    """Entrada de salvamento do rascunho (PUT/PATCH). A lista de itens, quando
+    vem, SUBSTITUI a anterior inteira."""
+    validadeDias = serializers.IntegerField(min_value=1, max_value=90, required=False)
+    observacoes = serializers.CharField(max_length=2000, required=False, allow_blank=True, allow_null=True)
+    itens = OrcamentoItemSerializer(many=True, required=False, max_length=MAX_ITENS_ORCAMENTO)
+
+
+CANAIS_APROVACAO = ("whatsapp", "presencial", "telefone", "app", "outro")
+
+
+class OrcamentoAprovacaoSerializer(serializers.Serializer):
+    """O mecânico registra a resposta que o cliente deu fora do sistema."""
+    canal = serializers.ChoiceField(choices=CANAIS_APROVACAO, required=False, default="whatsapp")
+    observacao = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    # Assinatura desenhada do cliente (canvas.toDataURL('image/png')). Opcional.
+    # Vira bytes de um PNG limpo, ou None se o traço veio em branco.
+    assinatura = serializers.CharField(max_length=600_000, required=False, allow_blank=True, allow_null=True)
+
+    def validate_assinatura(self, value):
+        if not value:
+            return None
+        from .orcamento_pdf import decodificar_assinatura
+        try:
+            return decodificar_assinatura(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+
+class ConclusaoOrdemSerializer(serializers.Serializer):
+    """Conclusão do serviço (Fase 5). `ignorarFaltas`: baixa só o que existe em estoque."""
+    observacao = serializers.CharField(max_length=1000, required=False, allow_blank=True, allow_null=True)
+    ignorarFaltas = serializers.BooleanField(required=False, default=False)
+
+
+class OrcamentoRecusaSerializer(serializers.Serializer):
+    motivo = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+
+
+# ── Visão Geral ───────────────────────────────────────────────────────────────
+
+class MetaMensalSerializer(serializers.Serializer):
+    """Meta de faturamento mensal da oficina. `null` = remover a meta."""
+    valor = _NumeroFinito(min_value=0, max_value=99_999_999, allow_null=True)

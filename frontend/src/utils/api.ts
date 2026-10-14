@@ -63,6 +63,25 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   return handleResponse(response);
 };
 
+/** Baixa um arquivo (PDF) autenticado como Blob; renova o token uma vez se preciso. */
+const authFetchBlob = async (url: string): Promise<Blob> => {
+  const buscar = () => fetch(url, { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  let res = await buscar();
+  if (res.status === 401 && refreshToken) {
+    const nova = await api.refreshToken(refreshToken);
+    if (nova.accessToken) {
+      accessToken = nova.accessToken;
+      refreshToken = nova.refreshToken;
+      res = await buscar();
+    }
+  }
+  if (!res.ok) {
+    const msg = await res.text().catch(() => `HTTP ${res.status}`);
+    throw new Error(msg || `HTTP ${res.status}`);
+  }
+  return res.blob();
+};
+
 export const api = {
   setAuthTokens: (access: string, refresh: string) => {
     accessToken = access;
@@ -84,6 +103,13 @@ export const api = {
     authFetch(`${API_BASE}/ordens/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
+    }),
+
+  /** Muda o status da OS (transições conferidas no servidor: 409 se não for permitida). */
+  definirStatusOrdem: (id: string, status: string) =>
+    authFetch(`${API_BASE}/ordens/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
 
   uploadFotos: (orderId: string, formData: FormData) =>
@@ -321,8 +347,9 @@ export const api = {
 
   categoriasFinanceiro: () => fetch(`${API_BASE}/financeiro/categorias`, { headers: baseHeaders }).then(handleResponse),
 
-  listarTransacoes: (params?: { de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago'; semPeriodo?: boolean }) => {
+  listarTransacoes: (params?: { de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago'; semPeriodo?: boolean; tz?: string }) => {
     const qs = new URLSearchParams();
+    if (params?.tz) qs.set('tz', params.tz);
     if (params?.de) qs.set('de', params.de);
     if (params?.ate) qs.set('ate', params.ate);
     if (params?.tipo) qs.set('tipo', params.tipo);
@@ -341,13 +368,58 @@ export const api = {
   removerTransacao: (id: string) =>
     authFetch(`${API_BASE}/financeiro/transacoes/${id}`, { method: 'DELETE' }),
 
-  resumoFinanceiro: (params?: { de?: string; ate?: string }) => {
+  resumoFinanceiro: (params?: { de?: string; ate?: string; tz?: string }) => {
     const qs = new URLSearchParams();
+    if (params?.tz) qs.set('tz', params.tz);
     if (params?.de) qs.set('de', params.de);
     if (params?.ate) qs.set('ate', params.ate);
     const query = qs.toString();
     return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
   },
+
+  // ── Orçamento da OS ──────────────────────────────────────────────────────────
+  // Ler: ordens.ver. Criar versão/editar/enviar/aprovar/recusar: ordens.editar.
+  // Custo e margem só vêm pra quem tem financeiro.ver_margem. `tz` = fuso do usuário
+  // (a validade conta em dias desse fuso).
+
+  listarOrcamentos: (ordemId: string, tz?: string) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/orcamentos${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  criarVersaoOrcamento: (ordemId: string) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/orcamentos`, { method: 'POST' }),
+
+  atualizarOrcamento: (id: string, payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/orcamentos/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  enviarOrcamento: (id: string, tz?: string) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/enviar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, { method: 'POST' }),
+
+  aprovarOrcamento: (id: string, payload: { canal?: string; observacao?: string; assinatura?: string | null }, tz?: string) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/aprovar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /** Resumo da etapa 4: orçamento aprovado, reservas, baixas e lançamentos da OS. */
+  obterFechamento: (ordemId: string) => authFetch(`${API_BASE}/ordens/${ordemId}/fechamento`),
+
+  /** Conclui o serviço e baixa o estoque reservado (409 `estoque_insuficiente` se faltar peça). */
+  concluirOrdem: (ordemId: string, payload: { observacao?: string; ignorarFaltas?: boolean }) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/concluir`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  /** PDF da versão (só preço cobrado). */
+  baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
+
+  recusarOrcamento: (id: string, payload: { motivo?: string }) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  // ── Visão Geral ──────────────────────────────────────────────────────────────
+  // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.
+  visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  // Exige configuracoes.editar. `null` remove a meta.
+  definirMetaMensal: (valor: number | null) =>
+    authFetch(`${API_BASE}/visao-geral/meta`, { method: 'PUT', body: JSON.stringify({ valor }) }),
 
   // ── Relatórios ───────────────────────────────────────────────────────────────
   // Exige relatorios.ver (dono e gerente). Datas YYYY-MM-DD; o servidor agrega

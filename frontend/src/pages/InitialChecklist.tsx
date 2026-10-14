@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useOrdemServico } from '../hooks/useOrdemServico';
+import type { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
 import { StepTabs } from '../components/StepTabs';
@@ -8,21 +8,20 @@ import { entradaConfig } from '../features/Checklist/configs/initial';
 import { tokens } from '../constants';
 import { api } from '../utils/api';
 import { salvarOverlay } from '../utils/atendimento_utils';
-import type { OrdemServico } from '../types';
 import type { OSPrefillInput } from '../types/atendimento';
 
 interface CheckProps {
-  initialOrdem?: (OrdemServico & { id: string }) | null;
+  /** Estado da OS — vive no App e é compartilhado entre as etapas (entrada, diagnóstico, orçamento). */
+  os: ReturnType<typeof useOrdemServico>;
   /** Pré-preenchimento opcional de cliente/veículo pra uma OS NOVA (ex.: "Iniciar
    *  Atendimento" a partir de um agendamento, na tela de Atendimento). Não é usado
-   *  pra carregar rascunho existente — isso continua sendo `initialOrdem`. */
+   *  pra carregar rascunho existente — isso é feito pelo App (os.loadOrder). */
   prefill?: OSPrefillInput | null;
   onBackToStart?: () => void;
   onNextChecklist?: () => void;
 }
 
-export default function Check({ initialOrdem, prefill, onBackToStart, onNextChecklist }: CheckProps) {
-  const os = useOrdemServico();
+export default function Check({ os, prefill, onBackToStart, onNextChecklist }: CheckProps) {
 
   const currentStep = entradaConfig.find((s) => s.id === os.step);
 

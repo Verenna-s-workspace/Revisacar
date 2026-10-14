@@ -103,7 +103,7 @@ def pg_dsn():
     cur.execute("do $$ begin if not exists (select 1 from pg_roles where rolname='service_role') "
                 "then create role service_role; end if; end $$")
     # Ordem importa: servicos.sql usa estoque_kits (limpeza do vínculo ao excluir).
-    for nome in ("estoque.sql", "servicos.sql", "ordens_oficina.sql"):
+    for nome in ("estoque.sql", "servicos.sql", "ordens_oficina.sql", "visao_geral.sql", "financeiro.sql", "ordens_status.sql", "orcamentos.sql", "ordens_execucao.sql"):
         sql = (BACKEND_DIR / "sql" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência: rodar duas vezes não pode falhar
@@ -124,7 +124,8 @@ def db(pg_dsn):
     cur.execute(
         "truncate public.estoque_movimentos, public.estoque_kit_itens, "
         "public.estoque_kits, public.estoque_itens, public.servicos, "
-        "public.ordens, public.financeiro_transacoes cascade"
+        "public.ordens, public.financeiro_transacoes, public.orcamentos, public.orcamento_itens cascade"
     )
+    cur.execute("update public.admins set meta_mensal = null")
     yield conn
     conn.close()

@@ -117,6 +117,25 @@ def _listar_todos(consulta):
         inicio += TAMANHO_PAGINA
 
 
+def _reservado_por_item(oficina_doc: str) -> dict:
+    """{item_id: quantidade reservada por OS aprovadas}. Vazio se estoque_reservas ainda
+    não existe (orcamentos.sql não rodado) — o estoque continua funcionando sem isso."""
+    try:
+        linhas = _listar_todos(lambda: (
+            supabase.table("estoque_reservas").select("item_id,quantidade")
+            .eq("oficina_doc", oficina_doc).order("id")
+        ))
+    except APIError as e:
+        if e.code in ("42P01", "PGRST205"):
+            return {}
+        raise
+    total = {}
+    for l in linhas:
+        chave = str(l["item_id"])
+        total[chave] = total.get(chave, 0) + float(l["quantidade"])
+    return {k: _num(v) for k, v in total.items()}
+
+
 def _jsonb(dado):
     """supabase.rpc devolve o jsonb já como dict; por garantia aceita string."""
     return json.loads(dado) if isinstance(dado, str) else dado
@@ -294,7 +313,12 @@ def estoque_list(request):
         supabase.table(ITENS).select("*").eq("oficina_doc", oficina_doc)
         .order("created_at", desc=True).order("id")
     ))
-    return Response([item_para_api(l) for l in linhas])
+    reservado = _reservado_por_item(oficina_doc)
+    itens = [item_para_api(l) for l in linhas]
+    for item in itens:
+        if item["id"] in reservado:
+            item["reservado"] = reservado[item["id"]]
+    return Response(itens)
 
 
 @api_view(["GET"])

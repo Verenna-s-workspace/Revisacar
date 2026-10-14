@@ -5,7 +5,7 @@ import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
-import { useDashboard } from '../../../hooks/useDashboard';
+import { useOrdens } from '../../../hooks/useOrdens';
 import { emptyFiltros, filtrosAtivos, enrichClientes, computeClienteStats } from '../../../utils/clientes_utils';
 import type { NavPage } from '../../../types/dashboard';
 import type { ClienteComDados, ClienteFiltros, NovoClienteInput, NovoVeiculoClienteInput } from '../../../types/cliente';
@@ -63,7 +63,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
   const { clientes, loading: clientesLoading, usingApi: clientesUsingApi, erro: clientesErro, addCliente, updateCliente, deleteCliente } = useClientes();
   const { veiculos, loading: veiculosLoading, usingApi: veiculosUsingApi, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
   const { agendamentos, loading: agendamentosLoading, usingApi: agendamentosUsingApi, addAgendamento, getOcupados } = useAgendamentos();
-  const { loading: ordensLoading, data } = useDashboard();
+  const { loading: ordensLoading, ordens } = useOrdens();
 
   const loading = clientesLoading || veiculosLoading || agendamentosLoading || ordensLoading;
   // As três fontes desta tela (clientes/veículos/agendamentos) seguem o
@@ -73,8 +73,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
   const erro = clientesErro;
 
   const clientesEnriquecidos = useMemo(
-    () => enrichClientes(clientes, veiculos, agendamentos, data.ordens),
-    [clientes, veiculos, agendamentos, data.ordens],
+    () => enrichClientes(clientes, veiculos, agendamentos, ordens),
+    [clientes, veiculos, agendamentos, ordens],
   );
   const stats = useMemo(() => computeClienteStats(clientesEnriquecidos), [clientesEnriquecidos]);
 

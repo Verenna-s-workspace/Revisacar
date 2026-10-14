@@ -1,46 +1,42 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { Card } from './Primitives';
-import { api } from '../../utils/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useFinanceiro } from '../../hooks/useFinanceiro';
+import { mensagemDoErro } from '../../utils/api_erro';
 import { formatBRL } from '../../utils/dashboard';
 import { KpiCards } from './Financeiro/KpiCards';
-import type { ResumoFinanceiro } from './Financeiro/KpiCards';
 import { FluxoCaixaChart } from './Financeiro/FluxoCaixaChart';
 import type { FluxoDia } from './Financeiro/FluxoCaixaChart';
 import { CategoriaDonut } from './Financeiro/CategoriaDonut';
 import { ContasWidget } from './Financeiro/ContasWidget';
 import { TransacaoModal } from './Financeiro/TransacaoModal';
 import { labelCategoria, LABEL_STATUS } from './Financeiro/categoriaLabels';
-import type { Transacao, Categorias } from './Financeiro/types';
-import { buildSeedTransacoes, buildSeedCategorias, buildSeedResumo, filtrarSeedPorPeriodo } from '../../utils/financeiro_utils';
+import type { Transacao } from './Financeiro/types';
+import { isoLocal } from '../../utils/financeiro_utils';
 
 type Preset = 'este-mes' | 'mes-passado' | '3-meses';
 
+// Datas no calendário LOCAL (toISOString converteria pra UTC e, à noite no
+// Brasil, empurraria o limite do período pro dia seguinte).
 function periodoDoPreset(preset: Preset): { de: string; ate: string } {
   const hoje = new Date();
+  const a = hoje.getFullYear();
+  const m = hoje.getMonth();
   if (preset === 'mes-passado') {
-    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-    const fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
-    return { de: inicio.toISOString().slice(0, 10), ate: fim.toISOString().slice(0, 10) };
+    return { de: isoLocal(new Date(a, m - 1, 1)), ate: isoLocal(new Date(a, m, 0)) };
   }
   if (preset === '3-meses') {
-    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
-    const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-    return { de: inicio.toISOString().slice(0, 10), ate: fim.toISOString().slice(0, 10) };
+    return { de: isoLocal(new Date(a, m - 2, 1)), ate: isoLocal(new Date(a, m + 1, 0)) };
   }
-  const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-  return { de: inicio.toISOString().slice(0, 10), ate: fim.toISOString().slice(0, 10) };
+  return { de: isoLocal(new Date(a, m, 1)), ate: isoLocal(new Date(a, m + 1, 0)) };
 }
 
 function formatDataCurta(iso: string): string {
-  const [ano, mes, dia] = iso.split('-');
+  const [, mes, dia] = iso.split('-');
   return `${dia}/${mes}`;
 }
-
-const CATEGORIAS_VAZIAS: Categorias = { entrada: [], saida: [], formas_pagamento: [] };
 
 export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   const { can } = usePermissions();
@@ -49,64 +45,15 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   const podeVerMargem = can('financeiro.ver_margem');
 
   const [preset, setPreset] = useState<Preset>('este-mes');
-  const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
-  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
-  const [pendentesReceber, setPendentesReceber] = useState<Transacao[]>([]);
-  const [pendentesPagar, setPendentesPagar] = useState<Transacao[]>([]);
-  const [categorias, setCategorias] = useState<Categorias>(CATEGORIAS_VAZIAS);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [usandoDadosDemo, setUsandoDadosDemo] = useState(false);
+  // Modal: undefined = fechado, null = novo lançamento, Transacao = edição.
+  const [modal, setModal] = useState<Transacao | null | undefined>(undefined);
+  const [erroAcao, setErroAcao] = useState('');
 
   const { de, ate } = periodoDoPreset(preset);
-
-  const carregarTudo = useCallback(() => {
-    if (!podeVer) return;
-    setLoading(true);
-    setErro('');
-    Promise.all([
-      api.resumoFinanceiro({ de, ate }),
-      api.listarTransacoes({ de, ate }),
-      api.listarTransacoes({ status: 'pendente', tipo: 'entrada', semPeriodo: true }),
-      api.listarTransacoes({ status: 'pendente', tipo: 'saida', semPeriodo: true }),
-    ])
-      .then(([r, t, pr, pp]) => {
-        setResumo(r);
-        setTransacoes(t);
-        setPendentesReceber(pr);
-        setPendentesPagar(pp);
-        setUsandoDadosDemo(false);
-      })
-      .catch(() => {
-        // Mesmo critério de hooks/useEstoque.ts e hooks/useRelatorios.ts: só
-        // cai pra dados de demonstração em desenvolvimento. Faturamento e
-        // margem fictícios são um risco pelo menos tão grande quanto estoque
-        // fictício, então uma falha real em produção mostra o erro de
-        // verdade — e uma resposta bem sucedida (mesmo vazia) nunca é
-        // substituída por isto, em nenhum ambiente.
-        if (import.meta.env.DEV) {
-          const todas = buildSeedTransacoes();
-          setResumo(buildSeedResumo(todas, de, ate, podeVerMargem));
-          setTransacoes(filtrarSeedPorPeriodo(todas, de, ate));
-          setPendentesReceber(todas.filter(x => x.status === 'pendente' && x.tipo === 'entrada'));
-          setPendentesPagar(todas.filter(x => x.status === 'pendente' && x.tipo === 'saida'));
-          setUsandoDadosDemo(true);
-        } else {
-          setErro('Não foi possível carregar os dados financeiros.');
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [podeVer, de, ate, podeVerMargem]);
-
-  useEffect(() => { carregarTudo(); }, [carregarTudo]);
-
-  useEffect(() => {
-    if (!podeVer) return;
-    api.categoriasFinanceiro()
-      .then(setCategorias)
-      .catch(() => { if (import.meta.env.DEV) setCategorias(buildSeedCategorias()); });
-  }, [podeVer]);
+  const {
+    resumo, transacoes, pendentesReceber, pendentesPagar, categorias,
+    carregando, erro, usandoDadosDemo, criar, atualizar, cancelar,
+  } = useFinanceiro({ de, ate, podeVer, podeVerMargem });
 
   const fluxoDiario = useMemo<FluxoDia[]>(() => {
     const porDia = new Map<string, { entradas: number; saidas: number }>();
@@ -130,27 +77,27 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   }, [transacoes]);
 
   const handleSalvarTransacao = async (payload: Record<string, unknown>) => {
-    await api.criarTransacao(payload);
-    setShowModal(false);
-    carregarTudo();
+    if (modal) await atualizar(modal.id, payload);
+    else await criar(payload);
+    setModal(undefined);
   };
 
   const handleMarcarPago = async (id: string) => {
+    setErroAcao('');
     try {
-      await api.atualizarTransacao(id, { status: 'pago' });
-      carregarTudo();
-    } catch {
-      setErro('Não foi possível atualizar. Tente de novo.');
+      await atualizar(id, { status: 'pago' });
+    } catch (e) {
+      setErroAcao(mensagemDoErro(e, 'Não foi possível atualizar. Tente de novo.'));
     }
   };
 
   const handleCancelar = async (id: string) => {
     if (!window.confirm('Cancelar este lançamento? Ele sai dos totais, mas fica no histórico.')) return;
+    setErroAcao('');
     try {
-      await api.removerTransacao(id);
-      carregarTudo();
-    } catch {
-      setErro('Não foi possível cancelar. Tente de novo.');
+      await cancelar(id);
+    } catch (e) {
+      setErroAcao(mensagemDoErro(e, 'Não foi possível cancelar. Tente de novo.'));
     }
   };
 
@@ -195,7 +142,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
           </select>
           {podeEditar && (
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => setModal(null)}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', background: 'var(--color-ferrari)', color: 'white', border: 'none', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--shadow-md)', whiteSpace: 'nowrap' }}
             >
               {Icons.plus} Novo Lançamento
@@ -204,16 +151,16 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
         </div>
       </div>
 
-      {erro && (
+      {(erro || erroAcao) && (
         <div style={{ padding: '10px 16px', background: 'var(--color-crit-bg)', color: 'var(--color-crit)', border: '1px solid var(--color-crit-border)', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600 }}>
-          {erro}
+          {erro || erroAcao}
         </div>
       )}
 
-      {loading || !resumo ? (
-        <div style={{ padding: 60, textAlign: 'center', color: tokens.color.muted }}>Carregando…</div>
+      {!resumo ? (
+        !erro && <div style={{ padding: 60, textAlign: 'center', color: tokens.color.muted }}>Carregando…</div>
       ) : (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, opacity: carregando ? 0.6 : 1, transition: 'opacity .15s' }}>
           <KpiCards resumo={resumo} verMargem={podeVerMargem} isMobile={isMobile} />
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 16 }}>
@@ -283,6 +230,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
                             {t.status === 'pendente' && (
                               <button onClick={() => handleMarcarPago(t.id)} style={acaoBtnStyle} title="Marcar como pago">✓</button>
                             )}
+                            <button onClick={() => setModal(t)} style={acaoBtnStyle} title="Editar">{Icons.edit}</button>
                             <button onClick={() => handleCancelar(t.id)} style={{ ...acaoBtnStyle, color: tokens.color.crit }} title="Cancelar">{Icons.trash}</button>
                           </td>
                         )}
@@ -293,11 +241,16 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
               </div>
             )}
           </Card>
-        </>
+        </div>
       )}
 
-      {showModal && (
-        <TransacaoModal categorias={categorias} onFechar={() => setShowModal(false)} onSalvar={handleSalvarTransacao} />
+      {modal !== undefined && (
+        <TransacaoModal
+          categorias={categorias}
+          transacao={modal ?? undefined}
+          onFechar={() => setModal(undefined)}
+          onSalvar={handleSalvarTransacao}
+        />
       )}
     </div>
   );

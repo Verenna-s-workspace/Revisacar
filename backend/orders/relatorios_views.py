@@ -24,10 +24,14 @@ Resposta (camelCase):
       "anterior": {…} | null       # null = sem nenhuma OS no período anterior
     },
     "dias": [{dia: "YYYY-MM-DD", ordens, finalizadas, faturamento}, …],
-    "servicos": [{nome, quantidade}, …]   # OS finalizadas do período atual
+    "servicos": [{nome, quantidade}, …]   # OS finalizadas do período atual (ver "Serviços" abaixo)
   }
   `dias` é esparso (só dias com algum dado) e cobre os dois períodos; quem
   agrupa em semana/mês é o frontend.
+
+Serviços: pra OS finalizada com orçamento APROVADO, vale o que foi de fato orçado e
+executado (itens do tipo serviço: descrição e quantidade); OS sem orçamento (antigas)
+seguem pelos serviços marcados no checklist.
 
 De onde vem o faturamento:
   - "financeiro": soma das ENTRADAS lançadas no Financeiro (não canceladas,
@@ -181,6 +185,67 @@ def _servicos_da_ordem(payload) -> list[str]:
     return [s.strip() for s in lista if isinstance(s, str) and s.strip()]
 
 
+def servicos_reais(oficina_doc, ordem_ids) -> dict:
+    """{ordem_id: [{nome, quantidade, valor}]} com os itens de SERVIÇO do orçamento aprovado de
+    cada OS (valor = o que foi cobrado). OS sem orçamento aprovado ficam de fora. Sem a tabela de
+    orçamentos (script não rodado) devolve {} e os relatórios seguem como antes."""
+    ordem_ids = list(ordem_ids)
+    if not ordem_ids:
+        return {}
+    por_orcamento: dict[str, str] = {}
+    try:
+        for i in range(0, len(ordem_ids), 100):
+            for o in supabase.table("orcamentos").select("id,ordem_id").eq("oficina_doc", oficina_doc)                     .eq("status", "aprovado").in_("ordem_id", ordem_ids[i:i + 100]).execute().data or []:
+                por_orcamento[str(o["id"])] = o["ordem_id"]
+        ids = list(por_orcamento)
+        itens = []
+        for i in range(0, len(ids), 100):
+            itens += supabase.table("orcamento_itens").select("orcamento_id,descricao,quantidade,preco_unitario")                 .eq("tipo", "servico").in_("orcamento_id", ids[i:i + 100]).execute().data or []
+    except APIError as e:
+        if getattr(e, "code", None) in ("42P01", "PGRST205", "42501"):
+            return {}
+        raise
+    saida: dict[str, list] = {ordem: [] for ordem in por_orcamento.values()}
+    for it in itens:
+        quantidade = float(it["quantidade"])
+        saida[por_orcamento[str(it["orcamento_id"])]].append({
+            "nome": (it["descricao"] or "").strip(),
+            "quantidade": quantidade,
+            "valor": round(quantidade * float(it["preco_unitario"]), 2),
+        })
+    return saida
+
+
+def registrar_nome(reg: dict, nome: str):
+    """Guarda as grafias vistas de um mesmo serviço (ignora caixa/espaços das pontas)."""
+    reg.setdefault("grafias", {})
+    nome = nome.strip()
+    reg["grafias"][nome] = reg["grafias"].get(nome, 0) + 1
+
+
+def nome_de_exibicao(reg: dict) -> str:
+    """A grafia mais usada; empate: a que não é toda minúscula, depois ordem alfabética
+    (não depende da ordem em que as OS chegam do banco)."""
+    return min(reg["grafias"].items(), key=lambda kv: (-kv[1], kv[0].islower(), kv[0]))[0]
+
+
+def somar_servicos(destino: dict, nome: str, quantidade: float, valor: float | None = None):
+    """Soma num dict {chave: {quantidade, valor, grafias}}; a chave ignora caixa e espaços das pontas."""
+    chave = nome.strip().casefold()
+    if not chave:
+        return None
+    reg = destino.setdefault(chave, {"quantidade": 0.0, "valor": 0.0})
+    registrar_nome(reg, nome)
+    reg["quantidade"] += quantidade
+    if valor is not None:
+        reg["valor"] += valor
+    return reg
+
+
+def numero_limpo(n: float):
+    return int(n) if float(n).is_integer() else round(n, 3)
+
+
 def _valor_estimado(servicos: list[str]) -> float:
     total = sum(PRECO_ESTIMADO_POR_SERVICO.get(nome, 0) for nome in servicos)
     return float(total) if total > 0 else TICKET_PADRAO
@@ -216,13 +281,19 @@ def _usa_financeiro(oficina_doc) -> bool:
     return bool(linhas)
 
 
-def _buscar_entradas(oficina_doc, janela_ini: date, janela_fim: date):
+def _buscar_lancamentos(oficina_doc, tipo: str, janela_ini: date, janela_fim: date):
+    """Lançamentos do Financeiro (tipo 'entrada' ou 'saida'), sem os cancelados,
+    por data de competência — a mesma regra de /financeiro/resumo."""
     return _listar_todos(lambda: (
         supabase.table("financeiro_transacoes").select("id,valor,data_competencia")
-        .eq("oficina_doc", oficina_doc).eq("tipo", "entrada").neq("status", "cancelado")
+        .eq("oficina_doc", oficina_doc).eq("tipo", tipo).neq("status", "cancelado")
         .gte("data_competencia", janela_ini.isoformat()).lte("data_competencia", janela_fim.isoformat())
         .order("data_competencia").order("id")
     ))
+
+
+def _buscar_entradas(oficina_doc, janela_ini: date, janela_fim: date):
+    return _buscar_lancamentos(oficina_doc, "entrada", janela_ini, janela_fim)
 
 
 # ── Agregação ─────────────────────────────────────────────────────────────────
@@ -256,10 +327,13 @@ def relatorios(request):
     janela_fim = max(atual[1], anterior[1]) if anterior else atual[1]
 
     dias: dict[date, dict] = defaultdict(lambda: {"ordens": 0, "finalizadas": 0, "faturamento": 0.0})
-    contagem_servicos: dict[str, int] = defaultdict(int)
+    contagem_servicos: dict[str, dict] = {}
     usa_financeiro = _usa_financeiro(oficina_doc)
 
-    for ordem in _buscar_ordens(oficina_doc, janela_ini, janela_fim):
+    ordens = _buscar_ordens(oficina_doc, janela_ini, janela_fim)
+    reais = servicos_reais(oficina_doc, [o["id"] for o in ordens if o.get("status") == "finalizada"])
+
+    for ordem in ordens:
         dia = _dia_da_ordem(ordem.get("created_at"), tz)
         if dia is None or not (janela_ini <= dia <= janela_fim):
             continue
@@ -272,8 +346,12 @@ def relatorios(request):
         if not usa_financeiro:
             d["faturamento"] += _valor_estimado(servicos)
         if _dentro(dia, atual):
-            for nome in servicos:
-                contagem_servicos[nome] += 1
+            if ordem["id"] in reais:
+                for s in reais[ordem["id"]]:
+                    somar_servicos(contagem_servicos, s["nome"], s["quantidade"])
+            else:
+                for nome in servicos:
+                    somar_servicos(contagem_servicos, nome, 1)
 
     if usa_financeiro:
         for entrada in _buscar_entradas(oficina_doc, janela_ini, janela_fim):
@@ -292,7 +370,7 @@ def relatorios(request):
         total_anterior = None
 
     servicos = sorted(
-        ({"nome": n, "quantidade": q} for n, q in contagem_servicos.items()),
+        ({"nome": nome_de_exibicao(r), "quantidade": numero_limpo(r["quantidade"])} for r in contagem_servicos.values()),
         key=lambda s: (-s["quantidade"], s["nome"]),
     )
 

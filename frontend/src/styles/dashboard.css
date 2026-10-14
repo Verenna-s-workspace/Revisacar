@@ -671,6 +671,7 @@
 .status-badge--rascunho { background: #FFF3E0; color: #E65100; }
 .status-badge--finalizada { background: #E8F5E9; color: #2E7D32; }
 .status-badge--aguardando { background: #E3F2FD; color: #1565C0; }
+.status-badge--recusada { background: #FDECEA; color: #B71C1C; }
 
 .dashboard-card__header-title {
   font-weight: 700;

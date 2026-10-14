@@ -4,6 +4,8 @@ from . import financeiro_views
 from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
+from . import visao_geral_views
+from . import fechamento_views, orcamento_views
 
 urlpatterns = [
     # Root
@@ -13,6 +15,16 @@ urlpatterns = [
     path("ordens", views.ordens_list),
     path("ordens/<str:ordem_id>", views.ordem_detail),
     path("ordens/<str:ordem_id>/status", views.ordem_status),
+    path("ordens/<str:ordem_id>/concluir", fechamento_views.ordem_concluir),
+    path("ordens/<str:ordem_id>/fechamento", fechamento_views.fechamento),
+
+    # Orçamento da OS (versões + itens) — ordens.ver / ordens.editar; custo e margem: financeiro.ver_margem
+    path("ordens/<str:ordem_id>/orcamentos", orcamento_views.orcamentos_da_ordem),
+    path("orcamentos/<str:orcamento_id>", orcamento_views.orcamento_detail),
+    path("orcamentos/<str:orcamento_id>/enviar", orcamento_views.orcamento_enviar),
+    path("orcamentos/<str:orcamento_id>/aprovar", orcamento_views.orcamento_aprovar),
+    path("orcamentos/<str:orcamento_id>/recusar", orcamento_views.orcamento_recusar),
+    path("orcamentos/<str:orcamento_id>/pdf", orcamento_views.orcamento_pdf_view),
 
     # Fotos de uma ordem
     path("ordens/<str:ordem_id>/fotos", views.upload_fotos),
@@ -66,6 +78,11 @@ urlpatterns = [
 
     # Relatórios — protegido por relatorios.ver (dono e gerente)
     path("relatorios", relatorios_views.relatorios),
+
+    # Visão Geral — leitura p/ qualquer usuário logado (blocos de dinheiro só por permissão);
+    # meta mensal: configuracoes.editar
+    path("visao-geral", visao_geral_views.visao_geral),
+    path("visao-geral/meta", visao_geral_views.meta_mensal),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

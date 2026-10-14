@@ -11,21 +11,32 @@ import type { ResumoFinanceiro } from '../features/Dashboard/Financeiro/KpiCards
 // produção, e uma resposta bem sucedida (mesmo vazia) nunca é substituída por
 // isto, em nenhum ambiente.
 
+/** "YYYY-MM-DD" no calendário LOCAL. `toISOString()` converte para UTC e, à
+ *  noite no Brasil (depois das 21h), devolve o dia seguinte. */
+export function isoLocal(d: Date): string {
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+export function hojeLocal(): string {
+  return isoLocal(new Date());
+}
+
 function diaDoMes(dia: number, offsetMeses = 0): string {
   const hoje = new Date();
-  const d = new Date(hoje.getFullYear(), hoje.getMonth() + offsetMeses, Math.min(dia, 28));
-  return d.toISOString().slice(0, 10);
+  return isoLocal(new Date(hoje.getFullYear(), hoje.getMonth() + offsetMeses, Math.min(dia, 28)));
 }
 
 function dataAtras(dias: number): string {
   const d = new Date();
   d.setDate(d.getDate() - dias);
-  return d.toISOString().slice(0, 10);
+  return isoLocal(d);
 }
 
 function calcVencido(status: Transacao['status'], dataVencimento: string | null): boolean {
   if (status !== 'pendente' || !dataVencimento) return false;
-  return dataVencimento < new Date().toISOString().slice(0, 10);
+  return dataVencimento < hojeLocal();
 }
 
 let seq = 0;
@@ -120,7 +131,7 @@ export function filtrarSeedPorPeriodo(todas: Transacao[], de: string, ate: strin
  *  transações e com os widgets derivados dela. */
 export function buildSeedResumo(todas: Transacao[], de: string, ate: string, verMargem: boolean): ResumoFinanceiro {
   const doPeriodo = filtrarSeedPorPeriodo(todas, de, ate);
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeLocal();
 
   const faturamento = doPeriodo.filter(r => r.tipo === 'entrada').reduce((s, r) => s + r.valor, 0);
   const despesas = doPeriodo.filter(r => r.tipo === 'saida').reduce((s, r) => s + r.valor, 0);

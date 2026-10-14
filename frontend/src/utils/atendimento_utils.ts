@@ -11,6 +11,7 @@ import type { OrdemRow } from '../types/dashboard';
 import type { EstoqueItem, EstoqueKit } from '../types/estoque';
 import type { ServicoItem } from '../types/servico';
 import { isSameDay, toISODate } from './agenda';
+import { statusAntesDaExecucao, statusBloqueada, statusConcluida, statusEmExecucao } from './ordem_status';
 
 /** payload às vezes vem como string (ver OrdensPage/OSModal) — parse defensivo compartilhado. */
 export interface OrdemPayloadParcial {
@@ -111,11 +112,15 @@ export function derivarColunasKanban(ordens: OSAtendimento[], agendamentos: Agen
     a => a.data === hojeISO && a.status !== 'cancelado' && !a.ordemServicoId
   );
 
-  const osFila = ordens.filter(o => o.status === 'rascunho' && !o.iniciadoEm);
-  const emExecucao = ordens.filter(o => o.status === 'rascunho' && !!o.iniciadoEm);
-  const bloqueado = ordens.filter(o => o.status === 'aguardando');
+  // Recusada fica de fora de todas as colunas: encerrada sem execução, não é trabalho pendente.
+  // `iniciadoEm` (overlay local) só vale antes da execução; 'em_execucao' já é execução por si.
+  const osFila = ordens.filter(o => statusAntesDaExecucao(o.status) && !o.iniciadoEm);
+  const emExecucao = ordens.filter(
+    o => statusEmExecucao(o.status) || (statusAntesDaExecucao(o.status) && !!o.iniciadoEm)
+  );
+  const bloqueado = ordens.filter(o => statusBloqueada(o.status));
   const concluidoHoje = ordens.filter(
-    o => o.status === 'finalizada' && isSameDay(new Date(o.updated_at), new Date())
+    o => statusConcluida(o.status) && isSameDay(new Date(o.updated_at), new Date())
   );
 
   const fila: ItemKanban[] = [
