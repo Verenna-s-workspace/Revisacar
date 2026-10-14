@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Check  from './pages/InitialChecklist';
 import Check2 from './pages/InspectionChecklist';
 import OrcamentoPage from './features/Orcamento/OrcamentoPage';
+import FechamentoPage from './features/Fechamento/FechamentoPage';
 import { useOrdemServico } from './hooks/useOrdemServico';
 import { Dashboard } from './pages/Dashboard';
 import { AuthScreen } from './pages/AuthScreen';
@@ -13,7 +14,7 @@ import type { AuthResult } from './types';
 import type { OSPrefillInput } from './types/atendimento';
 import { useAuth } from './context/AuthContext';
 
-type View = 'dashboard' | 'os' | 'os2' | 'orcamento' | 'login' | 'reset-password';
+type View = 'dashboard' | 'os' | 'os2' | 'orcamento' | 'fechamento' | 'login' | 'reset-password';
 
 export default function App() {
   const { user, loading, login, logout } = useAuth();
@@ -71,7 +72,8 @@ export default function App() {
   const handleLoadRascunho = async (ordem: { id: string; status?: string }) => {
     await os.loadOrder(ordem);
     setPrefillOS(null);
-    setView(ordem.status && ordem.status !== 'rascunho' ? 'orcamento' : 'os');
+    const emServico = ['em_execucao', 'aguardando', 'finalizada'].includes(ordem.status ?? '');
+    setView(emServico ? 'fechamento' : ordem.status && ordem.status !== 'rascunho' ? 'orcamento' : 'os');
   };
 
   const handleBackToDashboard = () => {
@@ -92,6 +94,11 @@ export default function App() {
 
   const handleGoToOrcamento = () => {
     setView('orcamento');
+    window.scrollTo({ top: 0 });
+  };
+
+  const handleGoToFechamento = () => {
+    setView('fechamento');
     window.scrollTo({ top: 0 });
   };
 
@@ -205,12 +212,19 @@ export default function App() {
             onNewOSComPrefill={handleStartNewComPrefill}
             onOpenLearningCenter={() => setShowLearningCenter(true)}
           />
+        ) : view === 'fechamento' ? (
+          <FechamentoPage
+            os={os}
+            onBackToStart={handleBackToDashboard}
+            onGoOrcamento={handleGoToOrcamento}
+          />
         ) : view === 'orcamento' ? (
           <OrcamentoPage
             os={os}
             onBackToStart={handleBackToDashboard}
             onGoEntrada={handleGoToEntrada}
             onGoDiagnostico={handleGoToCheck2}
+            onGoFechamento={handleGoToFechamento}
           />
         ) : view === 'os2' ? (
           <Check2

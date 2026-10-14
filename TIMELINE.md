@@ -15,6 +15,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 2 (tela da etapa 3) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: desktop dono/mecânico/atendente, mobile 390px e fluxo entrada→diagnóstico→orçamento). Falta: rodar os SQLs no Supabase e validar contra o backend real |
 | Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
 | Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
+| Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -228,4 +229,23 @@ Tudo em `backend/sql/orcamentos.sql` (idempotente; agora exige `estoque.sql` e `
 - Rodar de novo `backend/sql/orcamentos.sql` (e antes `estoque.sql`, `financeiro.sql` se ainda não rodou).
 - Os lançamentos entram como PENDENTES por competência na data da aprovação, então Relatórios/Visão Geral já os contam como faturamento (regra atual: entradas não canceladas). Se for melhor contar só o pago, é ajuste nessas telas — não feito.
 - A tela do Financeiro ainda não marca visualmente "veio de orçamento" (o campo `origem` já vem na API).
-- Próxima: Fase 5 (execução e fechamento: baixa do estoque na conclusão, etapa 4 opcional, relatórios com valores reais) — quando for pedido.
+- Próxima: Fase 5 — feita, ver abaixo.
+
+## Orçamento — Fase 5: execução e fechamento (2026-10-14) — branch feat/orcamento-fechamento (parte de feat/orcamento-financeiro)
+
+Novo script `backend/sql/ordens_execucao.sql` (idempotente; exige `ordens_status.sql`, `estoque.sql` e `orcamentos.sql` rodados antes).
+
+**Conclusão atômica** (`ordem_concluir`, via RPC; trava a OS e os itens de estoque): status → `finalizada` e BAIXA do estoque o que a OS reservou (1 movimento de `saida` por item, ligado à OS; reserva liberada). Se reservado > quantidade física, **nada muda** e a API responde 409 `estoque_insuficiente` com `faltas`; com `ignorarFaltas: true` baixa só o que existe (estoque nunca negativo) e informa o que faltou em `baixasFeitas`. Concluir de novo é 409 (não baixa duas vezes). `ordens` ganha `concluida_em`, `concluida_por_nome`, `obs_conclusao`.
+- `POST /ordens/<id>/concluir` `{observacao, ignorarFaltas}` (permissão `ordens.editar`).
+- `PATCH /ordens/<id>/status` com `finalizada` passa pelo MESMO caminho (não há como finalizar sem baixar o estoque).
+- `GET /ordens/<id>/fechamento`: orçamento aprovado, reservas (com `falta`), baixas e, só com `financeiro.ver`, os lançamentos da OS. Custo/margem só com `financeiro.ver_margem`.
+- **Concluir NÃO recebe pagamento**: os lançamentos pendentes continuam pendentes até alguém registrar o recebimento no Financeiro.
+- **Relatórios e Visão Geral usam os valores reais** do orçamento aprovado (serviços e `valorReal`); nome do serviço agrupado é determinístico.
+
+**Frontend:** tela `Fechamento` (etapa 4, opcional): Iniciar execução (aprovada), Pausar/Retomar (em_execucao/aguardando), Concluir serviço com observação e aviso de estoque insuficiente ("Tentar de novo" / "Concluir mesmo assim"); depois de concluída mostra quem/quando, baixas e lançamentos. Botão "Fechamento" na tela do orçamento; OS em execução/aguardando/finalizada abre direto no fechamento. Atendente só consulta.
+
+**Pendências / decisões**
+- Rodar `ordens_execucao.sql` no Supabase (e os anteriores se faltar algum).
+- Não há reabrir OS finalizada nem estorno da baixa (ajuste manual no Estoque).
+- Itens do orçamento sem vínculo com o Estoque não baixam nada (só os ligados via `estoqueItemId`).
+- Fase 6 (app do cliente consome o orçamento pela API) — só quando for pedida.

@@ -400,6 +400,13 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  /** Resumo da etapa 4: orçamento aprovado, reservas, baixas e lançamentos da OS. */
+  obterFechamento: (ordemId: string) => authFetch(`${API_BASE}/ordens/${ordemId}/fechamento`),
+
+  /** Conclui o serviço e baixa o estoque reservado (409 `estoque_insuficiente` se faltar peça). */
+  concluirOrdem: (ordemId: string, payload: { observacao?: string; ignorarFaltas?: boolean }) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/concluir`, { method: 'POST', body: JSON.stringify(payload) }),
+
   /** PDF da versão (só preço cobrado). */
   baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
 

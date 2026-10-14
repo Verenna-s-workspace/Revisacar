@@ -24,6 +24,8 @@ interface Props {
   onBackToStart: () => void;
   onGoEntrada: () => void;
   onGoDiagnostico: () => void;
+  /** Etapa 4 (opcional): execução, conclusão e resumo. */
+  onGoFechamento?: () => void;
 }
 
 const cartao: React.CSSProperties = {
@@ -56,7 +58,7 @@ function Aviso({ tom, children }: { tom: 'info' | 'ok' | 'warn' | 'crit'; childr
   );
 }
 
-export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiagnostico }: Props) {
+export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiagnostico, onGoFechamento }: Props) {
   const { can } = usePermissions();
   const { isDesktop } = useResponsive();
   const podeEditar = can('ordens.editar');
@@ -191,6 +193,9 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={sair(onGoEntrada)} style={btnGhost}>Entrada</button>
         <button type="button" onClick={sair(onGoDiagnostico)} style={btnGhost}>Diagnóstico</button>
+        {onGoFechamento && statusOS && ['aprovada', 'em_execucao', 'aguardando', 'finalizada'].includes(statusOS) && (
+          <button type="button" onClick={sair(onGoFechamento)} style={btnSolid}>Fechamento</button>
+        )}
       </div>
     </div>
   );
