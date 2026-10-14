@@ -128,7 +128,10 @@ def visao_geral(request):
     dias: dict[date, dict] = defaultdict(lambda: {"ordens": 0, "faturamento": 0.0})
     servicos: dict[str, dict] = {}
 
-    for ordem in rel._buscar_ordens(oficina_doc, janela_ini, hoje):
+    ordens = rel._buscar_ordens(oficina_doc, janela_ini, hoje)
+    reais = rel.servicos_reais(oficina_doc, [o["id"] for o in ordens if o.get("status") == "finalizada"])
+
+    for ordem in ordens:
         dia = rel._dia_da_ordem(ordem.get("created_at"), tz)
         if dia is None or not (janela_ini <= dia <= hoje):
             continue
@@ -139,10 +142,26 @@ def visao_geral(request):
         if pode_fat and not usa_financeiro:
             dias[dia]["faturamento"] += rel._valor_estimado(nomes)
         if dia >= ini_servicos:
-            for nome in nomes:
-                s = servicos.setdefault(nome, {"quantidade": 0, "semana": [0] * 7})
-                s["quantidade"] += 1
-                s["semana"][dia.weekday()] += 1
+            # Com orçamento aprovado vale o que foi orçado (nome, quantidade e valor cobrados);
+            # sem orçamento (OS antiga), os serviços marcados no checklist, com preço estimado.
+            linhas = reais.get(ordem["id"])
+            if linhas is not None:
+                registros = [(l["nome"], l["quantidade"], l["valor"]) for l in linhas]
+            else:
+                registros = [(nome, 1, None) for nome in nomes]
+            for nome, qtd, valor in registros:
+                chave = nome.strip().casefold()
+                if not chave:
+                    continue
+                s = servicos.setdefault(chave, {"nome": nome.strip(), "quantidade": 0.0, "semana": [0.0] * 7,
+                                                 "valor": 0.0, "real": True})
+                s["quantidade"] += qtd
+                s["semana"][dia.weekday()] += qtd
+                if valor is None:
+                    s["real"] = False
+                    s["valor"] += qtd * rel.PRECO_ESTIMADO_POR_SERVICO.get(nome.strip(), PRECO_SERVICO_DESCONHECIDO)
+                else:
+                    s["valor"] += valor
 
     if pode_fat and usa_financeiro:
         for e in entradas:
@@ -179,12 +198,14 @@ def visao_geral(request):
     resposta["serie"] = serie
 
     lista_servicos = []
-    for nome, s in servicos.items():
-        item = {"nome": nome, "quantidade": s["quantidade"], "semana": s["semana"]}
+    for s in servicos.values():
+        item = {"nome": s["nome"], "quantidade": rel.numero_limpo(s["quantidade"]),
+                "semana": [rel.numero_limpo(n) for n in s["semana"]]}
         if pode_fat:
-            item["valorEstimado"] = float(
-                s["quantidade"] * rel.PRECO_ESTIMADO_POR_SERVICO.get(nome, PRECO_SERVICO_DESCONHECIDO)
-            )
+            # Nome histórico (`valorEstimado`): é o valor REAL cobrado quando todos os serviços
+            # do nome vieram de orçamento aprovado (`valorReal`), senão é estimativa.
+            item["valorEstimado"] = round(float(s["valor"]), 2)
+            item["valorReal"] = s["real"]
         lista_servicos.append(item)
     lista_servicos.sort(key=lambda s: (-s.get("valorEstimado", s["quantidade"]), -s["quantidade"], s["nome"]))
     resposta["servicos"] = lista_servicos[:LIMITE_SERVICOS]

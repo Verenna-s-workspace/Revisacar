@@ -204,3 +204,51 @@ def test_fechamento_404_e_permissao(dono, db):
     oid = _executando(dono, db, [_servico("S", 1, 50)])
     assert _cliente("dono", OFICINA_B).get(f"/ordens/{oid}/fechamento").status_code == 404
     assert dono.get("/ordens/nao-existe/fechamento").status_code == 404
+
+
+# ── Relatórios e Visão Geral com valores reais ───────────────────────────────
+
+def _finalizada_em(db, oid, dia="2026-10-12T10:00:00-03:00"):
+    db.cursor().execute("update ordens set created_at=%s, status='finalizada' where id=%s", (dia, oid))
+
+
+def _cenario_relatorios(dono, db):
+    # OS 1: orçamento aprovado com serviços de verdade.
+    o1 = _executando(dono, db, [_servico("Alinhamento", 2, 80), _servico("Troca de óleo", 1, 120), _peca("Filtro", 1, 50)])
+    _concluir(dono, o1)
+    _finalizada_em(db, o1)
+    # OS 2: antiga, sem orçamento — vale o checklist (a OS de teste marca "Motor").
+    o2 = _os(dono)
+    _finalizada_em(db, o2)
+    # OS 3: outra com "alinhamento" em caixa diferente: soma com a primeira.
+    o3 = _executando(dono, db, [_servico("alinhamento ", 1, 90)])
+    _concluir(dono, o3)
+    _finalizada_em(db, o3)
+
+
+def test_relatorios_usam_servicos_do_orcamento_aprovado(dono, db):
+    _cenario_relatorios(dono, db)
+    r = dono.get("/relatorios", {"de": "2026-10-01", "ate": "2026-10-31"})
+    assert r.status_code == 200, r.content
+    servicos = {s["nome"]: s["quantidade"] for s in r.json()["servicos"]}
+    assert servicos == {"Alinhamento": 3, "Troca de óleo": 1, "Motor": 1}      # peça não é serviço; OS antiga cai no checklist
+
+
+def test_visao_geral_traz_valor_real_dos_servicos(dono, db):
+    _cenario_relatorios(dono, db)
+    r = dono.get("/visao-geral")
+    assert r.status_code == 200, r.content
+    s = {x["nome"]: x for x in r.json()["servicos"]}
+    assert s["Alinhamento"]["quantidade"] == 3 and s["Alinhamento"]["valorEstimado"] == 250 and s["Alinhamento"]["valorReal"] is True
+    assert s["Troca de óleo"]["valorEstimado"] == 120 and s["Troca de óleo"]["valorReal"] is True
+    assert s["Motor"]["valorReal"] is False
+    assert sum(s["Alinhamento"]["semana"]) == 3
+
+
+def test_servico_de_orcamento_nao_aprovado_nao_conta(dono, db):
+    oid = _os(dono)
+    _enviado(dono, oid, [_servico("Cortesia fantasma", 1, 10)])      # enviado, nunca aprovado
+    _finalizada_em(db, oid)
+    r = dono.get("/relatorios", {"de": "2026-10-01", "ate": "2026-10-31"})
+    assert "Cortesia fantasma" not in {s["nome"] for s in r.json()["servicos"]}
+    assert {s["nome"] for s in r.json()["servicos"]} == {"Motor"}
