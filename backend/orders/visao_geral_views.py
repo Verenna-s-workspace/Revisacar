@@ -153,8 +153,8 @@ def visao_geral(request):
                 chave = nome.strip().casefold()
                 if not chave:
                     continue
-                s = servicos.setdefault(chave, {"nome": nome.strip(), "quantidade": 0.0, "semana": [0.0] * 7,
-                                                 "valor": 0.0, "real": True})
+                s = servicos.setdefault(chave, {"quantidade": 0.0, "semana": [0.0] * 7, "valor": 0.0, "real": True})
+                rel.registrar_nome(s, nome)
                 s["quantidade"] += qtd
                 s["semana"][dia.weekday()] += qtd
                 if valor is None:
@@ -199,7 +199,7 @@ def visao_geral(request):
 
     lista_servicos = []
     for s in servicos.values():
-        item = {"nome": s["nome"], "quantidade": rel.numero_limpo(s["quantidade"]),
+        item = {"nome": rel.nome_de_exibicao(s), "quantidade": rel.numero_limpo(s["quantidade"]),
                 "semana": [rel.numero_limpo(n) for n in s["semana"]]}
         if pode_fat:
             # Nome histórico (`valorEstimado`): é o valor REAL cobrado quando todos os serviços

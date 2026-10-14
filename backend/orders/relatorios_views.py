@@ -216,12 +216,26 @@ def servicos_reais(oficina_doc, ordem_ids) -> dict:
     return saida
 
 
+def registrar_nome(reg: dict, nome: str):
+    """Guarda as grafias vistas de um mesmo serviço (ignora caixa/espaços das pontas)."""
+    reg.setdefault("grafias", {})
+    nome = nome.strip()
+    reg["grafias"][nome] = reg["grafias"].get(nome, 0) + 1
+
+
+def nome_de_exibicao(reg: dict) -> str:
+    """A grafia mais usada; empate: a que não é toda minúscula, depois ordem alfabética
+    (não depende da ordem em que as OS chegam do banco)."""
+    return min(reg["grafias"].items(), key=lambda kv: (-kv[1], kv[0].islower(), kv[0]))[0]
+
+
 def somar_servicos(destino: dict, nome: str, quantidade: float, valor: float | None = None):
-    """Soma num dict {chave: {nome, quantidade, valor}}; a chave ignora caixa e espaços das pontas."""
+    """Soma num dict {chave: {quantidade, valor, grafias}}; a chave ignora caixa e espaços das pontas."""
     chave = nome.strip().casefold()
     if not chave:
         return None
-    reg = destino.setdefault(chave, {"nome": nome.strip(), "quantidade": 0.0, "valor": 0.0})
+    reg = destino.setdefault(chave, {"quantidade": 0.0, "valor": 0.0})
+    registrar_nome(reg, nome)
     reg["quantidade"] += quantidade
     if valor is not None:
         reg["valor"] += valor
@@ -356,7 +370,7 @@ def relatorios(request):
         total_anterior = None
 
     servicos = sorted(
-        ({"nome": r["nome"], "quantidade": numero_limpo(r["quantidade"])} for r in contagem_servicos.values()),
+        ({"nome": nome_de_exibicao(r), "quantidade": numero_limpo(r["quantidade"])} for r in contagem_servicos.values()),
         key=lambda s: (-s["quantidade"], s["nome"]),
     )
 
