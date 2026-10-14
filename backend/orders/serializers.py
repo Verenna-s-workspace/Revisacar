@@ -508,6 +508,12 @@ class OrcamentoAprovacaoSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(e))
 
 
+class ConclusaoOrdemSerializer(serializers.Serializer):
+    """Conclusão do serviço (Fase 5). `ignorarFaltas`: baixa só o que existe em estoque."""
+    observacao = serializers.CharField(max_length=1000, required=False, allow_blank=True, allow_null=True)
+    ignorarFaltas = serializers.BooleanField(required=False, default=False)
+
+
 class OrcamentoRecusaSerializer(serializers.Serializer):
     motivo = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
 

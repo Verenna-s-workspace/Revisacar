@@ -821,6 +821,23 @@ def ordem_status(request, ordem_id):
         return Response({"detail": f"Não é possível mudar a OS de '{atual}' para '{novo}'."},
                         status=status.HTTP_409_CONFLICT)
 
+    if novo == os_status.FINALIZADA:
+        # Concluir = baixar do estoque o que estava reservado, na mesma transação
+        # (ver fechamento_views). Não existe atalho que conclua sem baixar.
+        from . import fechamento_views
+        try:
+            _, falha = fechamento_views.chamar_conclusao(request, ordem_id, oficina_doc, cliente=supabase)
+        except APIError as e:
+            if e.code in fechamento_views.SCRIPT_AUSENTE:
+                return Response({"detail": "A conclusão de OS ainda não existe no banco. "
+                                           "Rode backend/sql/ordens_execucao.sql no SQL Editor do Supabase."},
+                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            raise
+        if falha:
+            return falha
+        atualizada, _ = _get_ordem_or_404(ordem_id, oficina_doc)
+        return Response(atualizada)
+
     res = (
         supabase.table("ordens").update({"status": novo, "updated_at": _now()})
         .eq("id", ordem_id).eq("oficina_doc", oficina_doc)
