@@ -43,6 +43,7 @@ create or replace function public.ordem_concluir(
   p_agora          text
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_os_status text;

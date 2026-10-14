@@ -137,6 +137,7 @@ create index if not exists estoque_movimentos_item_idx
 create or replace function public.estoque_set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := now();

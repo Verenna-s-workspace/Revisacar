@@ -172,6 +172,7 @@ create or replace function public.orcamento_aplicar_efeitos(
   p_nome         text
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_versao   integer;
@@ -271,6 +272,7 @@ create or replace function public.orcamento_desfazer_efeitos(
   p_ordem_id    text
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_fin    jsonb := '[]'::jsonb;
@@ -317,6 +319,7 @@ create or replace function public.orcamento_criar_versao(
   p_tipo           text
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_os_status text;
@@ -403,6 +406,7 @@ create or replace function public.orcamento_salvar(
   p_agora        timestamptz
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_status text;
@@ -468,6 +472,7 @@ create or replace function public.orcamento_enviar(
   p_nome          text default ''
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_ordem_id  text;
@@ -551,6 +556,7 @@ create or replace function public.orcamento_aprovar(
   p_agora         text
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_ordem_id  text;
@@ -612,6 +618,7 @@ create or replace function public.orcamento_recusar(
   p_agora         text
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_ordem_id  text;

@@ -34,6 +34,7 @@ create index if not exists servicos_oficina_idx
 create or replace function public.servicos_set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := now();
@@ -58,6 +59,7 @@ create or replace function public.servicos_excluir(
   p_servico_id  uuid
 ) returns jsonb
 language plpgsql
+set search_path = public
 as $$
 declare
   v_desvinculados int := 0;
