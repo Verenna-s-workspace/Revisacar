@@ -16,6 +16,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
 | Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
 | Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
+| Alertas (tela dedicada) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: lista, filtros, atalhos, vazio, erro, mobile 390px). 4 tipos: OS bloqueada, estoque baixo, cliente a avisar, quarentena. Sem backend novo. Orçamento/financeiro ficam pra depois (ver seção) |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -249,3 +250,17 @@ Novo script `backend/sql/ordens_execucao.sql` (idempotente; exige `ordens_status
 - Não há reabrir OS finalizada nem estorno da baixa (ajuste manual no Estoque).
 - Itens do orçamento sem vínculo com o Estoque não baixam nada (só os ligados via `estoqueItemId`).
 - Fase 6 (app do cliente consome o orçamento pela API) — só quando for pedida.
+
+## Alertas — tela dedicada (2026-10-15) — branch feat/alertas (parte de feat/orcamento-fechamento)
+
+Só frontend; nenhum SQL/endpoint novo. Antes, o sino/bloco da sidebar levavam ao Atendimento (provisório) e o sino do cabeçalho desktop mostrava um "8" fixo.
+
+- **Tela `Alertas`** (`NavPage 'alertas'`, `features/Dashboard/Alertas/AlertasPage.tsx`): alertas agrupados por tipo, com filtro Todos/Urgentes/Atenção, "Atualizar", estado "Tudo em dia" e erro com "Tentar de novo" (falha de API nunca vira "nenhum alerta"). Cada alerta tem um botão de ação (ex.: "Ver no Estoque" já abre o Estoque com a busca no item) e, nos de OS, "Abrir OS". Entrada: sino (desktop e mobile — no mobile agora sempre visível), bloco da sidebar e card "Alertas importantes" do painel (inclusive "Ver todas" e cada linha, que antes não faziam nada).
+- **Regra em um lugar só:** `utils/alertas.ts`. `useAlertas` entrega a lista; `useAlertasResumo` virou só uma contagem por cima dela (sidebar, sino e tela nunca divergem). Buscas simultâneas de ordens/estoque são compartilhadas.
+- **Tipos atuais (mesmas regras de antes):** OS bloqueada (status `aguardando`, com motivo e há quanto tempo), estoque baixo (ativo, mínimo > 0 e quantidade ≤ mínimo), cliente a avisar (finalizada hoje e não avisada) e item em quarentena. Ordem dos grupos = ordem em `FONTES_ALERTA`.
+- **Como incluir um tipo novo (orçamento vencido, lançamento pendente…):** 1) acrescentar o id em `FonteAlertaId`; 2) acrescentar a fonte em `FONTES_ALERTA` (`gerar` devolve `AlertaItem[]` com título, detalhe e `acao`); 3) se precisar de dado novo, pôr o campo em `ContextoAlertas` e buscá-lo em `hooks/useAlertas.ts`. A tela não muda. Candidatos já mapeados: orçamento enviado sem resposta/vencido, peça reservada sem estoque pra concluir, lançamento pendente de OS concluída.
+
+**Pendências / decisões**
+- Os alertas de "cliente a avisar" ainda dependem do overlay local do Atendimento (localStorage), como antes.
+- Não há "dispensar/adiar" alerta (o `id` de cada alerta já é estável pra isso).
+- A tela de Alertas, como a de Atendimento, não tem o cabeçalho com sino no desktop (só a sidebar).
