@@ -5,7 +5,7 @@ from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
 from . import visao_geral_views
-from . import fechamento_views, orcamento_views
+from . import alertas_views, fechamento_views, orcamento_views
 
 urlpatterns = [
     # Root
@@ -15,6 +15,7 @@ urlpatterns = [
     path("ordens", views.ordens_list),
     path("ordens/<str:ordem_id>", views.ordem_detail),
     path("ordens/<str:ordem_id>/status", views.ordem_status),
+    path("ordens/<str:ordem_id>/cliente-avisado", alertas_views.ordem_cliente_avisado),
     path("ordens/<str:ordem_id>/concluir", fechamento_views.ordem_concluir),
     path("ordens/<str:ordem_id>/fechamento", fechamento_views.fechamento),
 
@@ -78,6 +79,9 @@ urlpatterns = [
 
     # Relatórios — protegido por relatorios.ver (dono e gerente)
     path("relatorios", relatorios_views.relatorios),
+
+    # Alertas — cada bloco exige a própria permissão (ver alertas_views)
+    path("alertas", alertas_views.alertas),
 
     # Visão Geral — leitura p/ qualquer usuário logado (blocos de dinheiro só por permissão);
     # meta mensal: configuracoes.editar

@@ -514,6 +514,11 @@ class ConclusaoOrdemSerializer(serializers.Serializer):
     ignorarFaltas = serializers.BooleanField(required=False, default=False)
 
 
+class ClienteAvisadoSerializer(serializers.Serializer):
+    """Marca/desmarca que o cliente foi avisado de que o serviço terminou."""
+    avisado = serializers.BooleanField()
+
+
 class OrcamentoRecusaSerializer(serializers.Serializer):
     motivo = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
 
