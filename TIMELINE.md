@@ -17,6 +17,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
 | Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
 | Alertas (tela dedicada) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: lista, filtros, atalhos, vazio, erro, mobile 390px). 4 tipos: OS bloqueada, estoque baixo, cliente a avisar, quarentena. Sem backend novo. Orçamento/financeiro ficam pra depois (ver seção) |
+| Alertas — cliente avisado no banco + orçamento/financeiro | 🟡 SQL + API + front prontos (474 testes; smoke no navegador com API simulada: 8 tipos, filtros, atalhos, fallback sem script, migração do navegador, mecânico sem financeiro, mobile). Falta: rodar `alertas.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -261,6 +262,20 @@ Só frontend; nenhum SQL/endpoint novo. Antes, o sino/bloco da sidebar levavam a
 - **Como incluir um tipo novo (orçamento vencido, lançamento pendente…):** 1) acrescentar o id em `FonteAlertaId`; 2) acrescentar a fonte em `FONTES_ALERTA` (`gerar` devolve `AlertaItem[]` com título, detalhe e `acao`); 3) se precisar de dado novo, pôr o campo em `ContextoAlertas` e buscá-lo em `hooks/useAlertas.ts`. A tela não muda. Candidatos já mapeados: orçamento enviado sem resposta/vencido, peça reservada sem estoque pra concluir, lançamento pendente de OS concluída.
 
 **Pendências / decisões**
-- Os alertas de "cliente a avisar" ainda dependem do overlay local do Atendimento (localStorage), como antes.
+- ~~Os alertas de "cliente a avisar" dependem do overlay local~~ → resolvido na seção abaixo (vai pro banco).
 - Não há "dispensar/adiar" alerta (o `id` de cada alerta já é estável pra isso).
 - A tela de Alertas, como a de Atendimento, não tem o cabeçalho com sino no desktop (só a sidebar).
+
+## Alertas — cliente avisado no banco + alertas de orçamento/financeiro (2026-10-17) — branch feat/alertas-backend
+
+**Passo do usuário:** rodar `backend/sql/alertas.sql` no Supabase SQL Editor (depois de `ordens_oficina.sql`). Sem ele nada quebra: o front mostra um aviso e segue com os 4 alertas locais.
+
+- **Cliente avisado no banco:** `alertas.sql` acrescenta `ordens.cliente_avisado` (bool, default false), `cliente_avisado_em`, `cliente_avisado_por_nome`. `PATCH /ordens/<id>/cliente-avisado` `{avisado: bool}` grava (quem tem `ordens.ver`). Quando a coluna existe, **o banco é a fonte da verdade**; o overlay local (`revisacar:atendimento-overlay`) só vale se o banco não respondeu (script não rodado). Marcações antigas do navegador sobem uma única vez pro banco (sem repetir). "Finalizada hoje" agora usa `concluida_em ?? updated_at` (editar a OS não "refinaliza" mais).
+- **`GET /alertas`** (blocos independentes; o que o usuário não pode ver vem omitido e o que depende de script ausente vem em `indisponiveis`): `orcamentosSemResposta` (orçamento `enviado` vencido por `validade_ate` ou há ≥ 2 dias), `aprovadasParadas` (OS `aprovada` há ≥ 1 dia do aceite, execução não iniciada), `reservasSemEstoque` (por item, reservas somadas > quantidade em estoque, lista as OS), `semPagamento` (entrada pendente de OS `finalizada` há ≥ 1 dia; `vencido` se `data_vencimento` < hoje; **só dono/gerente**, exige `financeiro.ver`).
+- **Front:** 8 fontes em `FONTES_ALERTA` (4 locais + 4 do backend). Severidade do grupo = a do item mais grave; sem pagamento vira urgente com ≥ 7 dias (`DIAS_PAGAMENTO_URGENTE`) ou vencido. Atalhos: Abrir orçamento, Abrir OS, Ver no Financeiro/Estoque/Atendimento. Falha parcial do `/alertas` mostra aviso e mantém os alertas locais.
+- **Testes:** `tests/test_alertas.py` (44), suíte total 474.
+
+**Pendências / decisões**
+- Limiares (2 dias orçamento, 1 dia aprovada/pagamento, 7 dias urgência) são constantes — ajustar se a oficina quiser.
+- Alerta de pagamento só considera lançamentos com `ordem_servico_id`; lançamentos avulsos não entram.
+- Falta o passo 3: dispensar/adiar alerta (ids já estáveis). Ideias não pedidas: auto-atualizar, alertas por papel.

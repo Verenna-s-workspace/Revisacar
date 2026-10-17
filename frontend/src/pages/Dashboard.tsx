@@ -4,7 +4,7 @@ import { tokens } from '../constants';
 import { useResponsive } from '../components/ui';
 import { useOrdens } from '../hooks/useOrdens';
 import { useVisaoGeral } from '../hooks/useVisaoGeral';
-import { useAlertasResumo } from '../hooks/useAlertasResumo';
+import { useAlertas } from '../hooks/useAlertas';
 import { formatBRL, HEAT_DAYS } from '../utils/dashboard';
 import { calcularVariacao } from '../utils/relatorios';
 import {
@@ -96,7 +96,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   const { isMobile } = useResponsive();
   const { ordens, loading: ordensLoading, erro: ordensErro } = useOrdens();
   const { dados: vg, loading, erro: vgErro, recarregar: recarregarVg, salvarMeta } = useVisaoGeral();
-  const alertasResumo = useAlertasResumo();
+  const alertasResumo = useAlertas();
   const [page, setPage] = useState<NavPage>('dashboard');
   // Esta tela fica montada enquanto se navega pelas outras páginas: sem isto,
   // lançamentos feitos no Financeiro (ou OS criadas) não apareciam aqui até
@@ -526,16 +526,13 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   );
 
   // ── Alertas ────────────────────────────────────────────────────────────────
-  // Os mesmos alertas reais da sidebar (useAlertasResumo): OS bloqueadas, clientes
-  // a avisar, estoque baixo e itens em quarentena. Antes eram frases fixas
-  // (ex.: "aguardando aprovação" contava rascunhos).
-  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-  const alertasLista: Alerta[] = [
-    ...(alertasResumo.bloqueados > 0 ? [{ tipo: 'crit' as const, msg: `${plural(alertasResumo.bloqueados, 'ordem bloqueada', 'ordens bloqueadas')}`, detalhe: 'Aguardando liberação' }] : []),
-    ...(alertasResumo.clientesNaoAvisados > 0 ? [{ tipo: 'warn' as const, msg: `${plural(alertasResumo.clientesNaoAvisados, 'cliente', 'clientes')} para avisar`, detalhe: 'Serviço finalizado hoje' }] : []),
-    ...(alertasResumo.baixoEstoque > 0 ? [{ tipo: 'crit' as const, msg: `${plural(alertasResumo.baixoEstoque, 'item com estoque baixo', 'itens com estoque baixo')}`, detalhe: '' }] : []),
-    ...(alertasResumo.quarentena > 0 ? [{ tipo: 'warn' as const, msg: `${plural(alertasResumo.quarentena, 'item em quarentena', 'itens em quarentena')}`, detalhe: '' }] : []),
-  ];
+  // Os mesmos alertas reais da tela de Alertas (useAlertas): uma linha por tipo, com a
+  // contagem. Antes eram frases fixas (ex.: "aguardando aprovação" contava rascunhos).
+  const alertasLista: Alerta[] = alertasResumo.grupos.map(g => ({
+    tipo: g.severidade,
+    msg: g.fonte.resumo(g.itens.length),
+    detalhe: g.itens.length === 1 ? g.itens[0].titulo : '',
+  }));
   // O card inteiro, "Ver todas" e cada item abrem a tela de Alertas.
   const alertasSection = (
     <Card

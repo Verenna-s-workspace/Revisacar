@@ -4,6 +4,7 @@ import { Icons } from '../Icons';
 import { Skeleton } from '../Primitives';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useAlertas } from '../../../hooks/useAlertas';
+import { maisGrave } from '../../../utils/alertas';
 import type { AcaoAlerta, AlertaItem, SeveridadeAlerta } from '../../../utils/alertas';
 import type { NavPage } from '../../../types/dashboard';
 
@@ -60,7 +61,7 @@ function LinhaAlerta({ alerta, isMobile, onAcao }: { alerta: AlertaItem; isMobil
 }
 
 export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPageProps) {
-  const { grupos, alertas, loading, erro, recarregar } = useAlertas();
+  const { grupos, alertas, loading, erro, avisos, recarregar } = useAlertas();
   const [filtro, setFiltro] = useState<Filtro>('todos');
 
   const qtd = useMemo(() => ({
@@ -121,6 +122,13 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
           </div>
         )}
 
+        {!loading && avisos.map(a => (
+          <div key={a} role="status" style={{
+            padding: '10px 16px', background: tokens.color.warnBg, color: tokens.color.warn, border: `1px solid ${tokens.color.warnBorder}`,
+            borderRadius: 10, fontSize: '0.8rem', fontWeight: 600,
+          }}>{a}</div>
+        ))}
+
         {!erro && (loading || alertas.length > 0) && (
           <div role="group" aria-label="Filtrar por urgência" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {filtros.map(f => {
@@ -157,7 +165,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
         )}
 
         {gruposVisiveis.map(g => {
-          const c = CORES[g.fonte.severidade];
+          const c = CORES[maisGrave(g.itens)];
           return (
             <section key={g.fonte.id} aria-label={g.fonte.titulo} style={{
               background: 'white', border: `1px solid ${tokens.color.border}`, borderRadius: 14, padding: isMobile ? '14px 12px' : '16px 18px',

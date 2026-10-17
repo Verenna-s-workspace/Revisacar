@@ -413,6 +413,14 @@ export const api = {
   recusarOrcamento: (id: string, payload: { motivo?: string }) =>
     authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),
 
+  // ── Alertas ──────────────────────────────────────────────────────────────────
+  // Marcar: ordens.editar ou ordens.criar (503 se o script alertas.sql não foi rodado).
+  marcarClienteAvisado: (ordemId: string, avisado: boolean) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/cliente-avisado`, { method: 'PATCH', body: JSON.stringify({ avisado }) }),
+
+  /** Dados dos alertas de orçamento, OS parada, reserva sem estoque e pagamento (cada bloco só vem pra quem pode ver). */
+  obterAlertas: (tz?: string) => authFetch(`${API_BASE}/alertas${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
   // ── Visão Geral ──────────────────────────────────────────────────────────────
   // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.
   visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
