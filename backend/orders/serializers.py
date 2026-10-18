@@ -487,7 +487,7 @@ class OrcamentoSerializer(serializers.Serializer):
     itens = OrcamentoItemSerializer(many=True, required=False, max_length=MAX_ITENS_ORCAMENTO)
 
 
-CANAIS_APROVACAO = ("whatsapp", "presencial", "telefone", "app", "outro")
+CANAIS_APROVACAO = ("whatsapp", "presencial", "telefone", "app", "outro")   # o canal "link" só o link público usa
 
 
 class OrcamentoAprovacaoSerializer(serializers.Serializer):
@@ -506,6 +506,28 @@ class OrcamentoAprovacaoSerializer(serializers.Serializer):
             return decodificar_assinatura(value)
         except ValueError as e:
             raise serializers.ValidationError(str(e))
+
+
+class LinkOrcamentoSerializer(serializers.Serializer):
+    """Gerar o link público do orçamento. `renovar` revoga o link atual e cria outro."""
+    renovar = serializers.BooleanField(required=False, default=False)
+
+
+class AprovacaoPublicaSerializer(serializers.Serializer):
+    """O cliente aprova pelo link: precisa dizer quem é e aceitar explicitamente."""
+    nome = serializers.CharField(min_length=2, max_length=120)
+    aceito = serializers.BooleanField()
+    observacao = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+
+    def validate_nome(self, value):
+        if any(ord(c) < 32 for c in value):
+            raise serializers.ValidationError("Nome inválido.")
+        return value
+
+    def validate_aceito(self, value):
+        if value is not True:
+            raise serializers.ValidationError("Confirme que aceita o orçamento.")
+        return value
 
 
 class ConclusaoOrdemSerializer(serializers.Serializer):

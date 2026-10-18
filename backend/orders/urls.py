@@ -5,7 +5,7 @@ from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
 from . import visao_geral_views
-from . import alertas_views, fechamento_views, orcamento_views
+from . import alertas_views, fechamento_views, orcamento_link_views, orcamento_views
 
 urlpatterns = [
     # Root
@@ -26,6 +26,12 @@ urlpatterns = [
     path("orcamentos/<str:orcamento_id>/aprovar", orcamento_views.orcamento_aprovar),
     path("orcamentos/<str:orcamento_id>/recusar", orcamento_views.orcamento_recusar),
     path("orcamentos/<str:orcamento_id>/pdf", orcamento_views.orcamento_pdf_view),
+    # Link público do orçamento: a oficina gera/vê/revoga (login); o cliente abre sem conta (token na URL)
+    path("orcamentos/<str:orcamento_id>/link", orcamento_link_views.orcamento_link),
+    path("publico/orcamentos/<str:token>", orcamento_link_views.publico_orcamento),
+    path("publico/orcamentos/<str:token>/pdf", orcamento_link_views.publico_orcamento_pdf),
+    path("publico/orcamentos/<str:token>/aprovar", orcamento_link_views.publico_orcamento_aprovar),
+    path("publico/orcamentos/<str:token>/recusar", orcamento_link_views.publico_orcamento_recusar),
 
     # Fotos de uma ordem
     path("ordens/<str:ordem_id>/fotos", views.upload_fotos),

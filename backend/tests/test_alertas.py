@@ -164,7 +164,8 @@ def test_oficina_sem_nada_devolve_blocos_vazios(dono, db):
     assert corpo["hoje"] == "2026-10-12"
     assert corpo["orcamentosSemResposta"] == [] and corpo["aprovadasParadas"] == []
     assert corpo["reservasSemEstoque"] == [] and corpo["semPagamento"] == [] and corpo["indisponiveis"] == []
-    assert set(corpo["limites"]) == {"orcamentoSemRespostaDias", "aprovadaParadaDias", "semPagamentoDias"}
+    assert corpo["respostasDoCliente"] == []
+    assert set(corpo["limites"]) == {"orcamentoSemRespostaDias", "aprovadaParadaDias", "semPagamentoDias", "respostaClienteDias"}
 
 
 def test_fuso_invalido_422(dono, db):
@@ -172,10 +173,10 @@ def test_fuso_invalido_422(dono, db):
 
 
 @pytest.mark.parametrize("cargo,blocos", [
-    ("dono", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque", "semPagamento"}),
-    ("gerente", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque", "semPagamento"}),
-    ("mecanico", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque"}),
-    ("atendente", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque"}),
+    ("dono", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque", "semPagamento", "respostasDoCliente"}),
+    ("gerente", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque", "semPagamento", "respostasDoCliente"}),
+    ("mecanico", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque", "respostasDoCliente"}),
+    ("atendente", {"orcamentosSemResposta", "aprovadasParadas", "reservasSemEstoque", "respostasDoCliente"}),
 ])
 def test_cada_cargo_so_recebe_os_blocos_que_pode_ver(db, fake, cargo, blocos):
     corpo = _get(_cliente(cargo))

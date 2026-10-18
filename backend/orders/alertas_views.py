@@ -8,6 +8,9 @@ Rotas:
           aprovadasParadas       (ordens.ver)   OS aprovada que não começou a execução há ≥ 1 dia
           reservasSemEstoque     (estoque.ver)  item cuja soma reservada nas OS passa do que há em estoque
           semPagamento           (financeiro.ver) OS concluída há ≥ 1 dia com lançamento de entrada pendente
+          respostasDoCliente     (ordens.ver)   o cliente aprovou/recusou PELO LINK nos últimos 3 dias e a OS
+                                                ainda está no estado da resposta (aprovada / recusada)
+          (orcamentosSemResposta também diz se há link ativo e quando o cliente abriu pela 1ª vez)
         Bloco sem permissão NÃO vem na resposta (≠ vazio). Bloco cuja tabela ainda não existe
         (script não rodado) vem vazio e o nome entra em `indisponiveis`.
         `?tz=` define o "hoje" (padrão America/Sao_Paulo), como no resto do app.
@@ -47,6 +50,7 @@ LIMITES = {
     "orcamentoSemRespostaDias": 2,
     "aprovadaParadaDias": 1,
     "semPagamentoDias": 1,
+    "respostaClienteDias": 3,
 }
 
 LOTE_IDS = 100
@@ -141,6 +145,7 @@ def _orcamentos_sem_resposta(oficina_doc, agora, hoje) -> list:
     ))
     ordens = _ordens_por_id(oficina_doc, [o["ordem_id"] for o in orcs])
     saida = []
+    candidatos = []
     for o in orcs:
         ordem = ordens.get(o["ordem_id"])
         if not ordem:
@@ -149,13 +154,78 @@ def _orcamentos_sem_resposta(oficina_doc, agora, hoje) -> list:
         vencido = bool(o.get("validade_ate")) and str(o["validade_ate"]) < hoje.isoformat()
         if not vencido and dias < LIMITES["orcamentoSemRespostaDias"]:
             continue
-        saida.append({
+        candidatos.append((o, ordem, dias, vencido))
+    links = _links_ativos(oficina_doc, [str(o["id"]) for o, *_ in candidatos])
+    for o, ordem, dias, vencido in candidatos:
+        item = {
             **_identificacao(ordem), "orcamentoId": str(o["id"]), "versao": o["versao"],
             "total": _num(o["total"]), "enviadoEm": o.get("enviado_em"),
             "validadeAte": o.get("validade_ate"), "vencido": vencido, "dias": dias,
-        })
+        }
+        link = links.get(str(o["id"]))
+        if link:
+            item["linkEnviado"] = True
+            item["linkAcessos"] = link.get("acessos") or 0
+            if link.get("primeiro_acesso_em"):
+                item["linkAbertoEm"] = link["primeiro_acesso_em"]
+        saida.append(item)
     # Vencidos primeiro; dentro de cada grupo, o mais antigo primeiro.
     saida.sort(key=lambda a: (not a["vencido"], -a["dias"]))
+    return saida
+
+
+def _links_ativos(oficina_doc, orcamento_ids) -> dict:
+    """{orcamento_id: link ativo} (Fase 6). Sem a tabela (orcamento_link.sql não rodado) = sem links:
+    quem avisa que falta o script é o bloco `respostasDoCliente`."""
+    if not orcamento_ids:
+        return {}
+    try:
+        por_orc = {}
+        for lote in _em_lotes(orcamento_ids):
+            for l in (
+                supabase.table("orcamento_links").select("*")
+                .eq("oficina_doc", oficina_doc).in_("orcamento_id", lote).execute().data or []
+            ):
+                if not l.get("revogado_em"):
+                    por_orc[str(l["orcamento_id"])] = l
+        return por_orc
+    except APIError as e:
+        if getattr(e, "code", None) in OBJETO_INEXISTENTE:
+            return {}
+        raise
+
+
+def _respostas_do_cliente(oficina_doc, agora) -> list:
+    """Aprovações/recusas feitas pelo cliente no link, ainda "frescas" e ainda no estado da resposta
+    (some quando a OS segue em frente: começa a execução, é refeita…)."""
+    desde = (agora - timedelta(days=LIMITES["respostaClienteDias"])).isoformat()
+    links = _listar_todos(lambda: (
+        supabase.table("orcamento_links").select("*")
+        .eq("oficina_doc", oficina_doc).gte("decidido_em", desde).order("id")
+    ))
+    links = [l for l in links if l.get("decidido_em") and l.get("decisao")]
+    if not links:
+        return []
+    orcs = {}
+    for lote in _em_lotes([str(l["orcamento_id"]) for l in links]):
+        for o in (
+            supabase.table("orcamentos").select("*").eq("oficina_doc", oficina_doc).in_("id", lote).execute().data or []
+        ):
+            orcs[str(o["id"])] = o
+    ordens = _ordens_por_id(oficina_doc, [o["ordem_id"] for o in orcs.values()])
+    esperado = {"aprovado": "aprovada", "recusado": "recusada"}
+    saida = []
+    for l in links:
+        orc = orcs.get(str(l["orcamento_id"]))
+        ordem = ordens.get(orc["ordem_id"]) if orc else None
+        if not ordem or ordem.get("status") != esperado.get(l["decisao"]):
+            continue
+        saida.append({
+            **_identificacao(ordem), "orcamentoId": str(orc["id"]), "versao": orc["versao"], "total": _num(orc["total"]),
+            "decisao": l["decisao"], "decididoEm": l["decidido_em"], "decisaoNome": l.get("decisao_nome") or "",
+            "motivo": (orc.get("motivo_recusa") or "") if l["decisao"] == "recusado" else "",
+        })
+    saida.sort(key=lambda a: a["decididoEm"], reverse=True)
     return saida
 
 
@@ -277,6 +347,7 @@ def alertas(request):
         ("aprovadasParadas", "orcamentos", "ordens.ver", lambda: _aprovadas_paradas(oficina_doc, agora)),
         ("reservasSemEstoque", "estoque_reservas", "estoque.ver", lambda: _reservas_sem_estoque(oficina_doc)),
         ("semPagamento", "financeiro", "financeiro.ver", lambda: _sem_pagamento(oficina_doc, agora, hoje)),
+        ("respostasDoCliente", "orcamento_link", "ordens.ver", lambda: _respostas_do_cliente(oficina_doc, agora)),
     ]
     corpo = {"hoje": hoje.isoformat(), "limites": LIMITES}
     indisponiveis = []
