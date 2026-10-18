@@ -519,6 +519,21 @@ class ClienteAvisadoSerializer(serializers.Serializer):
     avisado = serializers.BooleanField()
 
 
+class AlertaDispensarSerializer(serializers.Serializer):
+    """Esconde um alerta pra este usuário: adiar N dias, ou dispensar até o problema se resolver."""
+    modo = serializers.ChoiceField(choices=["adiar", "dispensar"])
+    dias = serializers.IntegerField(min_value=1, max_value=30, required=False)
+
+    def validate(self, attrs):
+        if attrs["modo"] == "adiar" and "dias" not in attrs:
+            raise serializers.ValidationError({"dias": "Informe por quantos dias adiar (1 a 30)."})
+        return attrs
+
+
+class AlertaLimparSerializer(serializers.Serializer):
+    ids = serializers.ListField(child=serializers.CharField(max_length=120), allow_empty=True, max_length=200)
+
+
 class OrcamentoRecusaSerializer(serializers.Serializer):
     motivo = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
 

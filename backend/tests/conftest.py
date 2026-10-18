@@ -124,7 +124,7 @@ def db(pg_dsn):
     cur.execute(
         "truncate public.estoque_movimentos, public.estoque_kit_itens, "
         "public.estoque_kits, public.estoque_itens, public.servicos, "
-        "public.ordens, public.financeiro_transacoes, public.orcamentos, public.orcamento_itens cascade"
+        "public.ordens, public.financeiro_transacoes, public.orcamentos, public.orcamento_itens, public.alertas_dispensados cascade"
     )
     cur.execute("update public.admins set meta_mensal = null")
     yield conn

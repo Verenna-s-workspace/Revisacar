@@ -179,7 +179,7 @@ def test_fuso_invalido_422(dono, db):
 ])
 def test_cada_cargo_so_recebe_os_blocos_que_pode_ver(db, fake, cargo, blocos):
     corpo = _get(_cliente(cargo))
-    assert {k for k in corpo if k not in ("hoje", "limites", "indisponiveis")} == blocos
+    assert {k for k in corpo if k not in ("hoje", "limites", "indisponiveis", "dispensados")} == blocos
 
 
 def test_bloco_sem_permissao_nao_vaza_dado_financeiro(dono, mecanico, db):
@@ -389,3 +389,204 @@ def test_erro_de_permissao_do_banco_nao_e_engolido(dono, fake, db):
     fake.falhar_em[("select", "estoque_reservas")] = "42501"
     with pytest.raises(Exception):
         dono.get("/alertas")
+
+
+# ── adiar / dispensar (por usuário) ──────────────────────────────────────────
+
+from datetime import datetime, timezone  # noqa: E402
+
+from rest_framework.test import APIClient as _Api  # noqa: E402
+
+from orders.rbac import permissoes_do_cargo  # noqa: E402
+
+ALERTA = "estoque_baixo:3f2c1a9e-0000-4000-8000-000000000001"
+OUTRO = "os_bloqueada:abc123"
+
+
+def _func(fid, cargo="gerente", oficina=OFICINA_A):
+    c = _Api()
+    token = make_jwt({"tipo": "funcionario", "id": fid, "nome": f"Func {fid}", "oficina_doc": oficina,
+                      "cargo": cargo, "permissoes": permissoes_do_cargo(cargo)}, 900)
+    c.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    return c
+
+
+def _put(api, alerta_id, corpo):
+    return api.put(f"/alertas/dispensados/{alerta_id}", corpo, format="json")
+
+
+def _meus(api):
+    return {d["alertaId"]: d for d in _get(api)["dispensados"]}
+
+
+def _ate(d):
+    return datetime.fromisoformat(d["ate"]).astimezone(timezone.utc)
+
+
+def test_sem_nada_escondido_a_lista_vem_vazia(dono, db):
+    assert _get(dono)["dispensados"] == []
+
+
+def test_adiar_guarda_ate_n_dias_a_partir_de_agora(dono, db):
+    r = _put(dono, ALERTA, {"modo": "adiar", "dias": 3})
+    assert r.status_code == 200, r.content
+    corpo = r.json()
+    assert corpo["alertaId"] == ALERTA
+    assert _ate(corpo) == (HOJE + timedelta(days=3)).astimezone(timezone.utc)
+    assert _ate(_meus(dono)[ALERTA]) == _ate(corpo)
+
+
+def test_dispensar_guarda_ate_nulo(dono, db):
+    r = _put(dono, ALERTA, {"modo": "dispensar"})
+    assert r.status_code == 200 and r.json()["ate"] is None
+    assert _meus(dono)[ALERTA]["ate"] is None
+
+
+def test_adiado_vencido_nao_volta_na_lista(dono, hoje, db):
+    _put(dono, ALERTA, {"modo": "adiar", "dias": 2})
+    hoje["agora"] = HOJE + timedelta(days=1, hours=23)
+    assert ALERTA in _meus(dono)
+    hoje["agora"] = HOJE + timedelta(days=2, minutes=1)
+    assert _meus(dono) == {}
+
+
+def test_adiar_de_novo_troca_o_prazo_sem_duplicar(dono, db):
+    _put(dono, ALERTA, {"modo": "adiar", "dias": 1})
+    _put(dono, ALERTA, {"modo": "adiar", "dias": 7})
+    meus = _meus(dono)
+    assert len(meus) == 1 and _ate(meus[ALERTA]) == (HOJE + timedelta(days=7)).astimezone(timezone.utc)
+    cur = db.cursor()
+    cur.execute("select count(*) from alertas_dispensados")
+    assert cur.fetchone()[0] == 1
+
+
+def test_dispensar_depois_de_adiar_vira_dispensado(dono, db):
+    _put(dono, ALERTA, {"modo": "adiar", "dias": 1})
+    _put(dono, ALERTA, {"modo": "dispensar"})
+    assert _meus(dono)[ALERTA]["ate"] is None
+
+
+def test_voltar_a_mostrar_apaga_e_repetir_e_inofensivo(dono, db):
+    _put(dono, ALERTA, {"modo": "dispensar"})
+    assert dono.delete(f"/alertas/dispensados/{ALERTA}").status_code == 204
+    assert _meus(dono) == {}
+    assert dono.delete(f"/alertas/dispensados/{ALERTA}").status_code == 204
+
+
+def test_e_por_usuario_um_nao_esconde_pro_outro(dono, db):
+    ana, beto = _func("ana"), _func("beto")
+    _put(ana, ALERTA, {"modo": "dispensar"})
+    assert ALERTA in _meus(ana)
+    assert _meus(beto) == {}
+    assert _meus(dono) == {}
+    assert ana.delete(f"/alertas/dispensados/{ALERTA}").status_code == 204
+    _put(beto, ALERTA, {"modo": "dispensar"})
+    assert ALERTA in _meus(beto)
+    # o delete de um não mexe no do outro
+    _put(ana, ALERTA, {"modo": "dispensar"})
+    ana.delete(f"/alertas/dispensados/{ALERTA}")
+    assert ALERTA in _meus(beto)
+
+
+def test_dono_e_funcionario_nao_se_misturam(dono, db):
+    _put(dono, ALERTA, {"modo": "dispensar"})
+    assert _meus(_func("ana")) == {}
+
+
+def test_e_por_oficina(dono, db):
+    outra = _cliente("dono", OFICINA_B)
+    _put(dono, ALERTA, {"modo": "dispensar"})
+    assert _meus(outra) == {}
+
+
+@pytest.mark.parametrize("cargo", ["mecanico", "atendente", "gerente"])
+def test_qualquer_cargo_pode_esconder_os_proprios_alertas(cargo, db):
+    api = _func("x", cargo)
+    assert _put(api, OUTRO, {"modo": "adiar", "dias": 1}).status_code == 200
+    assert OUTRO in _meus(api)
+
+
+def test_sem_login_401(db):
+    assert _Api().put(f"/alertas/dispensados/{ALERTA}", {"modo": "dispensar"}, format="json").status_code == 401
+    assert _Api().delete(f"/alertas/dispensados/{ALERTA}").status_code == 401
+    assert _Api().post("/alertas/dispensados/limpar", {"ids": []}, format="json").status_code == 401
+
+
+@pytest.mark.parametrize("corpo", [
+    {}, {"modo": "adiar"}, {"modo": "adiar", "dias": 0}, {"modo": "adiar", "dias": 31},
+    {"modo": "adiar", "dias": "x"}, {"modo": "silenciar"},
+])
+def test_corpo_invalido_422(dono, corpo, db):
+    assert _put(dono, ALERTA, corpo).status_code == 422
+    assert _meus(dono) == {}
+
+
+@pytest.mark.parametrize("alerta_id", ["qualquer", "fonte_que_nao_existe:1", "estoque_baixo:", "estoque_baixo:a b", "estoque_baixo:" + "x" * 81])
+def test_id_de_alerta_invalido_422(dono, alerta_id, db):
+    assert _put(dono, alerta_id, {"modo": "dispensar"}).status_code == 422
+
+
+def test_dias_ignorado_ao_dispensar(dono, db):
+    assert _put(dono, ALERTA, {"modo": "dispensar", "dias": 5}).json()["ate"] is None
+
+
+# limpar: dispensado cujo alerta se resolveu
+
+def test_limpar_apaga_so_dispensados_e_so_os_pedidos(dono, db):
+    _put(dono, ALERTA, {"modo": "dispensar"})
+    _put(dono, OUTRO, {"modo": "adiar", "dias": 5})
+    _put(dono, "estoque_quarentena:z9", {"modo": "dispensar"})
+    r = dono.post("/alertas/dispensados/limpar", {"ids": [ALERTA, OUTRO, "estoque_baixo:inexistente"]}, format="json")
+    assert r.status_code == 200, r.content
+    assert r.json() == {"removidos": [ALERTA]}                    # adiado fica (vence sozinho); inexistente ignora
+    assert set(_meus(dono)) == {OUTRO, "estoque_quarentena:z9"}
+
+
+def test_limpar_nao_mexe_no_de_outro_usuario(dono, db):
+    ana, beto = _func("ana"), _func("beto")
+    _put(ana, ALERTA, {"modo": "dispensar"})
+    _put(beto, ALERTA, {"modo": "dispensar"})
+    assert ana.post("/alertas/dispensados/limpar", {"ids": [ALERTA]}, format="json").json() == {"removidos": [ALERTA]}
+    assert ALERTA in _meus(beto)
+
+
+def test_limpar_lista_vazia_ok_e_validacoes(dono, db):
+    assert dono.post("/alertas/dispensados/limpar", {"ids": []}, format="json").json() == {"removidos": []}
+    assert dono.post("/alertas/dispensados/limpar", {}, format="json").status_code == 422
+    assert dono.post("/alertas/dispensados/limpar", {"ids": ["lixo"]}, format="json").status_code == 422
+    assert dono.post("/alertas/dispensados/limpar", {"ids": [f"estoque_baixo:{i}" for i in range(201)]}, format="json").status_code == 422
+
+
+def test_escrever_adiado_limpa_os_vencidos_do_usuario(dono, hoje, db):
+    _put(dono, OUTRO, {"modo": "adiar", "dias": 1})
+    hoje["agora"] = HOJE + timedelta(days=3)
+    _put(dono, ALERTA, {"modo": "dispensar"})
+    cur = db.cursor()
+    cur.execute("select alerta_id from alertas_dispensados")
+    assert [l[0] for l in cur.fetchall()] == [ALERTA]
+
+
+# script ausente
+
+def test_tabela_ausente_no_get_vira_indisponivel(dono, fake, db):
+    fake.falhar_em[("select", "alertas_dispensados")] = "42P01"
+    corpo = _get(dono)
+    assert corpo["dispensados"] == [] and "alertas_dispensados" in corpo["indisponiveis"]
+    assert "semPagamento" in corpo                                     # o resto segue
+
+
+@pytest.mark.parametrize("op,chamar", [
+    ("upsert", lambda a: _put(a, ALERTA, {"modo": "dispensar"})),
+    ("delete", lambda a: a.delete(f"/alertas/dispensados/{ALERTA}")),
+    ("select", lambda a: a.post("/alertas/dispensados/limpar", {"ids": [ALERTA]}, format="json")),
+])
+def test_tabela_ausente_nas_escritas_503_com_instrucao(dono, fake, db, op, chamar):
+    fake.falhar_em[(op, "alertas_dispensados")] = "42P01"
+    r = chamar(dono)
+    assert r.status_code == 503 and "alertas.sql" in r.json()["detail"]
+
+
+def test_erro_inesperado_do_banco_nao_e_engolido_na_escrita(dono, fake, db):
+    fake.falhar_em[("upsert", "alertas_dispensados")] = "42501"
+    with pytest.raises(Exception):
+        _put(dono, ALERTA, {"modo": "dispensar"})

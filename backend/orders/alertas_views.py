@@ -15,10 +15,21 @@ Rotas:
         Grava no banco que o cliente foi (ou não) avisado — antes ficava só no navegador.
         Quem avisa o cliente costuma ser o atendente, que não tem ordens.editar, por isso as duas.
 
+Adiar / dispensar (por USUÁRIO — o que um esconde continua aparecendo pros outros; qualquer logado):
+  GET    /alertas                        também traz `dispensados`: [{alertaId, ate, criadoEm}] do usuário
+                                         (`ate` = adiado até lá; null = dispensado). Adiados já vencidos não vêm.
+  PUT    /alertas/dispensados/<alertaId> {modo: "adiar", dias: 1..30} | {modo: "dispensar"}
+  DELETE /alertas/dispensados/<alertaId> volta a mostrar (204, repetir é inofensivo)
+  POST   /alertas/dispensados/limpar     {ids: [...]}  apaga só os DISPENSADOS (ate nulo) cujo alerta
+                                         já se resolveu — a tela chama isso, pra que, se o problema
+                                         voltar, o alerta volte a aparecer. Adiados vencem sozinhos.
+  `alertaId` é o id estável da tela: "<fonte>:<id do objeto>" (ex.: estoque_baixo:<uuid>).
+
 Os limites (em dias) estão em LIMITES e voltam na resposta, pra tela e a regra nunca divergirem.
 """
 import logging
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 
 from postgrest.exceptions import APIError
 from rest_framework import status as http_status
@@ -27,7 +38,7 @@ from rest_framework.response import Response
 
 from . import visao_geral_views as vg
 from .estoque_views import _listar_todos, _num
-from .serializers import ClienteAvisadoSerializer
+from .serializers import AlertaDispensarSerializer, AlertaLimparSerializer, ClienteAvisadoSerializer
 from .views import supabase, require_auth, _get_ordem_or_404, _now, _oficina_doc_do_token, _ordens_precisam_do_sql, _require_auth
 
 logger = logging.getLogger(__name__)
@@ -39,6 +50,14 @@ LIMITES = {
 }
 
 LOTE_IDS = 100
+MAX_DIAS_ADIAR = 30
+MAX_IDS_LIMPAR = 200
+# Mesmos ids de fonte de frontend/src/utils/alertas.ts (FonteAlertaId).
+FONTES_ALERTA = (
+    "os_bloqueada", "reserva_sem_estoque", "estoque_baixo", "os_sem_pagamento",
+    "orcamento_sem_resposta", "cliente_nao_avisado", "os_aprovada_parada", "estoque_quarentena",
+)
+_ALERTA_ID = re.compile(r"^(" + "|".join(FONTES_ALERTA) + r"):[A-Za-z0-9_.\-]{1,80}$")
 OBJETO_INEXISTENTE = {"42P01", "PGRST205", "42703", "PGRST204"}
 
 
@@ -88,6 +107,29 @@ def _identificacao(ordem: dict) -> dict:
         "cliente": ordem.get("cliente") or "", "placa": ordem.get("placa") or "",
         "modelo": ordem.get("modelo") or "",
     }
+
+
+def _usuario_chave(payload: dict) -> str:
+    """Quem é o usuário do token, pra guardar o que ele escondeu. O dono não tem id
+    (é a própria oficina); funcionário tem `id` (cai pro e-mail/nome se faltar)."""
+    if payload.get("tipo") == "dono":
+        return "dono"
+    return f"func:{payload.get('id') or payload.get('email') or payload.get('nome') or ''}"
+
+
+def _dispensados(oficina_doc, usuario, agora) -> list:
+    """O que este usuário escondeu e ainda vale: dispensados e adiados não vencidos."""
+    linhas = _listar_todos(lambda: (
+        supabase.table("alertas_dispensados").select("*")
+        .eq("oficina_doc", oficina_doc).eq("usuario_chave", usuario).order("alerta_id")
+    ))
+    saida = []
+    for l in linhas:
+        ate = l.get("ate")
+        if ate is not None and (_dt(ate) is None or _dt(ate) <= agora):
+            continue
+        saida.append({"alertaId": l["alerta_id"], "ate": ate, "criadoEm": l.get("criado_em")})
+    return saida
 
 
 # ── blocos ───────────────────────────────────────────────────────────────────
@@ -251,6 +293,14 @@ def alertas(request):
                     indisponiveis.append(origem)
                 continue
             raise
+    try:
+        corpo["dispensados"] = _dispensados(oficina_doc, _usuario_chave(request.admin), agora)
+    except APIError as e:
+        if getattr(e, "code", None) not in OBJETO_INEXISTENTE:
+            raise
+        logger.error("Alertas: alertas_dispensados indisponível (%s): %s", e.code, getattr(e, "message", e))
+        corpo["dispensados"] = []
+        indisponiveis.append("alertas_dispensados")
     corpo["indisponiveis"] = indisponiveis
     return Response(corpo)
 
@@ -295,3 +345,95 @@ def ordem_cliente_avisado(request, ordem_id):
                             status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
         raise
     return Response(res.data[0] if res.data else row)
+
+
+# ── adiar / dispensar ────────────────────────────────────────────────────────
+
+def _resposta_sem_tabela(e):
+    """503 com a instrução, se a tabela (alertas.sql) ainda não existe; senão None."""
+    if getattr(e, "code", None) in OBJETO_INEXISTENTE:
+        logger.error("Alertas: alertas_dispensados ausente (%s): %s", e.code, getattr(e, "message", e))
+        return Response({"detail": "Adiar e dispensar alertas ainda não existe no banco. "
+                                   "Rode backend/sql/alertas.sql no SQL Editor do Supabase."},
+                        status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+    return None
+
+
+def _alerta_id_invalido(alerta_id):
+    if _ALERTA_ID.match(alerta_id or ""):
+        return None
+    return Response({"detail": "Alerta inválido."}, status=http_status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+
+@api_view(["PUT", "DELETE"])
+@require_auth
+def alerta_dispensado(request, alerta_id):
+    erro = _alerta_id_invalido(alerta_id)
+    if erro:
+        return erro
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    usuario = _usuario_chave(request.admin)
+    tabela = lambda: supabase.table("alertas_dispensados")  # noqa: E731
+
+    try:
+        if request.method == "DELETE":
+            (tabela().delete().eq("oficina_doc", oficina_doc).eq("usuario_chave", usuario)
+             .eq("alerta_id", alerta_id).execute())
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
+
+        serializer = AlertaDispensarSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=http_status.HTTP_422_UNPROCESSABLE_ENTITY)
+        dados = serializer.validated_data
+        agora = vg._agora(timezone.utc)   # mesmo relógio do GET (os testes o fixam)
+        ate = (agora + timedelta(days=dados["dias"])).isoformat() if dados["modo"] == "adiar" else None
+        # Adiados que já venceram não servem mais pra nada: limpa de passagem.
+        (tabela().delete().eq("oficina_doc", oficina_doc).eq("usuario_chave", usuario)
+         .lt("ate", agora.isoformat()).execute())
+        res = tabela().upsert(
+            {"oficina_doc": oficina_doc, "usuario_chave": usuario, "alerta_id": alerta_id,
+             "ate": ate, "criado_em": agora.isoformat()},
+            on_conflict="oficina_doc,usuario_chave,alerta_id",
+        ).execute()
+    except APIError as e:
+        resposta = _resposta_sem_tabela(e)
+        if resposta:
+            return resposta
+        raise
+    linha = res.data[0]
+    return Response({"alertaId": linha["alerta_id"], "ate": linha.get("ate"), "criadoEm": linha.get("criado_em")})
+
+
+@api_view(["POST"])
+@require_auth
+def alertas_dispensados_limpar(request):
+    serializer = AlertaLimparSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=http_status.HTTP_422_UNPROCESSABLE_ENTITY)
+    ids = list(dict.fromkeys(serializer.validated_data["ids"]))
+    for alerta_id in ids:
+        erro = _alerta_id_invalido(alerta_id)
+        if erro:
+            return erro
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    usuario = _usuario_chave(request.admin)
+    if not ids:
+        return Response({"removidos": []})
+    apagados = []
+    try:
+        linhas = (
+            supabase.table("alertas_dispensados").select("*")
+            .eq("oficina_doc", oficina_doc).eq("usuario_chave", usuario).in_("alerta_id", ids).execute().data or []
+        )
+        alvo = [l["alerta_id"] for l in linhas if l.get("ate") is None]   # adiado vence sozinho
+        if alvo:
+            apagados = (
+                supabase.table("alertas_dispensados").delete()
+                .eq("oficina_doc", oficina_doc).eq("usuario_chave", usuario).in_("alerta_id", alvo).execute().data or []
+            )
+    except APIError as e:
+        resposta = _resposta_sem_tabela(e)
+        if resposta:
+            return resposta
+        raise
+    return Response({"removidos": sorted(l["alerta_id"] for l in apagados)})

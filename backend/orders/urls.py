@@ -82,6 +82,8 @@ urlpatterns = [
 
     # Alertas — cada bloco exige a própria permissão (ver alertas_views)
     path("alertas", alertas_views.alertas),
+    path("alertas/dispensados/limpar", alertas_views.alertas_dispensados_limpar),
+    path("alertas/dispensados/<str:alerta_id>", alertas_views.alerta_dispensado),
 
     # Visão Geral — leitura p/ qualquer usuário logado (blocos de dinheiro só por permissão);
     # meta mensal: configuracoes.editar
