@@ -421,6 +421,17 @@ export const api = {
   /** Dados dos alertas de orçamento, OS parada, reserva sem estoque e pagamento (cada bloco só vem pra quem pode ver). */
   obterAlertas: (tz?: string) => authFetch(`${API_BASE}/alertas${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
 
+  // Adiar/dispensar é por usuário (qualquer logado). 503 se alertas.sql não foi rodado.
+  adiarAlerta: (alertaId: string, dias: number) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'PUT', body: JSON.stringify({ modo: 'adiar', dias }) }),
+  dispensarAlerta: (alertaId: string) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'PUT', body: JSON.stringify({ modo: 'dispensar' }) }),
+  restaurarAlerta: (alertaId: string) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'DELETE' }),
+  /** Apaga só os DISPENSADOS cujo alerta já se resolveu (pra, se voltar, voltar a aparecer). */
+  limparAlertasDispensados: (ids: string[]) =>
+    authFetch(`${API_BASE}/alertas/dispensados/limpar`, { method: 'POST', body: JSON.stringify({ ids }) }),
+
   // ── Visão Geral ──────────────────────────────────────────────────────────────
   // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.
   visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),

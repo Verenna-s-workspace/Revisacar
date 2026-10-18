@@ -42,6 +42,15 @@ export interface SemPagamento extends IdentificacaoOS {
   vencido: boolean;
 }
 
+/** Alerta que ESTE usuário escondeu (por usuário: o que um esconde continua aparecendo pros outros). */
+export interface AlertaEscondidoApi {
+  /** Id estável do alerta na tela ("<fonte>:<id do objeto>"). */
+  alertaId: string;
+  /** Adiado até esse momento; null = dispensado (some até a causa se resolver). */
+  ate: string | null;
+  criadoEm?: string | null;
+}
+
 /** Cada bloco só vem pra quem tem a permissão dele (ausente ≠ vazio). */
 export interface AlertasBackend {
   hoje: string;
@@ -50,6 +59,8 @@ export interface AlertasBackend {
   aprovadasParadas?: AprovadaParada[];
   reservasSemEstoque?: ReservaSemEstoque[];
   semPagamento?: SemPagamento[];
-  /** Origens cujo script SQL ainda não foi rodado: 'orcamentos' | 'estoque_reservas' | 'financeiro'. */
+  /** Adiados (ainda valendo) e dispensados deste usuário; vem pra todo mundo. */
+  dispensados?: AlertaEscondidoApi[];
+  /** Origens cujo script SQL ainda não foi rodado: 'orcamentos' | 'estoque_reservas' | 'financeiro' | 'alertas_dispensados'. */
   indisponiveis: string[];
 }

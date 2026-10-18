@@ -18,6 +18,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
 | Alertas (tela dedicada) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: lista, filtros, atalhos, vazio, erro, mobile 390px). 4 tipos: OS bloqueada, estoque baixo, cliente a avisar, quarentena. Sem backend novo. Orçamento/financeiro ficam pra depois (ver seção) |
 | Alertas — cliente avisado no banco + orçamento/financeiro | 🟡 SQL + API + front prontos (474 testes; smoke no navegador com API simulada: 8 tipos, filtros, atalhos, fallback sem script, migração do navegador, mecânico sem financeiro, mobile). Falta: rodar `alertas.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase real |
+| Alertas — adiar/dispensar | 🟡 SQL + API + front prontos (509 testes; smoke no navegador com API simulada: adiar 1/3/7 dias, dispensar, desfazer, voltar a mostrar, persistência, limpeza quando o problema se resolve, 503, mobile). Falta: rodar `alertas.sql` de novo (acrescenta a tabela `alertas_dispensados`) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -278,4 +279,20 @@ Só frontend; nenhum SQL/endpoint novo. Antes, o sino/bloco da sidebar levavam a
 **Pendências / decisões**
 - Limiares (2 dias orçamento, 1 dia aprovada/pagamento, 7 dias urgência) são constantes — ajustar se a oficina quiser.
 - Alerta de pagamento só considera lançamentos com `ordem_servico_id`; lançamentos avulsos não entram.
-- Falta o passo 3: dispensar/adiar alerta (ids já estáveis). Ideias não pedidas: auto-atualizar, alertas por papel.
+- O passo 3 (dispensar/adiar) está na seção abaixo. Ideias não pedidas: auto-atualizar, alertas por papel.
+
+## Alertas — adiar e dispensar (2026-10-18) — branch feat/alertas-backend
+
+**Passo do usuário:** rodar `backend/sql/alertas.sql` de novo no Supabase (idempotente; agora também cria `alertas_dispensados`, com RLS ligada e sem policy — só o backend acessa). Sem ele, esconder um alerta responde 503 com essa instrução e o resto da tela segue normal.
+
+- **Por usuário, no banco:** cada um esconde só pra si (o que o gerente dispensa continua aparecendo pro dono). Chave = oficina + usuário (`dono` ou `func:<id>`) + id do alerta (`<fonte>:<id do objeto>`). Vale em qualquer aparelho. Qualquer cargo pode (é preferência do próprio usuário, não precisa de permissão).
+- **Dois jeitos:** *Adiar* (1, 3 ou 7 dias; a API aceita 1–30): some até o prazo e volta sozinho. *Dispensar*: some até a causa se resolver — quando o alerta deixa de existir, a tela apaga o registro (`POST /alertas/dispensados/limpar`), então, se o problema voltar, o alerta reaparece.
+- **Quando NÃO limpa o dispensado:** se o bloco do banco falhou, se o usuário não tem a permissão do bloco (ex.: mecânico e financeiro) ou se o script daquela origem não rodou — `fontesCompletas` em `utils/alertas.ts`. Evita apagar o que foi dispensado por causa de uma falha momentânea.
+- **API:** `GET /alertas` traz `dispensados` (adiados vigentes + dispensados); `PUT /alertas/dispensados/<id>` `{modo:'adiar',dias}` | `{modo:'dispensar'}`; `DELETE` volta a mostrar (204, idempotente); `POST .../limpar {ids}` (até 200; só apaga dispensados). Id validado (`<fonte conhecida>:<id>`). Escrever apaga de passagem os adiados vencidos do usuário.
+- **Tela:** cada alerta tem "Adiar ou dispensar" (abre 1 dia / 3 dias / 7 dias / Dispensar / Cancelar). Depois de esconder, aviso com **Desfazer** por 8 s. Seção "Adiados e dispensados · N" no fim, com "Voltar a mostrar" e "Adiado até dd/mm às hh:mm". O número da sidebar, do sino, do painel e dos filtros já desconta o que está escondido (estado único em `useAlertas`). Esconde na hora e desfaz sozinho se o servidor recusar (mostra o erro).
+- **Testes:** 35 novos em `tests/test_alertas.py` (509 no total); `fake_supabase` ganhou `upsert`.
+
+**Pendências / decisões**
+- Um alerta adiado/dispensado **não volta se piorar** (ex.: estoque baixo que zerou, orçamento que venceu). Dá pra fazer "volta se a severidade subir" depois.
+- Adiar é em dias corridos a partir de agora (não "até amanhã 8h").
+- Dois alertas com o mesmo título (ex.: "Filtro de óleo" em reserva e em estoque baixo) são independentes — esconder um não esconde o outro.

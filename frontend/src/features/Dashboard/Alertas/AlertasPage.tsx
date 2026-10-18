@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Skeleton } from '../Primitives';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useAlertas } from '../../../hooks/useAlertas';
-import { maisGrave } from '../../../utils/alertas';
-import type { AcaoAlerta, AlertaItem, SeveridadeAlerta } from '../../../utils/alertas';
+import { OPCOES_ADIAR, formatarAte, maisGrave } from '../../../utils/alertas';
+import type { AcaoAlerta, AlertaEscondido, AlertaItem, SeveridadeAlerta } from '../../../utils/alertas';
 import type { NavPage } from '../../../types/dashboard';
 
 interface AlertasPageProps {
@@ -34,35 +34,111 @@ const botaoSecundario: React.CSSProperties = {
   borderRadius: 8, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, fontFamily: tokens.fontSans,
 };
 
-function LinhaAlerta({ alerta, isMobile, onAcao }: { alerta: AlertaItem; isMobile: boolean; onAcao: (a: AcaoAlerta) => void }) {
+const botaoDiscreto: React.CSSProperties = {
+  padding: '4px 2px', background: 'transparent', color: tokens.color.muted, border: 'none', cursor: 'pointer',
+  fontSize: '0.74rem', fontWeight: 600, fontFamily: tokens.fontSans, textDecoration: 'underline', textUnderlineOffset: 3,
+};
+const chip: React.CSSProperties = {
+  padding: '5px 12px', background: 'white', color: tokens.color.text, border: `1px solid ${tokens.color.border}`,
+  borderRadius: 99, cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, fontFamily: tokens.fontSans,
+};
+
+interface LinhaProps {
+  alerta: AlertaItem;
+  isMobile: boolean;
+  onAcao: (a: AcaoAlerta) => void;
+  onAdiar: (a: AlertaItem, dias: number) => void;
+  onDispensar: (a: AlertaItem) => void;
+}
+
+function LinhaAlerta({ alerta, isMobile, onAcao, onAdiar, onDispensar }: LinhaProps) {
   const c = CORES[alerta.severidade];
+  const [aberto, setAberto] = useState(false);
   return (
-    <div style={{
-      display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center',
-      justifyContent: 'space-between', gap: 10, padding: '12px 14px', borderRadius: 10, background: c.bg, border: `1px solid ${c.borda}`,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
-        <span style={{ color: c.cor, flexShrink: 0, marginTop: 2, display: 'flex' }} aria-hidden="true">{c.icone}</span>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: tokens.color.text, overflowWrap: 'anywhere' }}>{alerta.titulo}</div>
-          {alerta.detalhe && <div style={{ fontSize: '0.76rem', color: tokens.color.textSecond, marginTop: 2, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{alerta.detalhe}</div>}
+    <div style={{ borderRadius: 10, background: c.bg, border: `1px solid ${c.borda}`, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center',
+        justifyContent: 'space-between', gap: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+          <span style={{ color: c.cor, flexShrink: 0, marginTop: 2, display: 'flex' }} aria-hidden="true">{c.icone}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: tokens.color.text, overflowWrap: 'anywhere' }}>{alerta.titulo}</div>
+            {alerta.detalhe && <div style={{ fontSize: '0.76rem', color: tokens.color.textSecond, marginTop: 2, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{alerta.detalhe}</div>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+          {alerta.acaoSecundaria && (
+            <button type="button" style={botaoSecundario} onClick={() => onAcao(alerta.acaoSecundaria!)}>{alerta.acaoSecundaria.rotulo}</button>
+          )}
+          <button type="button" style={botaoPrimario} onClick={() => onAcao(alerta.acao)}>
+            {alerta.acao.rotulo} <span style={{ display: 'flex' }}>{Icons.arrow}</span>
+          </button>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-        {alerta.acaoSecundaria && (
-          <button type="button" style={botaoSecundario} onClick={() => onAcao(alerta.acaoSecundaria!)}>{alerta.acaoSecundaria.rotulo}</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingLeft: 26 }}>
+        {!aberto ? (
+          <button type="button" style={botaoDiscreto} aria-expanded={false} aria-label={`Adiar ou dispensar: ${alerta.titulo}`} onClick={() => setAberto(true)}>
+            Adiar ou dispensar
+          </button>
+        ) : (
+          <div role="group" aria-label={`Esconder: ${alerta.titulo}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.74rem', color: tokens.color.textSecond, fontWeight: 600 }}>Adiar por</span>
+            {OPCOES_ADIAR.map(o => (
+              <button key={o.dias} type="button" style={chip} onClick={() => { setAberto(false); onAdiar(alerta, o.dias); }}>{o.rotulo}</button>
+            ))}
+            <button type="button" style={{ ...chip, color: tokens.color.crit }} title="Esconde até o problema se resolver" onClick={() => { setAberto(false); onDispensar(alerta); }}>
+              Dispensar
+            </button>
+            <button type="button" style={botaoDiscreto} aria-expanded={true} onClick={() => setAberto(false)}>Cancelar</button>
+          </div>
         )}
-        <button type="button" style={botaoPrimario} onClick={() => onAcao(alerta.acao)}>
-          {alerta.acao.rotulo} <span style={{ display: 'flex' }}>{Icons.arrow}</span>
-        </button>
       </div>
     </div>
   );
 }
 
+function LinhaEscondida({ alerta, onRestaurar }: { alerta: AlertaEscondido; onRestaurar: (a: AlertaEscondido) => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
+      padding: '10px 14px', borderRadius: 10, background: tokens.color.bg, border: `1px dashed ${tokens.color.border}`,
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: tokens.color.textSecond, overflowWrap: 'anywhere' }}>{alerta.titulo}</div>
+        <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 2 }}>
+          {alerta.ate ? `Adiado até ${formatarAte(alerta.ate)}` : 'Dispensado — volta se o problema se resolver e reaparecer'}
+        </div>
+      </div>
+      <button type="button" style={botaoSecundario} onClick={() => onRestaurar(alerta)}>Voltar a mostrar</button>
+    </div>
+  );
+}
+
 export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPageProps) {
-  const { grupos, alertas, loading, erro, avisos, recarregar } = useAlertas();
+  const { grupos, alertas, escondidos, loading, erro, avisos, recarregar, adiar, dispensar, restaurar, erroAcao, limparErroAcao } = useAlertas();
   const [filtro, setFiltro] = useState<Filtro>('todos');
+  const [mostrarEscondidos, setMostrarEscondidos] = useState(false);
+  // "Desfazer" logo depois de esconder (some sozinho).
+  const [desfazer, setDesfazer] = useState<{ id: string; texto: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const avisarDesfazer = (id: string, texto: string) => {
+    setDesfazer({ id, texto });
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setDesfazer(null), 8000);
+  };
+  const aoAdiar = async (a: AlertaItem, dias: number) => {
+    if (await adiar(a.id, dias)) avisarDesfazer(a.id, `Alerta adiado por ${dias === 1 ? '1 dia' : `${dias} dias`}.`);
+  };
+  const aoDispensar = async (a: AlertaItem) => {
+    if (await dispensar(a.id)) avisarDesfazer(a.id, 'Alerta dispensado.');
+  };
+  const aoRestaurar = async (id: string) => {
+    setDesfazer(null);
+    await restaurar(id);
+  };
 
   const qtd = useMemo(() => ({
     todos: alertas.length,
@@ -122,6 +198,16 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
           </div>
         )}
 
+        {erroAcao && (
+          <div role="alert" style={{
+            padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit, border: `1px solid ${tokens.color.critBorder}`,
+            borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+          }}>
+            <span>{erroAcao}</span>
+            <button type="button" onClick={limparErroAcao} style={botaoSecundario}>Fechar</button>
+          </div>
+        )}
+
         {!loading && avisos.map(a => (
           <div key={a} role="status" style={{
             padding: '10px 16px', background: tokens.color.warnBg, color: tokens.color.warn, border: `1px solid ${tokens.color.warnBorder}`,
@@ -129,7 +215,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
           }}>{a}</div>
         ))}
 
-        {!erro && (loading || alertas.length > 0) && (
+        {!erro && (loading || alertas.length > 0 || escondidos.length > 0) && (
           <div role="group" aria-label="Filtrar por urgência" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {filtros.map(f => {
               const ativo = filtro === f.id;
@@ -159,8 +245,12 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
             textAlign: 'center', color: tokens.color.ok,
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>{Icons.check}</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem' }}>Tudo em dia</div>
-            <div style={{ fontSize: '0.82rem', marginTop: 4 }}>Nenhum alerta no momento.</div>
+            <div style={{ fontWeight: 800, fontSize: '1rem' }}>{escondidos.length > 0 ? 'Nenhum alerta à vista' : 'Tudo em dia'}</div>
+            <div style={{ fontSize: '0.82rem', marginTop: 4 }}>
+              {escondidos.length > 0
+                ? `${escondidos.length === 1 ? '1 alerta está adiado ou dispensado' : `${escondidos.length} alertas estão adiados ou dispensados`} por você — veja abaixo.`
+                : 'Nenhum alerta no momento.'}
+            </div>
           </div>
         )}
 
@@ -181,11 +271,40 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
                 }}>{g.itens.length}</span>
                 <span style={{ fontSize: '0.7rem', color: tokens.color.muted, marginLeft: 'auto' }}>{c.rotulo}</span>
               </div>
-              {g.itens.map(a => <LinhaAlerta key={a.id} alerta={a} isMobile={isMobile} onAcao={onAcao} />)}
+              {g.itens.map(a => <LinhaAlerta key={a.id} alerta={a} isMobile={isMobile} onAcao={onAcao} onAdiar={aoAdiar} onDispensar={aoDispensar} />)}
             </section>
           );
         })}
+
+        {!loading && !erro && escondidos.length > 0 && (
+          <section aria-label="Alertas adiados e dispensados" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button type="button" aria-expanded={mostrarEscondidos} onClick={() => setMostrarEscondidos(v => !v)} style={{
+              ...botaoSecundario, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              Adiados e dispensados · {escondidos.length}
+              <span style={{ display: 'flex', transform: mostrarEscondidos ? 'rotate(90deg)' : 'none' }} aria-hidden="true">{Icons.arrow}</span>
+            </button>
+            {mostrarEscondidos && escondidos.map(a => (
+              <LinhaEscondida key={a.id} alerta={a} onRestaurar={x => void aoRestaurar(x.id)} />
+            ))}
+          </section>
+        )}
       </div>
+
+      {desfazer && (
+        <div role="status" style={{
+          position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 50, maxWidth: 'calc(100vw - 32px)',
+          bottom: isMobile ? 'calc(var(--mobile-bottom-nav-h) + 12px)' : 24,
+          display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px', borderRadius: 10,
+          background: tokens.color.text, color: 'white', fontSize: '0.82rem', fontWeight: 600, boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+        }}>
+          <span>{desfazer.texto}</span>
+          <button type="button" onClick={() => void aoRestaurar(desfazer.id)} style={{
+            background: 'transparent', border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer',
+            textDecoration: 'underline', fontSize: '0.82rem', fontFamily: tokens.fontSans,
+          }}>Desfazer</button>
+        </div>
+      )}
     </div>
   );
 

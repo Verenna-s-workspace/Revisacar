@@ -8,7 +8,8 @@
 //   2. acrescentar a fonte na lista FONTES_ALERTA (a ordem da lista = ordem na tela);
 //   3. se precisar de dado novo: do navegador, um campo em ContextoAlertas buscado em
 //      hooks/useAlertas.ts; do banco, um bloco novo em GET /alertas (alertas_views.py)
-//      e o tipo dele em types/alertas.ts.
+//      e o tipo dele em types/alertas.ts — e, se o bloco puder sumir (permissão ou script
+//      ausente), registrar em BLOCO_DA_FONTE pra "dispensar" saber quando limpar.
 // A tela não muda.
 
 import { isSameDay } from './agenda';
@@ -19,7 +20,7 @@ import { dataBR } from './orcamento_utils';
 import type { OrdemRow, NavPage } from '../types/dashboard';
 import type { EstoqueItem } from '../types/estoque';
 import type { OverlayMap } from '../types/atendimento';
-import type { AlertasBackend } from '../types/alertas';
+import type { AlertaEscondidoApi, AlertasBackend } from '../types/alertas';
 
 export type SeveridadeAlerta = 'crit' | 'warn' | 'info';
 
@@ -44,7 +45,7 @@ export interface AcaoAlerta {
 }
 
 export interface AlertaItem {
-  /** Estável entre recargas (fonte + id do objeto) — serve de `key` e de chave pra "dispensar" no futuro. */
+  /** Estável entre recargas (fonte + id do objeto) — serve de `key` e de chave pra adiar/dispensar. */
   id: string;
   fonte: FonteAlertaId;
   severidade: SeveridadeAlerta;
@@ -281,4 +282,81 @@ export function agruparAlertas(alertas: AlertaItem[], fontes: FonteAlerta[] = FO
 
 export function contarPorFonte(alertas: AlertaItem[], id: FonteAlertaId): number {
   return alertas.filter(a => a.fonte === id).length;
+}
+
+// ── Adiar / dispensar (por usuário; vem de GET /alertas → `dispensados`) ─────────────────
+
+/** Um alerta que o usuário escondeu e que ainda existe: `ate` = adiado até lá; null = dispensado. */
+export interface AlertaEscondido extends AlertaItem {
+  ate: string | null;
+}
+
+/** Quanto tempo cada atalho de "Adiar" esconde o alerta. */
+export const OPCOES_ADIAR: { dias: number; rotulo: string }[] = [
+  { dias: 1, rotulo: '1 dia' },
+  { dias: 3, rotulo: '3 dias' },
+  { dias: 7, rotulo: '7 dias' },
+];
+
+/**
+ * Separa o que aparece do que o usuário escondeu. Só entra em "escondidos" o que AINDA é
+ * alerta (um dispensado cuja causa sumiu não aparece em lugar nenhum); adiado vencido volta
+ * a aparecer sozinho.
+ */
+export function aplicarEscondidos(
+  alertas: AlertaItem[], escondidos: AlertaEscondidoApi[], agora: Date = new Date(),
+): { visiveis: AlertaItem[]; escondidos: AlertaEscondido[] } {
+  const vigentes = new Map<string, string | null>();
+  for (const e of escondidos) {
+    if (e.ate === null) { vigentes.set(e.alertaId, null); continue; }
+    const t = new Date(e.ate).getTime();
+    if (Number.isFinite(t) && t > agora.getTime()) vigentes.set(e.alertaId, e.ate);
+  }
+  const visiveis: AlertaItem[] = [];
+  const fora: AlertaEscondido[] = [];
+  for (const a of alertas) {
+    if (vigentes.has(a.id)) fora.push({ ...a, ate: vigentes.get(a.id) ?? null });
+    else visiveis.push(a);
+  }
+  return { visiveis, escondidos: fora };
+}
+
+/** "21/10 às 10:30" (horário do navegador). */
+export function formatarAte(ate: string): string {
+  const d = new Date(ate);
+  if (Number.isNaN(d.getTime())) return '';
+  const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${dia} às ${hora}`;
+}
+
+/** Bloco de GET /alertas (e origem de script) de que cada fonte do banco depende. */
+export const BLOCO_DA_FONTE: Partial<Record<FonteAlertaId, { bloco: keyof AlertasBackend; origem: string }>> = {
+  reserva_sem_estoque: { bloco: 'reservasSemEstoque', origem: 'estoque_reservas' },
+  os_sem_pagamento: { bloco: 'semPagamento', origem: 'financeiro' },
+  orcamento_sem_resposta: { bloco: 'orcamentosSemResposta', origem: 'orcamentos' },
+  os_aprovada_parada: { bloco: 'aprovadasParadas', origem: 'orcamentos' },
+};
+
+/** Fontes que dá pra dizer "esse alerta de fato acabou": as do navegador sempre; as do banco
+ *  só se o bloco veio (permissão) e o script dele já rodou. Sem isso, falha momentânea limparia o que foi dispensado. */
+export function fontesCompletas(backend: AlertasBackend | null, fontes: FonteAlerta[] = FONTES_ALERTA): Set<FonteAlertaId> {
+  const completas = new Set<FonteAlertaId>();
+  for (const f of fontes) {
+    const dep = BLOCO_DA_FONTE[f.id];
+    if (!dep) { completas.add(f.id); continue; }
+    if (backend && Array.isArray(backend[dep.bloco]) && !(backend.indisponiveis ?? []).includes(dep.origem)) completas.add(f.id);
+  }
+  return completas;
+}
+
+/** Dispensados (não os adiados — esses vencem sozinhos) cujo alerta já se resolveu: podem ser apagados. */
+export function dispensadosResolvidos(
+  escondidos: AlertaEscondidoApi[], alertas: AlertaItem[], completas: Set<FonteAlertaId>,
+): string[] {
+  const ativos = new Set(alertas.map(a => a.id));
+  return escondidos
+    .filter(e => e.ate === null && !ativos.has(e.alertaId))
+    .filter(e => completas.has(e.alertaId.split(':')[0] as FonteAlertaId))
+    .map(e => e.alertaId);
 }
