@@ -10,6 +10,11 @@ interface IdentificacaoOS {
 
 export interface OrcamentoSemResposta extends IdentificacaoOS {
   orcamentoId: string;
+  /** Há um link ativo mandado pro cliente (Fase 6). */
+  linkEnviado?: boolean;
+  linkAcessos?: number;
+  /** Quando o cliente abriu o link pela primeira vez. */
+  linkAbertoEm?: string;
   versao: number;
   total: number;
   enviadoEm?: string | null;
@@ -17,6 +22,17 @@ export interface OrcamentoSemResposta extends IdentificacaoOS {
   vencido: boolean;
   /** Dias desde o envio. */
   dias: number;
+}
+
+/** O cliente aprovou ou recusou pelo link nos últimos dias e a OS ainda está nesse estado. */
+export interface RespostaDoCliente extends IdentificacaoOS {
+  orcamentoId: string;
+  versao: number;
+  total: number;
+  decisao: 'aprovado' | 'recusado';
+  decididoEm: string;
+  decisaoNome: string;
+  motivo: string;
 }
 
 export interface AprovadaParada extends IdentificacaoOS {
@@ -59,8 +75,9 @@ export interface AlertasBackend {
   aprovadasParadas?: AprovadaParada[];
   reservasSemEstoque?: ReservaSemEstoque[];
   semPagamento?: SemPagamento[];
+  respostasDoCliente?: RespostaDoCliente[];
   /** Adiados (ainda valendo) e dispensados deste usuário; vem pra todo mundo. */
   dispensados?: AlertaEscondidoApi[];
-  /** Origens cujo script SQL ainda não foi rodado: 'orcamentos' | 'estoque_reservas' | 'financeiro' | 'alertas_dispensados'. */
+  /** Origens cujo script SQL ainda não foi rodado: 'orcamentos' | 'estoque_reservas' | 'financeiro' | 'orcamento_link' | 'alertas_dispensados'. */
   indisponiveis: string[];
 }

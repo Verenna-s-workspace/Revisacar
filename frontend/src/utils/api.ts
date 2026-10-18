@@ -408,6 +408,12 @@ export const api = {
     authFetch(`${API_BASE}/ordens/${ordemId}/concluir`, { method: 'POST', body: JSON.stringify(payload) }),
 
   /** PDF da versão (só preço cobrado). */
+  // Link público do orçamento (Fase 6). Ver: ordens.ver; gerar/renovar/revogar: ordens.editar.
+  obterLinkOrcamento: (id: string) => authFetch(`${API_BASE}/orcamentos/${id}/link`),
+  gerarLinkOrcamento: (id: string, renovar = false) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/link`, { method: 'POST', body: JSON.stringify({ renovar }) }),
+  revogarLinkOrcamento: (id: string) => authFetch(`${API_BASE}/orcamentos/${id}/link`, { method: 'DELETE' }),
+
   baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
 
   recusarOrcamento: (id: string, payload: { motivo?: string }) =>

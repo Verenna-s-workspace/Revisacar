@@ -16,6 +16,7 @@ import { ItensEditor } from './ItensEditor';
 import { ItensLeitura } from './ItensLeitura';
 import { SeloStatusOrcamento, VersoesLista } from './VersoesLista';
 import { AprovarModal, RecusarModal } from './DecisaoModais';
+import { LinkCliente } from './LinkCliente';
 import type { StatusOrdem } from '../../utils/ordem_status';
 
 interface Props {
@@ -275,7 +276,13 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
       </Aviso>
     );
   } else if (visto.status === 'aprovado') {
-    faixa = (
+    faixa = visto.aprovacaoCanal === 'link' ? (
+      <Aviso tom="ok">
+        <strong>Aprovado pelo cliente</strong>{visto.aprovadoPorNome ? ` (${visto.aprovadoPorNome})` : ''} pelo link do orçamento
+        {visto.aprovadoEm ? ` · ${dataBR(visto.aprovadoEm)}` : ''}.
+        {visto.aprovacaoObs ? ` “${visto.aprovacaoObs}”` : ''}
+      </Aviso>
+    ) : (
       <Aviso tom="ok">
         Aprovado{visto.aprovadoPorNome ? ` (registrado por ${visto.aprovadoPorNome})` : ''}
         {visto.aprovacaoCanal ? ` · ${ROTULO_CANAL[visto.aprovacaoCanal]}` : ''}
@@ -364,6 +371,12 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
       </div>
 
       {faixa}
+      {visto.status === 'enviado' && ehAtual && !visto.vencido && (
+        <LinkCliente
+          orcamentoId={visto.id} podeEditar={podeEditar} clienteNome={os.cliente.nome} clienteTel={os.cliente.tel}
+          veiculo={[os.veiculo.modelo, os.veiculo.placa].filter(Boolean).join(' ')} onAtualizar={orc.recarregar}
+        />
+      )}
       {orc.erroAcao && modal === null && <Aviso tom="crit">{orc.erroAcao}</Aviso>}
       {resumoFx && (
         <Aviso tom={resumoFx.tom}>

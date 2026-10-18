@@ -29,6 +29,7 @@ export type FonteAlertaId =
   | 'reserva_sem_estoque'
   | 'estoque_baixo'
   | 'os_sem_pagamento'
+  | 'orcamento_respondido'
   | 'orcamento_sem_resposta'
   | 'cliente_nao_avisado'
   | 'os_aprovada_parada'
@@ -172,6 +173,27 @@ export const FONTES_ALERTA: FonteAlerta[] = [
       })),
   },
   {
+    id: 'orcamento_respondido',
+    titulo: 'Clientes que responderam',
+    resumo: umOuVarios('cliente respondeu ao orçamento', 'clientes responderam ao orçamento'),
+    gerar: ({ backend, agora }) =>
+      (backend?.respostasDoCliente ?? []).map(r => ({
+        id: `orcamento_respondido:${r.orcamentoId}`,
+        fonte: 'orcamento_respondido' as const,
+        // Recusa pede ação (ligar, refazer); aprovação é boa notícia (some quando o serviço começa).
+        severidade: r.decisao === 'recusado' ? ('warn' as const) : ('info' as const),
+        titulo: `${rotuloOS(r)} · ${r.cliente}`,
+        detalhe: [
+          veiculo(r),
+          `Orçamento v${r.versao} · ${formatBRL(r.total)}`,
+          r.decisao === 'aprovado' ? 'aprovado pelo cliente no link' : 'recusado pelo cliente no link',
+          r.decisao === 'recusado' && r.motivo ? `motivo: ${r.motivo}` : '',
+          formatDuracaoDesde(r.decididoEm, agora),
+        ].filter(Boolean).join(' — '),
+        acao: abrirOS(r.ordemId, 'Abrir orçamento'),
+      })),
+  },
+  {
     id: 'orcamento_sem_resposta',
     titulo: 'Orçamentos sem resposta',
     resumo: umOuVarios('orçamento sem resposta', 'orçamentos sem resposta'),
@@ -185,6 +207,7 @@ export const FONTES_ALERTA: FonteAlerta[] = [
           veiculo(o),
           `Orçamento v${o.versao} · ${formatBRL(o.total)}`,
           o.vencido ? `vencido em ${dataBR(o.validadeAte ?? undefined)}` : `enviado há ${diasTxt(o.dias)}`,
+          o.linkEnviado ? (o.linkAbertoEm ? 'link aberto pelo cliente' : 'link enviado, ainda não aberto') : '',
         ].filter(Boolean).join(' — '),
         acao: abrirOS(o.ordemId, 'Abrir orçamento'),
       })),
@@ -335,6 +358,7 @@ export const BLOCO_DA_FONTE: Partial<Record<FonteAlertaId, { bloco: keyof Alerta
   reserva_sem_estoque: { bloco: 'reservasSemEstoque', origem: 'estoque_reservas' },
   os_sem_pagamento: { bloco: 'semPagamento', origem: 'financeiro' },
   orcamento_sem_resposta: { bloco: 'orcamentosSemResposta', origem: 'orcamentos' },
+  orcamento_respondido: { bloco: 'respostasDoCliente', origem: 'orcamento_link' },
   os_aprovada_parada: { bloco: 'aprovadasParadas', origem: 'orcamentos' },
 };
 

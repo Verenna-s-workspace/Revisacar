@@ -76,6 +76,7 @@ const SCRIPT_DA_ORIGEM: Record<string, string> = {
   orcamentos: 'orcamentos.sql',
   estoque_reservas: 'orcamentos.sql',
   financeiro: 'financeiro.sql',
+  orcamento_link: 'orcamento_link.sql',
   alertas_dispensados: 'alertas.sql',
 };
 
