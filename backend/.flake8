@@ -1,0 +1,10 @@
+[flake8]
+max-line-length = 120
+extend-ignore = E501, E741
+exclude = migrations, __pycache__
+per-file-ignores =
+    # imports no meio do arquivo (organização antiga, funciona)
+    orders/views.py: E402
+    orders/serializers.py: E402
+    # fixtures do pytest importadas de outro módulo parecem "redefinidas"
+    tests/*: F811, F401, E731, E701, E306, F541

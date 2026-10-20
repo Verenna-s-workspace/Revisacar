@@ -48,7 +48,7 @@ from rest_framework.response import Response
 
 from . import ordem_status as os_status
 from . import visao_geral_views as vg
-from .estoque_views import _corpo_valido, _jsonb, _negado, _nao_encontrado, _uuid_valido
+from .estoque_views import _corpo_valido, _jsonb, _negado, _nao_encontrado
 from .orcamento_views import (
     _buscar_orcamento, _conteudo_pdf, _itens_de, _payload_da_ordem, _tentar_pdf, item_para_api,
     _num,

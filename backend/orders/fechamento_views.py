@@ -27,7 +27,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from . import ordem_status as os_status
-from .estoque_views import _corpo_valido, _jsonb, _listar_todos, _negado, _nao_encontrado, _num
+from .estoque_views import _corpo_valido, _jsonb, _negado, _nao_encontrado, _num
 from .orcamento_views import _tratar_erros_banco, orcamento_para_api, _itens_de, _ver_margem
 from .serializers import ConclusaoOrdemSerializer
 from .views import supabase, require_auth, _oficina_doc_do_token, _now
