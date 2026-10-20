@@ -3,7 +3,7 @@
 
 export type StatusOrcamento = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'substituido';
 export type TipoItemOrcamento = 'peca' | 'servico';
-export type CanalAprovacao = 'whatsapp' | 'presencial' | 'telefone' | 'app' | 'outro';
+export type CanalAprovacao = 'whatsapp' | 'presencial' | 'telefone' | 'app' | 'link' | 'outro';
 
 export interface OrcamentoItem {
   id: string;

@@ -32,12 +32,17 @@ interface AtendimentoPageProps {
 }
 
 export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill }: AtendimentoPageProps) {
-  const { loading, erro, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear } =
+  const { loading, erro, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear, marcarClienteAvisado } =
     useAtendimento();
   const { kits, itens } = useEstoque();
   const { servicos } = useServicos();
 
-  const [selected, setSelected] = useState<OSAtendimento | null>(null);
+  const [selectedBruto, setSelected] = useState<OSAtendimento | null>(null);
+  // O modal sempre mostra a versão mais recente da OS (ex.: "cliente avisado" acabou de mudar).
+  const selected = useMemo(
+    () => (selectedBruto ? ordens.find(o => o.id === selectedBruto.id) ?? selectedBruto : null),
+    [selectedBruto, ordens],
+  );
 
   // ordemId -> nº de itens de peça vinculados via Kit (chip do card + seção do modal).
   const qtdPecasPorOrdem = useMemo(() => {
@@ -157,6 +162,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
       onContinuarChecklist={() => handleContinuarChecklist(selected)}
       onAtualizarOverlay={atualizarOverlay}
       onDesbloquear={desbloquear}
+      onClienteAvisado={marcarClienteAvisado}
     >
       <PecasNecessarias ordem={selected} kits={kits} itens={itens} servicos={servicos} />
       <HistoricoExpress ordem={selected} todasOrdens={ordens} />

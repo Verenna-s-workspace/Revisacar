@@ -1,7 +1,7 @@
 export type NavPage =
   | 'dashboard' | 'ordens' | 'agendamentos' | 'clientes'
   | 'veiculos' | 'estoque' | 'servicos' | 'financeiro'
-  | 'relatorios' | 'configuracoes' | 'atendimento' | 'dicas';
+  | 'relatorios' | 'configuracoes' | 'atendimento' | 'alertas' | 'dicas';
 
 export interface OrdemRow {
   id: string;
@@ -18,6 +18,12 @@ export interface OrdemRow {
    *  Quando existir, os relatórios passam a usar o valor real automaticamente
    *  via valorOS() em utils/relatorios.ts. */
   valor_total?: number | null;
+  /** Cliente já foi avisado de que o serviço terminou (banco; só existe depois do script alertas.sql). */
+  cliente_avisado?: boolean;
+  cliente_avisado_em?: string | null;
+  cliente_avisado_por_nome?: string | null;
+  /** Quando o serviço foi concluído (só existe depois de ordens_execucao.sql; senão vale updated_at). */
+  concluida_em?: string | null;
 }
 
 export interface FaturamentoDia {

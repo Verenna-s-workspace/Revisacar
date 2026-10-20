@@ -4,7 +4,7 @@ import { tokens } from '../constants';
 import { useResponsive } from '../components/ui';
 import { useOrdens } from '../hooks/useOrdens';
 import { useVisaoGeral } from '../hooks/useVisaoGeral';
-import { useAlertasResumo } from '../hooks/useAlertasResumo';
+import { useAlertas } from '../hooks/useAlertas';
 import { formatBRL, HEAT_DAYS } from '../utils/dashboard';
 import { calcularVariacao } from '../utils/relatorios';
 import {
@@ -32,11 +32,13 @@ import { AgendamentosPage } from '../features/Dashboard/Agendamentos/Agendamento
 import { ServicosPage } from '../features/Dashboard/ServicosPage';
 import { RelatoriosPage } from '../features/Dashboard/Relatorios/RelatoriosPage';
 import { AtendimentoPage } from '../features/Dashboard/Atendimento/AtendimentoPage';
+import { AlertasPage } from '../features/Dashboard/Alertas/AlertasPage';
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
 import type { Alerta } from '../types/dashboard';
 import type { OSPrefillInput } from '../types/atendimento';
+import type { AcaoAlerta } from '../utils/alertas';
 
 // ── PlaceholderPage ───────────────────────────────────────────────────────────
 
@@ -94,7 +96,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   const { isMobile } = useResponsive();
   const { ordens, loading: ordensLoading, erro: ordensErro } = useOrdens();
   const { dados: vg, loading, erro: vgErro, recarregar: recarregarVg, salvarMeta } = useVisaoGeral();
-  const alertasResumo = useAlertasResumo();
+  const alertasResumo = useAlertas();
   const [page, setPage] = useState<NavPage>('dashboard');
   // Esta tela fica montada enquanto se navega pelas outras páginas: sem isto,
   // lançamentos feitos no Financeiro (ou OS criadas) não apareciam aqui até
@@ -145,6 +147,17 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     setPage('estoque');
   };
 
+  // Clique num alerta: abre a tela de destino (Estoque já com a busca no item) ou a OS.
+  const handleAcaoAlerta = (acao: AcaoAlerta) => {
+    const d = acao.destino;
+    if (d.tipo === 'ordem') { onLoadOS?.(d.ordemId); return; }
+    if (d.page === 'estoque' && d.busca) { handleGoToEstoque({ search: d.busca }); return; }
+    handleNav(d.page);
+  };
+
+  if (page === 'alertas') {
+    return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} />;
+  }
   if (page === 'ordens') {
     return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
   }
@@ -513,26 +526,22 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   );
 
   // ── Alertas ────────────────────────────────────────────────────────────────
-  // Os mesmos alertas reais da sidebar (useAlertasResumo): OS bloqueadas, clientes
-  // a avisar, estoque baixo e itens em quarentena. Antes eram frases fixas
-  // (ex.: "aguardando aprovação" contava rascunhos).
-  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-  const alertasLista: Alerta[] = [
-    ...(alertasResumo.bloqueados > 0 ? [{ tipo: 'crit' as const, msg: `${plural(alertasResumo.bloqueados, 'ordem bloqueada', 'ordens bloqueadas')}`, detalhe: 'Aguardando liberação' }] : []),
-    ...(alertasResumo.clientesNaoAvisados > 0 ? [{ tipo: 'warn' as const, msg: `${plural(alertasResumo.clientesNaoAvisados, 'cliente', 'clientes')} para avisar`, detalhe: 'Serviço finalizado hoje' }] : []),
-    ...(alertasResumo.baixoEstoque > 0 ? [{ tipo: 'crit' as const, msg: `${plural(alertasResumo.baixoEstoque, 'item com estoque baixo', 'itens com estoque baixo')}`, detalhe: '' }] : []),
-    ...(alertasResumo.quarentena > 0 ? [{ tipo: 'warn' as const, msg: `${plural(alertasResumo.quarentena, 'item em quarentena', 'itens em quarentena')}`, detalhe: '' }] : []),
-  ];
-  // O card inteiro e o último item da lista navegam para Atendimento (ainda a
-  // única tela com detalhe de alertas — ver mesmo padrão em Sidebar/alertas).
+  // Os mesmos alertas reais da tela de Alertas (useAlertas): uma linha por tipo, com a
+  // contagem. Antes eram frases fixas (ex.: "aguardando aprovação" contava rascunhos).
+  const alertasLista: Alerta[] = alertasResumo.grupos.map(g => ({
+    tipo: g.severidade,
+    msg: g.fonte.resumo(g.itens.length),
+    detalhe: g.itens.length === 1 ? g.itens[0].titulo : '',
+  }));
+  // O card inteiro, "Ver todas" e cada item abrem a tela de Alertas.
   const alertasSection = (
     <Card
-      onClick={() => handleNav('atendimento')}
+      onClick={() => handleNav('alertas')}
       style={{ padding: isMobile ? '14px 16px' : '18px 20px', cursor: 'pointer' }}
     >
       <div className="dashboard-card__header" style={{ marginBottom: 12 }}>
         <div className="dashboard-card__header-title">ALERTAS IMPORTANTES</div>
-        <button onClick={(e) => e.stopPropagation()} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
+        <button onClick={(e) => { e.stopPropagation(); handleNav('alertas'); }} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {alertasResumo.loading && Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} h={46} r={10} />)}
@@ -547,11 +556,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
             warn: { bg: '#FFF8EC', border: 'rgba(179,92,0,0.18)', color: '#B35C00', icon: Icons.clock },
             info: { bg: '#F0FAF4', border: 'rgba(26,127,75,0.18)', color: '#1A7F4B', icon: Icons.cal },
           }[a.tipo];
-          const isUltimo = i === alertasLista.length - 1;
           return (
             <div
               key={i}
-              onClick={isUltimo ? (e) => { e.stopPropagation(); handleNav('atendimento'); } : undefined}
+              onClick={(e) => { e.stopPropagation(); handleNav('alertas'); }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 13px', borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -568,7 +576,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       </div>
       {!isMobile && (
         <button
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); handleNav('alertas'); }}
           style={{ width: '100%', marginTop: 14, padding: '12px', background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           Ver Todos os Alertas →

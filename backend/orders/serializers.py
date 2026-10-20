@@ -487,7 +487,7 @@ class OrcamentoSerializer(serializers.Serializer):
     itens = OrcamentoItemSerializer(many=True, required=False, max_length=MAX_ITENS_ORCAMENTO)
 
 
-CANAIS_APROVACAO = ("whatsapp", "presencial", "telefone", "app", "outro")
+CANAIS_APROVACAO = ("whatsapp", "presencial", "telefone", "app", "outro")   # o canal "link" só o link público usa
 
 
 class OrcamentoAprovacaoSerializer(serializers.Serializer):
@@ -508,10 +508,52 @@ class OrcamentoAprovacaoSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(e))
 
 
+class LinkOrcamentoSerializer(serializers.Serializer):
+    """Gerar o link público do orçamento. `renovar` revoga o link atual e cria outro."""
+    renovar = serializers.BooleanField(required=False, default=False)
+
+
+class AprovacaoPublicaSerializer(serializers.Serializer):
+    """O cliente aprova pelo link: precisa dizer quem é e aceitar explicitamente."""
+    nome = serializers.CharField(min_length=2, max_length=120)
+    aceito = serializers.BooleanField()
+    observacao = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+
+    def validate_nome(self, value):
+        if any(ord(c) < 32 for c in value):
+            raise serializers.ValidationError("Nome inválido.")
+        return value
+
+    def validate_aceito(self, value):
+        if value is not True:
+            raise serializers.ValidationError("Confirme que aceita o orçamento.")
+        return value
+
+
 class ConclusaoOrdemSerializer(serializers.Serializer):
     """Conclusão do serviço (Fase 5). `ignorarFaltas`: baixa só o que existe em estoque."""
     observacao = serializers.CharField(max_length=1000, required=False, allow_blank=True, allow_null=True)
     ignorarFaltas = serializers.BooleanField(required=False, default=False)
+
+
+class ClienteAvisadoSerializer(serializers.Serializer):
+    """Marca/desmarca que o cliente foi avisado de que o serviço terminou."""
+    avisado = serializers.BooleanField()
+
+
+class AlertaDispensarSerializer(serializers.Serializer):
+    """Esconde um alerta pra este usuário: adiar N dias, ou dispensar até o problema se resolver."""
+    modo = serializers.ChoiceField(choices=["adiar", "dispensar"])
+    dias = serializers.IntegerField(min_value=1, max_value=30, required=False)
+
+    def validate(self, attrs):
+        if attrs["modo"] == "adiar" and "dias" not in attrs:
+            raise serializers.ValidationError({"dias": "Informe por quantos dias adiar (1 a 30)."})
+        return attrs
+
+
+class AlertaLimparSerializer(serializers.Serializer):
+    ids = serializers.ListField(child=serializers.CharField(max_length=120), allow_empty=True, max_length=200)
 
 
 class OrcamentoRecusaSerializer(serializers.Serializer):

@@ -16,6 +16,10 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
 | Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
 | Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
+| Alertas (tela dedicada) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: lista, filtros, atalhos, vazio, erro, mobile 390px). 4 tipos: OS bloqueada, estoque baixo, cliente a avisar, quarentena. Sem backend novo. Orçamento/financeiro ficam pra depois (ver seção) |
+| Alertas — cliente avisado no banco + orçamento/financeiro | 🟡 SQL + API + front prontos (474 testes; smoke no navegador com API simulada: 8 tipos, filtros, atalhos, fallback sem script, migração do navegador, mecânico sem financeiro, mobile). Falta: rodar `alertas.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase real |
+| Alertas — adiar/dispensar | 🟡 SQL + API + front prontos (509 testes; smoke no navegador com API simulada: adiar 1/3/7 dias, dispensar, desfazer, voltar a mostrar, persistência, limpeza quando o problema se resolve, 503, mobile). Falta: rodar `alertas.sql` de novo (acrescenta a tabela `alertas_dispensados`) e validar contra o Supabase real |
+| Orçamento — Fase 6A (link público do cliente) | 🟡 SQL + API + front prontos (584 testes; smoke no navegador com API simulada: bloco "Link para o cliente", página pública `/o/<código>` — ver, aprovar, recusar, vencido/aprovado/recusado/substituído, erros 404/410/429/rede, celular 390px — e o grupo de alertas "Clientes que responderam"). Falta: rodar `orcamento_link.sql` (depois de `orcamentos.sql`), garantir que a hospedagem entrega o `index.html` em `/o/*` e validar contra o Supabase real. Conta do cliente (parte B) não iniciada |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -248,4 +252,74 @@ Novo script `backend/sql/ordens_execucao.sql` (idempotente; exige `ordens_status
 - Rodar `ordens_execucao.sql` no Supabase (e os anteriores se faltar algum).
 - Não há reabrir OS finalizada nem estorno da baixa (ajuste manual no Estoque).
 - Itens do orçamento sem vínculo com o Estoque não baixam nada (só os ligados via `estoqueItemId`).
-- Fase 6 (app do cliente consome o orçamento pela API) — só quando for pedida.
+- Fase 6 (cliente aprova pelo link) → ver a seção "Orçamento — Fase 6A" no fim. Conta/app do cliente (parte B) segue pendente.
+
+## Alertas — tela dedicada (2026-10-15) — branch feat/alertas (parte de feat/orcamento-fechamento)
+
+Só frontend; nenhum SQL/endpoint novo. Antes, o sino/bloco da sidebar levavam ao Atendimento (provisório) e o sino do cabeçalho desktop mostrava um "8" fixo.
+
+- **Tela `Alertas`** (`NavPage 'alertas'`, `features/Dashboard/Alertas/AlertasPage.tsx`): alertas agrupados por tipo, com filtro Todos/Urgentes/Atenção, "Atualizar", estado "Tudo em dia" e erro com "Tentar de novo" (falha de API nunca vira "nenhum alerta"). Cada alerta tem um botão de ação (ex.: "Ver no Estoque" já abre o Estoque com a busca no item) e, nos de OS, "Abrir OS". Entrada: sino (desktop e mobile — no mobile agora sempre visível), bloco da sidebar e card "Alertas importantes" do painel (inclusive "Ver todas" e cada linha, que antes não faziam nada).
+- **Regra em um lugar só:** `utils/alertas.ts`. `useAlertas` entrega a lista; `useAlertasResumo` virou só uma contagem por cima dela (sidebar, sino e tela nunca divergem). Buscas simultâneas de ordens/estoque são compartilhadas.
+- **Tipos atuais (mesmas regras de antes):** OS bloqueada (status `aguardando`, com motivo e há quanto tempo), estoque baixo (ativo, mínimo > 0 e quantidade ≤ mínimo), cliente a avisar (finalizada hoje e não avisada) e item em quarentena. Ordem dos grupos = ordem em `FONTES_ALERTA`.
+- **Como incluir um tipo novo (orçamento vencido, lançamento pendente…):** 1) acrescentar o id em `FonteAlertaId`; 2) acrescentar a fonte em `FONTES_ALERTA` (`gerar` devolve `AlertaItem[]` com título, detalhe e `acao`); 3) se precisar de dado novo, pôr o campo em `ContextoAlertas` e buscá-lo em `hooks/useAlertas.ts`. A tela não muda. Candidatos já mapeados: orçamento enviado sem resposta/vencido, peça reservada sem estoque pra concluir, lançamento pendente de OS concluída.
+
+**Pendências / decisões**
+- ~~Os alertas de "cliente a avisar" dependem do overlay local~~ → resolvido na seção abaixo (vai pro banco).
+- Não há "dispensar/adiar" alerta (o `id` de cada alerta já é estável pra isso).
+- A tela de Alertas, como a de Atendimento, não tem o cabeçalho com sino no desktop (só a sidebar).
+
+## Alertas — cliente avisado no banco + alertas de orçamento/financeiro (2026-10-17) — branch feat/alertas-backend
+
+**Passo do usuário:** rodar `backend/sql/alertas.sql` no Supabase SQL Editor (depois de `ordens_oficina.sql`). Sem ele nada quebra: o front mostra um aviso e segue com os 4 alertas locais.
+
+- **Cliente avisado no banco:** `alertas.sql` acrescenta `ordens.cliente_avisado` (bool, default false), `cliente_avisado_em`, `cliente_avisado_por_nome`. `PATCH /ordens/<id>/cliente-avisado` `{avisado: bool}` grava (quem tem `ordens.ver`). Quando a coluna existe, **o banco é a fonte da verdade**; o overlay local (`revisacar:atendimento-overlay`) só vale se o banco não respondeu (script não rodado). Marcações antigas do navegador sobem uma única vez pro banco (sem repetir). "Finalizada hoje" agora usa `concluida_em ?? updated_at` (editar a OS não "refinaliza" mais).
+- **`GET /alertas`** (blocos independentes; o que o usuário não pode ver vem omitido e o que depende de script ausente vem em `indisponiveis`): `orcamentosSemResposta` (orçamento `enviado` vencido por `validade_ate` ou há ≥ 2 dias), `aprovadasParadas` (OS `aprovada` há ≥ 1 dia do aceite, execução não iniciada), `reservasSemEstoque` (por item, reservas somadas > quantidade em estoque, lista as OS), `semPagamento` (entrada pendente de OS `finalizada` há ≥ 1 dia; `vencido` se `data_vencimento` < hoje; **só dono/gerente**, exige `financeiro.ver`).
+- **Front:** 8 fontes em `FONTES_ALERTA` (4 locais + 4 do backend). Severidade do grupo = a do item mais grave; sem pagamento vira urgente com ≥ 7 dias (`DIAS_PAGAMENTO_URGENTE`) ou vencido. Atalhos: Abrir orçamento, Abrir OS, Ver no Financeiro/Estoque/Atendimento. Falha parcial do `/alertas` mostra aviso e mantém os alertas locais.
+- **Testes:** `tests/test_alertas.py` (44), suíte total 474.
+
+**Pendências / decisões**
+- Limiares (2 dias orçamento, 1 dia aprovada/pagamento, 7 dias urgência) são constantes — ajustar se a oficina quiser.
+- Alerta de pagamento só considera lançamentos com `ordem_servico_id`; lançamentos avulsos não entram.
+- O passo 3 (dispensar/adiar) está na seção abaixo. Ideias não pedidas: auto-atualizar, alertas por papel.
+
+## Alertas — adiar e dispensar (2026-10-18) — branch feat/alertas-backend
+
+**Passo do usuário:** rodar `backend/sql/alertas.sql` de novo no Supabase (idempotente; agora também cria `alertas_dispensados`, com RLS ligada e sem policy — só o backend acessa). Sem ele, esconder um alerta responde 503 com essa instrução e o resto da tela segue normal.
+
+- **Por usuário, no banco:** cada um esconde só pra si (o que o gerente dispensa continua aparecendo pro dono). Chave = oficina + usuário (`dono` ou `func:<id>`) + id do alerta (`<fonte>:<id do objeto>`). Vale em qualquer aparelho. Qualquer cargo pode (é preferência do próprio usuário, não precisa de permissão).
+- **Dois jeitos:** *Adiar* (1, 3 ou 7 dias; a API aceita 1–30): some até o prazo e volta sozinho. *Dispensar*: some até a causa se resolver — quando o alerta deixa de existir, a tela apaga o registro (`POST /alertas/dispensados/limpar`), então, se o problema voltar, o alerta reaparece.
+- **Quando NÃO limpa o dispensado:** se o bloco do banco falhou, se o usuário não tem a permissão do bloco (ex.: mecânico e financeiro) ou se o script daquela origem não rodou — `fontesCompletas` em `utils/alertas.ts`. Evita apagar o que foi dispensado por causa de uma falha momentânea.
+- **API:** `GET /alertas` traz `dispensados` (adiados vigentes + dispensados); `PUT /alertas/dispensados/<id>` `{modo:'adiar',dias}` | `{modo:'dispensar'}`; `DELETE` volta a mostrar (204, idempotente); `POST .../limpar {ids}` (até 200; só apaga dispensados). Id validado (`<fonte conhecida>:<id>`). Escrever apaga de passagem os adiados vencidos do usuário.
+- **Tela:** cada alerta tem "Adiar ou dispensar" (abre 1 dia / 3 dias / 7 dias / Dispensar / Cancelar). Depois de esconder, aviso com **Desfazer** por 8 s. Seção "Adiados e dispensados · N" no fim, com "Voltar a mostrar" e "Adiado até dd/mm às hh:mm". O número da sidebar, do sino, do painel e dos filtros já desconta o que está escondido (estado único em `useAlertas`). Esconde na hora e desfaz sozinho se o servidor recusar (mostra o erro).
+- **Testes:** 35 novos em `tests/test_alertas.py` (509 no total); `fake_supabase` ganhou `upsert`.
+
+**Pendências / decisões**
+- Um alerta adiado/dispensado **não volta se piorar** (ex.: estoque baixo que zerou, orçamento que venceu). Dá pra fazer "volta se a severidade subir" depois.
+- Adiar é em dias corridos a partir de agora (não "até amanhã 8h").
+- Dois alertas com o mesmo título (ex.: "Filtro de óleo" em reserva e em estoque baixo) são independentes — esconder um não esconde o outro.
+
+## Orçamento — Fase 6A: link público do cliente (2026-10-18) — branch feat/alertas-backend
+
+O cliente **não precisa de conta nem de app**: a oficina gera um link, manda (copiar ou WhatsApp) e o cliente abre no celular, vê os valores e aprova ou recusa. Parte B (conta/app do cliente) **não foi iniciada**.
+
+**Passos do usuário**
+1. Rodar `backend/sql/orcamento_link.sql` no Supabase SQL Editor, **depois** de `orcamentos.sql` (idempotente; RLS ligada e sem policy — só o backend acessa). Sem ele, o bloco do link na tela do orçamento mostra a instrução (503) e o resto segue normal; o alerta de resposta do cliente fica fora até o script rodar.
+2. **Hospedagem:** o painel não tem roteador; a página pública é montada pelo `main.tsx` quando o caminho é `/o/<código>`. O host precisa devolver o `index.html` para `/o/*` (Vercel: rewrite no `vercel.json`; Netlify: `_redirects`). O repo não tem nenhum desses arquivos e a hospedagem não foi verificada. O `sw.js` já cai no `/index.html` em navegações.
+
+**Como funciona**
+- **Código do link** = `<id>.<HMAC>` derivado do `id` da tabela `orcamento_links` com a `SECRET_KEY` do servidor. **O código não fica no banco** (vazar o banco não dá link nenhum) e a oficina consegue ver o mesmo link de novo. Código malformado ou com assinatura errada é rejeitado **antes de tocar no banco**, com 404 uniforme (não dá pra distinguir "não existe" de "assinatura errada").
+- **Um link ativo por orçamento** (índice único parcial). Só orçamento **enviado** tem link. O link vale 30 dias (`LINK_DIAS`); aprovar só dentro da validade do orçamento. "Gerar link novo" revoga o anterior (o antigo passa a dizer "link substituído", 410); "Desativar" revoga sem criar outro. Orçamento já respondido, vencido ou substituído **continua abrindo, mas só mostra a situação** e não deixa responder de novo.
+- **Oficina** (`ordens.ver` pra ver, `ordens.editar` pra gerar/renovar/desativar): `GET|POST|DELETE /orcamentos/<id>/link`. A tela do orçamento (versão enviada e atual) ganha o bloco **Link para o cliente**: copiar, "Enviar por WhatsApp" (mensagem pronta com nome, veículo e link; só monta o número com DDD brasileiro válido — sem telefone válido o WhatsApp abre pra escolher o contato), quantas vezes o cliente abriu e quando, "Gerar link novo", "Desativar link", "Ver se o cliente abriu". Quando o cliente responde, o bloco mostra "O cliente aprovou/recusou pelo link" e **Atualizar o orçamento**. **Nada é enviado automaticamente.**
+- **Cliente** (sem login; `GET /publico/orcamentos/<código>`, `/pdf`, `POST .../aprovar`, `.../recusar`): só recebe o preço cobrado (**nunca custo, margem, status interno da OS, ids ou scripts**). Aprovar exige **nome (≥ 2 letras) + caixa "Li e aceito"**; guarda data/hora, **IP**, nome e observação. Recusar aceita motivo opcional. Os dois reaproveitam `orcamento_aprovar`/`orcamento_recusar` (mesmos efeitos de Financeiro, reserva de Estoque e status da OS) com trava extra: pelo link **não dá pra recusar um orçamento já aprovado**. Ordem de trava no banco: OS → orçamento → link (sem deadlock). Aprovado pelo link grava `aprovacao_canal = 'link'` (a oficina vê "Aprovado pelo cliente … pelo link do orçamento").
+- **Abuso:** limite por IP (120 req/min; 20 códigos inválidos/10 min; 10 decisões/10 min) e por link (20 decisões/10 min) → 429. IP = último salto do `X-Forwarded-For`. Erros públicos nunca vazam detalhe interno (mensagens amigáveis; 404/410/429/409/422).
+- **Página pública** (`features/OrcamentoPublico/OrcamentoPublicoPage.tsx`): uma coluna, botões ≥ 44 px, campos 16 px (sem zoom no iPhone), sem rolagem horizontal em 390 px; **fora** do `AuthProvider`/`App` (não lê a sessão da oficina nem manda `Authorization`); `noindex` e `referrer: no-referrer`; estados aprovado/recusado/vencido/substituído mostram a situação e escondem os botões; 409/410 ao responder recarrega e mostra a situação real; falha de rede/500 mantém o formulário.
+- **Alertas:** novo grupo **"Clientes que responderam"** (aprovado = informativo, recusado = atenção, com motivo; some depois de 3 dias — `respostaClienteDias`) e os "Orçamentos sem resposta" passam a dizer "link enviado, ainda não aberto" / "link aberto pelo cliente". Bloco `respostasDoCliente` no `GET /alertas` (permissão `ordens.ver`; script ausente vai em `indisponiveis`).
+- **Testes:** `tests/test_orcamento_link.py` (~75: token, rotas da oficina, vazamento na rota pública, decisões, abuso/limites, script ausente, alertas); suíte total **584**. Front: sem runner — checagens de funções puras via esbuild+node e `smoke12.py` no navegador com API simulada (124 verificações) + regressão dos smokes 5–11.
+
+**Pendências / decisões**
+- Aprovação pelo link **não tem assinatura desenhada** (o registro é nome + caixa + data/hora + IP); a oficina ainda pode aprovar com assinatura na tela de sempre.
+- **Limite de requisições é em memória, por processo**: com vários workers cada um conta o seu (e zera no reinício). Pra rigor total, mover pro banco/Redis.
+- A "validade" que o cliente vê usa o dia de hoje em America/Sao_Paulo.
+- O painel da oficina **não atualiza sozinho** quando o cliente responde: vale o alerta (ao abrir/atualizar a tela de Alertas) ou "Ver se o cliente abriu".
+- Link expirado/revogado não é reativável: gerar um novo.
+- Parte B (conta do cliente, histórico de orçamentos no app) não iniciada.

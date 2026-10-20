@@ -44,7 +44,7 @@ STATUS_ROTULO = {
 }
 CANAL_ROTULO = {
     "whatsapp": "WhatsApp", "presencial": "Presencial", "telefone": "Telefone",
-    "app": "Aplicativo", "outro": "Outro",
+    "app": "Aplicativo", "link": "Link do orçamento", "outro": "Outro",
 }
 
 

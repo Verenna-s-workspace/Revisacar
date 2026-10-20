@@ -82,11 +82,13 @@ interface OSDetalheModalProps {
   onAtualizarOverlay: (ordemId: string, patch: Partial<Omit<OverlayOS, 'ordemId'>>) => void;
   /** Tira a OS de 'aguardando' — ver useAtendimento.desbloquear. */
   onDesbloquear: (ordemId: string) => void;
+  /** Grava "cliente avisado" no banco (vale pra equipe toda). */
+  onClienteAvisado: (ordemId: string, avisado: boolean) => void;
   /** Slot da Fase 6 (Peças Necessárias + Histórico Express/retorno) — fica entre Reclamação e Observações. */
   children?: ReactNode;
 }
 
-export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualizarOverlay, onDesbloquear, children }: OSDetalheModalProps) {
+export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualizarOverlay, onDesbloquear, onClienteAvisado, children }: OSDetalheModalProps) {
   const veiculoPayload = parseOrdemPayload(ordem).veiculo ?? {};
   const finalizada = ordem.status === 'finalizada';
   const bloqueada = ordem.status === 'aguardando';
@@ -122,7 +124,7 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
   };
 
   const handleClienteAvisado = (avisado: boolean) => {
-    onAtualizarOverlay(ordem.id, { clienteAvisado: avisado });
+    onClienteAvisado(ordem.id, avisado);
   };
 
   const handleDesbloquear = () => {

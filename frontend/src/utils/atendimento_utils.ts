@@ -79,12 +79,21 @@ export function salvarOverlay(ordemId: string, patch: Partial<Omit<OverlayOS, 'o
   return atualizado;
 }
 
-/** Mescla o overlay (se houver) numa OrdemRow real — `{ ...ordem, ...overlay[ordem.id] }` sem o campo redundante `ordemId`. */
+/**
+ * Mescla o overlay (se houver) numa OrdemRow real — `{ ...ordem, ...overlay[ordem.id] }` sem o campo redundante `ordemId`.
+ * "Cliente avisado" é a exceção: quando o banco já tem a coluna (`cliente_avisado` boolean), ele é a
+ * verdade e o valor guardado no navegador é ignorado; sem a coluna (script não rodado), vale o overlay.
+ */
 export function mesclarOverlayNaOrdem(ordem: OrdemRow, overlays: OverlayMap): OSAtendimento {
   const overlay = overlays[ordem.id];
-  if (!overlay) return ordem;
-  const { ordemId: _ordemId, ...campos } = overlay;
-  return { ...ordem, ...campos };
+  const base: OSAtendimento = overlay ? (({ ordemId: _ordemId, ...campos }) => ({ ...ordem, ...campos }))(overlay) : { ...ordem };
+  if (typeof ordem.cliente_avisado === 'boolean') base.clienteAvisado = ordem.cliente_avisado;
+  return base;
+}
+
+/** Quando o serviço terminou: `concluida_em` (banco) ou, em OS antigas, a última atualização. */
+export function momentoConclusao(ordem: OrdemRow): string {
+  return ordem.concluida_em || ordem.updated_at;
 }
 
 // ── Derivação do Kanban (Seção 4 do prompt) ────────────────────────────────────

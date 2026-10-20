@@ -400,6 +400,29 @@ def _tentar_pdf(oficina_doc: str, orcamento_id: str) -> bool:
         return False
 
 
+def _conteudo_pdf(oficina_doc: str, row: dict, itens: list) -> bytes:
+    """Bytes do PDF da versão: o arquivo guardado (gerado na hora se ainda não existir). Rascunho
+    gera uma pré-visualização com marca d'água e não guarda nada. Usado também pelo link público."""
+    conteudo = None
+    if row["status"] != "rascunho" and row.get("pdf_path"):
+        try:
+            conteudo = bytes(supabase.storage.from_(BUCKET).download(row["pdf_path"]))
+        except Exception as e:  # noqa: BLE001 — arquivo sumiu: refaz abaixo
+            logger.warning("Orçamento %s: PDF do Storage indisponível (%s); gerando de novo.", row["id"], e)
+    if conteudo is None:
+        if row["status"] == "rascunho":
+            conteudo = _gerar_pdf(oficina_doc, row, itens)
+        else:
+            try:
+                conteudo = _gerar_e_guardar_pdf(oficina_doc, row, itens)
+            except APIError:
+                raise
+            except Exception as e:  # noqa: BLE001 — Storage fora do ar: entrega sem guardar
+                logger.error("Orçamento %s: não consegui guardar o PDF: %s", row["id"], e)
+                conteudo = _gerar_pdf(oficina_doc, row, itens)
+    return conteudo
+
+
 def _guardar_assinatura(oficina_doc: str, orcamento_id: str, png: bytes) -> bool:
     try:
         row = _buscar_orcamento(str(orcamento_id), oficina_doc)
@@ -681,23 +704,7 @@ def orcamento_pdf_view(request, orcamento_id):
         return Response({"detail": "O orçamento ainda não tem itens.", "codigo": "sem_itens"},
                         status=http_status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-    conteudo = None
-    if row["status"] != "rascunho" and row.get("pdf_path"):
-        try:
-            conteudo = bytes(supabase.storage.from_(BUCKET).download(row["pdf_path"]))
-        except Exception as e:  # noqa: BLE001 — arquivo sumiu: refaz abaixo
-            logger.warning("Orçamento %s: PDF do Storage indisponível (%s); gerando de novo.", orcamento_id, e)
-    if conteudo is None:
-        if row["status"] == "rascunho":
-            conteudo = _gerar_pdf(oficina_doc, row, itens)
-        else:
-            try:
-                conteudo = _gerar_e_guardar_pdf(oficina_doc, row, itens)
-            except APIError:
-                raise
-            except Exception as e:  # noqa: BLE001 — Storage fora do ar: entrega sem guardar
-                logger.error("Orçamento %s: não consegui guardar o PDF: %s", orcamento_id, e)
-                conteudo = _gerar_pdf(oficina_doc, row, itens)
+    conteudo = _conteudo_pdf(oficina_doc, row, itens)
 
     nome = f"orcamento-{row['ordem_id']}-v{row['versao']}.pdf"
     resposta = HttpResponse(conteudo, content_type="application/pdf")

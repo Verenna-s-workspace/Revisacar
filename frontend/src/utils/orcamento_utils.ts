@@ -23,9 +23,11 @@ export const ROTULO_CANAL: Record<CanalAprovacao, string> = {
   presencial: 'Presencialmente',
   telefone: 'Telefone',
   app: 'Aplicativo',
+  link: 'Link do orçamento',
   outro: 'Outro',
 };
 
+/** Canais que a OFICINA pode registrar (o canal 'link' só o link público grava). */
 export const CANAIS: CanalAprovacao[] = ['whatsapp', 'presencial', 'telefone', 'app', 'outro'];
 
 /** Limites do servidor (serializers.py) — validar antes poupa uma ida e volta. */

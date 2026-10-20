@@ -5,7 +5,7 @@ from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
 from . import visao_geral_views
-from . import fechamento_views, orcamento_views
+from . import alertas_views, fechamento_views, orcamento_link_views, orcamento_views
 
 urlpatterns = [
     # Root
@@ -15,6 +15,7 @@ urlpatterns = [
     path("ordens", views.ordens_list),
     path("ordens/<str:ordem_id>", views.ordem_detail),
     path("ordens/<str:ordem_id>/status", views.ordem_status),
+    path("ordens/<str:ordem_id>/cliente-avisado", alertas_views.ordem_cliente_avisado),
     path("ordens/<str:ordem_id>/concluir", fechamento_views.ordem_concluir),
     path("ordens/<str:ordem_id>/fechamento", fechamento_views.fechamento),
 
@@ -25,6 +26,12 @@ urlpatterns = [
     path("orcamentos/<str:orcamento_id>/aprovar", orcamento_views.orcamento_aprovar),
     path("orcamentos/<str:orcamento_id>/recusar", orcamento_views.orcamento_recusar),
     path("orcamentos/<str:orcamento_id>/pdf", orcamento_views.orcamento_pdf_view),
+    # Link público do orçamento: a oficina gera/vê/revoga (login); o cliente abre sem conta (token na URL)
+    path("orcamentos/<str:orcamento_id>/link", orcamento_link_views.orcamento_link),
+    path("publico/orcamentos/<str:token>", orcamento_link_views.publico_orcamento),
+    path("publico/orcamentos/<str:token>/pdf", orcamento_link_views.publico_orcamento_pdf),
+    path("publico/orcamentos/<str:token>/aprovar", orcamento_link_views.publico_orcamento_aprovar),
+    path("publico/orcamentos/<str:token>/recusar", orcamento_link_views.publico_orcamento_recusar),
 
     # Fotos de uma ordem
     path("ordens/<str:ordem_id>/fotos", views.upload_fotos),
@@ -78,6 +85,11 @@ urlpatterns = [
 
     # Relatórios — protegido por relatorios.ver (dono e gerente)
     path("relatorios", relatorios_views.relatorios),
+
+    # Alertas — cada bloco exige a própria permissão (ver alertas_views)
+    path("alertas", alertas_views.alertas),
+    path("alertas/dispensados/limpar", alertas_views.alertas_dispensados_limpar),
+    path("alertas/dispensados/<str:alerta_id>", alertas_views.alerta_dispensado),
 
     # Visão Geral — leitura p/ qualquer usuário logado (blocos de dinheiro só por permissão);
     # meta mensal: configuracoes.editar

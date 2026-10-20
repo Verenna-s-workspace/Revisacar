@@ -2,7 +2,7 @@
 Emulador mínimo do cliente Supabase (PostgREST) em cima de um Postgres REAL.
 
 Só existe nos testes: traduz a parte do supabase-py que o backend de Estoque
-usa (table().select/insert/update/delete + eq/neq/in_/gt*/lt*/order/range/limit, e
+usa (table().select/insert/update/upsert/delete + eq/neq/in_/gt*/lt*/order/range/limit, e
 rpc) para SQL, e devolve linhas no mesmo formato JSON que o PostgREST devolve
 (numeric → número, timestamptz → ISO, uuid → string). Assim as views rodam
 contra as tabelas e funções SQL de verdade; só a tradução HTTP→SQL é simulada.
@@ -54,6 +54,7 @@ class _Consulta:
         self.op, self.payload = "select", None
         self.filtros, self.ordens = [], []
         self.faixa, self.limite = None, None
+        self.conflito = None
 
     # --- operações
     def select(self, _colunas="*"):
@@ -66,6 +67,10 @@ class _Consulta:
 
     def update(self, payload):
         self.op, self.payload = "update", payload
+        return self
+
+    def upsert(self, payload, on_conflict=None):
+        self.op, self.payload, self.conflito = "upsert", payload, on_conflict
         return self
 
     def delete(self):
@@ -128,12 +133,20 @@ class _Consulta:
         tabela = _ident(self.tabela)
         where, params = self._where()
 
-        if self.op == "insert":
+        if self.op in ("insert", "upsert"):
             linhas = self.payload if isinstance(self.payload, list) else [self.payload]
             colunas = list(linhas[0].keys())
             valores = ", ".join(["(" + ", ".join(["%s"] * len(colunas)) + ")"] * len(linhas))
             sql = f"insert into {tabela} ({', '.join(_ident(c) for c in colunas)}) values {valores} returning *"
             params = [_adaptar(l[c]) for l in linhas for c in colunas]
+            if self.op == "upsert":
+                assert self.conflito, "upsert sem on_conflict: o fake exige a chave"
+                chave = [c.strip() for c in self.conflito.split(",")]
+                sets = ", ".join(f"{_ident(c)} = excluded.{_ident(c)}" for c in colunas if c not in chave)
+                sql = sql.replace(" returning *", "") + (
+                    f" on conflict ({', '.join(_ident(c) for c in chave)}) do "
+                    + (f"update set {sets}" if sets else "nothing") + " returning *"
+                )
         elif self.op == "update":
             sets = ", ".join(f"{_ident(c)} = %s" for c in self.payload)
             sql = f"update {tabela} set {sets}{where} returning *"

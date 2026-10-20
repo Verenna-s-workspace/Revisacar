@@ -105,12 +105,10 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
         ))}
       </nav>
 
-      {/* Bloco de Alertas — soma bloqueados + clientes não avisados (Atendimento)
-          e baixo estoque + quarentena (Estoque). Só aparece quando há algo pra
-          mostrar. Clique leva pra Atendimento por enquanto — provisório até
-          existir uma tela de detalhe de alertas dedicada. */}
+      {/* Bloco de Alertas — total de alertas (ver utils/alertas.ts). Só aparece
+          quando há algo pra mostrar; o clique abre a tela de Alertas. */}
       {!carregandoAlertas && totalAlertas > 0 && (
-        <button className="dashboard-sidebar__alertas" onClick={() => onNav('atendimento')}>
+        <button className="dashboard-sidebar__alertas" onClick={() => onNav('alertas')}>
           <div className="dashboard-sidebar__alertas-titulo">           
          <h1>Alertas</h1>   
           </div>
@@ -186,6 +184,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
 
 export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) {
   const { user, logout } = useAuth();
+  const { total: totalAlertas } = useAlertasResumo();
   const [open, setOpen] = useState(false);
 
   return (
@@ -197,8 +196,8 @@ export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) 
       <div className="dashboard-header__actions" style={{ position: 'relative' }}>
 
         <div className="dashboard-header__indicator">
-          <button className="dashboard-button" onClick={() => onNav?.('atendimento')} title="Alertas" aria-label="Ver alertas">{Icons.bell}</button>
-          <span className="dashboard-header__badge">8</span>
+          <button className="dashboard-button" onClick={() => onNav?.('alertas')} title="Alertas" aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}>{Icons.bell}</button>
+          {totalAlertas > 0 && <span className="dashboard-header__badge">{totalAlertas}</span>}
         </div>
         <button className="dashboard-button" onClick={() => onNav?.('agendamentos')} title="Agendamentos" aria-label="Ver agendamentos">{Icons.cal}</button>
         <div className="dashboard-header__separator" />
@@ -258,18 +257,19 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
         </span>
       </div>
       <div className="dashboard-mobile-topbar__actions">
-        {totalAlertas > 0 && (
-          <button
-            onClick={() => onNav?.('atendimento')}
-            style={{ position: 'relative', border: 'none', background: 'transparent', padding: 4, display: 'flex' }}
-            title={`${totalAlertas} alertas`}
-          >
-            <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.bell}</span>
-            <span style={{ position: 'absolute', top: -3, right: -3, width: 15, height: 15, background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button
+          onClick={() => onNav?.('alertas')}
+          style={{ position: 'relative', border: 'none', background: 'transparent', padding: 4, display: 'flex' }}
+          title={totalAlertas > 0 ? `${totalAlertas} alertas` : 'Alertas'}
+          aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}
+        >
+          <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.bell}</span>
+          {totalAlertas > 0 && (
+            <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 15, height: 15, padding: '0 3px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {totalAlertas}
             </span>
-          </button>
-        )}
+          )}
+        </button>
         <button
           onClick={() => onNav?.('dicas')}
           style={{ border: 'none', background: 'transparent', padding: 4, display: 'flex', color: tokens.color.muted }}

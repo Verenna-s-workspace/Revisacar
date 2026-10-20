@@ -408,10 +408,35 @@ export const api = {
     authFetch(`${API_BASE}/ordens/${ordemId}/concluir`, { method: 'POST', body: JSON.stringify(payload) }),
 
   /** PDF da versão (só preço cobrado). */
+  // Link público do orçamento (Fase 6). Ver: ordens.ver; gerar/renovar/revogar: ordens.editar.
+  obterLinkOrcamento: (id: string) => authFetch(`${API_BASE}/orcamentos/${id}/link`),
+  gerarLinkOrcamento: (id: string, renovar = false) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/link`, { method: 'POST', body: JSON.stringify({ renovar }) }),
+  revogarLinkOrcamento: (id: string) => authFetch(`${API_BASE}/orcamentos/${id}/link`, { method: 'DELETE' }),
+
   baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
 
   recusarOrcamento: (id: string, payload: { motivo?: string }) =>
     authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  // ── Alertas ──────────────────────────────────────────────────────────────────
+  // Marcar: ordens.editar ou ordens.criar (503 se o script alertas.sql não foi rodado).
+  marcarClienteAvisado: (ordemId: string, avisado: boolean) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/cliente-avisado`, { method: 'PATCH', body: JSON.stringify({ avisado }) }),
+
+  /** Dados dos alertas de orçamento, OS parada, reserva sem estoque e pagamento (cada bloco só vem pra quem pode ver). */
+  obterAlertas: (tz?: string) => authFetch(`${API_BASE}/alertas${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  // Adiar/dispensar é por usuário (qualquer logado). 503 se alertas.sql não foi rodado.
+  adiarAlerta: (alertaId: string, dias: number) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'PUT', body: JSON.stringify({ modo: 'adiar', dias }) }),
+  dispensarAlerta: (alertaId: string) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'PUT', body: JSON.stringify({ modo: 'dispensar' }) }),
+  restaurarAlerta: (alertaId: string) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'DELETE' }),
+  /** Apaga só os DISPENSADOS cujo alerta já se resolveu (pra, se voltar, voltar a aparecer). */
+  limparAlertasDispensados: (ids: string[]) =>
+    authFetch(`${API_BASE}/alertas/dispensados/limpar`, { method: 'POST', body: JSON.stringify({ ids }) }),
 
   // ── Visão Geral ──────────────────────────────────────────────────────────────
   // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.

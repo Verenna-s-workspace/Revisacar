@@ -5,9 +5,11 @@ import {
   derivarColunasKanban,
   lerTodosOverlays,
   mesclarOverlayNaOrdem,
+  momentoConclusao,
   salvarOverlay,
 } from '../utils/atendimento_utils';
 import { isSameDay } from '../utils/agenda';
+import { migrarAvisadosLocais, scriptDeAvisadoAusente } from '../utils/cliente_avisado';
 import { useAgendamentos } from './useAgendamentos';
 import type { ColunasKanban, OSAtendimento, OverlayOS } from '../types/atendimento';
 import type { OrdemRow } from '../types/dashboard';
@@ -45,6 +47,13 @@ export function useAtendimento() {
       // vazia só vira demo em DEV; em produção uma resposta bem sucedida
       // (mesmo vazia) nunca é substituída.
       setOrdensRaw(lista.length === 0 && import.meta.env.DEV ? buildSeedOrdensAtendimento() : lista);
+      // Marcações antigas de "cliente avisado" (só no navegador) sobem pro banco, uma vez.
+      void migrarAvisadosLocais(lista).then(ids => {
+        if (ids.length) {
+          setOrdensRaw(prev => prev.map(o => (ids.includes(o.id) ? { ...o, cliente_avisado: true } : o)));
+          setOverlayVersion(v => v + 1);
+        }
+      });
     } catch {
       if (import.meta.env.DEV) {
         setOrdensRaw(buildSeedOrdensAtendimento());
@@ -87,7 +96,7 @@ export function useAtendimento() {
   const clientesNaoAvisados: OSAtendimento[] = useMemo(
     () =>
       ordens.filter(
-        o => o.status === 'finalizada' && isSameDay(new Date(o.updated_at), new Date()) && o.clienteAvisado !== true
+        o => o.status === 'finalizada' && isSameDay(new Date(momentoConclusao(o)), new Date()) && o.clienteAvisado !== true
       ),
     [ordens]
   );
@@ -139,6 +148,30 @@ export function useAtendimento() {
     [atualizarOverlay, carregarOrdens]
   );
 
+  // "Cliente avisado" é gravado no banco (vale pra equipe toda e pra qualquer aparelho).
+  // Otimista; se o script alertas.sql ainda não foi rodado, guarda só neste navegador como antes.
+  const marcarClienteAvisado = useCallback(
+    async (ordemId: string, avisado: boolean) => {
+      setOrdensRaw(prev => prev.map(o => (o.id === ordemId ? { ...o, cliente_avisado: avisado } : o)));
+      try {
+        await api.marcarClienteAvisado(ordemId, avisado);
+      } catch (e) {
+        if (scriptDeAvisadoAusente(e)) {
+          setOrdensRaw(prev => prev.map(o => {
+            if (o.id !== ordemId) return o;
+            const { cliente_avisado: _descartado, ...resto } = o;
+            return resto;
+          }));
+          atualizarOverlay(ordemId, { clienteAvisado: avisado });
+        } else {
+          carregarOrdens();
+          setErroOrdens('Não foi possível salvar "cliente avisado". Tente de novo.');
+        }
+      }
+    },
+    [atualizarOverlay, carregarOrdens]
+  );
+
   const reload = useCallback(() => {
     carregarOrdens();
     reloadAgendamentos();
@@ -156,6 +189,7 @@ export function useAtendimento() {
     atualizarOverlay,
     garantirIniciado,
     desbloquear,
+    marcarClienteAvisado,
     reload,
   };
 }

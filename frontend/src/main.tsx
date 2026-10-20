@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import OrcamentoPublicoPage from './features/OrcamentoPublico/OrcamentoPublicoPage';
+import { tokenDoCaminho } from './utils/orcamento_link_utils';
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 // In development: unregister any previously installed SW so it never
@@ -35,10 +37,18 @@ window.addEventListener('beforeinstallprompt', (e) => {
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('[RevisaCar] Elemento #root não encontrado no HTML.');
 
+// Link público do orçamento (/o/<token>): página do CLIENTE, sem login e fora do painel
+// (não monta AuthProvider nem App, então nada da sessão da oficina entra nela).
+const tokenPublico = tokenDoCaminho(window.location.pathname);
+
 createRoot(rootElement).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    {tokenPublico ? (
+      <OrcamentoPublicoPage token={tokenPublico} />
+    ) : (
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    )}
   </StrictMode>
 );
