@@ -7,6 +7,7 @@ from django.contrib.auth.hashers import make_password, check_password
 
 # ── Sub-serializers ────────────────────────────────────────────────────────────
 
+
 class OSHeaderSerializer(serializers.Serializer):
     os_num = serializers.CharField()
     os_date = serializers.CharField(default="", allow_blank=True)
@@ -44,6 +45,7 @@ class ClienteSerializer(serializers.Serializer):
         if not value.strip():
             raise serializers.ValidationError("Campo obrigatório")
         return value.strip()
+
 
 def normalize_doc(value: str) -> str:
     return re.sub(r"\D", "", value or "")
@@ -229,6 +231,7 @@ class OrdemServicoSerializer(serializers.Serializer):
         return data
 
 # ── Criptografia de senha ────────────────────────────────────────────────────────────
+
 
 def pwhash(senha: str):
     return make_password(senha)
@@ -426,6 +429,7 @@ class EstoqueKitSerializer(serializers.Serializer):
         return attrs
 
 # ── Catálogo de serviços ──────────────────────────────────────────────────────
+
 
 class ServicoSerializer(serializers.Serializer):
     """Entrada de criação/edição de serviço. `validated_data` sai no formato das

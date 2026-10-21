@@ -323,3 +323,20 @@ O cliente **não precisa de conta nem de app**: a oficina gera um link, manda (c
 - O painel da oficina **não atualiza sozinho** quando o cliente responde: vale o alerta (ao abrir/atualizar a tela de Alertas) ou "Ver se o cliente abriu".
 - Link expirado/revogado não é reativável: gerar um novo.
 - Parte B (conta do cliente, histórico de orçamentos no app) não iniciada.
+
+## Auditoria QA (17/10) — itens 1 e 2 do roteiro (2026-10-20) — branch feat/alertas-backend
+
+Base: relatório "Avaliação de Qualidade & Segurança" (só o lado da oficina; o app do cliente ficou de fora). Pendentes do roteiro, nesta ordem: #17 estado de login no banco, #18 isolamento entre oficinas no banco, #21 refresh token em cookie httpOnly, #22 README + testes de front, #23 limpeza.
+
+**#19 — CI roda o pytest.** Novo job `backend-tests` em `.github/workflows/ci.yml` (instala `requirements-dev.txt`, que traz o Postgres descartável dos testes). O lint passou a usar `backend/.flake8`: ele já falhava (292 avisos); corrigidos os reais (imports sem uso, linhas em branco, fim de arquivo) e silenciados os que são estilo/idioma do pytest (`l` como nome de variável, fixtures importadas nos testes, imports no meio de `views.py`/`serializers.py`). **O CI só roda em pull request para `main`** — ele só será exercitado de verdade quando o PR for aberto.
+
+**#20 — configuração de produção** (`DjangoSet/setting.py`):
+- `DEBUG` agora é **falso por padrão** (aceita true/1/yes/on). Para desenvolver, `DEBUG=True` no `supabase.env`.
+- `ALLOWED_HOSTS` é **obrigatório** em produção e não aceita `*` (o servidor nem inicia). O `RENDER_EXTERNAL_HOSTNAME` que o Render injeta é aceito sozinho. Em desenvolvimento sem a variável vale localhost/127.0.0.1/testserver.
+- `SecurityMiddleware` + `XFrameOptionsMiddleware` (nosniff, referrer-policy, COOP, X-Frame-Options DENY). Só em produção: `SECURE_PROXY_SSL_HEADER` (HTTPS do Render), HSTS de 30 dias (`SECURE_HSTS_SECONDS`; subir pra 31536000 depois de confirmar) e `SECURE_SSL_REDIRECT` opcional (desligado: o Render já redireciona).
+- **Antes de subir no Render confira as variáveis:** `DEBUG` (pode ficar sem ou `False`), `DJANGO_SECRET_KEY` (se não existir o deploy não sobe), `ALLOWED_HOSTS`. Atenção: sem `DJANGO_SECRET_KEY` o sistema antes usava uma chave de desenvolvimento pública — que também assina os links de orçamento; defina uma chave nova e secreta.
+- Testes: `tests/test_settings.py` (9). Suíte total: 593.
+
+## Segurança do banco — RLS em todas as tabelas (2026-10-21) — PR #25
+
+Novo script `backend/sql/seguranca_rls.sql` (idempotente; testado num Postgres descartável). Liga o RLS em toda tabela de `public` **sem policies** e tira de `anon`/`authenticated` o acesso a tabelas, sequências e funções (inclusive as de orçamento/estoque, que por padrão ficam executáveis por todos). O `service_role` (backend das duas apps) ignora RLS: nada muda pra elas. Não usa FORCE (o app do cliente conecta como `postgres`, dono). **Pré-requisito:** o `SUPABASE_KEY` do Render ser a chave `service_role` — senão o sistema para. Ligar o RLS por oficina (policies) fica como etapa futura (item #18 da auditoria).

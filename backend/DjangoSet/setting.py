@@ -7,7 +7,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Aponta explicitamente para o supabase.env na raiz do backend
 load_dotenv(BASE_DIR / "supabase.env")
 
-DEBUG = os.getenv("DEBUG", "True") == "True"
+
+def _env_bool(nome: str, padrao: bool) -> bool:
+    valor = os.getenv(nome)
+    if valor is None or valor.strip() == "":
+        return padrao
+    return valor.strip().lower() in ("1", "true", "yes", "on")
+
+
+# Seguro por padrão: sem DEBUG definido o servidor sobe como PRODUÇÃO.
+# Em desenvolvimento, ponha DEBUG=True no supabase.env.
+DEBUG = _env_bool("DEBUG", False)
 
 _secret = os.environ.get("DJANGO_SECRET_KEY")
 if not _secret:
@@ -19,8 +29,18 @@ if not _secret:
         )
 SECRET_KEY = _secret
 
-# Em produção defina ALLOWED_HOSTS=revisacar-1-qmmv.onrender.com,revisacar.vercel.app
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+# Em produção defina ALLOWED_HOSTS=revisacar-1-qmmv.onrender.com,... (lista separada por vírgula).
+# O Render também informa o próprio endereço em RENDER_EXTERNAL_HOSTNAME; ele é aceito automaticamente.
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"].strip())
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "testserver"]   # só desenvolvimento/testes
+if not DEBUG and (not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS):
+    raise RuntimeError(
+        "ALLOWED_HOSTS precisa listar os domínios reais em produção (não pode ficar vazio nem ter '*'). "
+        "Ex.: ALLOWED_HOSTS=revisacar-1-qmmv.onrender.com"
+    )
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
@@ -32,8 +52,22 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# ── Segurança de transporte e cabeçalhos ──────────────────────────────────────
+# SecurityMiddleware já manda X-Content-Type-Options: nosniff, Referrer-Policy e
+# Cross-Origin-Opener-Policy; XFrameOptionsMiddleware manda X-Frame-Options: DENY.
+if not DEBUG:
+    # O Render termina o HTTPS no proxy e repassa o esquema original neste cabeçalho.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # O Render já redireciona http→https antes de chegar aqui; deixe ligado só se precisar.
+    SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", False)
+    # HSTS: o navegador só aceita https por este tempo. Começa em 30 dias; depois de
+    # confirmar que está tudo certo, suba (31536000 = 1 ano) pela variável de ambiente.
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "2592000"))
 
 ROOT_URLCONF = "DjangoSet.urls"
 WSGI_APPLICATION = "DjangoSet.wsgi.application"

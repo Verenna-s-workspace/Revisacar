@@ -206,7 +206,7 @@ def gerar_pdf(dados: dict) -> bytes:
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(COR_SUAVE)
         canvas.drawString(18 * mm, 10 * mm, f"{dados.get('oficina_nome') or ''} · {rotulo_os(dados.get('os_num'))} · "
-                                           f"orçamento v{dados.get('versao', 1)}")
+                                            f"orçamento v{dados.get('versao', 1)}")
         canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, f"Página {doc_.page}")
         if status == "rascunho":
             canvas.setFont("Helvetica-Bold", 60)

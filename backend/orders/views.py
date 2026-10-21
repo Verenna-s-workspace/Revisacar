@@ -332,6 +332,7 @@ def _oficina_doc_do_token(payload: dict) -> str:
 
 from django.utils import timezone
 
+
 @api_view(["GET"])
 def root(request):
     return Response({
