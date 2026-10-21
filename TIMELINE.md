@@ -336,3 +336,7 @@ Base: relatório "Avaliação de Qualidade & Segurança" (só o lado da oficina;
 - `SecurityMiddleware` + `XFrameOptionsMiddleware` (nosniff, referrer-policy, COOP, X-Frame-Options DENY). Só em produção: `SECURE_PROXY_SSL_HEADER` (HTTPS do Render), HSTS de 30 dias (`SECURE_HSTS_SECONDS`; subir pra 31536000 depois de confirmar) e `SECURE_SSL_REDIRECT` opcional (desligado: o Render já redireciona).
 - **Antes de subir no Render confira as variáveis:** `DEBUG` (pode ficar sem ou `False`), `DJANGO_SECRET_KEY` (se não existir o deploy não sobe), `ALLOWED_HOSTS`. Atenção: sem `DJANGO_SECRET_KEY` o sistema antes usava uma chave de desenvolvimento pública — que também assina os links de orçamento; defina uma chave nova e secreta.
 - Testes: `tests/test_settings.py` (9). Suíte total: 593.
+
+## Segurança do banco — RLS em todas as tabelas (2026-10-21) — PR #25
+
+Novo script `backend/sql/seguranca_rls.sql` (idempotente; testado num Postgres descartável). Liga o RLS em toda tabela de `public` **sem policies** e tira de `anon`/`authenticated` o acesso a tabelas, sequências e funções (inclusive as de orçamento/estoque, que por padrão ficam executáveis por todos). O `service_role` (backend das duas apps) ignora RLS: nada muda pra elas. Não usa FORCE (o app do cliente conecta como `postgres`, dono). **Pré-requisito:** o `SUPABASE_KEY` do Render ser a chave `service_role` — senão o sistema para. Ligar o RLS por oficina (policies) fica como etapa futura (item #18 da auditoria).
