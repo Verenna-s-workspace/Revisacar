@@ -119,12 +119,22 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
         padding: '32px 24px',
         position: 'relative',
       }}>
-        {isMobile && (
-          <div style={{ fontFamily: tokens.fontLogo, fontSize: '1.6rem', color: tokens.color.ferrari, marginBottom: 28 }}>
-            RevisaCar
-          </div>
-        )}
-
+        <div style={{
+    position: "absolute",
+    top: isMobile ? "20px" : "20px",
+    left: isMobile ? "160px" : "20px",
+        }}>
+          
+      <img
+        src="/Logorevisavermelha.svg"
+        alt="Logo RevisaCar"
+        width="70"
+        height="70"
+        loading="eager"
+        fetchPriority="high"
+      />
+        </div>
+      
         <div style={{ width: '100%', maxWidth: 380 }}>
           {step === 'pareamento' && (
             <form onSubmit={handlePareamento}>

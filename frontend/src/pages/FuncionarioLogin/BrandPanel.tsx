@@ -48,6 +48,7 @@ export function BrandPanel() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
+      borderRadius: "40px 0 0 0 "
     }}>
       <svg
         viewBox={`0 0 ${WAVE_VIEWBOX.w} ${WAVE_VIEWBOX.h}`}
