@@ -11,8 +11,10 @@ import {
   btnSolid,
   btnGhost,
   btnAccent,
+  btnDisabled,
   pfNote,
 } from "../../../../components/ui";
+import { textoFaltam } from "../../../../utils/fotos_obrigatorias";
 
 interface StepProps {
   os: ReturnType<typeof useOrdemServico>;
@@ -55,7 +57,9 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
     goStep,
     step,
     stepDir,
+    fotosObrig,
   } = os;
+  const { resumo: fotosResumo, liberado: fotosLiberadas, fonte: fotosFonte } = fotosObrig;
 
   const hasErr = (k: string) => showErrors && !!errors[k];
   const nowDate = () => new Date().toISOString().split("T")[0];
@@ -69,11 +73,45 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
         .join(" · ") || "—",
     ],
     ["Cliente", cliente.nome || "—"],
-    ["Fotos registradas", photos.length],
+    [
+      "Fotos registradas",
+      fotosFonte === "indisponivel"
+        ? photos.length
+        : `${fotosResumo.resolvidas} de ${fotosResumo.total} obrigatórias · ${photos.length} adicionais`,
+    ],
   ];
 
   return (
     <StepWrapper direction={stepDir}>
+      {!fotosLiberadas && (
+        <div
+          role="alert"
+          style={{
+            background: tokens.color.warnBg,
+            border: `1px solid ${tokens.color.warnBorder}`,
+            borderLeft: `3px solid ${tokens.color.warn}`,
+            padding: "12px 16px",
+            fontFamily: tokens.fontSans,
+            fontSize: "0.9rem",
+            color: tokens.color.text,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <span>
+            {fotosFonte === "ok"
+              ? `${textoFaltam(fotosResumo.faltam.length)} da entrada. Tire as fotos (ou informe o motivo) para seguir ao diagnóstico.`
+              : "As fotos obrigatórias da entrada ainda não foram conferidas."}
+          </span>
+          <button onClick={() => goStep(2, step)} style={{ ...btnAccent, minHeight: 44 }}>
+            Ir para as fotos
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           background: tokens.color.surface,
@@ -286,7 +324,11 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
             <button onClick={saveOrder} style={btnSolid}>
               Enviar para o banco de dados
             </button>
-             <button onClick={onNextChecklist} style={btnAccent}>
+             <button
+              onClick={() => (fotosLiberadas ? onNextChecklist?.() : goStep(2, step))}
+              aria-disabled={!fotosLiberadas}
+              style={fotosLiberadas ? btnAccent : { ...btnDisabled, cursor: "pointer" }}
+            >
               <svg
                 width={11}
                 height={11}

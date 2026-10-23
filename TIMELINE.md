@@ -20,6 +20,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Alertas — cliente avisado no banco + orçamento/financeiro | 🟡 SQL + API + front prontos (474 testes; smoke no navegador com API simulada: 8 tipos, filtros, atalhos, fallback sem script, migração do navegador, mecânico sem financeiro, mobile). Falta: rodar `alertas.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase real |
 | Alertas — adiar/dispensar | 🟡 SQL + API + front prontos (509 testes; smoke no navegador com API simulada: adiar 1/3/7 dias, dispensar, desfazer, voltar a mostrar, persistência, limpeza quando o problema se resolve, 503, mobile). Falta: rodar `alertas.sql` de novo (acrescenta a tabela `alertas_dispensados`) e validar contra o Supabase real |
 | Orçamento — Fase 6A (link público do cliente) | 🟡 SQL + API + front prontos (584 testes; smoke no navegador com API simulada: bloco "Link para o cliente", página pública `/o/<código>` — ver, aprovar, recusar, vencido/aprovado/recusado/substituído, erros 404/410/429/rede, celular 390px — e o grupo de alertas "Clientes que responderam"). Falta: rodar `orcamento_link.sql` (depois de `orcamentos.sql`), garantir que a hospedagem entrega o `index.html` em `/o/*` e validar contra o Supabase real. Conta do cliente (parte B) não iniciada |
+| Entrada — fotos obrigatórias | 🟡 SQL + API + front prontos (647 testes; smoke no navegador 390px com API simulada: 5 itens, "3 de 5", refazer, pular com motivo, bloqueio nas duas etapas, reenvio, modo sem script). Falta: rodar `ordens_fotos.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase/Storage reais |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -340,3 +341,37 @@ Base: relatório "Avaliação de Qualidade & Segurança" (só o lado da oficina;
 ## Segurança do banco — RLS em todas as tabelas (2026-10-21) — PR #25
 
 Novo script `backend/sql/seguranca_rls.sql` (idempotente; testado num Postgres descartável). Liga o RLS em toda tabela de `public` **sem policies** e tira de `anon`/`authenticated` o acesso a tabelas, sequências e funções (inclusive as de orçamento/estoque, que por padrão ficam executáveis por todos). O `service_role` (backend das duas apps) ignora RLS: nada muda pra elas. Não usa FORCE (o app do cliente conecta como `postgres`, dono). **Pré-requisito:** o `SUPABASE_KEY` do Render ser a chave `service_role` — senão o sistema para. Ligar o RLS por oficina (policies) fica como etapa futura (item #18 da auditoria).
+
+## Entrada — fotos obrigatórias (2026-10-22) — branch feat/fotos-obrigatorias (parte de main)
+
+**Pedido:** na tela de fotos da entrada, 5 fotos obrigatórias fixas (hodômetro com o painel aceso mostrando os avisos, frente, traseira, lateral direita, lateral esquerda) + fotos adicionais livres; não avançar ao diagnóstico sem as 5 resolvidas; saída "Não consigo tirar esta foto" com motivo curto; registrar quem e quando; comprimir antes de enviar; usável com uma mão em 390px.
+
+**Como era:** `ordens.fotos_paths` (lista de caminhos `<ordem_id>/<uuid>.<ext>` no bucket `test-bucket`) sem nenhuma informação de qual foto é, quem tirou ou quando; as fotos só subiam em lote no `saveOrder()`; só a câmera (`CameraCapture`) comprimia; nenhum bloqueio.
+
+**Passo do usuário:** rodar `backend/sql/ordens_fotos.sql` no SQL Editor do Supabase (idempotente, depois de `ordens_oficina.sql`; RLS ligada e sem policy — só o backend acessa). Sem ele nada quebra: a tela avisa, não exige as 5 e as fotos adicionais seguem como antes.
+
+**Banco** (`ordem_fotos`, uma linha por OS+item): `slot` (CHECK nos 5 ids), `situacao` (`foto`|`pulada`), `path` ou `motivo` (CHECK de coerência: foto exige caminho e proíbe motivo; pulada exige motivo de 3–120 caracteres e proíbe caminho), `por_nome`/`por_tipo`/`por_id`/`em`, `refeitas`. FK composta `(oficina_doc, ordem_id)` → `ordens` com `on delete cascade`. As fotos adicionais continuam em `fotos_paths`.
+
+**Rotas** (`orders/fotos_obrigatorias.py`, JSON camelCase): `GET /ordens/<id>/fotos-obrigatorias` (`ordens.ver`) → `itens`, `total`, `resolvidas`, `completo`, `faltam`; `PUT .../<slot>` (multipart, campo `file`, uma foto por vez) e `POST .../<slot>/pular` `{motivo}` (`ordens.editar` OU `ordens.criar`, como o "cliente avisado": o atendente cria OS). Respondem com o `item` alterado + o resumo, pra tela atualizar o "3 de 5" sem outra chamada.
+
+**Regras**
+- Quem e quando vêm do TOKEN e do relógio do servidor, nunca do corpo. Tirar de novo substitui a linha, apaga a foto velha do Storage e soma 1 em `refeitas`; pular um item que tinha foto também a remove. Se o banco recusa depois do upload, o arquivo novo é removido (sem órfão); se falha o upload, nada é gravado (502).
+- Arquivos em `<ordem_id>/obrig-<slot>-<uuid>.<ext>`, na pasta da OS: apagar a OS já limpa tudo. Validação por magic bytes (JPEG/PNG/WebP/HEIC), máx 5 MB.
+- **Bloqueio no servidor:** `PUT /ordens/<id>` com a OS em `rascunho` só sobe para `em_orcamento` com as 5 resolvidas. Faltando, o salvamento NÃO falha: grava tudo, a OS fica em rascunho e a resposta traz `fotos_obrigatorias_pendentes`. OS que já passou da entrada NÃO é cobrada (decisão do usuário: só rascunho). Só dá pra mexer nos itens enquanto a OS é rascunho/em_orcamento (409 `os_status` depois disso; ler continua valendo).
+- Frontend: o bloqueio vale no botão "Encerramento" da tela de fotos, nas abas da entrada e no "Próxima etapa" do encerramento (que também mostra um aviso com atalho "Ir para as fotos").
+
+**Frontend:** `useFotosObrigatorias` (dentro de `useOrdemServico`, estado único), `utils/fotos_obrigatorias.ts` (espelho dos 5 ids/limites do backend — manter igual), `utils/imagem.ts` (compressão), `Steps/Initial/StepPhoto.tsx` reescrito + `FotosObrigatorias/` (`FotoObrigatoriaItem`, `PularFotoSheet`, ícones). Ao chegar nas fotos sem OS, salva o rascunho (um salvamento por vez: `saveOrder` agora reaproveita o que já está em curso, senão dois disparos criariam duas OS). Cada foto sobe na hora; se a internet cair a foto já comprimida fica guardada pra "Tentar enviar de novo". Mantido o `react-webcam` (decisão do usuário: no iOS a câmera nativa devolve a foto sozinha e aqui dá pra tirar em sequência e controlar a qualidade). Compressão: lado maior 1600 px, JPEG 0,75 — vale também pras fotos adicionais. As 5 entram no PDF da OS antes das adicionais, com o nome do item.
+
+**Correções feitas no caminho**
+- `api.ts` fixava `Content-Type: application/json` em todo `authFetch`, inclusive em upload `FormData` (o navegador precisa montar o boundary). Agora ignora o fixo quando o corpo é `FormData`.
+- O `StepWrapper` usa `will-change: transform`, o que prende elementos `position: fixed` ao tamanho da PÁGINA e não da tela. A câmera e a folha do motivo agora renderizam por portal no `<body>`.
+
+**Validado:** 647 testes (pytest, Postgres real descartável; 54 novos em `tests/test_fotos_obrigatorias.py`; o teste de status ganhou as 5 fotos resolvidas, pois a regra mudou de propósito) e lint limpo; `tsc` + `vite build` limpos; funções puras do front (esbuild + node); smoke no Chromium em 390px com API simulada e câmera falsa (fluxo completo, bloqueio por botão e por aba, refazer, motivo por atalho e texto livre, falha de rede + reenvio, 4 de 5, modo sem script, alvos ≥ 44 px, sem rolagem horizontal, câmera/folha dentro da tela). **NÃO validado:** nada contra o Supabase/Storage reais nem em celular de verdade (câmera do iPhone/Android, permissão, EXIF/rotação reais).
+
+**Pendências / decisões**
+- Rodar `ordens_fotos.sql`; testar no celular com o build de produção (`npm run build && npm run preview`).
+- A faixa de abas (`StepTabs`) fica mais larga que 390 px com a aba "Encerramento" ativa (já era assim; não mexido).
+- Lista de itens fixa no código (sem configuração por oficina, como pedido). Se virar configurável, é tabela nova + o espelho do front sai.
+- `GET /fotos/<path>` continua sem login (já anotado) — as 5 fotos usam o mesmo endpoint pra miniatura.
+- Foto escolhida da galeria só existe nas adicionais; as 5 obrigatórias são sempre pela câmera (evita foto antiga fora do registro de confiabilidade).
+- Itens "pulados" não têm prazo nem alerta pra serem refeitos depois; o motivo fica visível na tela de fotos e no registro, mas ainda não aparece no PDF.

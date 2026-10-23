@@ -19,11 +19,18 @@ const handleResponse = async (res: Response) => {
   return text ? JSON.parse(text) : null;
 };
 
+/** Upload (FormData): o navegador precisa montar o Content-Type com o boundary; fixar
+ *  application/json aqui faria o servidor ver um corpo multipart como JSON (sem arquivos). */
+const semContentTypeFixo = (headers: Record<string, string>, init: RequestInit) => {
+  if (typeof FormData !== 'undefined' && init.body instanceof FormData) delete headers['Content-Type'];
+  return headers;
+};
+
 const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
-  const headers = {
+  const headers = semContentTypeFixo({
     ...baseHeaders,
     ...(init.headers as Record<string, string> | undefined),
-  };
+  }, init);
 
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
@@ -41,11 +48,11 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
         accessToken = refreshResponse.accessToken;
         refreshToken = refreshResponse.refreshToken;
 
-        const retryHeaders = {
+        const retryHeaders = semContentTypeFixo({
           ...baseHeaders,
           ...(init.headers as Record<string, string> | undefined),
           Authorization: `Bearer ${accessToken}`
-        };
+        }, init);
 
         const retryResponse = await fetch(input, {
           ...init,
@@ -117,6 +124,25 @@ export const api = {
       method: 'POST',
       body: formData,
       headers: {},
+    }),
+
+  /** Fotos obrigatórias da entrada (5 itens fixos): estado, uma foto por vez e "não consigo tirar". */
+  fotosObrigatorias: (orderId: string) =>
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos-obrigatorias`),
+
+  enviarFotoObrigatoria: (orderId: string, slot: string, arquivo: Blob) => {
+    const formData = new FormData();
+    formData.append('file', arquivo, `${slot}.jpg`);
+    return authFetch(`${API_BASE}/ordens/${orderId}/fotos-obrigatorias/${slot}`, {
+      method: 'PUT',
+      body: formData,
+    });
+  },
+
+  pularFotoObrigatoria: (orderId: string, slot: string, motivo: string) =>
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos-obrigatorias/${slot}/pular`, {
+      method: 'POST',
+      body: JSON.stringify({ motivo }),
     }),
 
   deleteFoto: (orderId: string, fotoPath: string) =>

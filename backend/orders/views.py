@@ -749,6 +749,17 @@ def ordem_detail(request, ordem_id):
 
         ordem = serializer.validated_data
         status_final = os_status.status_no_salvamento(status_atual, ordem.get("status"))
+
+        # Fotos obrigatórias da entrada: uma OS em rascunho só sobe para "em orçamento" com os
+        # 5 itens resolvidos (foto ou motivo). Faltando, o salvamento NÃO falha: grava tudo e a OS
+        # continua em rascunho (a resposta diz o que falta). Ver orders/fotos_obrigatorias.py.
+        fotos_faltando = []
+        if status_atual == os_status.RASCUNHO and status_final == os_status.EM_ORCAMENTO:
+            from . import fotos_obrigatorias
+            fotos_faltando = fotos_obrigatorias.fotos_pendentes(supabase, oficina_doc, ordem_id)
+            if fotos_faltando:
+                status_final = os_status.RASCUNHO
+
         update = {
             "updated_at": _now(),
             "os_num": ordem["os_header"]["os_num"],
@@ -766,7 +777,10 @@ def ordem_detail(request, ordem_id):
         )
         if not res.data:
             return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(res.data[0])
+        corpo = res.data[0]
+        if fotos_faltando:
+            corpo = {**corpo, "fotos_obrigatorias_pendentes": fotos_faltando}
+        return Response(corpo)
 
     # DELETE
     row, err = _get_ordem_or_404(ordem_id, oficina_doc)

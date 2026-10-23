@@ -82,8 +82,20 @@ def test_sem_status_no_corpo_nasce_rascunho(api, db):
     assert _status(db, oid)[0] == "rascunho"
 
 
+def _resolve_fotos_obrigatorias(db, oid):
+    """Dá por resolvidos os 5 itens de foto da entrada (pulados), direto no banco."""
+    cur = db.cursor()
+    for slot in ("hodometro", "frente", "traseira", "lateral_direita", "lateral_esquerda"):
+        cur.execute(
+            "insert into ordem_fotos (oficina_doc, ordem_id, slot, situacao, motivo, por_nome, por_tipo) "
+            "values (%s, %s, %s, 'pulada', 'carro trancado', 'dono', 'dono')",
+            (OFICINA_A, oid, slot),
+        )
+
+
 def test_checklist_completo_sobe_para_em_orcamento_e_volta_se_ficar_incompleto(api, db):
     oid = _cria(api, "rascunho")
+    _resolve_fotos_obrigatorias(db, oid)      # sem as 5 fotos a OS ficaria em rascunho (test_fotos_obrigatorias)
     put = lambda s: api.put(f"/ordens/{oid}", {**_corpo_ordem(), "status": s}, format="json")
     assert put("em_orcamento").status_code == 200 and _status(db, oid)[0] == "em_orcamento"
     assert put("rascunho").status_code == 200 and _status(db, oid)[0] == "rascunho"
