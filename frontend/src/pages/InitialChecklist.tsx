@@ -21,6 +21,9 @@ interface CheckProps {
   onNextChecklist?: () => void;
 }
 
+/** Etapa das fotos na entrada (Identificação = 1, Fotos = 2, Encerramento = 3). */
+const FOTO_STEP = 2;
+
 export default function Check({ os, prefill, onBackToStart, onNextChecklist }: CheckProps) {
 
   const currentStep = entradaConfig.find((s) => s.id === os.step);
@@ -75,7 +78,8 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
       os.cliente,
       os.veiculo,
       os.tecnico,
-      os.photos,
+      // Fotos obrigatórias (na ordem fixa, com o nome do item) e depois as adicionais.
+      [...os.fotosObrig.fotosParaPdf, ...os.photos],
       os.getSigImage(),
     );
   };
@@ -99,7 +103,11 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
      
 <StepTabs
   step={os.step}
-  onGoStep={(n) => os.goStep(n, os.step)}
+  onGoStep={(n) => {
+    // Não dá para pular as fotos obrigatórias nem pelas abas: volta para a tela de fotos.
+    if (n > FOTO_STEP && !os.fotosObrig.liberado) { os.goStep(FOTO_STEP, os.step); return; }
+    os.goStep(n, os.step);
+  }}
   steps={entradaConfig}
 />
 

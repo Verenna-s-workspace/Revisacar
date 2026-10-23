@@ -6,9 +6,13 @@ import type { Photo } from '../../types';
 interface CameraCaptureProps {
   onCapture: (photo: Photo) => void;
   onClose: () => void;
+  /** Qual foto está sendo tirada (ex.: "Hodômetro"); aparece no cabeçalho no lugar de "Câmera". */
+  titulo?: string;
+  /** Orientação curta sob o visor (ex.: "Painel aceso, mostrando também os avisos"). */
+  dica?: string;
 }
 
-export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
+export function CameraCapture({ onCapture, onClose, titulo, dica }: CameraCaptureProps) {
   const webcamRef = useRef<Webcam>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [captured, setCaptured] = useState<string | null>(null);
@@ -86,7 +90,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             color: 'rgba(255,255,255,0.5)',
           }}
         >
-          {captured ? 'Confirmar foto' : 'Câmera'}
+          {captured ? 'Confirmar foto' : (titulo ?? 'Câmera')}
         </span>
         <button
           onClick={onClose}
@@ -179,6 +183,22 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           </>
         )}
       </div>
+
+      {dica && !camError && (
+        <p
+          style={{
+            width: '100%',
+            maxWidth: 640,
+            margin: '12px 0 0',
+            textAlign: 'center',
+            fontFamily: tokens.fontMono,
+            fontSize: '0.72rem',
+            color: 'rgba(255,255,255,0.7)',
+          }}
+        >
+          {dica}
+        </p>
+      )}
 
       {/* Controls */}
       <div

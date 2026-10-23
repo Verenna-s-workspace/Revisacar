@@ -7,6 +7,8 @@ import {
   getChecklistStats, getCritItems,
 } from '../utils';
 import { api } from '../utils/api';
+import { comprimirImagem } from '../utils/imagem';
+import { useFotosObrigatorias } from './useFotosObrigatorias';
 import type {
   OSHeader, Cliente, Veiculo, Tecnico, Photo,
   SaveStatus, ValidationErrors, TabelaPeca,
@@ -56,6 +58,10 @@ export function useOrdemServico() {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tecnico,  setTecnico]  = useState<Tecnico>(INITIAL_TECNICO);
 
+  // 5 fotos obrigatórias da entrada (hodômetro, frente, traseira, laterais): estado compartilhado
+  // pelas etapas pro bloqueio valer na tela de fotos, nas abas e no "Próxima etapa".
+  const fotosObrig = useFotosObrigatorias(orderId, ordemStatus);
+
   // ── Checklist state ───────────────────────────────────────────────────────
   const [selected,        setSelected]        = useState<Set<string>>(new Set());
   const [checklist,       setChecklist]       = useState(initChecklist);
@@ -94,19 +100,28 @@ export function useOrdemServico() {
 
   // ── Photos ────────────────────────────────────────────────────────────────
 
+  // Fotos adicionais (livres): também são comprimidas antes de subir (o celular entrega 3–6 MB e o
+  // servidor recusa acima de 5 MB). Se a compressão falhar, segue com o original.
+  const guardarFoto = useCallback((photo: Photo) => {
+    setPhotos((prev) => [...prev, photo]);
+    setNewPhotos((prev) => [...prev, photo]);
+  }, []);
+
   const handlePhotos = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files ?? []).forEach((file) => {
+    const arquivos = Array.from(e.target.files ?? []);
+    arquivos.forEach(async (file) => {
       if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const photo = { src: ev.target?.result as string, name: file.name, path: undefined };
-        setPhotos((prev) => [...prev, photo]);
-        setNewPhotos((prev) => [...prev, photo]);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const { dataUrl } = await comprimirImagem(file);
+        guardarFoto({ src: dataUrl, name: file.name.replace(/\.[^.]+$/, '') + '.jpg', path: undefined });
+      } catch {
+        const reader = new FileReader();
+        reader.onload = (ev) => guardarFoto({ src: ev.target?.result as string, name: file.name, path: undefined });
+        reader.readAsDataURL(file);
+      }
     });
     e.target.value = '';
-  }, []);
+  }, [guardarFoto]);
 
   const removePhoto = useCallback(async (index: number) => {
     const foto = photos[index];
@@ -122,10 +137,14 @@ export function useOrdemServico() {
     setNewPhotos((prev) => prev.filter((_, i) => i !== index));
   }, [orderId, photos]);
 
-  const addPhotoFromCamera = useCallback((photo: Photo) => {
-    setPhotos((prev) => [...prev, photo]);
-    setNewPhotos((prev) => [...prev, photo]);
-  }, []);
+  const addPhotoFromCamera = useCallback(async (photo: Photo) => {
+    try {
+      const { dataUrl } = await comprimirImagem(photo.src);
+      guardarFoto({ ...photo, src: dataUrl });
+    } catch {
+      guardarFoto(photo);
+    }
+  }, [guardarFoto]);
 
   // ── Checklist actions ─────────────────────────────────────────────────────
 
@@ -322,7 +341,7 @@ export function useOrdemServico() {
   );
 
   /** Salva a OS (cria ou atualiza). Devolve true se o servidor aceitou. */
-  const saveOrder = useCallback(async (): Promise<boolean> => {
+  const salvarAgora = useCallback(async (): Promise<boolean> => {
     setSaveStatus('saving');
     try {
       const isComplete = !!(
@@ -337,6 +356,7 @@ export function useOrdemServico() {
         fotos_base64: [],
         fotos_paths:  [],
         // Checklist completo leva ao orçamento — NÃO conclui a OS (ver utils/ordem_status.ts).
+        // O servidor só promove rascunho → em_orcamento com as 5 fotos obrigatórias resolvidas.
         status: isComplete ? 'em_orcamento' : 'rascunho',
       };
 
@@ -370,6 +390,16 @@ export function useOrdemServico() {
       return false;
     }
   }, [buildPayload, orderId, newPhotos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
+
+  // Um salvamento por vez: dois ao mesmo tempo (ex.: o auto-salvar da tela de fotos junto com o do
+  // "Iniciar Atendimento") criariam duas OS. Quem chega no meio recebe o resultado do que já está em curso.
+  const emCurso = useRef<Promise<boolean> | null>(null);
+  const saveOrder = useCallback((): Promise<boolean> => {
+    if (emCurso.current) return emCurso.current;
+    const p = salvarAgora().finally(() => { emCurso.current = null; });
+    emCurso.current = p;
+    return p;
+  }, [salvarAgora]);
 
   // ── Step handlers ─────────────────────────────────────────────────────────
 
@@ -523,6 +553,9 @@ export function useOrdemServico() {
     photos,   setPhotos,
     newPhotos, setNewPhotos,
     lightbox, setLightbox,
+
+    // Fotos obrigatórias da entrada
+    fotosObrig,
 
     // Photos
     handlePhotos,

@@ -5,7 +5,7 @@ from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
 from . import visao_geral_views
-from . import alertas_views, fechamento_views, orcamento_link_views, orcamento_views
+from . import alertas_views, fechamento_views, fotos_obrigatorias, orcamento_link_views, orcamento_views
 
 urlpatterns = [
     # Root
@@ -32,6 +32,11 @@ urlpatterns = [
     path("publico/orcamentos/<str:token>/pdf", orcamento_link_views.publico_orcamento_pdf),
     path("publico/orcamentos/<str:token>/aprovar", orcamento_link_views.publico_orcamento_aprovar),
     path("publico/orcamentos/<str:token>/recusar", orcamento_link_views.publico_orcamento_recusar),
+
+    # Fotos obrigatórias da entrada (5 itens fixos) — ordens.ver / ordens.editar ou ordens.criar
+    path("ordens/<str:ordem_id>/fotos-obrigatorias", fotos_obrigatorias.fotos_obrigatorias),
+    path("ordens/<str:ordem_id>/fotos-obrigatorias/<str:slot>", fotos_obrigatorias.foto_obrigatoria),
+    path("ordens/<str:ordem_id>/fotos-obrigatorias/<str:slot>/pular", fotos_obrigatorias.foto_obrigatoria_pular),
 
     # Fotos de uma ordem
     path("ordens/<str:ordem_id>/fotos", views.upload_fotos),
