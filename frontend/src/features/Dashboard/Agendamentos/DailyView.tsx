@@ -263,7 +263,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
       {/* Bottom summary bar — fixa, fora da área rolável */}
       {dayItems.length > 0 && (
         <div style={{ display: 'flex', gap: 12, padding: '10px 20px', borderTop: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap' }}>
-          {(['agendado', 'em_andamento', 'pronto_retirada', 'concluido', 'cancelado'] as const).map(st => {
+          {(['pendente', 'agendado', 'em_andamento', 'pronto_retirada', 'concluido', 'cancelado', 'recusado'] as const).map(st => {
             const count = dayItems.filter(a => a.status === st).length;
             if (!count) return null;
             const cfg = APPOINTMENT_STATUS_CONFIG[st];

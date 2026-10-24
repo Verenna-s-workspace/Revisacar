@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../utils/api';
 import { buildSeedVeiculos } from '../utils/veiculos_utils';
+import { mensagemDeErro } from '../utils/erros';
 import type {
   NovoVeiculoInput,
   VeiculoCadastrado,
@@ -83,37 +84,45 @@ export function useVeiculos() {
 
     if (usingApi) {
       try {
-        await api.criarVeiculo(input);
-      } catch {
-        // mantém o registro local mesmo se a chamada falhar
+        const salvo: VeiculoCadastrado = await api.criarVeiculo(input);
+        setVeiculos(prev => [salvo, ...prev.filter(v => v.id !== novo.id && v.id !== salvo.id)]);
+        return salvo;
+      } catch (e) {
+        setVeiculos(prev => prev.filter(v => v.id !== novo.id));
+        throw new Error(mensagemDeErro(e, 'Não foi possível salvar o veículo. Tente novamente.'));
       }
     }
     return novo;
   }, [usingApi]);
 
   const updateVeiculo = useCallback(async (id: string, patch: Partial<NovoVeiculoInput>) => {
+    const anterior = veiculos.find(v => v.id === id);
     setVeiculos(prev => prev.map(v => (v.id === id ? { ...v, ...patch, updatedAt: new Date().toISOString() } : v)));
 
     if (usingApi) {
       try {
-        await api.atualizarVeiculo(id, patch);
-      } catch {
-        // segue com o estado local
+        const salvo: VeiculoCadastrado = await api.atualizarVeiculo(id, patch);
+        if (salvo?.id) setVeiculos(prev => prev.map(v => (v.id === id ? salvo : v)));
+      } catch (e) {
+        if (anterior) setVeiculos(prev => prev.map(v => (v.id === id ? anterior : v)));
+        throw new Error(mensagemDeErro(e, 'Não foi possível atualizar o veículo. Tente novamente.'));
       }
     }
-  }, [usingApi]);
+  }, [usingApi, veiculos]);
 
   const deleteVeiculo = useCallback(async (id: string) => {
+    const anterior = veiculos.find(v => v.id === id);
     setVeiculos(prev => prev.filter(v => v.id !== id));
 
     if (usingApi) {
       try {
         await api.deletarVeiculo(id);
-      } catch {
-        // já removido localmente
+      } catch (e) {
+        if (anterior) setVeiculos(prev => [anterior, ...prev]);
+        throw new Error(mensagemDeErro(e, 'Não foi possível excluir o veículo. Tente novamente.'));
       }
     }
-  }, [usingApi]);
+  }, [usingApi, veiculos]);
 
   const changeOwner = useCallback(async (id: string, proprietario: VeiculoProprietario | null) => {
     await updateVeiculo(id, { proprietario });

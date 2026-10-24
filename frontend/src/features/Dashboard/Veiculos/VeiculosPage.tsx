@@ -74,13 +74,17 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit   = (v: VeiculoCadastrado) => { setSelected(null); setEditing(v); setFormOpen(true); };
 
+  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
+
   const handleSaveForm = async (input: NovoVeiculoInput) => {
-    if (editing) { await updateVeiculo(editing.id, input); }
-    else         { await addVeiculo(input); }
+    try {
+      if (editing) { await updateVeiculo(editing.id, input); }
+      else         { await addVeiculo(input); }
+    } catch (e) { avisarErro(e); }
   };
 
   const handleSaveOwner = async (prop: VeiculoProprietario | null) => {
-    if (ownerTarget) await changeOwner(ownerTarget.id, prop);
+    if (ownerTarget) await changeOwner(ownerTarget.id, prop).catch(avisarErro);
   };
 
   const handleUnlinkOwner = (v: VeiculoCadastrado) => {
@@ -88,11 +92,11 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
     const ok = window.confirm(
       `Desvincular o proprietário "${v.proprietario.nome}" deste veículo?\n\nO veículo permanecerá cadastrado no sistema.`
     );
-    if (ok) changeOwner(v.id, null);
+    if (ok) changeOwner(v.id, null).catch(avisarErro);
   };
 
   const handleConfirmDelete = () => {
-    if (deleteTarget) deleteVeiculo(deleteTarget.id);
+    if (deleteTarget) deleteVeiculo(deleteTarget.id).catch(avisarErro);
   };
 
   // ── conteúdo ────────────────────────────────────────────────────────────────

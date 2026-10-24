@@ -107,6 +107,60 @@ def pg_dsn():
         sql = (BACKEND_DIR / "sql" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência: rodar duas vezes não pode falhar
+
+    # Tabelas do app do cliente e funcionarios (no Supabase vêm do dump/Django/painel). Cópia fiel
+    # do estado de produção ANTES das migrations 0001-0003 de backend/sql/migrations.
+    cur.execute(
+        """
+        create table public.funcionarios (
+          id uuid primary key default gen_random_uuid(),
+          oficina_doc text not null references public.admins(doc),
+          nome text not null,
+          email text not null unique,
+          pin_hash text not null default 'x',
+          cargo text not null check (cargo in ('gerente','mecanico','atendente')),
+          ativo boolean not null default true,
+          created_at timestamptz not null default now()
+        );
+        create table public.customers (
+          id uuid primary key, name text not null, email text not null unique, phone text, cpf text,
+          address text, pwhash text not null, avatar_url text,
+          created_at timestamptz default now(), updated_at timestamptz default now(), pin_hash text
+        );
+        create table public.customer_vehicles (
+          id uuid primary key, customer_id uuid references public.customers(id),
+          brand text not null, model text not null, year integer not null, plate text not null,
+          color text, fuel_type text default 'flex', mileage integer default 0, vin text, renavam text,
+          notes text, is_active boolean default true, deleted boolean default false,
+          created_at timestamptz default now(), updated_at timestamptz default now()
+        );
+        create table public.appointments (
+          id uuid primary key, customer_id uuid references public.customers(id),
+          vehicle_id uuid references public.customer_vehicles(id), vehicle_label text,
+          service_type text not null, service_description text, date date not null,
+          time_slot time not null, status text default 'pendente', notes text, rejection_reason text,
+          created_at timestamptz default now(), updated_at timestamptz default now()
+        );
+        create table public.notifications (
+          id uuid primary key default gen_random_uuid(), customer_id uuid references public.customers(id),
+          title text not null, message text, type text not null, is_read boolean default false,
+          action_url text, created_at timestamptz default now()
+        );
+        create table public.availability_slots (
+          id uuid primary key default gen_random_uuid(), date date not null, time_slot time not null,
+          is_available boolean default true
+        );
+        """
+    )
+    # Migrations versionadas (db): controle, limpeza, tabelas do app do cliente, integração.
+    for nome in ("0000_controle.sql", "0001_limpeza_segura.sql", "0002_tabelas_app_cliente.sql",
+                 "0003_integracao_cliente_oficina.sql"):
+        sql = (BACKEND_DIR / "sql" / "migrations" / nome).read_text(encoding="utf-8")
+        cur.execute(sql)
+        cur.execute(sql)  # idempotência
+    # A 0001 torna ordens.oficina_doc obrigatória (produção). Os testes históricos de
+    # ordens_oficina.sql precisam da coluna opcional; test_carteira.py cobre a 0001 em transação.
+    cur.execute("alter table public.ordens alter column oficina_doc drop not null")
     conn.close()
 
     yield dsn
@@ -124,7 +178,9 @@ def db(pg_dsn):
     cur.execute(
         "truncate public.estoque_movimentos, public.estoque_kit_itens, "
         "public.estoque_kits, public.estoque_itens, public.servicos, "
-        "public.ordens, public.financeiro_transacoes, public.orcamentos, public.orcamento_itens, public.alertas_dispensados cascade"
+        "public.ordens, public.financeiro_transacoes, public.orcamentos, public.orcamento_itens, public.alertas_dispensados, "
+        "public.appointments, public.customer_vehicles, public.oficina_convites, public.oficina_clientes, "
+        "public.customers, public.notifications, public.funcionarios cascade"
     )
     cur.execute("update public.admins set meta_mensal = null")
     yield conn

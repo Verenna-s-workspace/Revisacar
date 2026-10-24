@@ -238,7 +238,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
 
       {/* Legend bar */}
       <div style={{ display: 'flex', gap: 14, padding: '10px 20px', borderTop: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap' }}>
-        {(['agendado', 'em_andamento', 'pronto_retirada', 'concluido', 'cancelado'] as const).map(st => {
+        {(['pendente', 'agendado', 'em_andamento', 'pronto_retirada', 'concluido', 'cancelado', 'recusado'] as const).map(st => {
           const count = agendamentos.filter(a => {
             const d = new Date(a.data);
             return d >= weekStart && d <= weekEnd && a.status === st;
