@@ -59,11 +59,14 @@ Rotas novas, todas com `oficina_doc` do token, permissões do RBAC (`clientes.ve
 - OS ↔ carteira (`orders/os_vinculo.py`): ao salvar uma OS, liga `customer_id`/`vehicle_id` por documento ou e-mail do cliente e pela placa, **só dentro da carteira da oficina**, sem criar nada e sem nunca derrubar o salvamento da OS. É isso que deixa o cliente do app ver os orçamentos da oficina onde está vinculado.
 - Ainda não: fotos de veículo não são gravadas (o campo é ignorado); a oficina enxerga todos os veículos dos clientes vinculados; nunca devolver `orcamento_itens.custo_unitario` ao app do cliente (vale para as rotas futuras).
 
-### 4.4 App do cliente
+### 4.4 App do cliente — FEITO no patch `cliente-oficinas-convite-orcamentos.patch` (aplicar depois do `cliente-origem-e-boot.patch`)
 
-- Tela e rota para usar um convite (escaneia o QR, chama `oficina_convite_usar`).
-- Pedido de agendamento passa a informar a oficina (`oficina_doc`); `availability_slots` por oficina.
-- Ler orçamentos de `orcamentos` pela OS do cliente (e aposentar `estimates`/`estimate_items`, vazias hoje).
+- `GET /customer/oficinas`: oficinas em que o cliente está vinculado (ativo).
+- `POST /customer/oficinas/convite {codigo}`: entra na carteira com o convite (chama `oficina_convite_usar`; o cliente vem do token). Falhas de convite devolvem a mesma mensagem genérica; `vinculo_bloqueado` (a própria oficina revogou) dá 403.
+- `POST /customer/appointments` passa a gravar `oficina_doc`: opcional se o cliente tem uma só oficina, obrigatório se tem várias, recusado (422) se não for uma oficina dele ou se ele não tem nenhuma. `availability` e `availability/times` aceitam `?oficina_doc=` (horários gerais, com `oficina_doc` nulo, continuam valendo para todas).
+- `GET /customer/orcamentos` e `/customer/orcamentos/<id>`: orçamentos que a oficina **enviou** (ou já decididos) para OS ligadas ao cliente, **somente leitura**. Rascunho e versões substituídas ficam de fora; `custo_unitario`, `motivo` do item e qualquer coluna interna nunca são lidos (os models do cliente só mapeiam as colunas públicas; `admins` só `doc` e `nome`, sem `pwhash`).
+- **Aprovar/recusar orçamento pelo app NÃO foi feito de propósito**: precisa passar pelas regras do mecânico (status da OS, reserva de estoque, `aprovacao_canal='app'`), então o certo é um endpoint do mecânico chamado pelo app do cliente. Fica para a próxima etapa.
+- Em produção, depois de aplicar os dois patches: `python manage.py migrate --fake` (marca 0005 e 0006; as colunas e tabelas já existem pela 0003). O usuário do banco do app do cliente precisa de `SELECT` em `admins(doc, nome)`, `ordens`, `orcamentos`, `orcamento_itens` e `oficina_clientes`, e `EXECUTE` em `oficina_convite_usar`.
 
 ## 5. Fase seguinte (0004, ainda não escrita de propósito)
 
@@ -81,7 +84,7 @@ Testado num Postgres 18.4 local, com baseline reconstruído a partir do seu dump
 
 As rotas novas do mecânico têm 73 testes próprios (`tests/test_carteira.py`; suíte completa: 720) rodando contra Postgres real com as migrações aplicadas, incluindo a 0001 numa transação descartável.
 
-Não testado: o **seu** Supabase (versão do Postgres, extensões, papéis); `backend/db/rls.sql` do cliente contra o banco novo; o app do cliente usando convite/pedido de agendamento (ainda não escrito). `ON DELETE SET NULL (coluna)` exige Postgres 15+.
+Não testado: o **seu** Supabase (versão do Postgres, extensões, papéis); `backend/db/rls.sql` do cliente contra o banco novo; o app do cliente com o **seu** Supabase. O patch do cliente foi testado em sqlite (101 testes) e de ponta a ponta num Postgres local com as migrações 0000–0003: registrar → convite (novo, repetido, inexistente, expirado) → pedido de agendamento gravando a oficina → leitura de orçamento sem custo. `ON DELETE SET NULL (coluna)` exige Postgres 15+.
 
 ## 7. Pendências suas
 
