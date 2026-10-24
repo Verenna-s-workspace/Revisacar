@@ -12,6 +12,8 @@ import type { AppointmentStatus } from '../../../types/agendamento';
 //  - pronto_retirada     → tokens.color.ok     (mesmo tom usado em "OK")
 //  - concluido           → mesmo par usado em .status-badge--finalizada
 //  - cancelado           → tokens.color.crit / ferrari
+//  - pendente            → pedido do app do cliente, aguardando confirmação (roxo)
+//  - recusado            → mesmo tom de cancelado
 
 export interface AppointmentStatusConfig {
   label: string;
@@ -22,6 +24,20 @@ export interface AppointmentStatusConfig {
 }
 
 export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, AppointmentStatusConfig> = {
+  pendente: {
+    label: 'Pendente',
+    color: '#6A1B9A',
+    bg: '#F3E5F5',
+    border: 'rgba(106,27,154,0.2)',
+    icon: Icons.cal,
+  },
+  recusado: {
+    label: 'Recusado',
+    color: tokens.color.crit,
+    bg: tokens.color.critBg,
+    border: tokens.color.critBorder,
+    icon: AgendaIcons.xCircle,
+  },
   agendado: {
     label: 'Agendado',
     color: tokens.color.warn,
@@ -68,12 +84,14 @@ export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, AppointmentSta
 
 /** Ordem padrão usada em filtros, listas de seleção e cards de resumo. */
 export const APPOINTMENT_STATUS_ORDER: AppointmentStatus[] = [
+  'pendente',
   'agendado',
   'em_andamento',
   'aguardando_pagamento',
   'pronto_retirada',
   'concluido',
   'cancelado',
+  'recusado',
 ];
 
 // ── StatusBadge ────────────────────────────────────────────────────────────────

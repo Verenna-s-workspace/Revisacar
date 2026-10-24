@@ -166,6 +166,8 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     openNewModal();
   }, [openNewModal]);
 
+  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
+
   const handleNewConfirm = useCallback(async (input: NovoAgendamentoInput) => {
     try {
       if (rescheduleId) {
@@ -403,8 +405,8 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
           onClose={() => setSelectedAg(null)}
           onEdit={ag => { setSelectedAg(null); openNewModal(ag.data); }}
           onReschedule={handleReschedule}
-          onCancel={id => { cancelAgendamento(id); setSelectedAg(null); }}
-          onStatusChange={(id, status) => { updateStatus(id, status); setSelectedAg(null); }}
+          onCancel={id => { cancelAgendamento(id).catch(avisarErro); setSelectedAg(null); }}
+          onStatusChange={(id, status) => { updateStatus(id, status).catch(avisarErro); setSelectedAg(null); }}
         />
       )}
       {newModalOpen && (

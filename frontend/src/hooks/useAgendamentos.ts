@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api } from '../utils/api';
+import { mensagemDeErro } from '../utils/erros';
 import type {
   Agendamento,
   AppointmentStatus,
@@ -324,6 +325,8 @@ export interface AgendamentoStats {
 
 export function useAgendamentos() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const agendamentosRef = useRef<Agendamento[]>([]);
+  agendamentosRef.current = agendamentos;
   const [loading, setLoading] = useState(true);
   const [usingApi, setUsingApi] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -373,25 +376,32 @@ export function useAgendamentos() {
 
     if (usingApi) {
       try {
-        const saved = await api.criarAgendamento(novo);
-        if (saved?.id) {
-          setAgendamentos(prev => sortAgendamentos(prev.map(a => (a.id === novo.id ? { ...novo, ...saved } : a))));
-        }
-      } catch {
-        // mantém o registro local mesmo se a sincronização falhar
+        const saved: Agendamento = await api.criarAgendamento(novo);
+        setAgendamentos(prev => sortAgendamentos(prev.map(a => (a.id === novo.id ? { ...novo, ...saved } : a))));
+        return { ...novo, ...saved };
+      } catch (e) {
+        setAgendamentos(prev => prev.filter(a => a.id !== novo.id));
+        throw new Error(mensagemDeErro(e, 'Não foi possível salvar o agendamento. Tente novamente.'));
       }
     }
     return novo;
   }, [usingApi]);
 
   const updateAgendamento = useCallback(async (id: string, changes: Partial<Agendamento>) => {
+    const anterior = agendamentosRef.current.find(a => a.id === id);
     setAgendamentos(prev =>
       sortAgendamentos(
         prev.map(a => (a.id === id ? { ...a, ...changes, updatedAt: new Date().toISOString() } : a))
       )
     );
     if (usingApi) {
-      try { await api.atualizarAgendamento(id, changes); } catch { /* best-effort */ }
+      try {
+        const saved: Agendamento = await api.atualizarAgendamento(id, changes);
+        if (saved?.id) setAgendamentos(prev => sortAgendamentos(prev.map(a => (a.id === id ? { ...a, ...saved } : a))));
+      } catch (e) {
+        if (anterior) setAgendamentos(prev => sortAgendamentos(prev.map(a => (a.id === id ? anterior : a))));
+        throw new Error(mensagemDeErro(e, 'Não foi possível atualizar o agendamento. Tente novamente.'));
+      }
     }
   }, [usingApi]);
 

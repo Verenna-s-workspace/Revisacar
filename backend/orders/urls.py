@@ -5,6 +5,7 @@ from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
 from . import visao_geral_views
+from . import agendamentos_views, clientes_views, veiculos_views
 from . import alertas_views, fechamento_views, fotos_obrigatorias, orcamento_link_views, orcamento_views
 
 urlpatterns = [
@@ -83,6 +84,17 @@ urlpatterns = [
     path("kits", estoque_views.kits_list),
     path("kits/<str:kit_id>", estoque_views.kit_detail),
     path("kits/<str:kit_id>/aplicar", estoque_views.kit_aplicar),
+
+    # Carteira de clientes, veículos e agenda — clientes.ver/editar e agendamentos.ver/editar.
+    # "clientes/convites" ANTES de "clientes/<cliente_id>", senão "convites" seria lido como um id.
+    path("clientes", clientes_views.clientes_list),
+    path("clientes/convites", clientes_views.convites_list),
+    path("clientes/convites/<str:convite_id>", clientes_views.convite_detail),
+    path("clientes/<str:cliente_id>", clientes_views.cliente_detail),
+    path("veiculos", veiculos_views.veiculos_list),
+    path("veiculos/<str:veiculo_id>", veiculos_views.veiculo_detail),
+    path("agendamentos", agendamentos_views.agendamentos_list),
+    path("agendamentos/<str:agendamento_id>", agendamentos_views.agendamento_detail),
 
     # Catálogo de serviços — protegido por servicos.ver / servicos.editar
     path("servicos", servicos_views.servicos_list),

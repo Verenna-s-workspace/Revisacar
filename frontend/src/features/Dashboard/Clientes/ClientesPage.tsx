@@ -97,10 +97,13 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
 
+  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
+
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit   = (c: ClienteComDados) => { setSelected(null); setEditing(c); setFormOpen(true); };
 
   const handleSaveForm = async (input: NovoClienteInput, veiculosNovos: NovoVeiculoClienteInput[]) => {
+    try {
     const clienteAlvo = editing
       ? { ...editing, ...input }
       : await addCliente(input);
@@ -123,6 +126,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
         observacoes: v.observacoes.trim() || undefined,
         fotosAdicionais: [],
         proprietario: {
+          clienteId: clienteAlvo.id,
           nome: clienteAlvo.nome,
           docCpfCnpj: clienteAlvo.cpfCnpj,
           telefone: clienteAlvo.telefone,
@@ -131,17 +135,21 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
       };
       await addVeiculo(novoVeiculo);
     }
+    } catch (e) { avisarErro(e); }
   };
 
+
   const handleConfirmDelete = () => {
-    if (deleteTarget) deleteCliente(deleteTarget.id);
+    if (deleteTarget) deleteCliente(deleteTarget.id).catch(avisarErro);
   };
 
   const openAgendar = (c: ClienteComDados) => { setSelected(null); setAgendaTarget(c); };
 
   const handleNewAgendamentoConfirm = async (input: NovoAgendamentoInput) => {
-    await addAgendamento(input);
-    setAgendaTarget(null);
+    try {
+      await addAgendamento(input);
+      setAgendaTarget(null);
+    } catch (e) { avisarErro(e); }
   };
 
   const goToAgendamentoBadge = (c: ClienteComDados) => {
@@ -151,7 +159,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
   // ── handlers: veículo (dentro do perfil do cliente) ───────────────────────────
 
   const handleSaveVeiculoEdit = async (input: NovoVeiculoInput) => {
-    if (editingVeiculo) await updateVeiculo(editingVeiculo.id, input);
+    if (editingVeiculo) await updateVeiculo(editingVeiculo.id, input).catch(avisarErro);
   };
 
   // ── conteúdo ────────────────────────────────────────────────────────────────
@@ -327,7 +335,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
       {deletingVeiculo && (
         <VehicleDeleteConfirmModal
           veiculo={deletingVeiculo}
-          onConfirm={() => deleteVeiculo(deletingVeiculo.id)}
+          onConfirm={() => deleteVeiculo(deletingVeiculo.id).catch(avisarErro)}
           onClose={() => setDeletingVeiculo(null)}
         />
       )}

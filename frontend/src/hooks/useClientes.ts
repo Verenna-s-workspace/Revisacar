@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { buildSeedClientes } from '../utils/clientes_utils';
+import { mensagemDeErro } from '../utils/erros';
 import type { Cliente, NovoClienteInput } from '../types/cliente';
 
 function makeId(): string {
@@ -73,10 +74,13 @@ export function useClientes() {
 
     if (usingApi) {
       try {
-        await api.criarCliente(input);
-      } catch {
+        // O servidor é quem dá o id (uuid) e pode reaproveitar um cadastro arquivado: usa o que ele devolveu.
+        const salvo: Cliente = await api.criarCliente(input);
+        setClientes(prev => [salvo, ...prev.filter(c => c.id !== novo.id && c.id !== salvo.id)]);
+        return salvo;
+      } catch (e) {
         setClientes(prev => prev.filter(c => c.id !== novo.id));
-        throw new Error('Não foi possível salvar o cliente. Tente novamente.');
+        throw new Error(mensagemDeErro(e, 'Não foi possível salvar o cliente. Tente novamente.'));
       }
     }
     return novo;
@@ -88,10 +92,11 @@ export function useClientes() {
 
     if (usingApi) {
       try {
-        await api.atualizarCliente(id, patch);
-      } catch {
+        const salvo: Cliente = await api.atualizarCliente(id, patch);
+        if (salvo?.id) setClientes(prev => prev.map(c => (c.id === id ? salvo : c)));
+      } catch (e) {
         if (anterior) setClientes(prev => prev.map(c => (c.id === id ? anterior : c)));
-        throw new Error('Não foi possível atualizar o cliente. Tente novamente.');
+        throw new Error(mensagemDeErro(e, 'Não foi possível atualizar o cliente. Tente novamente.'));
       }
     }
   }, [usingApi, clientes]);

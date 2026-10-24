@@ -2,6 +2,8 @@
 
 /** Status possíveis de um agendamento (ciclo de vida completo). */
 export type AppointmentStatus =
+  | 'pendente'   // pedido feito pelo cliente no app, aguardando a oficina
+  | 'recusado'   // pedido recusado pela oficina
   | 'agendado'
   | 'em_andamento'
   | 'aguardando_pagamento'
@@ -31,6 +33,9 @@ export interface Agendamento {
   descricao: string;
   status: AppointmentStatus;
   mecanico?: string;
+  clienteId?: string;
+  veiculoId?: string;
+  motivoRecusa?: string;
   reagendamento?: AppointmentReschedule;
   ordemServicoId?: string;
   createdAt?: string;
