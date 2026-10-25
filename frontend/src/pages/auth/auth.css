@@ -11,20 +11,21 @@
    • `will-change` só existe durante a troca (classe .is-moving).
    • `prefers-reduced-motion` desliga os deslizes.
    ═══════════════════════════════════════════════════════════════════════════ */
-
 .auth-page {
-  --auth-ease: cubic-bezier(0.65, 0, 0.2, 1);
-  --auth-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --auth-slide: 800ms;
+  --auth-ease: cubic-bezier(0.65, 0, 0.2, 1);       /* entra e sai suave */
+  --auth-ease-out: cubic-bezier(0.22, 1, 0.36, 1);  /* chegada suave */
+  --auth-slide: 800ms;                              /* = AUTH_SLIDE_MS */
 
-  /* Mude de min-height para height total e fixe o overflow da página */
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
-  align-items: stretch;       /* Garante que o card estique para ocupar 100% do pai */
+  align-items: center;
   justify-content: center;
-  overflow: hidden;           /* Evita scroll duplo na página principal */
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
@@ -32,10 +33,11 @@
 
 .auth-card {
   position: relative;
-  width: 100%;     /* Agora assume 100% da largura disponível */
-  height: 100%;    /* Agora assume 100% da altura disponível */
+  width: min(1520px, 100%);
+  height: min(920px, calc(100dvh - 32px));
+  min-height: 600px;
   padding: 8px;
-  
+  border-radius: 36px;
   background: var(--color-surface);
   box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-border);
   overflow: hidden;
@@ -248,10 +250,10 @@
   display: grid;
   align-self: self-start;
   /* Mudamos de 1fr para o limite máximo de 230px do seu card */
-  grid-template-columns: repeat(var(--n, 1), minmax(0, 260px));
+  grid-template-columns: repeat(var(--n, 1), minmax(0, 218px));
   /* Centraliza os quadrados no container se houver espaço sobrando (ex: 2 itens) */
   justify-content: center; 
-  
+  gap: 18px;
 }
 
 .auth-step {
@@ -259,7 +261,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 18px;
-  max-width: 230px;
+  max-width: 240px;
   min-height: 188px;
   padding: 14px;
   border-radius: 22px;

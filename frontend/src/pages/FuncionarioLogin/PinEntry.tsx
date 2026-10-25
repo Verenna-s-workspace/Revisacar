@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { tokens } from '../../constants';
 
 const PIN_LENGTH = 6;
 
@@ -40,48 +39,27 @@ export function PinEntry({ value, onChange, onComplete, disabled, autoListenKeyb
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24 }}>
+      <div className="auth-pin-boxes">
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              width: 42,
-              height: 52,
-              borderRadius: 10,
-              border: `1.5px solid ${i < value.length ? tokens.color.ferrari : tokens.color.border}`,
-              background: tokens.color.surface,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.3rem',
-              fontWeight: 700,
-              color: tokens.color.text,
-            }}
-          >
+          <div key={i} className={`auth-pin-box${i < value.length ? ' is-filled' : ''}`}>
             {i < value.length ? '•' : ''}
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 260, margin: '0 auto' }}>
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => (
-          <button
-            key={d}
-            type="button"
-            disabled={disabled}
-            onClick={() => appendDigit(d)}
-            style={keyStyle}
-          >
+      <div className="auth-pin-pad">
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+          <button key={d} type="button" className="auth-pin-key" disabled={disabled} onClick={() => appendDigit(d)}>
             {d}
           </button>
         ))}
         <div />
-        <button type="button" disabled={disabled} onClick={() => appendDigit('0')} style={keyStyle}>0</button>
+        <button type="button" className="auth-pin-key" disabled={disabled} onClick={() => appendDigit('0')}>0</button>
         <button
           type="button"
+          className="auth-pin-key is-muted"
           disabled={disabled || value.length === 0}
           onClick={removeDigit}
-          style={{ ...keyStyle, color: tokens.color.muted, opacity: value.length === 0 ? 0.4 : 1 }}
           aria-label="Apagar dígito"
         >
           {'⌫'}
@@ -90,17 +68,3 @@ export function PinEntry({ value, onChange, onComplete, disabled, autoListenKeyb
     </div>
   );
 }
-
-const keyStyle: React.CSSProperties = {
-  height: 56,
-  borderRadius: 12,
-  border: `1px solid ${tokens.color.border}`,
-  background: tokens.color.surface,
-  color: tokens.color.text,
-  fontSize: '1.25rem',
-  fontWeight: 700,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};

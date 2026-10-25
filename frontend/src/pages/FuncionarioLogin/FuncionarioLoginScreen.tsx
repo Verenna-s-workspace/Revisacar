@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { tokens } from '../../constants';
+import type { FormEvent } from 'react';
 import { api } from '../../utils/api';
-import { useResponsive } from '../../components/ui';
 import { Input } from '../../components/inputs/input';
-import { BrandPanel } from './BrandPanel';
 import { FuncionarioPicker } from './FuncionarioPicker';
 import type { FuncionarioPublico } from './FuncionarioPicker';
 import { PinEntry } from './PinEntry';
 import type { AuthResult } from '../../types';
+import type { AuthFlow } from '../auth/authFlows';
 
 const DEVICE_OFICINA_KEY = 'revisacarDeviceOficinaDoc';
 
@@ -15,12 +14,16 @@ type Step = 'pareamento' | 'login' | 'esqueci-solicitar' | 'esqueci-enviado';
 
 interface Props {
   onAuthenticated: (result: AuthResult) => void;
-  onVoltarParaDono: () => void;
+  /** Avisa o painel da marca em qual fluxo/etapa esta tela está (acende o quadrado). */
+  onProgress?: (flow: AuthFlow, step: number) => void;
 }
 
-export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Props) {
-  const { isMobile } = useResponsive();
-
+/**
+ * Formulário do FUNCIONÁRIO (nome + PIN). O layout, a logo e o botão para
+ * voltar ao login do dono ficam no painel da marca (AuthShell) — aqui só
+ * existe o conteúdo do lado do formulário.
+ */
+export function FuncionarioLoginScreen({ onAuthenticated, onProgress }: Props) {
   const [oficinaDoc, setOficinaDoc] = useState<string>(() => localStorage.getItem(DEVICE_OFICINA_KEY) || '');
   const [step, setStep] = useState<Step>(oficinaDoc ? 'login' : 'pareamento');
   const [docInput, setDocInput] = useState('');
@@ -36,6 +39,13 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
 
   const [emailRecuperacao, setEmailRecuperacao] = useState('');
 
+  // Quadrados do painel: 1 Selecione um funcionário (inclui o pareamento do
+  // aparelho) · 2 Entre na sua conta (PIN) · 3 Recupere seu PIN.
+  const quadrado = step === 'login' ? (selecionado ? 1 : 0) : step === 'pareamento' ? 0 : 2;
+  useEffect(() => {
+    onProgress?.('funcionario', quadrado);
+  }, [quadrado, onProgress]);
+
   const carregarFuncionarios = useCallback((doc: string) => {
     setCarregandoLista(true);
     api.listarFuncionariosPublicos(doc)
@@ -48,7 +58,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
     if (step === 'login' && oficinaDoc) carregarFuncionarios(oficinaDoc);
   }, [step, oficinaDoc, carregarFuncionarios]);
 
-  const handlePareamento = (e: React.FormEvent) => {
+  const handlePareamento = (e: FormEvent) => {
     e.preventDefault();
     const doc = docInput;
     if (doc.length !== 14) {
@@ -97,7 +107,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
     }
   };
 
-  const handleSolicitarPin = (e: React.FormEvent) => {
+  const handleSolicitarPin = (e: FormEvent) => {
     e.preventDefault();
     solicitarPin();
   };
@@ -109,198 +119,112 @@ export function FuncionarioLoginScreen({ onAuthenticated, onVoltarParaDono }: Pr
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: tokens.color.bg }}>
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 24px',
-        position: 'relative',
-      }}>
-        <div style={{
-    position: "absolute",
-    top: isMobile ? "20px" : "20px",
-    left: isMobile ? "160px" : "20px",
-        }}>
-          
-      <img
-        src="/Logorevisavermelha.svg"
-        alt="Logo RevisaCar"
-        width="70"
-        height="70"
-        loading="eager"
-        fetchPriority="high"
-      />
-        </div>
-      
-        <div style={{ width: '100%', maxWidth: 380 }}>
-          {step === 'pareamento' && (
-            <form onSubmit={handlePareamento}>
-              <h1 style={{ margin: '0 0 6px', fontSize: '1.4rem', color: tokens.color.text }}>Configurar este dispositivo</h1>
-              <p style={{ margin: '0 0 22px', fontSize: '0.86rem', color: tokens.color.muted }}>
-                Digite o CNPJ da oficina pra habilitar o login dos funcionários neste aparelho. Só precisa fazer isso uma vez.
-              </p>
-              <label style={fieldLabel}>CNPJ DA OFICINA</label>
-              <Input
-                name="pareamento_cnpj"
-                type="cpf_cnpj"
-                autoFocus
-                value={docInput}
-                onChangeValue={setDocInput}
-                placeholder="00.000.000/0000-00"
-              />
-              {erro && <p style={errorText}>{erro}</p>}
-              <button type="submit" style={primaryButton}>Continuar</button>
-            </form>
-          )}
+    <div className="auth-view" key={step}>
+      {step === 'pareamento' && (
+        <form onSubmit={handlePareamento}>
+          <h1 className="auth-title">Configurar este dispositivo</h1>
+          <p className="auth-subtitle">
+            Digite o CNPJ da oficina pra habilitar o login dos funcionários neste aparelho. Só precisa fazer isso uma vez.
+          </p>
+          <Input
+            name="pareamento_cnpj"
+            type="cpf_cnpj"
+            label="CNPJ da oficina"
+            autoFocus
+            value={docInput}
+            onChangeValue={setDocInput}
+            placeholder="00.000.000/0000-00"
+          />
+          {erro && <p className="auth-inline-error">{erro}</p>}
+          <button type="submit" className="auth-btn">Continuar</button>
+        </form>
+      )}
 
-          {step === 'login' && (
-            <div>
-              <h1 style={{ margin: '0 0 6px', fontSize: '1.4rem', color: tokens.color.text }}>Login de Funcionário</h1>
-              <p style={{ margin: '0 0 22px', fontSize: '0.86rem', color: tokens.color.muted }}>
-                Escolha seu nome pra começar.
+      {step === 'login' && (
+        <div>
+          <h1 className="auth-title">Login de funcionário</h1>
+          <p className="auth-subtitle">Escolha seu nome pra começar.</p>
+
+          <FuncionarioPicker
+            funcionarios={funcionarios}
+            loading={carregandoLista}
+            open={pickerOpen}
+            onToggleOpen={() => setPickerOpen((o) => !o)}
+            selecionado={selecionado}
+            onSelect={handleSelecionar}
+          />
+
+          {selecionado && (
+            <div style={{ marginTop: 24 }}>
+              <p className="auth-center" style={{ margin: '0 0 14px', fontSize: '0.86rem', fontWeight: 600 }}>
+                Digite seu PIN pra confirmar
               </p>
 
-              <FuncionarioPicker
-                funcionarios={funcionarios}
-                loading={carregandoLista}
-                open={pickerOpen}
-                onToggleOpen={() => setPickerOpen(o => !o)}
-                selecionado={selecionado}
-                onSelect={handleSelecionar}
-              />
+              <PinEntry value={pin} onChange={setPin} disabled={enviando} />
 
-              {selecionado && (
-                <div style={{ marginTop: 28 }}>
-                  <p style={{ textAlign: 'center', fontSize: '0.86rem', fontWeight: 600, color: tokens.color.text, marginBottom: 16 }}>
-                    Digite seu PIN pra confirmar
-                  </p>
+              <div className="auth-center" style={{ marginTop: 12 }}>
+                <button type="button" className="auth-link" onClick={() => setStep('esqueci-solicitar')}>
+                  Esqueceu o PIN?
+                </button>
+              </div>
 
-                  <PinEntry value={pin} onChange={setPin} disabled={enviando} />
+              {erro && <p className="auth-inline-error">{erro}</p>}
 
-                  <div style={{ textAlign: 'center', marginTop: 14 }}>
-                    <button type="button" onClick={() => setStep('esqueci-solicitar')} style={linkButton}>
-                      Esqueceu o PIN?
-                    </button>
-                  </div>
-
-                  {erro && <p style={{ ...errorText, textAlign: 'center' }}>{erro}</p>}
-
-                  <button
-                    type="button"
-                    onClick={handleEntrar}
-                    disabled={pin.length !== 6 || enviando}
-                    style={{ ...primaryButton, marginTop: 16, opacity: pin.length !== 6 || enviando ? 0.6 : 1 }}
-                  >
-                    {enviando ? 'Entrando…' : 'Entrar'}
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                className="auth-btn"
+                style={{ marginTop: 14 }}
+                onClick={handleEntrar}
+                disabled={pin.length !== 6 || enviando}
+              >
+                {enviando ? 'Entrando…' : 'Entrar'}
+              </button>
             </div>
           )}
 
-          {step === 'esqueci-solicitar' && (
-            <form onSubmit={handleSolicitarPin}>
-              <h1 style={{ margin: '0 0 6px', fontSize: '1.4rem', color: tokens.color.text }}>Esqueceu seu PIN?</h1>
-              <p style={{ margin: '0 0 22px', fontSize: '0.86rem', color: tokens.color.muted }}>
-                Sem problema — vamos te mandar um PIN novo por email.
-              </p>
-              <label style={fieldLabel}>EMAIL CADASTRADO</label>
-              <Input
-                name="esqueci_pin_email"
-                type="email"
-                autoFocus
-                required
-                value={emailRecuperacao}
-                onChangeValue={setEmailRecuperacao}
-                placeholder="seu@email.com"
-              />
-              {erro && <p style={errorText}>{erro}</p>}
-              <button type="submit" disabled={enviando} style={{ ...primaryButton, opacity: enviando ? 0.6 : 1 }}>
-                {enviando ? 'Enviando…' : 'Solicitar novo PIN'}
-              </button>
-              <div style={{ textAlign: 'center', marginTop: 16 }}>
-                <button type="button" onClick={voltarAoLogin} style={linkButton}>Voltar ao login</button>
-              </div>
-            </form>
-          )}
-
-          {step === 'esqueci-enviado' && (
-            <div style={{ textAlign: 'center' }}>
-              <h1 style={{ margin: '0 0 6px', fontSize: '1.4rem', color: tokens.color.text }}>Verifique seu email</h1>
-              <p style={{ margin: '0 0 22px', fontSize: '0.86rem', color: tokens.color.muted }}>
-                Enviamos um novo PIN para <strong style={{ color: tokens.color.text }}>{emailRecuperacao}</strong>
-              </p>
-              <button type="button" onClick={solicitarPin} style={linkButton}>
-                Não recebeu? Reenviar
-              </button>
-              <div style={{ marginTop: 16 }}>
-                <button type="button" onClick={voltarAoLogin} style={linkButton}>Voltar ao login</button>
-              </div>
-            </div>
-          )}
+          {!selecionado && erro && <p className="auth-inline-error">{erro}</p>}
         </div>
+      )}
 
-        <button type="button" onClick={onVoltarParaDono} style={{ ...linkButton, position: 'absolute', bottom: 20, fontSize: '0.78rem' }}>
-          Sou o dono da oficina →
-        </button>
-      </div>
+      {step === 'esqueci-solicitar' && (
+        <form onSubmit={handleSolicitarPin}>
+          <h1 className="auth-title">Esqueceu seu PIN?</h1>
+          <p className="auth-subtitle">Sem problema — vamos te mandar um PIN novo por email.</p>
+          <Input
+            name="esqueci_pin_email"
+            type="email"
+            label="Email cadastrado"
+            autoFocus
+            required
+            value={emailRecuperacao}
+            onChangeValue={setEmailRecuperacao}
+            placeholder="seu@email.com"
+          />
+          {erro && <p className="auth-inline-error">{erro}</p>}
+          <button type="submit" className="auth-btn" disabled={enviando}>
+            {enviando ? 'Enviando…' : 'Solicitar novo PIN'}
+          </button>
+          <p className="auth-foot">
+            <button type="button" className="auth-link" onClick={voltarAoLogin}>Voltar ao login</button>
+          </p>
+        </form>
+      )}
 
-      {!isMobile && (
-        <div style={{ width: '42%', minWidth: 340 }}>
-          <BrandPanel />
+      {step === 'esqueci-enviado' && (
+        <div className="auth-center">
+          <h1 className="auth-title">Verifique seu email</h1>
+          <p className="auth-subtitle">
+            Enviamos um novo PIN para <strong style={{ color: 'var(--color-text)' }}>{emailRecuperacao}</strong>
+          </p>
+          <button type="button" className="auth-link" onClick={solicitarPin} disabled={enviando}>
+            Não recebeu? Reenviar
+          </button>
+          {erro && <p className="auth-inline-error">{erro}</p>}
+          <p className="auth-foot">
+            <button type="button" className="auth-link" onClick={voltarAoLogin}>Voltar ao login</button>
+          </p>
         </div>
       )}
     </div>
   );
 }
-
-const fieldLabel: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.76rem',
-  fontWeight: 700,
-  color: tokens.color.textSecond,
-  marginBottom: 6,
-};
-
-const fieldInput: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  background: tokens.color.surface,
-  border: `1px solid ${tokens.color.border}`,
-  borderRadius: 10,
-  color: tokens.color.text,
-  fontSize: '0.92rem',
-  marginBottom: 18,
-};
-
-const primaryButton: React.CSSProperties = {
-  width: '100%',
-  padding: '13px 16px',
-  background: tokens.color.ferrari,
-  color: 'white',
-  border: 'none',
-  borderRadius: 10,
-  fontSize: '0.92rem',
-  fontWeight: 700,
-  cursor: 'pointer',
-};
-
-const linkButton: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: tokens.color.ferrari,
-  fontSize: '0.82rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-  padding: 4,
-};
-
-const errorText: React.CSSProperties = {
-  color: tokens.color.crit,
-  fontSize: '0.8rem',
-  fontWeight: 600,
-  margin: '-8px 0 14px',
-};

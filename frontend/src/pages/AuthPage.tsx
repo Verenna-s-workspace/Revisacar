@@ -55,6 +55,7 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
       return;
     }
 
+    setMoving(true);
     setFormVisible(false);
     timers.current.push(window.setTimeout(() => {
       setFormRole(next);

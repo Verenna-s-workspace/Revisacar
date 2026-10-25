@@ -1,14 +1,17 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { api } from '../utils/api';
-import { tokens } from '../constants';
 import { Input } from '../components/inputs/input';
+import { AuthShell } from './auth/AuthShell';
 import type { AuthResult } from '../types';
 
 interface ResetPasswordScreenProps {
-  onAuthenticated: (result: AuthResult) => void;
+  onAuthenticated?: (result: AuthResult) => void;
+  /** Volta para a tela de login (App passa handleBackToLogin). */
+  onVoltar?: () => void;
 }
 
-export function ResetPasswordScreen({ onAuthenticated }: ResetPasswordScreenProps) {
+export function ResetPasswordScreen({ onVoltar }: ResetPasswordScreenProps) {
   const [token, setToken] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
@@ -16,11 +19,13 @@ export function ResetPasswordScreen({ onAuthenticated }: ResetPasswordScreenProp
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
-    setLoading(true);
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    // Validação ANTES de ligar o loading — antes, um erro de validação deixava
+    // o botão preso em "Redefinindo...".
     if (!token.trim()) {
       setError('Token obrigatório');
       return;
@@ -41,14 +46,10 @@ export function ResetPasswordScreen({ onAuthenticated }: ResetPasswordScreenProp
       return;
     }
 
-    try {
-      const result = await api.resetPassword({
-        token: token.trim(),
-        senha,
-      });
+    setLoading(true);
 
-      // After successful password reset, we can log in automatically
-      // or redirect to login screen. Here we'll redirect to login with a message.
+    try {
+      await api.resetPassword({ token: token.trim(), senha });
       setSuccess('Senha redefinida com sucesso! Você pode fazer login agora.');
       setToken('');
       setSenha('');
@@ -61,81 +62,30 @@ export function ResetPasswordScreen({ onAuthenticated }: ResetPasswordScreenProp
     }
   };
 
+  // Mesmo layout do login do dono, com o quadrado "Recupere sua senha" aceso.
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: tokens.color.bg }}>
-      <div style={{ width: '100%', maxWidth: '420px', padding: '30px', background: tokens.color.surface, borderRadius: tokens.radius.lg, boxShadow: tokens.shadow.lg }}>
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ margin: 0, color: tokens.color.text }}>RevisaCar</h1>
-          <p style={{ margin: '8px 0 0', color: tokens.color.muted }}>Redefinição de Senha</p>
+    <AuthShell role="dono" flow="login" activeStep={1}>
+      <form className="auth-view" onSubmit={handleSubmit} noValidate>
+        <h1 className="auth-title">Redefinir senha</h1>
+        <p className="auth-subtitle">Cole o token recebido por email e escolha uma nova senha.</p>
+
+        {error && <div className="auth-alert auth-alert--error" role="alert">{error}</div>}
+        {success && <div className="auth-alert auth-alert--ok" role="status">{success}</div>}
+
+        <div className="auth-fields">
+          <Input name="reset_token" label="Token de redefinição" value={token} onChangeValue={setToken} placeholder="Cole o token recebido por email" />
+          <Input name="reset_senha" type="password" label="Nova senha" value={senha} onChangeValue={setSenha} placeholder="Nova senha" autoComplete="new-password" />
+          <Input name="reset_confirmacao" type="password" label="Confirmar nova senha" value={confirmacao} onChangeValue={setConfirmacao} placeholder="Confirmar nova senha" autoComplete="new-password" />
         </div>
 
-        {error && (
-          <div style={{ marginBottom: '20px', padding: '14px', borderRadius: tokens.radius.md, background: '#FEE', border: '1px solid #F99', color: '#C33' }}>
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div style={{ marginBottom: '20px', padding: '14px', borderRadius: tokens.radius.md, background: '#EEF7EF', border: '1px solid #8FCB8D', color: '#1F6A3D' }}>
-            {success}
-          </div>
-        )}
-
-        <div style={{ marginBottom: '14px' }}>
-          <Input name="reset_token" label="Token de Redefinição" value={token} onChangeValue={setToken} placeholder="Cole o token recebido por email" />
-        </div>
-
-        <div style={{ marginBottom: '14px' }}>
-          <Input name="reset_senha" type="password" label="Nova Senha" value={senha} onChangeValue={setSenha} placeholder="Nova senha" autoComplete="new-password" />
-        </div>
-
-        <div style={{ marginBottom: '14px' }}>
-          <Input name="reset_confirmacao" type="password" label="Confirmar Nova Senha" value={confirmacao} onChangeValue={setConfirmacao} placeholder="Confirmar nova senha" autoComplete="new-password" />
-        </div>
-
-        <button
-          type="button"
-          disabled={loading}
-          onClick={handleSubmit}
-          style={{
-            width: '100%',
-            padding: '14px 18px',
-            borderRadius: tokens.radius.lg,
-            border: 'none',
-            background: tokens.color.accent,
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Redefinindo...' : 'Redefinir Senha'}
+        <button type="submit" className="auth-btn" disabled={loading}>
+          {loading ? 'Redefinindo...' : 'Redefinir senha'}
         </button>
 
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => {
-              // Navigate back to login - in a real app we'd use routing
-              // For now, we'll just clear the form
-              setToken('');
-              setSenha('');
-              setConfirmacao('');
-              setError(null);
-              setSuccess(null);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: tokens.color.accent,
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              fontSize: '14px',
-            }}
-          >
-            Voltar para login
-          </button>
-        </div>
-      </div>
-    </div>
+        <p className="auth-foot">
+          <button type="button" className="auth-link" onClick={onVoltar}>Voltar ao login</button>
+        </p>
+      </form>
+    </AuthShell>
   );
 }
