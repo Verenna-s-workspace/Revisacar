@@ -4,6 +4,7 @@ import { api } from '../utils/api';
 import { Input } from '../components/inputs/input';
 import type { AuthResult } from '../types';
 import type { AuthFlow } from './auth/authFlows';
+import { OficinaStep } from './auth/OficinaStep';
 
 interface AuthScreenProps {
   onAuthenticated: (result: AuthResult) => void;
@@ -36,12 +37,19 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Conta já criada (etapa 1 concluída), esperando a etapa 2 (dados da oficina).
+  // O login só é efetivado — onAuthenticated — quando a etapa 2 termina.
+  const [cadastro, setCadastro] = useState<{ result: AuthResult; cnpj: string; email: string } | null>(null);
 
-  // Quadrados do painel: cadastro (3, só o 1º existe por enquanto) ou
-  // login (2: "Entre na sua conta" / "Recupere sua senha").
+  // Quadrados do painel: cadastro (3: conta → oficina → boas-vindas; a 3ª ainda
+  // não existe) ou login (2: "Entre na sua conta" / "Recupere sua senha").
   useEffect(() => {
+    if (cadastro) {
+      onProgress?.('cadastro', 1);
+      return;
+    }
     onProgress?.(mode === 'register' ? 'cadastro' : 'login', mode === 'forgot' ? 1 : 0);
-  }, [mode, onProgress]);
+  }, [mode, cadastro, onProgress]);
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
@@ -86,14 +94,15 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
         senha,
       };
 
-      // TODO(cadastro): etapas 2 ("Cadastre as informações da sua oficina") e
-      // 3 ("Seja bem-vindo ao Revisacar") ainda não existem. Quando forem
-      // implementadas, criarAdmin passa a avançar a etapa em vez de autenticar
-      // direto (onProgress('cadastro', 1) …) — os quadrados já estão no painel.
-      const result = mode === 'login'
-        ? await api.loginAdmin({ doc: payload.doc, senha: payload.senha })
-        : await api.criarAdmin(payload);
+      if (mode === 'register') {
+        // Etapa 1 concluída: a conta existe, mas a pessoa só entra no sistema
+        // depois da etapa 2 (dados da oficina) — ver OficinaStep abaixo.
+        const result = await api.criarAdmin(payload) as AuthResult;
+        setCadastro({ result, cnpj: payload.doc, email: payload.email });
+        return;
+      }
 
+      const result = await api.loginAdmin({ doc: payload.doc, senha: payload.senha });
       onAuthenticated(result as AuthResult);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado';
@@ -102,6 +111,19 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
       setLoading(false);
     }
   };
+
+  // Etapa 2 do cadastro. TODO(cadastro): a etapa 3 ("Seja bem-vindo ao
+  // Revisacar") ainda não existe — quando existir, onConcluir passa a avançar
+  // pra ela (onProgress('cadastro', 2)) em vez de autenticar direto.
+  if (cadastro) {
+    return (
+      <OficinaStep
+        cnpj={cadastro.cnpj}
+        email={cadastro.email}
+        onConcluir={() => onAuthenticated(cadastro.result)}
+      />
+    );
+  }
 
   const { title, subtitle } = COPY[mode];
 

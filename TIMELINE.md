@@ -21,6 +21,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Alertas — adiar/dispensar | 🟡 SQL + API + front prontos (509 testes; smoke no navegador com API simulada: adiar 1/3/7 dias, dispensar, desfazer, voltar a mostrar, persistência, limpeza quando o problema se resolve, 503, mobile). Falta: rodar `alertas.sql` de novo (acrescenta a tabela `alertas_dispensados`) e validar contra o Supabase real |
 | Orçamento — Fase 6A (link público do cliente) | 🟡 SQL + API + front prontos (584 testes; smoke no navegador com API simulada: bloco "Link para o cliente", página pública `/o/<código>` — ver, aprovar, recusar, vencido/aprovado/recusado/substituído, erros 404/410/429/rede, celular 390px — e o grupo de alertas "Clientes que responderam"). Falta: rodar `orcamento_link.sql` (depois de `orcamentos.sql`), garantir que a hospedagem entrega o `index.html` em `/o/*` e validar contra o Supabase real. Conta do cliente (parte B) não iniciada |
 | Entrada — fotos obrigatórias | 🟡 SQL + API + front prontos (647 testes; smoke no navegador 390px com API simulada: 5 itens, "3 de 5", refazer, pular com motivo, bloqueio nas duas etapas, reenvio, modo sem script). Falta: rodar `ordens_fotos.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase/Storage reais |
+| Cadastro — etapa 2 (dados da oficina) | 🟡 Front pronto (tsc + build ok; smoke no navegador com API de cadastro simulada: desktop e 390px, validação, gravação em Configurações). Só frontend, grava no `localStorage` como a tela de Configurações. Etapa 3 (boas-vindas) não iniciada |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -375,3 +376,23 @@ Novo script `backend/sql/seguranca_rls.sql` (idempotente; testado num Postgres d
 - `GET /fotos/<path>` continua sem login (já anotado) — as 5 fotos usam o mesmo endpoint pra miniatura.
 - Foto escolhida da galeria só existe nas adicionais; as 5 obrigatórias são sempre pela câmera (evita foto antiga fora do registro de confiabilidade).
 - Itens "pulados" não têm prazo nem alerta pra serem refeitos depois; o motivo fica visível na tela de fotos e no registro, mas ainda não aparece no PDF.
+
+## Cadastro — etapa 2: dados da oficina (2026-10-25, branch `feat/cadastro-etapa-2-dados-oficina`)
+O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre sua conta, 2 Cadastre as informações da sua oficina, 3 Seja bem-vindo ao Revisacar. Antes só a 1 existia e `criarAdmin` já autenticava direto. Esta entrega faz a **etapa 2**; a 3 fica pra depois.
+
+**Arquivos:** `pages/auth/OficinaStep.tsx` (novo, formulário), `utils/oficina_config.ts` (novo, validação + gravação), `pages/AuthScreen.tsx`, `pages/AuthPage.tsx`.
+
+**Fluxo:** etapa 1 → `criarAdmin` cria a conta, mas o `AuthScreen` guarda o resultado em vez de chamar `onAuthenticated` → etapa 2 (painel acende o quadrado 2, o 1 vira ✓) → ao continuar, grava os dados e só então chama `onAuthenticated` e cai no dashboard. Campos: nome da oficina, telefone/WhatsApp, endereço, taxa de mão de obra (R$/hora), abre às/fecha às (padrão 08:00–19:00). Todos obrigatórios; fechamento tem que ser depois da abertura (mesma regra de Configurações).
+
+**Onde grava:** no blob `oficina_config` do `localStorage`, o mesmo que a tela de Configurações lê/grava e de onde `horario_funcionamento.ts` lê o horário (a etapa avisa as telas de Agendamento por `notificarHorarioAtualizado`). CNPJ e e-mail vêm da etapa 1, então Configurações já abre com os dados reais e não com os de exemplo (`WORKSHOP_DEFAULTS`).
+
+**Decisões**
+- Sem etapa 2 não há sessão: o login só é efetivado ao concluí-la. O seletor Dono/Funcionário some enquanto a etapa 2 está ativa (trocar de lado desmontaria o formulário e perderia a sessão recém-criada).
+- Sem botão "voltar": a conta já existe.
+
+**Validado:** `tsc` + `vite build` limpos; smoke no Chromium (API de cadastro simulada, desktop 1440 e mobile 390): conta criada sem sessão, quadrado 2 aceso, 4 erros ao tentar continuar vazio, horário inválido recusado, gravação completa em `oficina_config`, sessão só depois da etapa 2, Configurações exibindo nome/CNPJ/e-mail/telefone/endereço/taxa/horário cadastrados, sem erro de JS e sem rolagem horizontal. **NÃO validado:** contra o backend/Supabase reais.
+
+**Pendências / decisões**
+- Os dados ficam só no navegador (como Configurações já fazia): não vão pro banco nem acompanham a conta em outro dispositivo. Levar `oficina_config` pro backend é um passo à parte, e vale pra Configurações inteira.
+- Se a pessoa fechar a aba entre as etapas 1 e 2, a conta existe mas sem dados da oficina: ela entra pelo login normal e Configurações abre com os valores de exemplo até ela preencher.
+- Etapa 3 (boas-vindas): quando existir, `onConcluir` em `AuthScreen.tsx` passa a avançar pra ela (`onProgress('cadastro', 2)`) em vez de autenticar direto (há um TODO no lugar).
