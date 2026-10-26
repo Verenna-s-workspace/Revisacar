@@ -69,6 +69,10 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
     setProgress((prev) => (prev.flow === flow && prev.step === step ? prev : { flow, step }));
   }, []);
 
+  // Do passo 2 do cadastro em diante a conta já foi criada e a sessão está
+  // guardada no formulário: trocar de lado desmontaria o formulário e a perderia.
+  const cadastroEmAndamento = progress.flow === 'cadastro' && progress.step >= 1;
+
   return (
     <AuthShell
       role={role}
@@ -76,7 +80,7 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
       activeStep={progress.step}
       formVisible={formVisible}
       moving={moving}
-      onRoleChange={switchRole}
+      onRoleChange={cadastroEmAndamento ? undefined : switchRole}
     >
       {formRole === 'dono' ? (
         <AuthScreen
