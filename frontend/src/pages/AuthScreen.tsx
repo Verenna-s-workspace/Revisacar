@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
 import { Input } from '../components/inputs/input';
 import type { AuthResult } from '../types';
 import type { AuthFlow } from './auth/authFlows';
-import { OficinaStep } from './auth/OficinaStep';
+import { IgnicaoBoasVindas, prepararAudioIgnicao } from './auth/Animations/ignicao';
 
 interface AuthScreenProps {
   onAuthenticated: (result: AuthResult) => void;
@@ -37,19 +38,34 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  // Conta já criada (etapa 1 concluída), esperando a etapa 2 (dados da oficina).
-  // O login só é efetivado — onAuthenticated — quando a etapa 2 termina.
-  const [cadastro, setCadastro] = useState<{ result: AuthResult; cnpj: string; email: string } | null>(null);
+  // Etapa 3 do cadastro: guarda o resultado da conta criada. A sessão só é
+  // entregue ao app (onAuthenticated) quando a animação termina.
+  const [cadastroConcluido, setCadastroConcluido] = useState<AuthResult | null>(null);
 
-  // Quadrados do painel: cadastro (3: conta → oficina → boas-vindas; a 3ª ainda
-  // não existe) ou login (2: "Entre na sua conta" / "Recupere sua senha").
+  // SÓ EM DESENVOLVIMENTO: abrir a tela com ?ignicao na URL arma a prévia da
+  // animação. Cada clique na página a dispara (o clique também libera o áudio),
+  // sem criar conta nem sessão. Em produção import.meta.env.DEV é false e este
+  // bloco é removido do build.
+  const [previaArmada] = useState(
+    () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('ignicao'),
+  );
+  const [previaTocando, setPreviaTocando] = useState(false);
   useEffect(() => {
-    if (cadastro) {
-      onProgress?.('cadastro', 1);
-      return;
-    }
+    if (!previaArmada || previaTocando) return;
+    const disparar = () => {
+      prepararAudioIgnicao();
+      setPreviaTocando(true);
+    };
+    window.addEventListener('pointerdown', disparar, { once: true });
+    return () => window.removeEventListener('pointerdown', disparar);
+  }, [previaArmada, previaTocando]);
+
+  // Quadrados do painel: cadastro (3, só o 1º existe por enquanto) ou
+  // login (2: "Entre na sua conta" / "Recupere sua senha").
+  useEffect(() => {
+    if (cadastroConcluido) return; // etapa 3 já foi sinalizada; não volta ao 1º quadrado
     onProgress?.(mode === 'register' ? 'cadastro' : 'login', mode === 'forgot' ? 1 : 0);
-  }, [mode, cadastro, onProgress]);
+  }, [mode, onProgress, cadastroConcluido]);
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
@@ -72,6 +88,9 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
         setError('As senhas não coincidem');
         return;
       }
+      // Ainda dentro do gesto de clique (antes de qualquer await): cria/destrava
+      // o AudioContext para a animação poder tocar som (política de autoplay).
+      prepararAudioIgnicao();
     }
 
     setLoading(true);
@@ -94,16 +113,21 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
         senha,
       };
 
-      if (mode === 'register') {
-        // Etapa 1 concluída: a conta existe, mas a pessoa só entra no sistema
-        // depois da etapa 2 (dados da oficina) — ver OficinaStep abaixo.
-        const result = await api.criarAdmin(payload) as AuthResult;
-        setCadastro({ result, cnpj: payload.doc, email: payload.email });
+      // TODO(cadastro): a etapa 2 ("Cadastre as informações da sua oficina") fica
+      // entre a conta e a animação. Quando for integrada (branch
+      // feat/cadastro-etapa-2-dados-oficina), o ramo de cadastro abaixo passa a
+      // avançar para ela (onProgress('cadastro', 1)), e é o onConcluir da
+      // etapa 2 que faz setCadastroConcluido + onProgress('cadastro', 2).
+      if (mode === 'login') {
+        const result = await api.loginAdmin({ doc: payload.doc, senha: payload.senha });
+        onAuthenticated(result as AuthResult);
         return;
       }
 
-      const result = await api.loginAdmin({ doc: payload.doc, senha: payload.senha });
-      onAuthenticated(result as AuthResult);
+      // Cadastro novo: etapa 3 (animação de boas-vindas), depois o dashboard.
+      const result = await api.criarAdmin(payload);
+      setCadastroConcluido(result as AuthResult);
+      onProgress?.('cadastro', 2);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado';
       setError(msg.replace(/"/g, ''));
@@ -112,81 +136,80 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
     }
   };
 
-  // Etapa 2 do cadastro. TODO(cadastro): a etapa 3 ("Seja bem-vindo ao
-  // Revisacar") ainda não existe — quando existir, onConcluir passa a avançar
-  // pra ela (onProgress('cadastro', 2)) em vez de autenticar direto.
-  if (cadastro) {
-    return (
-      <OficinaStep
-        cnpj={cadastro.cnpj}
-        email={cadastro.email}
-        onConcluir={() => onAuthenticated(cadastro.result)}
-      />
-    );
-  }
-
   const { title, subtitle } = COPY[mode];
 
   return (
-    <form className="auth-view" key={mode} onSubmit={handleSubmit} noValidate>
-      <h1 className="auth-title">{title}</h1>
-      <p className="auth-subtitle">{subtitle}</p>
+    <>
+      <form className="auth-view" key={mode} onSubmit={handleSubmit} noValidate>
+        <h1 className="auth-title">{title}</h1>
+        <p className="auth-subtitle">{subtitle}</p>
 
-      {error && <div className="auth-alert auth-alert--error" role="alert">{error}</div>}
-      {message && <div className="auth-alert auth-alert--ok" role="status">{message}</div>}
+        {error && <div className="auth-alert auth-alert--error" role="alert">{error}</div>}
+        {message && <div className="auth-alert auth-alert--ok" role="status">{message}</div>}
 
-      <div className="auth-fields">
-        {mode === 'register' && (
-          <Input name="auth_nome" label="Nome" value={nome} onChangeValue={setNome} placeholder="Seu nome" autoComplete="name" />
-        )}
+        <div className="auth-fields">
+          {mode === 'register' && (
+            <Input name="auth_nome" label="Nome" value={nome} onChangeValue={setNome} placeholder="Seu nome" autoComplete="name" />
+          )}
 
-        {mode !== 'forgot' && (
-          <Input name="auth_cnpj" type="cpf_cnpj" label="CNPJ" value={doc} onChangeValue={setDoc} placeholder="00.000.000/0000-00" />
-        )}
+          {mode !== 'forgot' && (
+            <Input name="auth_cnpj" type="cpf_cnpj" label="CNPJ" value={doc} onChangeValue={setDoc} placeholder="00.000.000/0000-00" />
+          )}
 
-        {mode === 'register' && (
-          <Input name="auth_email" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" />
-        )}
+          {mode === 'register' && (
+            <Input name="auth_email" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" />
+          )}
+
+          {mode === 'login' && (
+            <Input name="auth_senha" type="password" label="Senha" value={senha} onChangeValue={setSenha} placeholder="Sua senha" autoComplete="current-password" />
+          )}
+
+          {mode === 'register' && (
+            <div className="auth-row">
+              <Input name="auth_senha" type="password" label="Senha" value={senha} onChangeValue={setSenha} placeholder="Senha segura" autoComplete="new-password" />
+              <Input name="auth_senha_confirm" type="password" label="Confirmar senha" value={confirmarSenha} onChangeValue={setConfirmarSenha} placeholder="Repita a senha" autoComplete="new-password" />
+            </div>
+          )}
+
+          {mode === 'forgot' && (
+            <Input name="auth_email_forgot" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" autoFocus />
+          )}
+        </div>
 
         {mode === 'login' && (
-          <Input name="auth_senha" type="password" label="Senha" value={senha} onChangeValue={setSenha} placeholder="Sua senha" autoComplete="current-password" />
-        )}
-
-        {mode === 'register' && (
-          <div className="auth-row">
-            <Input name="auth_senha" type="password" label="Senha" value={senha} onChangeValue={setSenha} placeholder="Senha segura" autoComplete="new-password" />
-            <Input name="auth_senha_confirm" type="password" label="Confirmar senha" value={confirmarSenha} onChangeValue={setConfirmarSenha} placeholder="Repita a senha" autoComplete="new-password" />
+          <div className="auth-row-end">
+            <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>
+              Esqueci minha senha
+            </button>
           </div>
         )}
 
-        {mode === 'forgot' && (
-          <Input name="auth_email_forgot" type="email" label="Email" value={email} onChangeValue={setEmail} placeholder="seu@email.com" autoFocus />
-        )}
-      </div>
+        <button type="submit" className="auth-btn" disabled={loading || !!cadastroConcluido}>
+          {loading ? 'Processando...' : mode === 'forgot' ? 'Enviar link' : mode === 'login' ? 'Entrar' : 'Cadastrar'}
+        </button>
 
-      {mode === 'login' && (
-        <div className="auth-row-end">
-          <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>
-            Esqueci minha senha
-          </button>
-        </div>
-      )}
+        <p className="auth-foot">
+          {mode === 'login' && (
+            <>Ainda não tem conta?<button type="button" className="auth-link" onClick={() => switchMode('register')}>Cadastre-se</button></>
+          )}
+          {mode === 'register' && (
+            <>Já tem uma conta?<button type="button" className="auth-link" onClick={() => switchMode('login')}>Entrar</button></>
+          )}
+          {mode === 'forgot' && (
+            <button type="button" className="auth-link" onClick={() => switchMode('login')}>Voltar ao login</button>
+          )}
+        </p>
+      </form>
 
-      <button type="submit" className="auth-btn" disabled={loading}>
-        {loading ? 'Processando...' : mode === 'forgot' ? 'Enviar link' : mode === 'login' ? 'Entrar' : 'Cadastrar'}
-      </button>
-
-      <p className="auth-foot">
-        {mode === 'login' && (
-          <>Ainda não tem conta?<button type="button" className="auth-link" onClick={() => switchMode('register')}>Cadastre-se</button></>
+      {/* Portal no <body>: o painel de auth usa transform/will-change, que
+          quebrariam o position: fixed do overlay de tela cheia. */}
+      {previaTocando &&
+        createPortal(<IgnicaoBoasVindas onConcluir={() => setPreviaTocando(false)} />, document.body)}
+      {cadastroConcluido &&
+        createPortal(
+          <IgnicaoBoasVindas onConcluir={() => onAuthenticated(cadastroConcluido)} />,
+          document.body,
         )}
-        {mode === 'register' && (
-          <>Já tem uma conta?<button type="button" className="auth-link" onClick={() => switchMode('login')}>Entrar</button></>
-        )}
-        {mode === 'forgot' && (
-          <button type="button" className="auth-link" onClick={() => switchMode('login')}>Voltar ao login</button>
-        )}
-      </p>
-    </form>
+    </>
   );
 }
