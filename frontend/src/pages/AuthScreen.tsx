@@ -6,6 +6,7 @@ import { Input } from '../components/inputs/input';
 import type { AuthResult } from '../types';
 import type { AuthFlow } from './auth/authFlows';
 import { IgnicaoBoasVindas, prepararAudioIgnicao } from './auth/Animations/ignicao';
+import { OficinaStep } from './auth/OficinaStep';
 
 interface AuthScreenProps {
   onAuthenticated: (result: AuthResult) => void;
@@ -38,7 +39,10 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  // Etapa 3 do cadastro: guarda o resultado da conta criada. A sessão só é
+  // Etapa 2 do cadastro: a conta já foi criada (etapa 1), falta cadastrar os
+  // dados da oficina. A sessão ainda NÃO é entregue ao app.
+  const [cadastro, setCadastro] = useState<{ result: AuthResult; cnpj: string; email: string } | null>(null);
+  // Etapa 3 do cadastro: etapa 2 concluída, a animação está tocando. A sessão só é
   // entregue ao app (onAuthenticated) quando a animação termina.
   const [cadastroConcluido, setCadastroConcluido] = useState<AuthResult | null>(null);
 
@@ -60,12 +64,25 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
     return () => window.removeEventListener('pointerdown', disparar);
   }, [previaArmada, previaTocando]);
 
-  // Quadrados do painel: cadastro (3, só o 1º existe por enquanto) ou
+  // Quadrados do painel: cadastro (3: conta → oficina → boas-vindas) ou
   // login (2: "Entre na sua conta" / "Recupere sua senha").
   useEffect(() => {
-    if (cadastroConcluido) return; // etapa 3 já foi sinalizada; não volta ao 1º quadrado
+    if (cadastroConcluido) return; // etapa 3 já foi sinalizada; não volta ao quadrado anterior
+    if (cadastro) {
+      onProgress?.('cadastro', 1);
+      return;
+    }
     onProgress?.(mode === 'register' ? 'cadastro' : 'login', mode === 'forgot' ? 1 : 0);
-  }, [mode, onProgress, cadastroConcluido]);
+  }, [mode, onProgress, cadastro, cadastroConcluido]);
+
+  // Fim da etapa 2: só agora a animação começa. Roda de forma síncrona dentro do
+  // clique em "Continuar" (gesto do usuário), por isso é aqui que o áudio é destravado.
+  const concluirEtapaOficina = () => {
+    if (!cadastro || cadastroConcluido) return; // evita disparar duas vezes (ex.: Enter repetido)
+    prepararAudioIgnicao();
+    setCadastroConcluido(cadastro.result);
+    onProgress?.('cadastro', 2);
+  };
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
@@ -88,9 +105,6 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
         setError('As senhas não coincidem');
         return;
       }
-      // Ainda dentro do gesto de clique (antes de qualquer await): cria/destrava
-      // o AudioContext para a animação poder tocar som (política de autoplay).
-      prepararAudioIgnicao();
     }
 
     setLoading(true);
@@ -113,21 +127,17 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
         senha,
       };
 
-      // TODO(cadastro): a etapa 2 ("Cadastre as informações da sua oficina") fica
-      // entre a conta e a animação. Quando for integrada (branch
-      // feat/cadastro-etapa-2-dados-oficina), o ramo de cadastro abaixo passa a
-      // avançar para ela (onProgress('cadastro', 1)), e é o onConcluir da
-      // etapa 2 que faz setCadastroConcluido + onProgress('cadastro', 2).
       if (mode === 'login') {
         const result = await api.loginAdmin({ doc: payload.doc, senha: payload.senha });
         onAuthenticated(result as AuthResult);
         return;
       }
 
-      // Cadastro novo: etapa 3 (animação de boas-vindas), depois o dashboard.
+      // Cadastro novo. Etapa 1 concluída: a conta existe, mas a pessoa ainda não
+      // entra no sistema. Segue para a etapa 2 (dados da oficina, OficinaStep) e só
+      // depois dela vem a etapa 3 (animação de boas-vindas) e o dashboard.
       const result = await api.criarAdmin(payload);
-      setCadastroConcluido(result as AuthResult);
-      onProgress?.('cadastro', 2);
+      setCadastro({ result: result as AuthResult, cnpj: payload.doc, email: payload.email });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado';
       setError(msg.replace(/"/g, ''));
@@ -140,6 +150,9 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
 
   return (
     <>
+      {cadastro ? (
+        <OficinaStep cnpj={cadastro.cnpj} email={cadastro.email} onConcluir={concluirEtapaOficina} />
+      ) : (
       <form className="auth-view" key={mode} onSubmit={handleSubmit} noValidate>
         <h1 className="auth-title">{title}</h1>
         <p className="auth-subtitle">{subtitle}</p>
@@ -200,6 +213,7 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
           )}
         </p>
       </form>
+      )}
 
       {/* Portal no <body>: o painel de auth usa transform/will-change, que
           quebrariam o position: fixed do overlay de tela cheia. */}
