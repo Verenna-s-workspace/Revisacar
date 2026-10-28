@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 
 export function useTheme() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return prefersDark ? 'dark' : 'light';
-  });
+  // O tema escuro ("Carbono") está desligado em ConfiguracoesPage: as telas ainda não
+  // suportam e ficavam ilegíveis. Até voltar, começa sempre claro — sem seguir o sistema
+  // nem um 'dark' que tenha ficado salvo.
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
     if (theme === 'dark') {

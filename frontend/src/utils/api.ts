@@ -26,6 +26,22 @@ const semContentTypeFixo = (headers: Record<string, string>, init: RequestInit) 
   return headers;
 };
 
+/** Leitura (GET) que cai por falha de rede ("Failed to fetch": servidor do Render acordando,
+ *  conexão oscilando) tenta de novo antes de desistir. Escritas nunca repetem sozinhas,
+ *  pra não gravar duas vezes. */
+const fetchComRetentativa = async (input: RequestInfo, init: RequestInit) => {
+  const leitura = !init.method || init.method.toUpperCase() === 'GET';
+  const tentativas = leitura ? 3 : 1;
+  for (let i = 1; ; i++) {
+    try {
+      return await fetch(input, init);
+    } catch (erro) {
+      if (i >= tentativas || (typeof navigator !== 'undefined' && !navigator.onLine)) throw erro;
+      await new Promise(r => setTimeout(r, 700 * i));
+    }
+  }
+};
+
 const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   const headers = semContentTypeFixo({
     ...baseHeaders,
@@ -36,7 +52,7 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
     headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(input, {
+  const response = await fetchComRetentativa(input, {
     ...init,
     headers,
   });
@@ -54,7 +70,7 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
           Authorization: `Bearer ${accessToken}`
         }, init);
 
-        const retryResponse = await fetch(input, {
+        const retryResponse = await fetchComRetentativa(input, {
           ...init,
           headers: retryHeaders,
         });

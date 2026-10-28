@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { tokens } from '../../../constants';
+import { Skeleton } from '../Primitives';
 
 interface KanbanColunaProps {
   titulo: string;
@@ -7,9 +8,11 @@ interface KanbanColunaProps {
   children: ReactNode;
   /** Largura/scroll-snap são definidos pelo KanbanBoard (difere mobile x desktop). */
   style?: CSSProperties;
+  /** Enquanto carrega, mostra skeleton em vez de "Nenhum item aqui." e contador 0. */
+  loading?: boolean;
 }
 
-export function KanbanColuna({ titulo, count, children, style }: KanbanColunaProps) {
+export function KanbanColuna({ titulo, count, children, style, loading = false }: KanbanColunaProps) {
   return (
     <div
       className="dashboard-card"
@@ -48,12 +51,17 @@ export function KanbanColuna({ titulo, count, children, style }: KanbanColunaPro
             justifyContent: 'center',
           }}
         >
-          {count}
+          {loading ? '–' : count}
         </span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1, minHeight: 0 }}>
-        {count === 0 ? (
+        {loading ? (
+          <>
+            <Skeleton h={58} r={10} />
+            <Skeleton h={58} r={10} />
+          </>
+        ) : count === 0 ? (
           <div style={{ fontSize: '0.78rem', color: tokens.color.muted, textAlign: 'center', padding: '22px 8px' }}>
             Nenhum item aqui.
           </div>
