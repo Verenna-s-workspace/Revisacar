@@ -6,27 +6,44 @@ let refreshToken = '';
 // O backend invalida o refresh token a cada renovação. Por isso: (1) uma renovação por vez —
 // várias chamadas com 401 juntas esperam a mesma, senão as que chegam depois usam um token já
 // invalidado e derrubam a sessão; (2) o par novo é gravado (AuthContext), senão recarregar a
-// página volta com o token velho; (3) se não der pra renovar, a sessão acabou e o app volta ao login.
+// página volta com o token velho; (3) se o servidor recusar o refresh, a sessão acabou e o app volta
+// ao login. Falha de rede ou erro do servidor (Render acordando) NÃO desloga: o token pode estar bom.
+// (4) outra aba pode ter renovado antes (e invalidado o nosso refresh): aí adota o par que ela gravou.
 let renovacaoEmCurso: Promise<void> | null = null;
 let aoAtualizarTokens: ((access: string, refresh: string) => void) | null = null;
 let aoExpirarSessao: (() => void) | null = null;
+let lerTokensSalvos: (() => { accessToken?: string; refreshToken?: string } | null) | null = null;
+
+const RECUSAS_DO_REFRESH = [400, 401, 403, 404];
 
 const renovarTokens = (): Promise<void> => {
   if (!renovacaoEmCurso) {
     const usado = refreshToken;
     renovacaoEmCurso = (async () => {
-      try {
-        const nova = await api.refreshToken(usado);
-        if (!nova?.accessToken) throw new Error('Sessão expirada');
-        accessToken = nova.accessToken;
-        refreshToken = nova.refreshToken;
-        aoAtualizarTokens?.(accessToken, refreshToken);
-      } catch (erro) {
-        accessToken = '';
-        refreshToken = '';
-        aoExpirarSessao?.();
-        throw erro;
+      const salvo = lerTokensSalvos?.();
+      if (salvo?.accessToken && salvo.refreshToken && salvo.refreshToken !== usado) {
+        accessToken = salvo.accessToken;
+        refreshToken = salvo.refreshToken;
+        return;
       }
+      const res = await fetch(`${API_BASE}/admin/refresh`, {
+        method: 'POST',
+        headers: baseHeaders,
+        body: JSON.stringify({ refreshToken: usado }),
+      });
+      const nova = res.ok ? await res.json().catch(() => null) : null;
+      if (!nova?.accessToken) {
+        if (res.ok || RECUSAS_DO_REFRESH.includes(res.status)) {
+          accessToken = '';
+          refreshToken = '';
+          aoExpirarSessao?.();
+          throw new Error('Sua sessão expirou. Entre de novo.');
+        }
+        throw new Error(`Não foi possível renovar a sessão agora (HTTP ${res.status}). Tente de novo.`);
+      }
+      accessToken = nova.accessToken;
+      refreshToken = nova.refreshToken;
+      aoAtualizarTokens?.(accessToken, refreshToken);
     })().finally(() => { renovacaoEmCurso = null; });
   }
   return renovacaoEmCurso;
@@ -134,10 +151,15 @@ export const api = {
     refreshToken = '';
   },
 
-  /** AuthContext grava o par renovado e volta ao login quando a sessão acaba. */
-  aoRenovarSessao: (atualizar: (access: string, refresh: string) => void, expirar: () => void) => {
+  /** AuthContext grava o par renovado, lê o que outra aba gravou e volta ao login quando a sessão acaba. */
+  aoRenovarSessao: (
+    atualizar: (access: string, refresh: string) => void,
+    expirar: () => void,
+    lerSalvos: () => { accessToken?: string; refreshToken?: string } | null,
+  ) => {
     aoAtualizarTokens = atualizar;
     aoExpirarSessao = expirar;
+    lerTokensSalvos = lerSalvos;
   },
 
   criarOrdem: (payload: unknown) =>

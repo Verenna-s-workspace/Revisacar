@@ -61,6 +61,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(null);
         localStorage.removeItem('revisacarUser');
       },
+      () => {
+        try { return JSON.parse(localStorage.getItem('revisacarUser') || 'null'); } catch { return null; }
+      },
     );
   }, []);
 
