@@ -291,6 +291,16 @@ def test_storage_fora_do_ar_502_e_nada_gravado(api, fake, db):
     assert _linhas_db(db, oid) == {}
 
 
+def test_storage_instavel_uma_vez_tenta_de_novo_e_guarda(api, fake, db, monkeypatch):
+    monkeypatch.setattr("orders.fotos_obrigatorias.ESPERA_ENTRE_TENTATIVAS_S", 0)
+    oid = _cria(api)
+    fake.storage.falhas_restantes = 1
+    r = _foto(api, oid)
+    assert r.status_code == 200
+    assert len(fake.storage.arquivos) == 1
+    assert fake.storage.falhas_restantes == 0
+
+
 def test_banco_recusou_nao_deixa_arquivo_orfao(api, fake, db):
     oid = _cria(api)
     fake.falhar_em[("upsert", "ordem_fotos")] = "23514"
