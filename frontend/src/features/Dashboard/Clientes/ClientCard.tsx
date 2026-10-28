@@ -165,6 +165,11 @@ export function ClientCard({ cliente: c, onView, onEdit, onSchedule, onDelete, o
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: '1.02rem', fontWeight: 800, color: tokens.color.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.nome}
+            {c.temConta && (
+              <span title="Este cliente tem conta no app RevisaCar" style={{ marginLeft: 8, verticalAlign: 'middle', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: tokens.color.ok, background: tokens.color.okBg, border: `1px solid ${tokens.color.okBorder}`, borderRadius: 6, padding: '2px 6px' }}>
+                App
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '0.72rem', fontWeight: 600, color: tokens.color.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {qtd === 0 ? 'Sem veículos' : `${qtd} veículo${qtd > 1 ? 's' : ''}`} · cliente desde {formatMesAno(c.createdAt)}

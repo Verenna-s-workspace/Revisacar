@@ -128,6 +128,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
               <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'white', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.nome}
               </h2>
+              {c.temConta && <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>Tem conta no app · só o cliente altera os dados pessoais</div>}
             </div>
           </div>
         </div>

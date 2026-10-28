@@ -216,6 +216,15 @@ export const api = {
 
   deletarCliente: (id: string) => authFetch(`${API_BASE}/clientes/${id}`, { method: 'DELETE' }),
 
+  // ── Convites (cliente do app entra na carteira da oficina) ──────────────────
+
+  listarConvites: () => authFetch(`${API_BASE}/clientes/convites`),
+
+  criarConvite: (payload: unknown) =>
+    authFetch(`${API_BASE}/clientes/convites`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  revogarConvite: (id: string) => authFetch(`${API_BASE}/clientes/convites/${id}`, { method: 'DELETE' }),
+
   // ── Catálogo de Serviços ─────────────────────────────────────────────────────
 
   listarServicos: () => authFetch(`${API_BASE}/servicos`),

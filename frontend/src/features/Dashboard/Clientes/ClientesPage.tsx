@@ -3,6 +3,8 @@ import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useClientes } from '../../../hooks/useClientes';
+import { usePermissions } from '../../../hooks/usePermissions';
+import { useAuth } from '../../../context/AuthContext';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
 import { useOrdens } from '../../../hooks/useOrdens';
@@ -20,6 +22,7 @@ import { ClientGrid } from './ClientGrid';
 import { ClientDetailsModal } from './ClientDetailsModal';
 import { ClientFormModal } from './ClientFormModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { InviteModal } from './InviteModal';
 
 import { VehicleDetailsModal } from '../Veiculos/VehicleDetailsModal';
 import { VehicleFormModal } from '../Veiculos/VehicleFormModal';
@@ -96,6 +99,11 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
   const hasActiveFilters = filtrosAtivos(filtros) || search.length > 0;
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
+
+  const { can, isDono } = usePermissions();
+  const { user } = useAuth();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const nomeOficina = isDono && user?.nome ? user.nome : 'nossa oficina';
 
   const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
 
@@ -204,6 +212,21 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
           </div>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {can('clientes.editar') && (
+          <button
+            onClick={() => setInviteOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: isMobile ? '8px 14px' : '9px 18px',
+              background: 'transparent', color: tokens.color.ferrari,
+              border: `1.5px solid ${tokens.color.ferrari}`, borderRadius: 10, cursor: 'pointer',
+              fontSize: '0.84rem', fontWeight: 700, fontFamily: tokens.fontSans,
+            }}
+          >
+            {isMobile ? 'Convidar' : 'Convidar para o app'}
+          </button>
+        )}
         <button
           onClick={openCreate}
           style={{
@@ -218,6 +241,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
           <span style={{ display: 'flex' }}>{Icons.plus}</span>
           {isMobile ? 'Cadastrar' : 'Cadastrar Cliente'}
         </button>
+        </div>
       </div>
 
       {erro && (
@@ -268,6 +292,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
 
   const modals = (
     <>
+      {inviteOpen && <InviteModal nomeOficina={nomeOficina} onClose={() => setInviteOpen(false)} />}
       {selected && (
         <ClientDetailsModal
           cliente={selected}

@@ -26,6 +26,9 @@ export interface Cliente {
   observacoes?: string;
   createdAt: string;
   updatedAt?: string;
+  /** 'app' = tem conta no app do cliente (entrou por convite); 'oficina' = cadastro de balcão. */
+  origem?: 'app' | 'oficina';
+  temConta?: boolean;
 }
 
 /** Payload utilizado para criar/editar um cliente a partir do modal de cadastro. */
