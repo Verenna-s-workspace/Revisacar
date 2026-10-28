@@ -117,7 +117,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
         f"{BASE_DIR / 'supabase.env'}"
     )
 
-SUPABASE_BUCKET = "test-bucket"
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024
 
 # ── JWT Authentication ────────────────────────────────────────────────────────
