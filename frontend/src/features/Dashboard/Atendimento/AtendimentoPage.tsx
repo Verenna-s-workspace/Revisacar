@@ -148,6 +148,8 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
           possivelRetornoPorOrdem={possivelRetornoPorOrdem}
           onAbrirOS={setSelected}
           onIniciarAtendimento={handleIniciarAtendimento}
+          // Skeleton só na primeira carga: recarregar depois de uma ação não deve piscar o quadro.
+          loading={loading && ordens.length === 0}
         />
       </div>
     </div>

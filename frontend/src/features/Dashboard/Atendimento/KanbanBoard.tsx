@@ -14,6 +14,7 @@ interface KanbanBoardProps {
   possivelRetornoPorOrdem: Record<string, boolean>;
   onAbrirOS: (ordem: OSAtendimento) => void;
   onIniciarAtendimento: (agendamento: Agendamento) => void;
+  loading?: boolean;
 }
 
 export function KanbanBoard({
@@ -23,6 +24,7 @@ export function KanbanBoard({
   possivelRetornoPorOrdem,
   onAbrirOS,
   onIniciarAtendimento,
+  loading = false,
 }: KanbanBoardProps) {
   const renderCards = (itens: ItemKanban[]) =>
     itens.map(item => {
@@ -67,7 +69,7 @@ export function KanbanBoard({
         }}
       >
         {colunasData.map(c => (
-          <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle}>
+          <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading}>
             {renderCards(c.itens)}
           </KanbanColuna>
         ))}
@@ -78,7 +80,7 @@ export function KanbanBoard({
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
       {colunasData.map(c => (
-        <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle}>
+        <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading}>
           {renderCards(c.itens)}
         </KanbanColuna>
       ))}

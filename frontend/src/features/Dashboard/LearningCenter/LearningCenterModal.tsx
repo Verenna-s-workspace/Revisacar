@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { useResponsive } from '../../../components/ui';
@@ -20,6 +20,12 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
   const goNext = () => setIndex(i => Math.min(total - 1, i + 1));
   const atStart = index === 0;
   const atEnd = index === total - 1;
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [onClose]);
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose}>

@@ -7,20 +7,24 @@ import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { Input } from '../../components/inputs/input';
 import { DEFAULT_HORA_ABERTURA, DEFAULT_HORA_FECHAMENTO } from '../../utils/agenda';
 import { notificarHorarioAtualizado } from '../../utils/horario_funcionamento';
+import { useAuth } from '../../context/AuthContext';
 
+// Sem nada salvo neste navegador, os campos começam vazios (nome e CNPJ vêm da
+// conta logada) — antes vinham dados de exemplo que pareciam ser da oficina.
 const WORKSHOP_DEFAULTS = {
-  nome: 'RevisaCar Premium',
-  cnpj: '12.345.678/0001-95',
-  telefone: '(11) 98765-4321',
-  email: 'contato@revisacarpremium.com.br',
-  endereco: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
-  valorHora: 120,
+  nome: '',
+  cnpj: '',
+  telefone: '',
+  email: '',
+  endereco: '',
+  valorHora: 0,
   horaAbertura: DEFAULT_HORA_ABERTURA,
   horaFechamento: DEFAULT_HORA_FECHAMENTO,
 };
 
 export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   
   // Connection state
   const [online, setOnline] = useState(navigator.onLine);
@@ -33,15 +37,16 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   // pra preencher campos novos (como o horário de funcionamento) que não
   // existiam ainda em configurações salvas antes dessa funcionalidade.
   const [workshop, setWorkshop] = useState(() => {
+    const padrao = { ...WORKSHOP_DEFAULTS, nome: user?.nome ?? '', cnpj: user?.doc ?? '' };
     const saved = localStorage.getItem('oficina_config');
     if (saved) {
       try {
-        return { ...WORKSHOP_DEFAULTS, ...JSON.parse(saved) };
+        return { ...padrao, ...JSON.parse(saved) };
       } catch {
-        return WORKSHOP_DEFAULTS;
+        return padrao;
       }
     }
-    return WORKSHOP_DEFAULTS;
+    return padrao;
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
