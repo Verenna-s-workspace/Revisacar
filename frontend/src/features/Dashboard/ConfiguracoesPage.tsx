@@ -37,7 +37,9 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   // pra preencher campos novos (como o horário de funcionamento) que não
   // existiam ainda em configurações salvas antes dessa funcionalidade.
   const [workshop, setWorkshop] = useState(() => {
-    const padrao = { ...WORKSHOP_DEFAULTS, nome: user?.nome ?? '', cnpj: user?.doc ?? '' };
+    // Só a conta do dono é a oficina; no login de funcionário `nome` é o da pessoa.
+    const dono = user && user.tipo !== 'funcionario';
+    const padrao = { ...WORKSHOP_DEFAULTS, nome: dono ? user.nome : '', cnpj: dono ? user.doc ?? '' : '' };
     const saved = localStorage.getItem('oficina_config');
     if (saved) {
       try {
