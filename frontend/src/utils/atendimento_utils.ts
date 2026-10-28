@@ -117,8 +117,16 @@ export function derivarColunasKanban(ordens: OSAtendimento[], agendamentos: Agen
   // Agendamentos de hoje sem OS ainda. Cancelados ficam de fora: um agendamento
   // cancelado não é trabalho esperando acontecer, mostrar na Fila confundiria
   // o mecânico — não é um status novo de OS, é só um filtro de leitura aqui.
+  // A OS também pode ter sido aberta pelo "+" (sem "Iniciar Atendimento"): aí o agendamento
+  // não ganha `ordemServicoId`. Placa com OS aberta hoje = esse carro já chegou; sem este
+  // filtro ele seguia na Fila com "Iniciar Atendimento", convidando a abrir uma OS duplicada.
+  const placa = (p?: string | null) => (p ?? '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const placasComOSHoje = new Set(
+    ordens.filter(o => o.created_at && isSameDay(new Date(o.created_at), new Date())).map(o => placa(o.placa))
+  );
   const agendamentosFila = agendamentos.filter(
     a => a.data === hojeISO && a.status !== 'cancelado' && !a.ordemServicoId
+      && !(placa(a.placa) && placasComOSHoje.has(placa(a.placa)))
   );
 
   // Recusada fica de fora de todas as colunas: encerrada sem execução, não é trabalho pendente.
