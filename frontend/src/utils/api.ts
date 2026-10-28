@@ -3,6 +3,35 @@ import { API_BASE } from '../constants';
 let accessToken = '';
 let refreshToken = '';
 
+// O backend invalida o refresh token a cada renovação. Por isso: (1) uma renovação por vez —
+// várias chamadas com 401 juntas esperam a mesma, senão as que chegam depois usam um token já
+// invalidado e derrubam a sessão; (2) o par novo é gravado (AuthContext), senão recarregar a
+// página volta com o token velho; (3) se não der pra renovar, a sessão acabou e o app volta ao login.
+let renovacaoEmCurso: Promise<void> | null = null;
+let aoAtualizarTokens: ((access: string, refresh: string) => void) | null = null;
+let aoExpirarSessao: (() => void) | null = null;
+
+const renovarTokens = (): Promise<void> => {
+  if (!renovacaoEmCurso) {
+    const usado = refreshToken;
+    renovacaoEmCurso = (async () => {
+      try {
+        const nova = await api.refreshToken(usado);
+        if (!nova?.accessToken) throw new Error('Sessão expirada');
+        accessToken = nova.accessToken;
+        refreshToken = nova.refreshToken;
+        aoAtualizarTokens?.(accessToken, refreshToken);
+      } catch (erro) {
+        accessToken = '';
+        refreshToken = '';
+        aoExpirarSessao?.();
+        throw erro;
+      }
+    })().finally(() => { renovacaoEmCurso = null; });
+  }
+  return renovacaoEmCurso;
+};
+
 const baseHeaders: Record<string, string> = {
   'Content-Type': 'application/json',
 };
@@ -48,8 +77,9 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
     ...(init.headers as Record<string, string> | undefined),
   }, init);
 
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
+  const tokenUsado = accessToken;
+  if (tokenUsado) {
+    headers.Authorization = `Bearer ${tokenUsado}`;
   }
 
   const response = await fetchComRetentativa(input, {
@@ -57,30 +87,21 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
     headers,
   });
 
-  if (response.status === 401 && refreshToken) {
-    try {
-      const refreshResponse = await api.refreshToken(refreshToken);
-      if (refreshResponse.accessToken) {
-        accessToken = refreshResponse.accessToken;
-        refreshToken = refreshResponse.refreshToken;
+  if (response.status === 401 && (refreshToken || accessToken !== tokenUsado)) {
+    // Outra chamada pode já ter renovado enquanto esta estava no ar: aí só repete com o token novo.
+    if (accessToken === tokenUsado) await renovarTokens();
 
-        const retryHeaders = semContentTypeFixo({
-          ...baseHeaders,
-          ...(init.headers as Record<string, string> | undefined),
-          Authorization: `Bearer ${accessToken}`
-        }, init);
+    const retryHeaders = semContentTypeFixo({
+      ...baseHeaders,
+      ...(init.headers as Record<string, string> | undefined),
+      Authorization: `Bearer ${accessToken}`
+    }, init);
 
-        const retryResponse = await fetchComRetentativa(input, {
-          ...init,
-          headers: retryHeaders,
-        });
-        return handleResponse(retryResponse);
-      }
-    } catch (refreshError) {
-      accessToken = '';
-      refreshToken = '';
-      throw refreshError;
-    }
+    const retryResponse = await fetchComRetentativa(input, {
+      ...init,
+      headers: retryHeaders,
+    });
+    return handleResponse(retryResponse);
   }
 
   return handleResponse(response);
@@ -89,14 +110,11 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
 /** Baixa um arquivo (PDF) autenticado como Blob; renova o token uma vez se preciso. */
 const authFetchBlob = async (url: string): Promise<Blob> => {
   const buscar = () => fetch(url, { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  const tokenUsado = accessToken;
   let res = await buscar();
-  if (res.status === 401 && refreshToken) {
-    const nova = await api.refreshToken(refreshToken);
-    if (nova.accessToken) {
-      accessToken = nova.accessToken;
-      refreshToken = nova.refreshToken;
-      res = await buscar();
-    }
+  if (res.status === 401 && (refreshToken || accessToken !== tokenUsado)) {
+    if (accessToken === tokenUsado) await renovarTokens();
+    res = await buscar();
   }
   if (!res.ok) {
     const msg = await res.text().catch(() => `HTTP ${res.status}`);
@@ -114,6 +132,12 @@ export const api = {
   clearAuthTokens: () => {
     accessToken = '';
     refreshToken = '';
+  },
+
+  /** AuthContext grava o par renovado e volta ao login quando a sessão acaba. */
+  aoRenovarSessao: (atualizar: (access: string, refresh: string) => void, expirar: () => void) => {
+    aoAtualizarTokens = atualizar;
+    aoExpirarSessao = expirar;
   },
 
   criarOrdem: (payload: unknown) =>
