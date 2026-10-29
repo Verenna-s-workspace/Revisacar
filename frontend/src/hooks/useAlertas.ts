@@ -142,7 +142,7 @@ export function useAlertas() {
     }
     return out;
   }, [dados]);
-  const recarregar = useCallback(() => setTick(t => t + 1), []);
+  const recarregar = useCallback(() => { api.esquecerLeituras(); setTick(t => t + 1); }, []);
 
   // Esconde na hora (otimista) e desfaz se o servidor recusar.
   const esconder = useCallback(async (alertaId: string, ate: string | null, chamar: () => Promise<AlertaEscondidoApi>) => {
