@@ -159,10 +159,17 @@ export function Topbar({
   return (
     <nav className="topbar topbar--mobile topbar-glass">
       <div className="topbar-mobile-row">
-        <div className="topbar-mobile-slot" />
+        {/* O logo também volta, mas ninguém adivinha isso no celular: botão explícito. */}
+        <div className="topbar-mobile-slot">
+          {onBackToStart && (
+            <button type="button" className="topbar-button topbar-button--smaller" onClick={onBackToStart} aria-label="Voltar para o painel">
+              ← Painel
+            </button>
+          )}
+        </div>
         <div className="topbar-mobile-logo">{Logo}</div>
         <div className="topbar-mobile-end">
-          <button className={buttonClass(true)} onClick={onExportPDF}>
+          <button className={buttonClass(true)} onClick={onExportPDF} aria-label="Gerar PDF" title="Gerar PDF">
             <svg
               width={11}
               height={11}
@@ -174,7 +181,7 @@ export function Topbar({
             >
               <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
             </svg>
-            {!isMobile && " Gerar PDF"}
+            {isMobile ? " PDF" : " Gerar PDF"}
           </button>
         </div>
       </div>

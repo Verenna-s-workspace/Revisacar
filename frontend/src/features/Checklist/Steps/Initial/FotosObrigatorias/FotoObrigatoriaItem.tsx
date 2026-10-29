@@ -16,6 +16,8 @@ interface FotoObrigatoriaItemProps {
   destacar?: boolean;
   /** Sem OS ainda, ou OS que já não aceita mudança. */
   desabilitado?: boolean;
+  /** OS já passou da entrada: o registro não muda mais, então não mostra os botões (só o estado). */
+  somenteLeitura?: boolean;
   onTirar: () => void;
   onPular: () => void;
   onReenviar: () => void;
@@ -24,7 +26,7 @@ interface FotoObrigatoriaItemProps {
 
 /** Uma linha das 5 fotos obrigatórias: ícone, estado (pendente / miniatura / pulada) e os botões. */
 export function FotoObrigatoriaItem({
-  item, miniatura, ocupado, erro, podeReenviar, destacar, desabilitado,
+  item, miniatura, ocupado, erro, podeReenviar, destacar, desabilitado, somenteLeitura,
   onTirar, onPular, onReenviar, onVerFoto,
 }: FotoObrigatoriaItemProps) {
   const { isMobile } = useResponsive();
@@ -106,7 +108,7 @@ export function FotoObrigatoriaItem({
         <div role="alert" style={{ color: tokens.color.crit, fontFamily: tokens.fontSans, fontSize: '0.85rem' }}>{erro}</div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 6, alignItems: isMobile ? 'stretch' : 'center', flexWrap: 'wrap' }}>
+      {!somenteLeitura && <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 6, alignItems: isMobile ? 'stretch' : 'center', flexWrap: 'wrap' }}>
         {podeReenviar ? (
           <button type="button" disabled={travado} onClick={onReenviar} style={{ ...btnAccent, justifyContent: 'center', minHeight: 48, fontSize: '0.8rem', width: isMobile ? '100%' : undefined, opacity: travado ? 0.5 : 1 }}>
             Tentar enviar de novo
@@ -121,7 +123,7 @@ export function FotoObrigatoriaItem({
             {situacao === 'pulada' ? 'Alterar motivo' : 'Não consigo tirar esta foto'}
           </button>
         )}
-      </div>
+      </div>}
     </section>
   );
 }
