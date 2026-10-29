@@ -13,6 +13,7 @@ import {
 } from '../utils/visao_geral';
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { useAuth } from '../context/AuthContext';
+import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/oficina_config';
 
 // Components
 import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../features/Dashboard/Navigation';
@@ -107,6 +108,12 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     if (page === 'dashboard') recarregarVg();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+  // Dados da oficina (horário da Agenda) vêm do servidor: atualiza a cópia local uma vez por
+  // abertura, pra outro aparelho ver o que foi salvo em Configurações.
+  useEffect(() => {
+    void sincronizarOficinaConfig(podeEditarConfiguracoes(user));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [sel, setSel] = useState<OrdemRow | null>(null);
   // Período do gráfico e critério do Top Serviços: recortam/ordenam os dados que
   // o servidor já mandou (série de 31 dias, serviços dos últimos 30).

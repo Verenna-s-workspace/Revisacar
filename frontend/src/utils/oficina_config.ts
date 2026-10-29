@@ -8,8 +8,12 @@
 // Este módulo existe pro cadastro (etapa 2: "Cadastre as informações da sua
 // oficina") gravar no mesmo lugar sem reimplementar o parsing. A tela de
 // Configurações continua dona da edição depois do cadastro.
+//
+// Desde a migração 0005 a fonte é o servidor (GET/PUT /oficina/config); o
+// localStorage virou a cópia local que a Agenda lê (sincronizarOficinaConfig).
 
 import { notificarHorarioAtualizado } from './horario_funcionamento';
+import { api } from './api';
 
 const STORAGE_KEY = 'oficina_config';
 
@@ -91,4 +95,56 @@ export function salvarOficinaConfig(config: OficinaConfig): void {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...atual, ...config }));
   notificarHorarioAtualizado();
+}
+
+/** Dono edita sempre; funcionário, se o cargo tiver configuracoes.editar (o servidor confere de novo). */
+export function podeEditarConfiguracoes(user: { tipo?: string; permissoes?: string[] } | null | undefined): boolean {
+  if (!user) return false;
+  return user.tipo !== 'funcionario' || !!user.permissoes?.includes('configuracoes.editar');
+}
+
+/** O que GET/PUT /oficina/config devolve. `salvo` false = a oficina ainda não salvou nada no servidor. */
+export interface OficinaConfigServidor extends OficinaConfig {
+  salvo: boolean;
+  atualizadoEm?: string | null;
+}
+
+function lerCopiaLocal(): Partial<OficinaConfig> | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : null;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Traz os dados da oficina do servidor para a cópia local (a Agenda lê o horário dela). Se o
+ * servidor ainda não tem nada e este navegador tem dados de antes da 0005, sobe-os uma vez —
+ * só quem pode editar Configurações. Falha de rede devolve null e a cópia local fica como está. */
+export async function sincronizarOficinaConfig(podeEditar: boolean): Promise<OficinaConfigServidor | null> {
+  let servidor: OficinaConfigServidor;
+  try {
+    servidor = await api.obterConfigOficina();
+  } catch {
+    return null;
+  }
+  const local = lerCopiaLocal();
+  if (!servidor.salvo && podeEditar && local?.nome && local.horaAbertura && local.horaFechamento) {
+    try {
+      const { cnpj: _cnpj, ...dados } = { ...servidor, ...local };
+      servidor = await api.salvarConfigOficina(dados);
+    } catch {
+      return servidor;   // não conseguiu subir agora; tenta de novo na próxima abertura
+    }
+  }
+  if (servidor.salvo) {
+    try {
+      const { nome, cnpj, telefone, email, endereco, valorHora, horaAbertura, horaFechamento } = servidor;
+      salvarOficinaConfig({ nome, cnpj, telefone, email, endereco, valorHora, horaAbertura, horaFechamento });
+    } catch {
+      // localStorage cheio/bloqueado: a tela usa o que veio do servidor mesmo assim.
+    }
+  }
+  return servidor;
 }

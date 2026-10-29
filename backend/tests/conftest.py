@@ -154,7 +154,7 @@ def pg_dsn():
     )
     # Migrations versionadas (db): controle, limpeza, tabelas do app do cliente, integração.
     for nome in ("0000_controle.sql", "0001_limpeza_segura.sql", "0002_tabelas_app_cliente.sql",
-                 "0003_integracao_cliente_oficina.sql"):
+                 "0003_integracao_cliente_oficina.sql", "0005_config_oficina.sql"):
         sql = (BACKEND_DIR / "sql" / "migrations" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência
@@ -182,6 +182,6 @@ def db(pg_dsn):
         "public.appointments, public.customer_vehicles, public.oficina_convites, public.oficina_clientes, "
         "public.customers, public.notifications, public.funcionarios cascade"
     )
-    cur.execute("update public.admins set meta_mensal = null")
+    cur.execute("update public.admins set meta_mensal = null, config_oficina = null, config_oficina_em = null")
     yield conn
     conn.close()
