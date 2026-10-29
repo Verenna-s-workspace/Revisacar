@@ -7,7 +7,7 @@ import {
   Field,
   PanelFooter,
   SectionTitle,
-  grid4,
+  useGrid4,
   btnSolid,
   btnGhost,
   btnAccent,
@@ -40,6 +40,7 @@ function StepWrapper({
 }
 
 export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
+  const g4 = useGrid4();
   const {
     veiculo,
     cliente,
@@ -185,7 +186,7 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
             Preencha o nome do técnico para gerar o PDF.
           </div>
         )}
-        <div style={grid4}>
+        <div style={g4}>
           <Field label="Nome do técnico *" span={2}>
             <Input
               name="tec_nome"

@@ -5,8 +5,51 @@ import '../../styles/dashboard.css';
 import { useAuth } from '../../context/AuthContext';
 import { useAlertasResumo } from '../../hooks/useAlertasResumo';
 import { usePermissions } from '../../hooks/usePermissions';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+// ── Acessibilidade de diálogos (drawer) ──────────────────────────────────────
+// Foco entra no painel, Tab fica preso dentro dele, Esc fecha, o fundo não rola
+// e o foco volta pro botão que abriu. Antes o drawer tinha role="dialog" mas
+// nada disso — quem usa teclado/leitor de tela "saía" do menu sem querer.
+function useDialogA11y(open: boolean, ref: React.RefObject<HTMLElement>, onClose: () => void) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const node = ref.current;
+    const focusables = (): HTMLElement[] => {
+      if (!node) return [];
+      const found: HTMLElement[] = Array.from(
+        node.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      );
+      return found.filter((el: HTMLElement) => !el.hasAttribute('disabled'));
+    };
+    focusables()[0]?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { closeRef.current(); return; }
+      if (e.key !== 'Tab') return;
+      const els = focusables();
+      if (!els.length) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      previous?.focus?.();
+    };
+  }, [open, ref]);
+}
+
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
   { id: 'ordens',       icon: Icons.orders,          label: 'Ordens de Serviço' },
@@ -70,6 +113,8 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
           className="dashboard-sidebar__identity-chevron"
           onClick={() => setMenuAberto(v => !v)}
           title="Sessão"
+          aria-label="Menu da sessão"
+          aria-expanded={menuAberto}
         >
           {Icons.chevD}
         </button>
@@ -94,7 +139,9 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
         {NAV_ITEMS.filter(({ id }) => id !== 'configuracoes').map(({ id, icon, label }) => (
           <button
             key={id}
+            type="button"
             onClick={() => onNav(id)}
+            aria-current={active === id ? 'page' : undefined}
             className={`dashboard-sidebar-link${active === id ? ' dashboard-sidebar-link--active' : ''}`}
           >
             <span style={{ flexShrink: 0, display: 'flex'}}>
@@ -149,7 +196,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
             padding: '56px 10px',
             borderRadius: 16,
             border: `2px dashed rgba(204, 20, 0, 0.64)`,
-            background: '#faf8f8',
+            background: 'var(--color-bg-alt)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -203,7 +250,10 @@ export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) 
         <div className="dashboard-header__separator" />
         <div
           className="dashboard-header__profile"
+          role="button"
+          tabIndex={0}
           onClick={() => setOpen(!open)}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}
           style={{ cursor: 'pointer' }}
         >
           <div className="dashboard-header__avatar">{Icons.user}</div>
@@ -234,6 +284,8 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
   const { total: totalAlertas } = useAlertasResumo();
   const { can } = usePermissions();
   const [menuOpen, setMenuOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(menuOpen, drawerRef, () => setMenuOpen(false));
 
   function navegar(p: NavPage) {
     setMenuOpen(false);
@@ -244,8 +296,10 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
     <div className="dashboard-mobile-topbar">
       <button
         className="dashboard-mobile-topbar__button"
+        type="button"
         onClick={() => setMenuOpen(true)}
         aria-label="Abrir menu"
+        aria-haspopup="dialog"
         aria-expanded={menuOpen}
       >
         {Icons.menu}
@@ -256,51 +310,38 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
           Revisa<span style={{ color: '#CC1400' }}>car</span>
         </span>
       </div>
+      {/* Só o sino fica no topo (com badge). Dicas e Configurações já estão no
+          menu lateral; o avatar parecia botão e não era. Cada ícone agora tem
+          alvo de 44px — com 4 ícones + hambúrguer + logo não cabia em 360px. */}
       <div className="dashboard-mobile-topbar__actions">
         <button
+          type="button"
+          className="dashboard-mobile-topbar__button dashboard-mobile-topbar__button--end"
           onClick={() => onNav?.('alertas')}
-          style={{ position: 'relative', border: 'none', background: 'transparent', padding: 4, display: 'flex' }}
-          title={totalAlertas > 0 ? `${totalAlertas} alertas` : 'Alertas'}
+          style={{ position: 'relative' }}
           aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}
         >
-          <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.bell}</span>
+          <span style={{ display: 'flex' }}>{Icons.bell}</span>
           {totalAlertas > 0 && (
-            <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 15, height: 15, padding: '0 3px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {totalAlertas}
+            <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 4px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {totalAlertas > 99 ? '99+' : totalAlertas}
             </span>
           )}
         </button>
-        <button
-          onClick={() => onNav?.('dicas')}
-          style={{ border: 'none', background: 'transparent', padding: 4, display: 'flex', color: tokens.color.muted }}
-          title="Dicas"
-        >
-          {Icons.info}
-        </button>
-        <button
-          onClick={() => onNav?.('configuracoes')}
-          style={{ border: 'none', background: 'transparent', padding: 4, display: 'flex', color: tokens.color.muted }}
-          title="Configurações"
-        >
-          {Icons.cog}
-        </button>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: tokens.color.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}>
-          {Icons.user}
-        </div>
       </div>
 
       {menuOpen && createPortal(
         <>
-          <div className="dashboard-mobile-drawer-backdrop" onClick={() => setMenuOpen(false)} />
-          <div className="dashboard-mobile-drawer" role="dialog" aria-modal="true">
+          <div className="dashboard-mobile-drawer-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+          <div className="dashboard-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" ref={drawerRef}>
             <div className="dashboard-mobile-drawer__header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <img src="/Logorevisavermelha.svg" alt="" width={30} height={30} />
-                <span style={{ fontFamily: "'Fredoka',cursive", fontSize: '1.05rem', color: tokens.color.text }}>
-                  revisa<span style={{ color: '#CC1400' }}>car</span>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '1rem', color: tokens.color.text }}>
+                  Revisa<span style={{ color: '#CC1400' }}>car</span>
                 </span>
               </div>
-              <button className="dashboard-button--close" onClick={() => setMenuOpen(false)} aria-label="Fechar menu">×</button>
+              <button type="button" className="dashboard-button--close" onClick={() => setMenuOpen(false)} aria-label="Fechar menu">×</button>
             </div>
 
             <div className="dashboard-mobile-drawer__identity">
@@ -315,7 +356,9 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
               {NAV_ITEMS.filter(({ id }) => id !== 'configuracoes').map(({ id, icon, label }) => (
                 <button
                   key={id}
+                  type="button"
                   onClick={() => navegar(id)}
+                  aria-current={active === id ? 'page' : undefined}
                   className={`dashboard-mobile-drawer__link${active === id ? ' dashboard-mobile-drawer__link--active' : ''}`}
                 >
                   <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
@@ -380,23 +423,32 @@ export function MobileNav({ active, onNav, onNewOS }: MobileNavProps) {
   ];
 
   return (
-    <nav className="dashboard-mobile-bottom-nav">
+    <nav className="dashboard-mobile-bottom-nav" aria-label="Navegação principal">
       {left.map(x => (
         <button
           key={x.p}
+          type="button"
           onClick={() => onNav(x.p)}
+          aria-current={active === x.p ? 'page' : undefined}
           className={`dashboard-mobile-bottom-nav__item${active === x.p ? ' dashboard-mobile-bottom-nav__item--active' : ''}`}
         >
           {x.icon} {x.label}
         </button>
       ))}
-      <button className="dashboard-mobile-bottom-nav__fab" onClick={onNewOS}>
+      <button
+        type="button"
+        className="dashboard-mobile-bottom-nav__fab"
+        onClick={onNewOS}
+        aria-label="Nova ordem de serviço"
+      >
         {Icons.plus}
       </button>
       {right.map(x => (
         <button
           key={x.p}
+          type="button"
           onClick={() => onNav(x.p)}
+          aria-current={active === x.p ? 'page' : undefined}
           className={`dashboard-mobile-bottom-nav__item${active === x.p ? ' dashboard-mobile-bottom-nav__item--active' : ''}`}
         >
           {x.icon} {x.label}

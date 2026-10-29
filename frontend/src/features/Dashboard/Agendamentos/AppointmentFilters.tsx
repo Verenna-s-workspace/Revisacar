@@ -67,7 +67,7 @@ export function AppointmentFilters({ search, filtros, onSearch, onFiltros }: App
   return (
     <div
       style={{
-        background: 'white', borderBottom: `1px solid ${tokens.color.border}`,
+        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`,
         padding: isMobile ? '10px 14px' : '12px 28px',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}
@@ -97,7 +97,7 @@ export function AppointmentFilters({ search, filtros, onSearch, onFiltros }: App
         >
           <span style={{ display: 'flex' }}>{AgendaIcons.filter}</span>
           Filtros
-          {hasActive && <span style={{ fontSize: '0.65rem', opacity: 0.8, marginLeft: 2 }}>●</span>}
+          {hasActive && <span style={{ fontSize: '0.75rem', opacity: 0.8, marginLeft: 2 }}>●</span>}
         </button>
 
         {hasActive && (

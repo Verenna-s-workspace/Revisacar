@@ -13,7 +13,7 @@ function TooltipFaturamento({ active, label, payload }: any) {
   return (
     <div
       style={{
-        background: 'white',
+        background: 'var(--color-surface)',
         border: `1px solid ${tokens.color.border}`,
         borderRadius: 10,
         boxShadow: tokens.shadow.md,
@@ -54,7 +54,7 @@ export function FaturamentoComparativoChart({ dados, height }: FaturamentoCompar
           width={54}
         />
         <Tooltip content={<TooltipFaturamento />} cursor={{ stroke: tokens.color.border }} />
-        <Legend wrapperStyle={{ fontSize: '0.72rem' }} iconType="circle" iconSize={8} />
+        <Legend wrapperStyle={{ fontSize: '0.75rem' }} iconType="circle" iconSize={8} />
         <Line
           type="monotone"
           dataKey="atual"

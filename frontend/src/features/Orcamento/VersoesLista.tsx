@@ -15,7 +15,7 @@ export function SeloStatusOrcamento({ status, vencido }: { status: StatusOrcamen
   const { cor, fundo } = vencido ? { cor: tokens.color.crit, fundo: tokens.color.critBg } : COR[status];
   return (
     <span style={{
-      fontFamily: tokens.fontMono, fontSize: '0.58rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+      fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase',
       color: cor, background: fundo, borderRadius: tokens.radius.full, padding: '3px 10px', whiteSpace: 'nowrap',
     }}>
       {vencido ? 'Vencido' : ROTULO_STATUS_ORCAMENTO[status]}
@@ -34,7 +34,7 @@ export function VersoesLista({ versoes, selecionadaId, onSelecionar }: Props) {
   if (versoes.length < 2) return null;
   return (
     <div style={{ border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.lg, background: tokens.color.card, overflow: 'hidden' }}>
-      <div style={{ padding: '10px 14px', fontFamily: tokens.fontMono, fontSize: '0.6rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle, borderBottom: `1px solid ${tokens.color.border}` }}>
+      <div style={{ padding: '10px 14px', fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle, borderBottom: `1px solid ${tokens.color.border}` }}>
         Versões
       </div>
       {versoes.map(v => {
@@ -51,7 +51,7 @@ export function VersoesLista({ versoes, selecionadaId, onSelecionar }: Props) {
             <strong style={{ fontSize: '0.86rem', color: tokens.color.text }}>v{v.versao}</strong>
             <SeloStatusOrcamento status={v.status} vencido={v.vencido} />
             <span style={{ marginLeft: 'auto', fontSize: '0.82rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(v.total)}</span>
-            <span style={{ fontSize: '0.7rem', color: tokens.color.subtle }}>{dataBR(v.createdAt)}</span>
+            <span style={{ fontSize: '0.75rem', color: tokens.color.subtle }}>{dataBR(v.createdAt)}</span>
           </button>
         );
       })}

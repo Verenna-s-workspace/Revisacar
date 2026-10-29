@@ -99,7 +99,7 @@ export function Step2({ os }: StepProps) {
   return (
     <StepWrapper direction={stepDir}>
       <FormBlock title="Fotos obrigatórias da entrada">
-        <p style={{ fontFamily: tokens.fontMono, fontSize: '0.65rem', color: tokens.color.muted, margin: '0 0 14px' }}>
+        <p style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted, margin: '0 0 14px' }}>
           Registro de confiabilidade do veículo. As fotos entram no relatório em PDF.
         </p>
 
@@ -149,7 +149,7 @@ export function Step2({ os }: StepProps) {
                 <span style={{ fontFamily: tokens.fontSans, fontSize: '1.35rem', fontWeight: 800, color: liberado && resumo.completo ? tokens.color.ok : tokens.color.text }}>
                   {resumo.resolvidas} de {resumo.total}
                 </span>
-                <span style={{ fontFamily: tokens.fontMono, fontSize: '0.7rem', color: resumo.completo ? tokens.color.ok : tokens.color.muted }}>
+                <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: resumo.completo ? tokens.color.ok : tokens.color.muted }}>
                   {carregando ? 'carregando…' : textoFaltam(faltam)}
                 </span>
               </div>
@@ -160,7 +160,7 @@ export function Step2({ os }: StepProps) {
               >
                 <div style={{ width: `${pct}%`, height: '100%', background: resumo.completo ? tokens.color.ok : tokens.color.ferrari, transition: 'width .25s ease' }} />
               </div>
-              <div style={{ fontFamily: tokens.fontMono, fontSize: '0.68rem', color: tokens.color.muted }}>
+              <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted }}>
                 Fotos: {SLOTS_FOTO.map((s) => s.rotulo).join(', ')}
               </div>
             </div>
@@ -190,7 +190,7 @@ export function Step2({ os }: StepProps) {
       </FormBlock>
 
       <FormBlock title="Fotos adicionais (opcional)">
-        <p style={{ fontFamily: tokens.fontMono, fontSize: '0.65rem', color: tokens.color.muted, marginBottom: 14 }}>
+        <p style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted, marginBottom: 14 }}>
           Defeitos, riscos, pontos de atenção — quantas quiser.
         </p>
 
@@ -223,7 +223,7 @@ export function Step2({ os }: StepProps) {
       <PanelFooter
         left={
           !modoAntigo && exigida && fonte === 'ok' ? (
-            <span style={{ fontFamily: tokens.fontMono, fontSize: '0.72rem', color: resumo.completo ? tokens.color.ok : tokens.color.warn }}>
+            <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: resumo.completo ? tokens.color.ok : tokens.color.warn }}>
               {resumo.resolvidas} de {resumo.total} · {textoFaltam(faltam)}
             </span>
           ) : null

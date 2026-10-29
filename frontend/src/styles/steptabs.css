@@ -4,6 +4,10 @@
   padding: 0 40px;
   display: flex;
   overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 24px;
   position: relative;
   box-shadow: var(--shadow-xs);
 }
@@ -48,14 +52,14 @@
 
 
 .step-badge {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   flex-shrink: 0;
   transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
@@ -104,8 +108,25 @@
   line-height: 1;
 }
 
+.step-tabs::-webkit-scrollbar { display: none; }
+
 @media (max-width: 979px) {
   .step-tabs {
     padding: 0 16px;
   }
+  .step-tab { min-height: var(--tap-min); }
+}
+
+
+/* Celular: só a etapa atual, centralizada, sem rolagem lateral */
+.step-tabs--mobile {
+  justify-content: center;
+  overflow: visible;
+  padding: 0 16px;
+}
+.step-tab--static {
+  cursor: default;
+  pointer-events: none;
+  border-bottom-color: var(--color-ferrari);
+  padding: 14px 8px 13px;
 }

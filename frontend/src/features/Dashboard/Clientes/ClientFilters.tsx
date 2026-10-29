@@ -20,7 +20,7 @@ export function ClientFilters({ search, filtros, onSearch, onOpenFilters, onClea
   return (
     <div
       style={{
-        background: 'white', borderBottom: `1px solid ${tokens.color.border}`,
+        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`,
         padding: isMobile ? '10px 14px' : '12px 28px',
         display: 'flex', alignItems: 'center', gap: 10,
       }}
@@ -49,7 +49,7 @@ export function ClientFilters({ search, filtros, onSearch, onOpenFilters, onClea
       >
         <span style={{ display: 'flex' }}>{ClienteIcons.filter}</span>
         {!isMobile && 'Filtros'}
-        {hasActive && <span style={{ fontSize: '0.65rem', opacity: 0.8, marginLeft: 1 }}>●</span>}
+        {hasActive && <span style={{ fontSize: '0.75rem', opacity: 0.8, marginLeft: 1 }}>●</span>}
       </button>
 
       {hasActive && (

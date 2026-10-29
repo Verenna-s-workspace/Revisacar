@@ -87,7 +87,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
           alignItems: 'center',
           gap: 12,
           padding: isMobile ? '14px 16px' : '16px 28px',
-          background: 'white',
+          background: 'var(--color-surface)',
           borderBottom: `1px solid ${tokens.color.border}`,
           flexShrink: 0,
         }}
@@ -175,7 +175,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="atendimento" onNav={onNav} />
         {content}
         <MobileNav active="atendimento" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
@@ -185,7 +185,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="atendimento" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>{content}</main>
       {modals}

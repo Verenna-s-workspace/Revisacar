@@ -22,7 +22,7 @@ export function ClientFilterModal({ filtros, onApply, onClose }: ClientFilterMod
     setF(prev => ({ ...prev, [key]: value }));
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase',
+    fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
     letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 6, display: 'block',
   };
 
@@ -91,7 +91,7 @@ export function ClientFilterModal({ filtros, onApply, onClose }: ClientFilterMod
                   width: 18, height: 18, borderRadius: 5, flexShrink: 0,
                   border: `1.5px solid ${f.semVeiculos ? tokens.color.ferrari : tokens.color.border}`,
                   background: f.semVeiculos ? tokens.color.ferrari : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem',
                 }}
               >
                 {f.semVeiculos && '✓'}
@@ -100,7 +100,7 @@ export function ClientFilterModal({ filtros, onApply, onClose }: ClientFilterMod
           </div>
         </div>
 
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           <button
             onClick={handleClear}
             style={{ padding: '9px 18px', borderRadius: 10, border: 'none', background: 'transparent', color: tokens.color.ferrari, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 700 }}

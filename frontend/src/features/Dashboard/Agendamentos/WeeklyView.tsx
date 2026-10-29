@@ -68,7 +68,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
   return (
     // Container principal — mesmo padrão do DailyView: flex:1 + minHeight:0
     // para poder encolher até o espaço disponível; só a timeline abaixo rola.
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'var(--color-surface)', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
       {/* Week header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -109,7 +109,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                 borderLeft: `1px solid ${tokens.color.border}`,
               }}
             >
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: isT ? tokens.color.ferrari : tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isT ? tokens.color.ferrari : tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {WEEKDAYS_SHORT[d.getDay()]}
               </div>
               <div style={{
@@ -141,7 +141,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                   width: '100%',
                   textAlign: 'right',
                   paddingRight: 10,
-                  fontSize: '0.66rem',
+                  fontSize: '0.75rem',
                   fontWeight: 600,
                   color: tokens.color.subtle,
                   fontFamily: tokens.fontMono,
@@ -216,14 +216,14 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.filter = 'brightness(0.96)'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.filter = ''; }}
                     >
-                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: cfg.color, fontFamily: tokens.fontMono }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: cfg.color, fontFamily: tokens.fontMono }}>
                         {ag.horaInicio}
                       </div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: tokens.color.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {ag.cliente}
                       </div>
                       {height > 44 && (
-                        <div style={{ fontSize: '0.64rem', color: tokens.color.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {ag.veiculo}
                         </div>
                       )}
@@ -246,7 +246,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
           if (!count) return null;
           const cfg = APPOINTMENT_STATUS_CONFIG[st];
           return (
-            <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.74rem', color: tokens.color.muted }}>
+            <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: tokens.color.muted }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
               {cfg.label} <strong style={{ color: tokens.color.text }}>({count})</strong>
             </div>

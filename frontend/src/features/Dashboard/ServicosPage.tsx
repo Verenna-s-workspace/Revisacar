@@ -106,7 +106,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
       <div
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: isMobile ? '14px 16px' : '16px 28px', background: 'white',
+          padding: isMobile ? '14px 16px' : '16px 28px', background: 'var(--color-surface)',
           borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap', gap: 10,
         }}
       >
@@ -126,7 +126,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
               </h2>
               {usandoDadosDemo && (
                 <span style={{
-                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
                   color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
                   borderRadius: 6, padding: '2px 7px',
                 }}>
@@ -141,15 +141,17 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
         </div>
 
         <button
+          type="button"
           onClick={abrirNovo}
           style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 16px',
             background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 9,
             fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+            ...(isMobile ? { width: '100%', minHeight: 44 } : null),
           }}
         >
           <span style={{ display: 'flex' }}>{Icons.plus}</span>
-          {!isMobile && 'Adicionar Serviço'}
+          {isMobile ? 'Novo serviço' : 'Adicionar Serviço'}
         </button>
       </div>
 
@@ -261,7 +263,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="servicos" onNav={onNav} />
         {content}
         <MobileNav active="servicos" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
@@ -271,7 +273,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="servicos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}

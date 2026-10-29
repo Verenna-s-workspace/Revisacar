@@ -100,7 +100,7 @@ export function LinkCliente({ orcamentoId, podeEditar, clienteNome, clienteTel, 
       border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.lg, background: tokens.color.card,
       padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
     }}>
-      <h3 style={{ margin: 0, fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle }}>
+      <h3 style={{ margin: 0, fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle }}>
         Link para o cliente
       </h3>
 
@@ -145,7 +145,7 @@ export function LinkCliente({ orcamentoId, podeEditar, clienteNome, clienteTel, 
             <>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input ref={campoRef} readOnly value={url} aria-label="Link do orçamento" onFocus={e => e.currentTarget.select()}
-                  style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', padding: '9px 11px', fontFamily: tokens.fontMono, fontSize: '0.74rem',
+                  style={{ flex: 1, minWidth: 0, boxSizing: 'border-box', padding: '9px 11px', fontFamily: tokens.fontMono, fontSize: '0.75rem',
                     color: tokens.color.text, background: tokens.color.surface, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.md }} />
                 <button type="button" onClick={() => void copiar()} style={btnSolid}>{copiado ? 'Copiado!' : 'Copiar'}</button>
               </div>

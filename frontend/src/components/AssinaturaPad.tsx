@@ -87,7 +87,7 @@ export function AssinaturaPad({ onChange, disabled }: Props) {
         }}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
-        <span style={{ fontSize: '0.74rem', color: tokens.color.muted }}>
+        <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
           {vazio ? 'Peça ao cliente para assinar aqui (opcional).' : 'Assinatura registrada.'}
         </span>
         <button type="button" onClick={limpar} disabled={disabled || vazio} style={{ ...btnGhost, padding: '4px 12px' }}>Limpar</button>

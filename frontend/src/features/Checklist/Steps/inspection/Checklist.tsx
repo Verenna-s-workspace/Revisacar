@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { STATUS_CONFIG, tokens } from '../../../../constants';
 import type { StatusConfig } from '../../../../types';
-import { SectionIcon } from '../../../../components/ui';
+import { SectionIcon, useResponsive } from '../../../../components/ui';
 import { Textarea } from '../../../../components/inputs/textarea';
 
 // ── ChecklistItem ─────────────────────────────────────────────────────────────
@@ -26,6 +26,7 @@ export function ChecklistItem({
   onToggleTroca,
 }: ChecklistItemProps) {
   const [obsOpen, setObsOpen] = useState(false);
+  const { isCompact } = useResponsive();
   const key           = `${sid}:${name}`;
   const currentStatus = data?.status ?? null;
   const isTroca       = trocaSet?.has(key) ?? false;
@@ -48,16 +49,17 @@ export function ChecklistItem({
     >
       <div style={{
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: isCompact ? 'center' : 'flex-start',
         flexWrap: 'wrap',
-        padding: '11px 16px',
-        gap: 10,
+        padding: isCompact ? '12px 16px' : '11px 16px',
+        gap: isCompact ? 8 : 10,
         minHeight: 50,
       }}>
         <span style={{
-          flex: '1 1 220px',
+          order: 0,
+          flex: isCompact ? '1 1 0' : '1 1 220px',
           minWidth: 0,
-          fontSize: '0.86rem',
+          fontSize: '0.9rem',
           color: currentStatus ? tokens.color.text : tokens.color.textSecond,
           transition: 'color 0.12s',
           lineHeight: 1.4,
@@ -67,62 +69,85 @@ export function ChecklistItem({
 
         {/* Note toggle */}
         <button
+          type="button"
           onClick={() => setObsOpen((o) => !o)}
           title={data?.obs ? 'Ver observação' : 'Adicionar observação'}
           style={{
+            order: 1,
             background: data?.obs ? tokens.color.warnBg : 'none',
             border: data?.obs
               ? `1px solid ${tokens.color.warnBorder}`
-              : '1px solid transparent',
+              : `1px solid ${isCompact ? tokens.color.border : 'transparent'}`,
             cursor: 'pointer',
-            fontFamily: tokens.fontMono,
-            fontSize: '0.58rem',
-            letterSpacing: '0.06em',
-            color: data?.obs ? tokens.color.warn : tokens.color.subtle,
-            padding: '3px 8px',
-            textTransform: 'uppercase',
+            fontFamily: tokens.fontSans,
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: data?.obs ? tokens.color.warn : tokens.color.muted,
+            padding: '0 10px',
+            minHeight: isCompact ? 44 : 32,
+            minWidth: isCompact ? 44 : undefined,
             flexShrink: 0,
-            borderRadius: tokens.radius.sm,
+            borderRadius: tokens.radius.md,
             transition: tokens.transition.fast,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 4,
+            justifyContent: 'center',
+            gap: 5,
           }}
-          aria-label="Abrir/fechar observação"
+          aria-label={data?.obs ? 'Ver observação' : 'Adicionar observação'}
+          aria-expanded={obsOpen}
         >
           <svg
-            width={9} height={9} viewBox="0 0 9 9"
+            width={12} height={12} viewBox="0 0 9 9"
             fill="none" stroke="currentColor"
-            strokeWidth={1.3} strokeLinecap="round"
+            strokeWidth={1.1} strokeLinecap="round"
+            aria-hidden="true"
           >
             <path d="M1 1.5h7M1 4.5h5M1 7.5h6" />
           </svg>
           {data?.obs ? 'Nota' : 'Obs.'}
         </button>
 
-        {/* Status buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flexShrink: 0 }}>
+        {/* Status: controle segmentado. No celular ocupa a linha toda, com
+            alvos de 44px (antes: chips de ~24px com fonte de 9px). Cor + símbolo
+            + texto, para não depender só da cor. */}
+        <div
+          role="radiogroup"
+          aria-label={`Status: ${name}`}
+          style={isCompact
+            ? { order: 3, flex: '1 1 100%', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }
+            : { order: 2, display: 'flex', gap: 6, flexShrink: 0 }}
+        >
           {(Object.entries(STATUS_CONFIG) as [string, StatusConfig][]).map(([val, cfg]) => {
             const active = currentStatus === val;
+            const glyph = val === 'ok' ? '✓' : val === 'warn' ? '!' : val === 'crit' ? '✕' : '–';
             return (
               <button
                 key={val}
+                type="button"
+                role="radio"
+                aria-checked={active}
                 onClick={() => onSetStatus(key, val)}
                 style={{
-                  fontFamily: tokens.fontMono,
-                  fontSize: '0.58rem',
-                  fontWeight: active ? 600 : 500,
-                  letterSpacing: '0.03em',
-                  padding: '4px 10px',
-                  border: `1px solid ${active ? cfg.border : tokens.color.border}`,
+                  fontFamily: tokens.fontSans,
+                  fontSize: '0.8125rem',
+                  fontWeight: active ? 700 : 600,
+                  padding: isCompact ? '0 4px' : '0 12px',
+                  minHeight: isCompact ? 44 : 32,
+                  border: `1.5px solid ${active ? cfg.color : tokens.color.border}`,
                   background: active ? cfg.bg : 'transparent',
-                  color: active ? cfg.color : tokens.color.subtle,
+                  color: active ? cfg.color : tokens.color.textSecond,
                   cursor: 'pointer',
-                  borderRadius: tokens.radius.sm,
-                  transition: 'all 0.12s cubic-bezier(0.4,0,0.2,1)',
+                  borderRadius: tokens.radius.md,
+                  transition: 'background 0.12s, border-color 0.12s, color 0.12s',
                   whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
                 }}
               >
+                <span aria-hidden="true" style={{ fontWeight: 800, opacity: active ? 1 : 0.55 }}>{glyph}</span>
                 {cfg.label}
               </button>
             );
@@ -132,40 +157,47 @@ export function ChecklistItem({
         {/* Trocar button */}
         {onToggleTroca && (
           <>
-            <div style={{
-              width: 1,
-              alignSelf: 'stretch',
-              background: tokens.color.border,
-              flexShrink: 0,
-            }} />
+            {!isCompact && (
+              <div style={{
+                order: 3,
+                width: 1,
+                alignSelf: 'stretch',
+                background: tokens.color.border,
+                flexShrink: 0,
+              }} />
+            )}
             <button
+              type="button"
               onClick={() => onToggleTroca(key, name)}
               title={isTroca ? 'Remover da lista de troca' : 'Marcar para troca'}
+              aria-pressed={isTroca}
               style={{
-                fontFamily: tokens.fontMono,
-                fontSize: '0.58rem',
-                fontWeight: isTroca ? 600 : 500,
-                letterSpacing: '0.06em',
-                padding: '4px 10px',
+                order: isCompact ? 2 : 4,
+                fontFamily: tokens.fontSans,
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '0 10px',
+                minHeight: isCompact ? 44 : 32,
                 border: `1px solid ${isTroca ? tokens.color.ferrari : tokens.color.border}`,
                 background: isTroca ? tokens.color.accentDim : 'transparent',
-                color: isTroca ? tokens.color.ferrari : tokens.color.subtle,
+                color: isTroca ? tokens.color.ferrari : tokens.color.muted,
                 cursor: 'pointer',
-                borderRadius: tokens.radius.sm,
-                transition: 'all 0.12s cubic-bezier(0.4,0,0.2,1)',
+                borderRadius: tokens.radius.md,
+                transition: 'background 0.12s, border-color 0.12s, color 0.12s',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
+                justifyContent: 'center',
+                gap: 5,
               }}
             >
               {isTroca ? (
-                <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke={tokens.color.ferrari} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <svg width={11} height={11} viewBox="0 0 8 8" fill="none" stroke={tokens.color.ferrari} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="1,4 3,6 7,2" />
                 </svg>
               ) : (
-                <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+                <svg width={11} height={11} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M1.5 4h4.5M4 2l2 2-2 2" />
                 </svg>
               )}
@@ -261,7 +293,9 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Nome da peça — pressione Enter para adicionar"
+        enterKeyHint="done"
+        aria-label="Nome da peça"
+        placeholder="Nome da peça — Enter para adicionar"
         style={{
           flex: 1,
           minWidth: 0,
@@ -280,14 +314,13 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
         onClick={commit}
         disabled={!hasValue}
         style={{
-          fontFamily: tokens.fontMono,
-          fontSize: '0.6rem',
+          fontFamily: tokens.fontSans,
+          fontSize: '0.8125rem',
           fontWeight: 600,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase',
-          padding: '5px 14px',
+          minHeight: 44,
+          padding: '0 16px',
           background: hasValue ? tokens.color.ferrari : 'transparent',
-          color: hasValue ? '#fff' : tokens.color.ghost,
+          color: hasValue ? '#fff' : tokens.color.subtle,
           border: `1px solid ${hasValue ? tokens.color.ferrari : tokens.color.border}`,
           borderRadius: tokens.radius.sm,
           cursor: hasValue ? 'pointer' : 'default',
@@ -483,7 +516,7 @@ export function ChecklistSection({
         {/* Label */}
         <span style={{
           fontFamily: tokens.fontMono,
-          fontSize: '0.7rem',
+          fontSize: '0.75rem',
           fontWeight: 500,
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
@@ -497,7 +530,7 @@ export function ChecklistSection({
             <span style={{
               marginLeft: 8,
               fontFamily: tokens.fontMono,
-              fontSize: '0.55rem',
+              fontSize: '0.75rem',
               letterSpacing: '0.08em',
               color: tokens.color.subtle,
               textTransform: 'uppercase',
@@ -515,7 +548,7 @@ export function ChecklistSection({
         {/* Progress pill */}
         <span style={{
           fontFamily: tokens.fontMono,
-          fontSize: '0.6rem',
+          fontSize: '0.75rem',
           padding: '2px 9px',
           borderRadius: tokens.radius.full,
           background: isComplete ? tokens.color.okBg : tokens.color.bg,
@@ -596,8 +629,8 @@ export function ChecklistSection({
               </svg>
               <span style={{
                 fontFamily: tokens.fontMono,
-                fontSize: '0.65rem',
-                color: tokens.color.ghost,
+                fontSize: '0.75rem',
+                color: tokens.color.subtle,
                 textAlign: 'center',
                 letterSpacing: '0.04em',
               }}>

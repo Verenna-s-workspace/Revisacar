@@ -21,7 +21,7 @@ export function CategoriaGrid({ itens, onSelecionar }: CategoriaGridProps) {
         <div key={grupo}>
           <div
             style={{
-              fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
+              fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '0.06em', color: tokens.color.muted, marginBottom: 8,
             }}
           >
@@ -48,7 +48,7 @@ export function CategoriaGrid({ itens, onSelecionar }: CategoriaGridProps) {
                   {CATEGORIA_ICON[categoria] ?? Icons.box}
                 </div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 700, color: tokens.color.text }}>{categoria}</div>
-                <div style={{ fontSize: '0.66rem', color: tokens.color.muted }}>
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
                   {contagem.get(categoria) ?? 0} {(contagem.get(categoria) ?? 0) === 1 ? 'item' : 'itens'}
                 </div>
               </button>

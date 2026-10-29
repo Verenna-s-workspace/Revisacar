@@ -11,6 +11,8 @@ import { api } from '../../utils/api';
 import { mensagemDoErro } from '../../utils/api_erro';
 import { donoDaCopiaLocal, podeEditarConfiguracoes, salvarOficinaConfig, sincronizarOficinaConfig } from '../../utils/oficina_config';
 
+
+
 // Sem nada salvo neste navegador, os campos começam vazios (nome e CNPJ vêm da
 // conta logada) — antes vinham dados de exemplo que pareciam ser da oficina.
 const WORKSHOP_DEFAULTS = {
@@ -45,10 +47,12 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
     const saved = localStorage.getItem('oficina_config');
     if (saved) {
       try {
+
         const local = JSON.parse(saved);
         // Cópia de outra oficina (computador compartilhado) não aparece aqui nem por um instante;
         // a antiga (CNPJ de exemplo) aparece pra pessoa conferir — e só vai ao servidor se ela salvar.
         return donoDaCopiaLocal(local, user?.doc) === 'outra' ? padrao : { ...padrao, ...local };
+
       } catch {
         return padrao;
       }
@@ -233,7 +237,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
                   error={horarioTentouSalvar && horarioInvalido ? 'Deve ser depois do horário de abertura.' : undefined}
                 />
               </div>
-              <span style={{ fontSize: '0.7rem', color: tokens.color.muted }}>
+              <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
                 Define automaticamente os horários disponíveis na tela de Agendamentos.
               </span>
             </div>
@@ -294,7 +298,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Theme card */}
           <Card style={{ padding: 20 }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
               Aparência do Sistema
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -346,7 +350,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
           {/* Network & PWA Card */}
           <Card style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
                 Status de Conectividade
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -370,7 +374,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
 
             {installable && (
               <div style={{ borderTop: `1px solid ${tokens.color.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                   Aplicativo Instalável
                 </div>
                 <button

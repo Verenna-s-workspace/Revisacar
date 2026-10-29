@@ -10,7 +10,7 @@ import type { OrcamentoPublico } from '../../types/orcamento_link';
 // Só mostra o que o servidor manda em /publico/... (preço cobrado; nunca custo ou margem).
 
 const pagina: React.CSSProperties = {
-  minHeight: '100vh', background: tokens.color.bg, fontFamily: tokens.fontSans, color: tokens.color.text,
+  minHeight: '100dvh', background: tokens.color.bg, fontFamily: tokens.fontSans, color: tokens.color.text,
   display: 'flex', justifyContent: 'center', padding: '20px 16px 48px', boxSizing: 'border-box',
 };
 const coluna: React.CSSProperties = { width: '100%', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 14 };
@@ -182,7 +182,7 @@ export default function OrcamentoPublicoPage({ token }: { token: string }) {
     <div style={pagina}>
       <main style={coluna}>
         <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ fontFamily: tokens.fontMono, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle }}>
+          <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle }}>
             {dados.oficina.nome}
           </div>
           <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>Orçamento {dados.ordem.osNum}</h1>

@@ -153,7 +153,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
                     {comprimindo ? 'Processando...' : fotoDataUrl ? 'Trocar foto' : 'Adicionar foto'}
                     <input type="file" accept="image/*" onChange={handleFoto} disabled={comprimindo} style={{ display: 'none' }} />
                   </label>
-                  {erroFoto && <span style={{ fontSize: '0.72rem', color: tokens.color.crit }}>{erroFoto}</span>}
+                  {erroFoto && <span style={{ fontSize: '0.75rem', color: tokens.color.crit }}>{erroFoto}</span>}
                 </div>
               </div>
               <div className="dashboard-modal__remark" style={{ marginTop: 10 }}>
@@ -176,7 +176,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
                   <div
                     style={{
                       position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                      background: 'white', border: `1px solid ${tokens.color.border}`, borderRadius: 8,
+                      background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`, borderRadius: 8,
                       boxShadow: '0 8px 24px rgba(0,0,0,0.14)', zIndex: 20, maxHeight: 190, overflowY: 'auto',
                     }}
                   >
@@ -257,7 +257,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
               style={{
                 padding: '10px 20px', borderRadius: 8, border: 'none', fontSize: '0.85rem', fontWeight: 700,
                 background: !nome.trim() || receita.length === 0 ? tokens.color.surfaceHigh : tokens.color.ferrari,
-                color: !nome.trim() || receita.length === 0 ? tokens.color.ghost : 'white',
+                color: !nome.trim() || receita.length === 0 ? tokens.color.subtle : 'white',
                 cursor: !nome.trim() || receita.length === 0 ? 'not-allowed' : 'pointer',
               }}
             >

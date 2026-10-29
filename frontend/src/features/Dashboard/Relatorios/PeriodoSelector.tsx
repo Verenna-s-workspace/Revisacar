@@ -67,7 +67,7 @@ export function PeriodoSelector({ filtro, intervaloAtual, isMobile, onChange }: 
         flexWrap: 'wrap',
         gap: 10,
         padding: isMobile ? '10px 16px' : '12px 28px',
-        background: 'white',
+        background: 'var(--color-surface)',
         borderBottom: `1px solid ${tokens.color.border}`,
         flexShrink: 0,
       }}

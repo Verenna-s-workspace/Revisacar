@@ -41,7 +41,7 @@ function Field({ icon, label, value, mono }: { icon: React.ReactNode; label: str
     <div style={{ padding: '11px 13px', borderRadius: 12, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, color: tokens.color.muted }}>
         <span style={{ display: 'flex' }}>{icon}</span>
-        <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
       </div>
       <div style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text, fontFamily: mono ? tokens.fontMono : tokens.fontSans, wordBreak: 'break-word' }}>
         {value || '—'}
@@ -52,7 +52,7 @@ function Field({ icon, label, value, mono }: { icon: React.ReactNode; label: str
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 10 }}>
+    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 10 }}>
       {children}
     </div>
   );
@@ -61,7 +61,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function EmptyBlock({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8, padding: '26px 4px' }}>
-      <span style={{ color: tokens.color.ghost, display: 'flex' }}>{icon}</span>
+      <span style={{ color: tokens.color.subtle, display: 'flex' }}>{icon}</span>
       <span style={{ fontSize: '0.8rem', color: tokens.color.muted, lineHeight: 1.5, maxWidth: 320 }}>{text}</span>
     </div>
   );
@@ -121,7 +121,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
                   size="sm"
                   dynamicLabel={c.status === 'agendado' && c.proximoAgendamento ? `Agendado • ${formatAgendadoBadge(c.proximoAgendamento)}` : undefined}
                 />
-                <span style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(0,0,0,0.28)', color: 'white', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(0,0,0,0.28)', color: 'white', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {c.veiculos.length} veículo{c.veiculos.length === 1 ? '' : 's'}
                 </span>
               </div>
@@ -157,7 +157,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
         </div>
 
         {/* Corpo */}
-        <div style={{ padding: '18px 24px 22px', display: 'flex', flexDirection: 'column', gap: 18, maxHeight: '50vh', overflowY: 'auto' }}>
+        <div style={{ padding: '18px 24px 22px', display: 'flex', flexDirection: 'column', gap: 18, maxHeight: '50dvh', overflowY: 'auto' }}>
           {tab === 'dados' && (
             <>
               <div>
@@ -194,7 +194,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
                     <div
                       key={v.id}
                       onClick={() => onViewVeiculo(v)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'white', border: `1px solid ${tokens.color.border}`, cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`, cursor: 'pointer' }}
                     >
                       <div style={{ width: 40, height: 40, borderRadius: 10, background: tokens.color.surfaceHigh, color: tokens.color.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {Icons.car}
@@ -203,12 +203,12 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
                         <div style={{ fontWeight: 700, fontSize: '0.88rem', color: tokens.color.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {v.marca} {v.modelo}
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 2 }}>
+                        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
                           {v.placa} · {v.ano} · {formatKm(v.quilometragem)}
                         </div>
                       </div>
                       <VehicleStatusBadge status={v.status} size="sm" />
-                      <span style={{ color: tokens.color.ghost, display: 'flex', flexShrink: 0 }}>{Icons.arrow}</span>
+                      <span style={{ color: tokens.color.subtle, display: 'flex', flexShrink: 0 }}>{Icons.arrow}</span>
                     </div>
                   ))}
                 </div>
@@ -256,7 +256,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {c.agendamentosFuturos.map(ag => (
                       <div key={ag.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ fontSize: '0.66rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 2 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 2 }}>
                           {formatDataCurta(ag.data)}
                         </span>
                         <AppointmentCard agendamento={ag} onClick={() => onGoToAgendamento(ag)} />
@@ -272,7 +272,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: 0.85 }}>
                     {c.agendamentosPassados.map(ag => (
                       <div key={ag.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ fontSize: '0.66rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 2 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 2 }}>
                           {formatDataCurta(ag.data)}
                         </span>
                         <AppointmentCard agendamento={ag} onClick={() => onGoToAgendamento(ag)} />
@@ -290,7 +290,7 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           <button
             onClick={onDelete}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, border: `1px solid ${tokens.color.critBorder}`, background: 'transparent', color: tokens.color.crit, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 700 }}

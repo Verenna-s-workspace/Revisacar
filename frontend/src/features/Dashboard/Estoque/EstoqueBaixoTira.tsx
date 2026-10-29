@@ -30,7 +30,7 @@ export function EstoqueBaixoTira({ itens, onVerTodos }: EstoqueBaixoTiraProps) {
             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {item.nome}
             </div>
-            <div style={{ fontSize: '0.7rem', color: tokens.color.warn, fontWeight: 600 }}>
+            <div style={{ fontSize: '0.75rem', color: tokens.color.warn, fontWeight: 600 }}>
               {item.quantidade} de {item.minimo} un.
             </div>
           </div>

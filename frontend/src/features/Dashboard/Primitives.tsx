@@ -53,7 +53,7 @@ function Donut({ pct }: { pct: number }) {
   const d = Math.min(pct / 100, 1) * c;
   return (
     <svg width="96" height="96" viewBox="0 0 96 96">
-      <circle cx="48" cy="48" r={r} fill="none" stroke="#EDEBE6" strokeWidth="9" />
+      <circle cx="48" cy="48" r={r} fill="none" stroke="var(--color-surface-high)" strokeWidth="9" />
       <circle
         cx="48" cy="48" r={r} fill="none"
         stroke="#CC1400" strokeWidth="9"
@@ -65,7 +65,7 @@ function Donut({ pct }: { pct: number }) {
       <text
         x="48" y="53" textAnchor="middle"
         fontSize="16" fontWeight="800"
-        fontFamily="DM Sans,sans-serif" fill="#1A1A1A"
+        fontFamily="DM Sans,sans-serif" fill="var(--color-text)"
       >
         {pct}%
       </text>
@@ -158,7 +158,7 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
             <div style={{ width: 38, height: 38, borderRadius: 10, background: '#CC1400', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
               {icon}
             </div>
-            <span style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>
               {title}
             </span>
           </div>
@@ -174,13 +174,13 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, minHeight: 17 }}>
                 {pct === null ? (
-                  <span style={{ fontSize: '0.72rem', color: tokens.color.muted }}>sem comparação disponível</span>
+                  <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>sem comparação disponível</span>
                 ) : (
                   <>
                     <span style={{ fontSize: '0.78rem', fontWeight: 600, color: pos ? tokens.color.ok : tokens.color.crit }}>
                       {pos ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: tokens.color.muted }}>{comparisonLabel}</span>
+                    <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{comparisonLabel}</span>
                   </>
                 )}
               </div>
@@ -247,7 +247,7 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
   };
 
   const botao: React.CSSProperties = {
-    border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.74rem',
+    border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.75rem',
     fontWeight: 700, cursor: 'pointer', padding: 0,
   };
 
@@ -257,13 +257,13 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
         <div style={{ width: 38, height: 38, borderRadius: 10, background: '#CC1400', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
           {Icons.target}
         </div>
-        <span style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>
           META MENSAL
         </span>
       </div>
       {loading ? <Skeleton h={80} /> : editando ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={{ fontSize: '0.7rem', color: tokens.color.muted }} htmlFor="meta-mensal-input">Meta de faturamento do mês (R$)</label>
+          <label style={{ fontSize: '0.75rem', color: tokens.color.muted }} htmlFor="meta-mensal-input">Meta de faturamento do mês (R$)</label>
           <input
             id="meta-mensal-input"
             autoFocus
@@ -274,7 +274,7 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
             disabled={salvando}
             style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${tokens.color.border}`, fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }}
           />
-          {erro && <div style={{ fontSize: '0.72rem', color: tokens.color.crit }}>{erro}</div>}
+          {erro && <div style={{ fontSize: '0.75rem', color: tokens.color.crit }}>{erro}</div>}
           <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
             <button style={botao} onClick={confirmar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</button>
             <button style={{ ...botao, color: tokens.color.muted }} onClick={() => setEditando(false)} disabled={salvando}>Cancelar</button>
@@ -286,21 +286,21 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
       ) : meta === null ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: '0.84rem', fontWeight: 600, color: tokens.color.text }}>Meta não definida</div>
-          <div style={{ fontSize: '0.72rem', color: tokens.color.muted }}>
+          <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
             Faturado no mês: <strong style={{ color: tokens.color.text }}>{formatBRL(alcancado)}</strong>
           </div>
           {editavel
             ? <button style={{ ...botao, textAlign: 'left' }} onClick={abrirEdicao}>Definir meta</button>
-            : <div style={{ fontSize: '0.72rem', color: tokens.color.muted }}>Peça ao dono para definir a meta.</div>}
+            : <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>Peça ao dono para definir a meta.</div>}
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div>
-            <div style={{ fontSize: '0.7rem', color: tokens.color.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: '0.75rem', color: tokens.color.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
               Meta {editavel && <button style={botao} onClick={abrirEdicao}>Editar</button>}
             </div>
             <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(meta)}</div>
-            <div style={{ fontSize: '0.7rem', color: tokens.color.muted, marginTop: 8 }}>Alcançado</div>
+            <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 8 }}>Alcançado</div>
             <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(alcancado)}</div>
           </div>
           <Donut pct={pct} />

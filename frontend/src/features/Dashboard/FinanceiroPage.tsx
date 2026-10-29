@@ -119,7 +119,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
             {usandoDadosDemo && (
               <span
                 style={{
-                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
                   color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
                   borderRadius: 6, padding: '2px 7px',
                 }}
@@ -194,6 +194,44 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
             </div>
             {transacoes.length === 0 ? (
               <div style={{ padding: 30, textAlign: 'center', color: tokens.color.muted, fontSize: '0.85rem' }}>Nenhum lançamento nesse período ainda.</div>
+            ) : isMobile ? (
+              // Celular: cada lançamento vira um cartão (antes: tabela de 640px
+              // com rolagem horizontal escondendo valor e ações).
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {transacoes.map(t => (
+                  <li key={t.id} style={{ padding: '14px 16px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                      <div style={{ minWidth: 0, fontSize: '0.9rem', fontWeight: 600, color: tokens.color.text, overflowWrap: 'anywhere' }}>
+                        {t.descricao || labelCategoria(t.tipo, t.categoria)}{t.cliente_nome ? ` — ${t.cliente_nome}` : ''}
+                      </div>
+                      <div style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.95rem', color: t.tipo === 'entrada' ? tokens.color.ok : tokens.color.text }}>
+                        {t.tipo === 'entrada' ? '+ ' : '- '}{formatBRL(t.valor)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: '0.8125rem', color: tokens.color.muted }}>
+                      <span>{labelCategoria(t.tipo, t.categoria)}</span>
+                      <span aria-hidden="true">•</span>
+                      <span>{formatDataCurta(t.data_competencia)}</span>
+                      <span style={{
+                        padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
+                        background: t.vencido ? 'var(--color-crit-bg)' : t.status === 'pago' ? 'var(--color-ok-bg)' : tokens.color.surfaceHigh,
+                        color: t.vencido ? 'var(--color-crit)' : t.status === 'pago' ? 'var(--color-ok)' : tokens.color.muted,
+                      }}>
+                        {t.vencido ? 'Vencido' : LABEL_STATUS[t.status]}
+                      </span>
+                    </div>
+                    {podeEditar && (
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', marginTop: 2 }}>
+                        {t.status === 'pendente' && (
+                          <button type="button" onClick={() => handleMarcarPago(t.id)} style={{ ...acaoBtnStyle, minWidth: 44, minHeight: 44 }} aria-label="Marcar como pago" title="Marcar como pago">✓</button>
+                        )}
+                        <button type="button" onClick={() => setModal(t)} style={{ ...acaoBtnStyle, minWidth: 44, minHeight: 44 }} aria-label="Editar lançamento" title="Editar">{Icons.edit}</button>
+                        <button type="button" onClick={() => handleCancelar(t.id)} style={{ ...acaoBtnStyle, minWidth: 44, minHeight: 44, color: tokens.color.crit }} aria-label="Cancelar lançamento" title="Cancelar">{Icons.trash}</button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 640 }}>
@@ -215,7 +253,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
                         <td style={{ ...tdStyle, color: tokens.color.muted }}>{formatDataCurta(t.data_competencia)}</td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>
                           <span style={{
-                            padding: '3px 10px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700,
+                            padding: '3px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
                             background: t.vencido ? 'var(--color-crit-bg)' : t.status === 'pago' ? 'var(--color-ok-bg)' : tokens.color.surfaceHigh,
                             color: t.vencido ? 'var(--color-crit)' : t.status === 'pago' ? 'var(--color-ok)' : tokens.color.muted,
                           }}>
@@ -256,6 +294,6 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-const thStyle: React.CSSProperties = { padding: '12px 20px', fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase' };
+const thStyle: React.CSSProperties = { padding: '12px 20px', fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted };
 const tdStyle: React.CSSProperties = { padding: '12px 20px', fontSize: '0.84rem', color: tokens.color.text };
 const acaoBtnStyle: React.CSSProperties = { background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 6px', color: tokens.color.muted, fontSize: '0.9rem' };

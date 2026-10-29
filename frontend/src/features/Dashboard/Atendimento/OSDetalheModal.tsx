@@ -11,7 +11,7 @@ import type { OSAtendimento, OverlayOS, PrioridadeAtendimento } from '../../../t
 
 const FIELD_LABEL: CSSProperties = {
   display: 'block',
-  fontSize: '0.68rem',
+  fontSize: '0.75rem',
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
@@ -31,7 +31,7 @@ const FIELD_INPUT: CSSProperties = {
 };
 
 const SECTION_LABEL: CSSProperties = {
-  fontSize: '0.68rem',
+  fontSize: '0.75rem',
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.07em',
@@ -44,7 +44,7 @@ function Field({ icon, label, value }: { icon: ReactNode; label: string; value: 
     <div style={{ padding: '11px 13px', borderRadius: 12, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, color: tokens.color.muted }}>
         <span style={{ display: 'flex' }}>{icon}</span>
-        <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
       </div>
       <div style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text, wordBreak: 'break-word' }}>{value || '—'}</div>
     </div>
@@ -288,7 +288,7 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
                         border: `1px solid ${gravando ? tokens.color.ferrari : tokens.color.border}`,
                         background: gravando ? tokens.color.ferrariMid : 'transparent',
                         color: gravando ? tokens.color.ferrari : tokens.color.muted,
-                        fontSize: '0.7rem',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
                         cursor: 'pointer',
                       }}
@@ -331,13 +331,13 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
                   <span style={{ display: 'flex' }}>{Icons.camera}</span>
                   {enviandoFoto ? 'Enviando…' : 'Nova Evidência'}
                 </button>
-                {fotoMsg && <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 6 }}>{fotoMsg}</div>}
+                {fotoMsg && <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 6 }}>{fotoMsg}</div>}
               </div>
             </>
           )}
 
           <div style={{ padding: '10px 14px', background: tokens.color.surface, borderRadius: 8, border: `1px solid ${tokens.color.border}` }}>
-            <div style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 4 }}>
+            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 4 }}>
               Nota
             </div>
             <div style={{ fontSize: '0.78rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>

@@ -20,7 +20,7 @@ function CustomTooltip({ active, payload, label }: any) {
       boxShadow: '0 4px 16px rgba(204,20,0,0.3)',
       fontFamily: 'DM Sans, sans-serif',
     }}>
-      <div style={{ fontSize: '0.65rem', opacity: 0.85, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: '0.75rem', opacity: 0.85, marginBottom: 3 }}>{label}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} style={{ fontSize: '0.82rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
           <span style={{ opacity: 0.85, fontWeight: 500 }}>{p.dataKey === 'entradas' ? 'Entradas' : 'Saídas'}</span>
@@ -46,17 +46,17 @@ export function FluxoCaixaChart({ data, height = 240 }: { data: FluxoDia[]; heig
           </linearGradient>
         </defs>
 
-        <CartesianGrid strokeDasharray="3 0" stroke="#E5E2DA" strokeWidth={0.7} vertical={false} />
+        <CartesianGrid strokeDasharray="3 0" stroke='var(--color-border)' strokeWidth={0.7} vertical={false} />
 
         <XAxis
           dataKey="dia"
-          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: '#9A958C' }}
+          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: 'var(--color-subtle)' }}
           axisLine={false}
           tickLine={false}
           dy={6}
         />
         <YAxis
-          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: '#9A958C' }}
+          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: 'var(--color-subtle)' }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v) => v === 0 ? '0' : `${v / 1000}k`}
@@ -72,7 +72,7 @@ export function FluxoCaixaChart({ data, height = 240 }: { data: FluxoDia[]; heig
           iconType="circle"
           iconSize={8}
           formatter={(value) => (
-            <span style={{ fontSize: '0.74rem', fontFamily: 'DM Sans, sans-serif', color: '#6B6760' }}>
+            <span style={{ fontSize: '0.75rem', fontFamily: 'DM Sans, sans-serif', color: 'var(--color-muted)' }}>
               {value === 'entradas' ? 'Entradas' : 'Saídas'}
             </span>
           )}

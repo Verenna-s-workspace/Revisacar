@@ -24,7 +24,7 @@ function CustomTooltip({ active, payload, label, formato }: any) {
       border: 'none',
       fontFamily: 'DM Sans, sans-serif',
     }}>
-      <div style={{ fontSize: '0.65rem', opacity: 0.85 }}>{label}</div>
+      <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>{label}</div>
       <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>
         {formato === 'numero' ? `${payload[0].value} ${payload[0].value === 1 ? 'ordem' : 'ordens'}` : formatBRL(payload[0].value)}
       </div>
@@ -63,21 +63,21 @@ export function FaturamentoChart({ data, height = 220, formato = 'moeda' }: Fatu
 
         <CartesianGrid
           strokeDasharray="3 0"
-          stroke="#E5E2DA"
+          stroke='var(--color-border)'
           strokeWidth={0.7}
           vertical={false}
         />
 
         <XAxis
           dataKey="dia"
-          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: '#9A958C' }}
+          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: 'var(--color-subtle)' }}
           axisLine={false}
           tickLine={false}
           dy={6}
         />
 
         <YAxis
-          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: '#9A958C' }}
+          tick={{ fontSize: 10, fontFamily: 'DM Sans, sans-serif', fill: 'var(--color-subtle)' }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v) => rotuloEixoY(v, formato)}

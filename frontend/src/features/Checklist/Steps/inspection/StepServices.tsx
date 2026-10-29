@@ -45,7 +45,7 @@ export function Step1({ os }: StepProps) {
         }}>
           <p style={{
             fontFamily: tokens.fontMono,
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: tokens.color.muted,
           }}>
             {selected.size === 0
@@ -54,7 +54,7 @@ export function Step1({ os }: StepProps) {
           </p>
           <button
             onClick={toggleAllSections}
-            style={{ ...btnGhost, fontSize: '0.65rem', padding: '6px 14px' }}
+            style={{ ...btnGhost, fontSize: '0.75rem', padding: '6px 14px' }}
           >
             {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
           </button>
@@ -115,7 +115,7 @@ export function Step1({ os }: StepProps) {
                 <div>
                   <div style={{
                     fontFamily: tokens.fontMono,
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 500,
                     letterSpacing: '0.05em',
                     textTransform: 'uppercase',
@@ -126,7 +126,7 @@ export function Step1({ os }: StepProps) {
                   </div>
                   <div style={{
                     fontFamily: tokens.fontMono,
-                    fontSize: '0.58rem',
+                    fontSize: '0.75rem',
                     color: tokens.color.subtle,
                     marginTop: 2,
                   }}>

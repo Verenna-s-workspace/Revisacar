@@ -38,9 +38,9 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
           position: 'relative',
           width: '100%',
           maxWidth: isMobile ? '100%' : 960,
-          height: isMobile ? '100%' : 'min(88vh, 720px)',
-          maxHeight: isMobile ? '100%' : '88vh',
-          background: 'white',
+          height: isMobile ? '100%' : 'min(88dvh, 720px)',
+          maxHeight: isMobile ? '100%' : '88dvh',
+          background: 'var(--color-surface)',
           borderRadius: isMobile ? 0 : 20,
           boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
           display: 'flex',
@@ -112,8 +112,8 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
                       fontWeight: active ? 700 : 500, fontSize: '0.85rem',
                       cursor: 'pointer', transition: 'background 0.12s',
                     }}
-                  >                                                                      {/* RETIREI m.icons */}
-                    <span style={{ display: 'flex', flexShrink: 0, color: tokens.color.ferrari }}>{}</span>
+                  >
+                    <span style={{ display: 'flex', flexShrink: 0, color: tokens.color.ferrari }}>{m.icon}</span>
                     <span style={{ flex: 1 }}>{m.label}</span>
                   </button>
                 );
@@ -125,7 +125,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
           <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: isMobile ? '20px 16px' : '28px 36px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: tokens.color.ferrari, marginBottom: 10 }}>
               <span style={{ display: 'flex' }}>{mod.icon}</span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Módulo {index + 1}
               </span>
             </div>
@@ -179,7 +179,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 9,
               border: `1px solid ${tokens.color.border}`, background: 'transparent',
-              color: atStart ? tokens.color.ghost : tokens.color.text,
+              color: atStart ? tokens.color.subtle : tokens.color.text,
               fontWeight: 600, fontSize: '0.8rem', cursor: atStart ? 'default' : 'pointer',
             }}
           >
@@ -188,7 +188,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
           </button>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: tokens.color.muted, fontFamily: tokens.fontMono }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, fontFamily: tokens.fontMono }}>
               {index + 1} de {total}
             </span>
             <div style={{ display: 'flex', gap: 3 }}>
@@ -248,7 +248,7 @@ function VideoBlock({ module }: { module: LearningModule }) {
     }}>
       <div style={{
         width: 52, height: 52, borderRadius: '50%', background: tokens.color.bg,
-        border: `1px solid ${tokens.color.border}`, color: tokens.color.ghost,
+        border: `1px solid ${tokens.color.border}`, color: tokens.color.subtle,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {Icons.play}

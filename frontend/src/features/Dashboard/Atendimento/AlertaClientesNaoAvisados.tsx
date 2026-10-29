@@ -33,7 +33,7 @@ export function AlertaClientesNaoAvisados({ clientes, onAbrirOS }: AlertaCliente
             borderRadius: 99,
             background: 'rgba(255,255,255,0.24)',
             color: 'white',
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
@@ -67,7 +67,7 @@ export function AlertaClientesNaoAvisados({ clientes, onAbrirOS }: AlertaCliente
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {ordem.cliente}
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>
                 {ordem.modelo} · {ordem.placa}
               </div>
             </div>

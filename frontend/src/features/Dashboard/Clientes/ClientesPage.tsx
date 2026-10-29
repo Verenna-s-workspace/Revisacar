@@ -171,7 +171,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isMobile ? '14px 16px' : '16px 28px',
-        background: 'white', borderBottom: `1px solid ${tokens.color.border}`,
+        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`,
         flexShrink: 0, flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -190,7 +190,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
               </h2>
               {usandoDadosDemo && (
                 <span style={{
-                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
                   color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
                   borderRadius: 6, padding: '2px 7px',
                 }}>
@@ -355,7 +355,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="clientes" onNav={onNav} />
         {content}
         <MobileNav active="clientes" onNav={onNav} onNewOS={onNewOS ?? openCreate} />
@@ -365,7 +365,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="clientes" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}

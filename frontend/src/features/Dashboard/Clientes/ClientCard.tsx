@@ -73,7 +73,7 @@ function ClientAvatar({ nome, foto, gradientId, size = 54 }: { nome: string; fot
     <div
       style={{
         width: size, height: size, borderRadius: '50%', flexShrink: 0, position: 'relative',
-        overflow: 'hidden', border: `1px solid ${tokens.color.border}`, background: 'white',
+        overflow: 'hidden', border: `1px solid ${tokens.color.border}`, background: 'var(--color-surface)',
       }}
     >
       {foto ? (
@@ -127,7 +127,7 @@ function ActionBtn({ title, onClick, danger, children }: { title: string; onClic
 function Spec({ icon, value }: { icon: React.ReactNode; value: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-      <span style={{ display: 'flex', color: tokens.color.ghost, flexShrink: 0 }}>{icon}</span>
+      <span style={{ display: 'flex', color: tokens.color.subtle, flexShrink: 0 }}>{icon}</span>
       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {value}
       </span>
@@ -145,7 +145,7 @@ export function ClientCard({ cliente: c, onView, onEdit, onSchedule, onDelete, o
       style={{
         position: 'relative', overflow: 'hidden',
         borderRadius: 20, cursor: 'pointer',
-        background: 'white', border: `1px solid ${tokens.color.border}`,
+        background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`,
         boxShadow: '0 8px 20px rgba(31,15,12,0.07)',
         transition: 'transform 0.22s ease, box-shadow 0.22s ease',
         display: 'flex', flexDirection: 'column',
@@ -166,7 +166,7 @@ export function ClientCard({ cliente: c, onView, onEdit, onSchedule, onDelete, o
           <div style={{ fontSize: '1.02rem', fontWeight: 800, color: tokens.color.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.nome}
           </div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: tokens.color.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: tokens.color.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {qtd === 0 ? 'Sem veículos' : `${qtd} veículo${qtd > 1 ? 's' : ''}`} · cliente desde {formatMesAno(c.createdAt)}
           </div>
         </div>
@@ -194,18 +194,18 @@ export function ClientCard({ cliente: c, onView, onEdit, onSchedule, onDelete, o
       {/* Veículo principal + última visita */}
       <div style={{ margin: '13px 16px 0', paddingTop: 12, borderTop: `1px solid ${tokens.color.border}`, display: 'flex', flexDirection: 'column', gap: 7 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span style={{ display: 'flex', color: tokens.color.ghost, flexShrink: 0 }}>{Icons.car}</span>
+          <span style={{ display: 'flex', color: tokens.color.subtle, flexShrink: 0 }}>{Icons.car}</span>
           {c.veiculoPrincipal ? (
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {c.veiculoPrincipal.marca} {c.veiculoPrincipal.modelo}
               <span style={{ color: tokens.color.muted, fontWeight: 500 }}> · {c.veiculoPrincipal.placa}</span>
             </span>
           ) : (
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: tokens.color.ghost }}>Nenhum veículo cadastrado</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: tokens.color.subtle }}>Nenhum veículo cadastrado</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ display: 'flex', color: tokens.color.ghost, flexShrink: 0 }}>{Icons.clock}</span>
+          <span style={{ display: 'flex', color: tokens.color.subtle, flexShrink: 0 }}>{Icons.clock}</span>
           <span style={{ fontSize: '0.76rem', fontWeight: 500, color: tokens.color.muted }}>
             {c.ultimaVisita ? `Última visita em ${formatDataCurta(c.ultimaVisita)}` : 'Ainda sem visitas'}
           </span>

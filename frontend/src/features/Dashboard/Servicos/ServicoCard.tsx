@@ -7,20 +7,25 @@ import type { ServicoItem } from '../../../types/servico';
 
 interface ActionBtnProps {
   title: string;
+  /** Texto curto mostrado ao lado do ícone no celular/tablet. */
+  label?: string;
   onClick: () => void;
   danger?: boolean;
   children: ReactNode;
 }
 
-function ActionBtn({ title, onClick, danger, children }: ActionBtnProps) {
+function ActionBtn({ title, label, onClick, danger, children }: ActionBtnProps) {
   return (
     <button
+      type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       className="dashboard-card__icon-button"
       style={danger ? { color: tokens.color.crit } : undefined}
     >
-      {children}
+      <span style={{ display: 'flex' }}>{children}</span>
+      <span className="dashboard-card__icon-button-label">{label ?? title}</span>
     </button>
   );
 }
@@ -55,7 +60,7 @@ export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo, kitVincu
               <span
                 style={{
                   padding: '3px 8px', background: tokens.color.surfaceHigh, color: tokens.color.textSecond,
-                  borderRadius: 6, fontSize: '0.68rem', fontWeight: 700,
+                  borderRadius: 6, fontSize: '0.75rem', fontWeight: 700,
                 }}
               >
                 {servico.categoria}
@@ -64,7 +69,7 @@ export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo, kitVincu
                 <span
                   style={{
                     padding: '3px 8px', background: tokens.color.critBg, color: tokens.color.crit,
-                    borderRadius: 6, fontSize: '0.68rem', fontWeight: 700,
+                    borderRadius: 6, fontSize: '0.75rem', fontWeight: 700,
                   }}
                 >
                   Inativo
@@ -81,7 +86,7 @@ export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo, kitVincu
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: tokens.color.ferrari, whiteSpace: 'nowrap' }}>
             R$ {formatPreco(servico.preco)}
           </div>
-          <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 2, whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2, whiteSpace: 'nowrap' }}>
             {servico.duracao}
           </div>
         </div>
@@ -99,7 +104,7 @@ export function ServicoCard({ servico, onEdit, onDelete, onToggleAtivo, kitVincu
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, borderTop: `1px solid ${tokens.color.border}`, paddingTop: 10, marginTop: 2 }}>
-        <ActionBtn title={inativo ? 'Ativar serviço' : 'Desativar serviço'} onClick={onToggleAtivo}>
+        <ActionBtn title={inativo ? 'Ativar serviço' : 'Desativar serviço'} label={inativo ? 'Ativar' : 'Desativar'} onClick={onToggleAtivo}>
           {Icons.check}
         </ActionBtn>
         <ActionBtn title="Editar" onClick={onEdit}>{Icons.edit}</ActionBtn>

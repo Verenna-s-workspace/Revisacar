@@ -33,7 +33,7 @@ const cartao: React.CSSProperties = {
   border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.lg, background: tokens.color.card,
 };
 const tituloBloco: React.CSSProperties = {
-  fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+  fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase',
   color: tokens.color.subtle, margin: 0,
 };
 const campo: React.CSSProperties = {
@@ -187,7 +187,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
         </div>
       </div>
       {statusOS && ROTULO_STATUS[statusOS] && (
-        <span style={{ fontFamily: tokens.fontMono, fontSize: '0.6rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.textSecond, background: tokens.color.surfaceHigh, borderRadius: tokens.radius.full, padding: '4px 12px' }}>
+        <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.textSecond, background: tokens.color.surfaceHigh, borderRadius: tokens.radius.full, padding: '4px 12px' }}>
           OS: {ROTULO_STATUS[statusOS]}
         </span>
       )}
@@ -202,7 +202,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
   );
 
   const moldura = (conteudo: React.ReactNode) => (
-    <div style={{ fontFamily: tokens.fontSans, background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+    <div style={{ fontFamily: tokens.fontSans, background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
       {cabecalho}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {conteudo}
@@ -416,7 +416,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
           {apontamentos.map(a => (
             <div key={a.chave} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: '0.84rem' }}>
               <span style={{
-                fontFamily: tokens.fontMono, fontSize: '0.54rem', letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: tokens.radius.full, padding: '2px 8px',
+                fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', borderRadius: tokens.radius.full, padding: '2px 8px',
                 color: a.status === 'crit' ? tokens.color.crit : tokens.color.warn,
                 background: a.status === 'crit' ? tokens.color.critBg : tokens.color.warnBg,
               }}>{a.status === 'crit' ? 'crítico' : 'atenção'}</span>
@@ -482,7 +482,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
               <label htmlFor="orc-obs" style={{ ...tituloBloco, display: 'block', marginBottom: 4 }}>Observações</label>
               <textarea id="orc-obs" value={orc.observacoes} rows={3} onChange={e => orc.setObservacoes(e.target.value)}
                 placeholder="Condições, prazo estimado, garantia…" style={{ ...campo, resize: 'vertical' }} />
-              {orc.observacoesLongas && <div style={{ fontSize: '0.74rem', color: tokens.color.crit }}>Máximo de {LIMITES.observacoes} caracteres.</div>}
+              {orc.observacoesLongas && <div style={{ fontSize: '0.75rem', color: tokens.color.crit }}>Máximo de {LIMITES.observacoes} caracteres.</div>}
             </div>
           </>
         ) : (

@@ -73,19 +73,19 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
   };
 
   return (
-    <div style={{
+    <div className="sheet-backdrop" style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
       justifyContent: 'center', zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
     }}>
-      <div style={{
+      <div className="sheet-panel" style={{
         background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 480,
         border: `1px solid ${tokens.color.border}`, boxShadow: 'var(--shadow-lg)',
-        overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', maxHeight: '90dvh', display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ padding: '18px 24px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>{editando ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
-          <button onClick={onFechar} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
+          <button type="button" onClick={onFechar} aria-label="Fechar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: tokens.color.muted, width: 44, height: 44, margin: '-10px -10px -10px 0' }}>×</button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>

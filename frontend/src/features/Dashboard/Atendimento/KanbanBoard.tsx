@@ -50,24 +50,18 @@ export function KanbanBoard({
       );
     });
 
+  // Mobile: as colunas (Fila, Em Execução, Bloqueado, Finalizado) ficam uma
+  // embaixo da outra, em largura total, e a própria página rola. Antes ficavam
+  // lado a lado num carrossel horizontal que não deixava ver tudo.
   const colunaStyle: CSSProperties = isMobile
-    ? { flex: '0 0 88%', scrollSnapAlign: 'start', maxHeight: '62vh' }
+    ? { width: '100%' }
     : { flex: 1, minWidth: 0, maxHeight: 640 };
 
   const colunasData = KANBAN_COLUNAS.map(c => ({ ...c, itens: colunas[c.id] }));
 
   if (isMobile) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          gap: 12,
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          paddingBottom: 4,
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {colunasData.map(c => (
           <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading}>
             {renderCards(c.itens)}

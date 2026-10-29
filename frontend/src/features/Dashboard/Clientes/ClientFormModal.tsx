@@ -95,7 +95,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                     background: step >= n ? tokens.color.ferrari : tokens.color.border,
                     transition: 'background 0.25s',
                   }} />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
                     {n === 1 ? 'Dados do Cliente' : 'Veículos'}
                   </span>
                 </div>
@@ -122,7 +122,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                 ) : (
                   <>
                     <span style={{ color: tokens.color.muted, display: 'flex' }}>{ClienteIcons.uploadCloud}</span>
-                    <span style={{ fontSize: '0.58rem', color: tokens.color.subtle, marginTop: 5, fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 5, fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>
                       Adicionar foto
                     </span>
                   </>
@@ -137,7 +137,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                 {fotoPrincipal && (
                   <button
                     onClick={() => setFotoPrincipal(undefined)}
-                    style={{ border: `1px solid ${tokens.color.border}`, background: 'transparent', color: tokens.color.muted, borderRadius: 8, padding: '5px 11px', fontSize: '0.74rem', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ border: `1px solid ${tokens.color.border}`, background: 'transparent', color: tokens.color.muted, borderRadius: 8, padding: '5px 11px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Remover foto
                   </button>
@@ -190,7 +190,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                 style={{ border: `1px solid ${tokens.color.border}`, borderRadius: 12, padding: 14, position: 'relative', background: tokens.color.bg }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Veículo {idx + 1}
                   </span>
                   <button
@@ -247,7 +247,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
         )}
 
         {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           {step === 2 ? (
             <button
               onClick={() => setStep(1)}

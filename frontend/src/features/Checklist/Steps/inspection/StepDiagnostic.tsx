@@ -61,7 +61,7 @@ export function Step2({ os }: StepProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
             <span style={{
               fontFamily: tokens.fontMono,
-              fontSize: '0.62rem',
+              fontSize: '0.75rem',
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
               color: tokens.color.subtle,
@@ -70,7 +70,7 @@ export function Step2({ os }: StepProps) {
             </span>
             <span style={{
               fontFamily: tokens.fontMono,
-              fontSize: '0.62rem',
+              fontSize: '0.75rem',
               color: tokens.color.muted,
             }}>
               {done} / {total} itens

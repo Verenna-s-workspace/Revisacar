@@ -13,11 +13,11 @@ const entrada: React.CSSProperties = {
   borderRadius: tokens.radius.md, outline: 'none',
 };
 const legenda: React.CSSProperties = {
-  display: 'block', fontFamily: tokens.fontMono, fontSize: '0.58rem', letterSpacing: '0.07em',
+  display: 'block', fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.07em',
   textTransform: 'uppercase', color: tokens.color.subtle, marginBottom: 4,
 };
 const selo = (cor: string, fundo: string): React.CSSProperties => ({
-  fontFamily: tokens.fontMono, fontSize: '0.54rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+  fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase',
   color: cor, background: fundo, borderRadius: tokens.radius.full, padding: '2px 8px', whiteSpace: 'nowrap',
 });
 
@@ -78,7 +78,7 @@ export function ItensEditor({ itens, erros, mostrarErros, podeVerCusto, estoque,
             background: tokens.color.card, padding: 12, display: 'flex', flexDirection: 'column', gap: 10,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: tokens.fontMono, fontSize: '0.62rem', color: tokens.color.subtle }}>#{n + 1}</span>
+              <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle }}>#{n + 1}</span>
               <span style={item.tipo === 'peca' ? selo(tokens.color.warn, tokens.color.warnBg) : selo(tokens.color.ok, tokens.color.okBg)}>
                 {item.tipo === 'peca' ? 'Peça' : 'Serviço'}
               </span>
@@ -95,12 +95,12 @@ export function ItensEditor({ itens, erros, mostrarErros, podeVerCusto, estoque,
               )}
               {(item.estoqueItemId || item.servicoId) && (
                 <button type="button" onClick={() => onAtualizar(item.chave, { estoqueItemId: undefined, servicoId: undefined })}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: tokens.color.muted, fontSize: '0.7rem', textDecoration: 'underline' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: tokens.color.muted, fontSize: '0.8125rem', textDecoration: 'underline', minHeight: 44, padding: '0 8px' }}>
                   desvincular
                 </button>
               )}
               <button type="button" onClick={() => onRemover(item.chave)} aria-label={`Remover item ${n + 1}`} title="Remover item"
-                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: tokens.color.subtle, fontSize: '1.05rem', lineHeight: 1 }}>
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: tokens.color.muted, fontSize: '1.5rem', lineHeight: 1, width: 44, height: 44, margin: '-8px -8px -8px auto' }}>
                 ×
               </button>
             </div>

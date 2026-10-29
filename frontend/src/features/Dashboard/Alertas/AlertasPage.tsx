@@ -36,10 +36,10 @@ const botaoSecundario: React.CSSProperties = {
 
 const botaoDiscreto: React.CSSProperties = {
   padding: '4px 2px', background: 'transparent', color: tokens.color.muted, border: 'none', cursor: 'pointer',
-  fontSize: '0.74rem', fontWeight: 600, fontFamily: tokens.fontSans, textDecoration: 'underline', textUnderlineOffset: 3,
+  fontSize: '0.75rem', fontWeight: 600, fontFamily: tokens.fontSans, textDecoration: 'underline', textUnderlineOffset: 3,
 };
 const chip: React.CSSProperties = {
-  padding: '5px 12px', background: 'white', color: tokens.color.text, border: `1px solid ${tokens.color.border}`,
+  padding: '5px 12px', background: 'var(--color-surface)', color: tokens.color.text, border: `1px solid ${tokens.color.border}`,
   borderRadius: 99, cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, fontFamily: tokens.fontSans,
 };
 
@@ -83,7 +83,7 @@ function LinhaAlerta({ alerta, isMobile, onAcao, onAdiar, onDispensar }: LinhaPr
           </button>
         ) : (
           <div role="group" aria-label={`Esconder: ${alerta.titulo}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.74rem', color: tokens.color.textSecond, fontWeight: 600 }}>Adiar por</span>
+            <span style={{ fontSize: '0.75rem', color: tokens.color.textSecond, fontWeight: 600 }}>Adiar por</span>
             {OPCOES_ADIAR.map(o => (
               <button key={o.dias} type="button" style={chip} onClick={() => { setAberto(false); onAdiar(alerta, o.dias); }}>{o.rotulo}</button>
             ))}
@@ -106,7 +106,7 @@ function LinhaEscondida({ alerta, onRestaurar }: { alerta: AlertaEscondido; onRe
     }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: '0.84rem', fontWeight: 700, color: tokens.color.textSecond, overflowWrap: 'anywhere' }}>{alerta.titulo}</div>
-        <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 2 }}>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
           {alerta.ate ? `Adiado até ${formatarAte(alerta.ate)}` : 'Dispensado — volta se o problema se resolver e reaparecer'}
         </div>
       </div>
@@ -165,7 +165,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '14px 16px' : '16px 28px',
-        background: 'white', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0,
+        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0,
       }}>
         {isMobile && (
           <button onClick={() => onNav('dashboard')} aria-label="Voltar"
@@ -258,7 +258,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
           const c = CORES[maisGrave(g.itens)];
           return (
             <section key={g.fonte.id} aria-label={g.fonte.titulo} style={{
-              background: 'white', border: `1px solid ${tokens.color.border}`, borderRadius: 14, padding: isMobile ? '14px 12px' : '16px 18px',
+              background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`, borderRadius: 14, padding: isMobile ? '14px 12px' : '16px 18px',
               display: 'flex', flexDirection: 'column', gap: 10,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -266,10 +266,10 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
                   {g.fonte.titulo}
                 </h3>
                 <span style={{
-                  minWidth: 22, height: 22, padding: '0 7px', borderRadius: 99, background: c.cor, color: 'white', fontSize: '0.72rem',
+                  minWidth: 22, height: 22, padding: '0 7px', borderRadius: 99, background: c.cor, color: 'white', fontSize: '0.75rem',
                   fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{g.itens.length}</span>
-                <span style={{ fontSize: '0.7rem', color: tokens.color.muted, marginLeft: 'auto' }}>{c.rotulo}</span>
+                <span style={{ fontSize: '0.75rem', color: tokens.color.muted, marginLeft: 'auto' }}>{c.rotulo}</span>
               </div>
               {g.itens.map(a => <LinhaAlerta key={a.id} alerta={a} isMobile={isMobile} onAcao={onAcao} onAdiar={aoAdiar} onDispensar={aoDispensar} />)}
             </section>
@@ -296,11 +296,11 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
           position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 50, maxWidth: 'calc(100vw - 32px)',
           bottom: isMobile ? 'calc(var(--mobile-bottom-nav-h) + 12px)' : 24,
           display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px', borderRadius: 10,
-          background: tokens.color.text, color: 'white', fontSize: '0.82rem', fontWeight: 600, boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+          background: tokens.color.text, color: tokens.color.bg, fontSize: '0.82rem', fontWeight: 600, boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
         }}>
           <span>{desfazer.texto}</span>
           <button type="button" onClick={() => void aoRestaurar(desfazer.id)} style={{
-            background: 'transparent', border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer',
+            background: 'transparent', border: 'none', color: tokens.color.bg, fontWeight: 800, cursor: 'pointer', minHeight: 44, padding: '0 8px',
             textDecoration: 'underline', fontSize: '0.82rem', fontFamily: tokens.fontSans,
           }}>Desfazer</button>
         </div>
@@ -310,7 +310,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="alertas" onNav={onNav} />
         {content}
         <MobileNav active="alertas" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
@@ -319,7 +319,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="alertas" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>{content}</main>
     </div>

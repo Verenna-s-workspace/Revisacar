@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useResponsive } from "./ui";
 import type { SaveStatus } from "../types";
 import "../styles/topbar.css";
@@ -18,6 +19,25 @@ export function Topbar({
   onBackToStart,
 }: TopbarProps) {
   const { isDesktop, isMobile } = useResponsive();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fecha o menu "⋯" ao tocar fora ou apertar Esc
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   const saveIndicatorClass = [
     "topbar-status",
@@ -33,7 +53,7 @@ export function Topbar({
 
       <img
         src="/Logorevisavermelha.svg"
-        alt="Logo RevisaCar"
+        alt="RevisaCar"
         width="70"
         height="70"
         loading="eager"
@@ -63,7 +83,7 @@ export function Topbar({
   );
 
   const SaveIndicator = (
-    <div className={saveIndicatorClass}>
+    <div className={saveIndicatorClass} role="status" aria-live="polite">
       {saveStatus === "saving" && (
         <>
           <svg width={11} height={11} viewBox="0 0 11 11" className="topbar-icon-spin">
@@ -112,7 +132,7 @@ export function Topbar({
             <line x1="5.5" y1="3.5" x2="5.5" y2="5.8" />
             <circle cx="5.5" cy="7.5" r="0.5" fill="var(--color-crit)" stroke="none" />
           </svg>
-          <span>erro ao fazer envio para o db</span>
+          <span>Não foi possível salvar.</span>
         </>
       )}
     </div>
@@ -156,9 +176,27 @@ export function Topbar({
     );
   }
 
+  const pdfIcon = (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 11 11"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
+    </svg>
+  );
+
+  // Mobile: a ação principal (PDF) fica visível e com texto; a ação destrutiva
+  // (Limpar tudo) vai para o menu "⋯", longe do dedo e fora do caminho do PDF.
   return (
     <nav className="topbar topbar--mobile topbar-glass">
       <div className="topbar-mobile-row">
+<<<<<<< HEAD
         {/* O logo também volta, mas ninguém adivinha isso no celular: botão explícito. */}
         <div className="topbar-mobile-slot">
           {onBackToStart && (
@@ -182,14 +220,49 @@ export function Topbar({
               <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
             </svg>
             {isMobile ? " PDF" : " Gerar PDF"}
+=======
+        <div className="topbar-mobile-logo">{Logo}</div>
+        <div className="topbar-mobile-end">
+          <button
+            type="button"
+            className={buttonClass(true)}
+            onClick={onExportPDF}
+            aria-label="Gerar PDF"
+          >
+            {pdfIcon}
+            {isMobile ? "PDF" : "Gerar PDF"}
+>>>>>>> 8410f51e (feat: mobile bugs fix)
           </button>
+          <div className="topbar-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="topbar-icon-btn"
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Mais ações"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              <svg width={18} height={18} viewBox="0 0 18 18" fill="currentColor" aria-hidden="true">
+                <circle cx={4} cy={9} r={1.5} /><circle cx={9} cy={9} r={1.5} /><circle cx={14} cy={9} r={1.5} />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="topbar-menu__panel" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="topbar-menu__item topbar-menu__item--danger"
+                  onClick={() => { setMenuOpen(false); onReset(); }}
+                >
+                  Limpar tudo
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="topbar-row-separator">
         {SaveIndicator}
-        <button className="topbar-button topbar-button--smaller" onClick={onReset}>
-          Limpar tudo
-        </button>
       </div>
     </nav>
   );

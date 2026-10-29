@@ -41,17 +41,17 @@ export function OSRow({ ordem, onClick }: { ordem: OrdemRow; onClick: () => void
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.875rem', color: tokens.color.text }}>OS #{ordem.os_num}</div>
-        <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 1 }}>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 1 }}>
           Cliente: {ordem.cliente}
         </div>
         {/* A lista de OS não traz os serviços: aqui é o veículo (antes vinha rotulado como "Serviço"). */}
-        <div style={{ fontSize: '0.7rem', color: tokens.color.subtle, marginTop: 1 }}>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 1 }}>
           Veículo: {[ordem.modelo, ordem.placa].filter(Boolean).join(' · ')}
         </div>
       </div>
       <div className="dashboard-order-row__status">
         <StatusBadge status={ordem.status} />
-        <span style={{ fontSize: '0.68rem', color: tokens.color.muted }}>{formatDate(ordem.created_at)}</span>
+        <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{formatDate(ordem.created_at)}</span>
       </div>
     </div>
   );
@@ -96,7 +96,7 @@ function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowP
       </span>
       <div onClick={onSelect} style={{ cursor: 'pointer' }}>
         <div style={{ fontWeight: 600, fontSize: '0.84rem', color: tokens.color.text }}>{o.cliente}</div>
-        <div style={{ fontSize: '0.7rem', color: tokens.color.muted }}>{o.placa}</div>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{o.placa}</div>
       </div>
       <span style={{ fontSize: '0.82rem', color: tokens.color.muted, fontFamily: "'DM Mono',monospace" }}>{o.placa}</span>
       <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond }}>{o.modelo || '—'}</span>
@@ -105,7 +105,7 @@ function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowP
         <div style={{ fontSize: '0.8rem', color: tokens.color.text }}>
           {d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
         </div>
-        <div style={{ fontSize: '0.7rem', color: tokens.color.muted }}>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
           {d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -148,7 +148,7 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 
   const Field = ({ label, val }: { label: string; val: string }) => (
     <div>
-      <div style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.subtle }}>{label}</div>
+      <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.subtle }}>{label}</div>
       <div style={{ fontSize: '0.875rem', fontWeight: 600, color: tokens.color.text, marginTop: 1 }}>{val || '—'}</div>
     </div>
   );
@@ -157,7 +157,7 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ width: 18, height: 2, background: '#CC1400', borderRadius: 1, display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>{title}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>{title}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>{children}</div>
     </div>
@@ -289,7 +289,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
   const content = (
     <div style={{ flex: 1, minWidth: 0, background: tokens.color.bg, display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '14px 16px' : '18px 28px', background: 'white', borderBottom: `1px solid ${tokens.color.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '14px 16px' : '18px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {isMobile && (
             <button onClick={() => onNav('dashboard')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}>
@@ -310,7 +310,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: 10, padding: isMobile ? '12px 14px' : '14px 28px', background: 'white', borderBottom: `1px solid ${tokens.color.border}`, flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: 10, padding: isMobile ? '12px 14px' : '14px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {FILTROS.map(f => (
             <button
@@ -318,7 +318,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
               onClick={() => setFilter(f)}
               style={{ padding: '6px 13px', borderRadius: 8, border: `1.5px solid ${filter === f ? '#CC1400' : tokens.color.border}`, background: filter === f ? 'rgba(204,20,0,0.06)' : 'transparent', color: filter === f ? '#CC1400' : tokens.color.muted, fontSize: '0.8rem', fontWeight: filter === f ? 600 : 400, cursor: 'pointer' }}
             >
-              {FILTER_LABELS[f]} <span style={{ opacity: 0.55, fontSize: '0.72rem' }}>({counts[f]})</span>
+              {FILTER_LABELS[f]} <span style={{ opacity: 0.55, fontSize: '0.75rem' }}>({counts[f]})</span>
             </button>
           ))}
         </div>
@@ -351,7 +351,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 140px 150px 120px 80px', gap: '0 10px', padding: '9px 16px', background: tokens.color.surfaceHigh, borderRadius: '10px 10px 0 0', border: `1px solid ${tokens.color.border}`, borderBottom: 'none' }}>
               {['Nº OS', 'Cliente', 'Placa', 'Modelo', 'Status', 'Data', ''].map(h => (
-                <span key={h} style={{ fontSize: '0.63rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+                <span key={h} style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
               ))}
             </div>
             {filtered.map((o, i) => (
@@ -373,7 +373,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="ordens" onNav={onNav} />
         {content}
         <MobileNav active="ordens" onNav={onNav} onNewOS={onNewOS} />
@@ -382,7 +382,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="ordens" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>{content}</main>
     </div>

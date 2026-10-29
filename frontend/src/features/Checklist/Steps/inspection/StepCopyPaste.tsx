@@ -58,12 +58,12 @@ function EmptyState({ onGoBack }: { onGoBack: () => void }) {
         <path d="M36 2l-4 6M42 2l-4 6" strokeWidth={1.5} />
       </svg>
       <div style={{
-        fontFamily: tokens.fontMono, fontSize: '0.72rem', color: tokens.color.ghost,
+        fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle,
         textAlign: 'center', letterSpacing: '0.04em', lineHeight: 1.7,
       }}>
         Nenhuma peça cadastrada
         <br />
-        <span style={{ fontSize: '0.62rem' }}>
+        <span style={{ fontSize: '0.75rem' }}>
           Volte à etapa anterior e preencha a tabela de peças
         </span>
       </div>
@@ -111,8 +111,8 @@ function PreviewCard({ peca, index }: PreviewCardProps) {
         gap: 10,
       }}>
         <span style={{
-          fontFamily: tokens.fontMono, fontSize: '0.58rem', letterSpacing: '0.08em',
-          color: tokens.color.ghost, minWidth: 22,
+          fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em',
+          color: tokens.color.subtle, minWidth: 22,
         }}>
           #{String(index + 1).padStart(2, '0')}
         </span>
@@ -120,7 +120,7 @@ function PreviewCard({ peca, index }: PreviewCardProps) {
           fontFamily: tokens.fontSans, fontSize: '0.88rem', fontWeight: 500,
           color: tokens.color.text, flex: 1,
         }}>
-          {peca.peca || <span style={{ color: tokens.color.ghost, fontStyle: 'italic' }}>Sem nome</span>}
+          {peca.peca || <span style={{ color: tokens.color.subtle, fontStyle: 'italic' }}>Sem nome</span>}
         </span>
         {peca.isAuto && (
           <span style={{
@@ -149,7 +149,7 @@ function PreviewCard({ peca, index }: PreviewCardProps) {
               borderBottom: `1px solid ${tokens.color.border}`,
             }}>
               <div style={{
-                fontFamily: tokens.fontMono, fontSize: '0.52rem', letterSpacing: '0.1em',
+                fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.1em',
                 textTransform: 'uppercase', color: tokens.color.subtle, marginBottom: 4,
               }}>
                 {label}
@@ -163,7 +163,7 @@ function PreviewCard({ peca, index }: PreviewCardProps) {
       ) : (
         <div style={{
           background: tokens.color.surface, padding: '11px 14px',
-          fontFamily: tokens.fontMono, fontSize: '0.62rem', color: tokens.color.ghost,
+          fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle,
           fontStyle: 'italic',
         }}>
           Campos não preenchidos
@@ -237,7 +237,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.1em',
+            fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.1em',
             textTransform: 'uppercase', color: tokens.color.subtle, marginBottom: 6,
           }}>
             Geração de texto
@@ -245,12 +245,12 @@ export function Step4({ os, onNextChecklist }: StepProps) {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{
               fontFamily: tokens.fontMono, fontSize: '1.8rem', fontWeight: 300, lineHeight: 1,
-              color: tabelaPecas.length > 0 ? tokens.color.ferrari : tokens.color.ghost,
+              color: tabelaPecas.length > 0 ? tokens.color.ferrari : tokens.color.subtle,
               letterSpacing: '-0.03em',
             }}>
               {tabelaPecas.length}
             </span>
-            <span style={{ fontFamily: tokens.fontMono, fontSize: '0.65rem', color: tokens.color.muted }}>
+            <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted }}>
               {tabelaPecas.length === 1 ? 'peça listada' : 'peças listadas'}
             </span>
           </div>
@@ -266,7 +266,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
                 }
               }}
               style={{
-                fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.05em',
+                fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.05em',
                 textTransform: 'uppercase', padding: '7px 16px', borderRadius: tokens.radius.md,
                 border: `1px solid ${editing ? tokens.color.ferrari : tokens.color.border}`,
                 background: editing ? tokens.color.accentDim : tokens.color.bgAlt,
@@ -284,7 +284,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
               onClick={() => { setEditedText(autoText); setEditing(false); }}
               title="Restaurar texto automático"
               style={{
-                fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.05em',
+                fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.05em',
                 textTransform: 'uppercase', padding: '7px 14px', borderRadius: tokens.radius.md,
                 border: `1px solid ${tokens.color.border}`, background: 'transparent',
                 color: tokens.color.subtle, cursor: 'pointer', transition: tokens.transition.base,
@@ -340,7 +340,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
                   gap: 12,
                 }}>
                   <span style={{
-                    fontFamily: tokens.fontMono, fontSize: '0.58rem', letterSpacing: '0.08em',
+                    fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em',
                     textTransform: 'uppercase', color: tokens.color.subtle,
                     display: 'flex', alignItems: 'center', gap: 6,
                   }}>
@@ -352,7 +352,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
                   <button
                     onClick={copyToClipboard}
                     style={{
-                      fontFamily: tokens.fontMono, fontSize: '0.6rem', fontWeight: 600,
+                      fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 600,
                       letterSpacing: '0.07em', textTransform: 'uppercase',
                       padding: '5px 14px', borderRadius: tokens.radius.sm,
                       border: `1px solid ${copied ? tokens.color.okBorder : tokens.color.border}`,
@@ -408,7 +408,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
               </div>
 
               <p style={{
-                fontFamily: tokens.fontMono, fontSize: '0.6rem', color: tokens.color.ghost,
+                fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle,
                 marginTop: 10, letterSpacing: '0.04em',
               }}>
                 {editing
@@ -448,7 +448,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
             )}
             {!isEmpty && (
               <button onClick={copyToClipboard} style={{
-                fontFamily: tokens.fontMono, fontSize: '0.72rem', fontWeight: 500,
+                fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 500,
                 letterSpacing: '0.05em', textTransform: 'uppercase', padding: '9px 20px',
                 borderRadius: tokens.radius.md, border: 'none', cursor: 'pointer',
                 transition: tokens.transition.base, whiteSpace: 'nowrap',

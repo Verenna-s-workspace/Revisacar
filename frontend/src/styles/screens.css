@@ -3,11 +3,13 @@
   font-family: var(--font-sans);
   background: var(--color-surface);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .start-screen-center,
 .home-center {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,6 +40,7 @@
 .start-screen-secondary,
 .home-secondary {
   padding: 20px;
+  min-height: 56px;
   border-radius: var(--radius-md);
   font-size: 1.1rem;
   font-weight: bold;
@@ -61,7 +64,7 @@
 
 .start-screen-secondary,
 .home-secondary {
-  background: white;
+  background: var(--color-surface);
   color: var(--color-accent);
   border: 2px solid var(--color-accent);
 }
@@ -75,10 +78,10 @@
 .start-screen-empty {
   margin-top: 20px;
   padding: 12px;
-  background: #FEE;
-  border: 1px solid #F99;
+  background: var(--color-crit-bg);
+  border: 1px solid var(--color-crit-border);
   border-radius: var(--radius-md);
-  color: #C33;
+  color: var(--color-crit);
   font-size: 0.9rem;
 }
 
@@ -99,7 +102,7 @@
 .start-screen-draft-button {
   flex: 1;
   padding: 15px;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   text-align: left;
@@ -118,9 +121,10 @@
 }
 
 .start-screen-draft-delete {
-  width: 40px;
+  width: var(--tap-min);
+  min-width: var(--tap-min);
   padding: 0;
-  background: #FEE;
+  background: var(--color-crit-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;

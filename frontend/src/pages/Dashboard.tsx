@@ -54,12 +54,12 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
     </div>
   );
   if (isMobile) return (
-    <div style={{ background: tokens.color.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: tokens.color.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <MobileTopbar active={page} onNav={onNav} />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{content}</main>
     </div>
@@ -73,14 +73,14 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 
 function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; children: React.ReactNode }) {
   if (isMobile) return (
-    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+    <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
       <MobileTopbar active={page} onNav={onNav} />
       <div style={{ padding: '16px 14px 32px' }}>{children}</div>
       <MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <DesktopHeader onNav={onNav} />
@@ -94,7 +94,9 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
 
 export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void; onOpenLearningCenter?: () => void }) {
   const { user } = useAuth();
-  const { isMobile } = useResponsive();
+  // isCompact (< 980px): celular, celular deitado, tablet e dobrável usam o
+  // layout mobile. Antes só < 640px — o resto ganhava a sidebar de 240px.
+  const { isCompact: isMobile } = useResponsive();
   const { ordens, loading: ordensLoading, erro: ordensErro } = useOrdens();
   const { dados: vg, loading, erro: vgErro, recarregar: recarregarVg, salvarMeta } = useVisaoGeral();
   const alertasResumo = useAlertas();
@@ -272,35 +274,61 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   // ── KPI Row ────────────────────────────────────────────────────────────────
   // "Faturamento do mês": mês corrente até hoje × MESMO trecho do mês anterior.
-  const kpiRow = semDados ? null : (
-    <div style={{ display: 'flex', gap: 14, flexDirection: isMobile ? 'column' : 'row' }}>
-      {(loading || fat) && (
-        <KpiCard
-          icon={Icons.dollar}
-          title="Faturamento do mês"
-          value={formatBRL(fat?.atual ?? 0)}
-          pct={fat ? calcularVariacao(fat.atual, fat.anterior) : null}
-          spark={spark7Fat}
-          loading={loading}
-        />
-      )}
+  const kpiItems = [
+    (loading || fat) && (
       <KpiCard
-        icon={Icons.orders}
-        title="Ordens de Serviço"
-        value={(vg?.ordens.atual ?? 0).toLocaleString('pt-BR')}
-        pct={vg ? calcularVariacao(vg.ordens.atual, vg.ordens.anterior) : null}
-        spark={spark7Os}
+        key="fat"
+        icon={Icons.dollar}
+        title="Faturamento do mês"
+        value={formatBRL(fat?.atual ?? 0)}
+        pct={fat ? calcularVariacao(fat.atual, fat.anterior) : null}
+        spark={spark7Fat}
         loading={loading}
       />
-      {(loading || vg?.meta) && (
-        <MetaCard
-          meta={vg?.meta?.valor ?? null}
-          alcancado={fat?.atual ?? 0}
-          editavel={vg?.meta?.editavel ?? false}
-          onSalvar={salvarMeta}
-          loading={loading}
-        />
-      )}
+    ),
+    <KpiCard
+      key="os"
+      icon={Icons.orders}
+      title="Ordens de Serviço"
+      value={(vg?.ordens.atual ?? 0).toLocaleString('pt-BR')}
+      pct={vg ? calcularVariacao(vg.ordens.atual, vg.ordens.anterior) : null}
+      spark={spark7Os}
+      loading={loading}
+    />,
+    (loading || vg?.meta) && (
+      <MetaCard
+        key="meta"
+        meta={vg?.meta?.valor ?? null}
+        alcancado={fat?.atual ?? 0}
+        editavel={vg?.meta?.editavel ?? false}
+        onSalvar={salvarMeta}
+        loading={loading}
+      />
+    ),
+  ].filter(Boolean) as JSX.Element[];
+
+  // Mobile: os 3 indicadores viram um carrossel horizontal com "snap" (o
+  // próximo cartão aparece pela metade, sinalizando que dá pra deslizar) em
+  // vez de 3 cartões empilhados que ocupavam a primeira tela inteira.
+  const kpiRow = semDados ? null : isMobile ? (
+    <div
+      role="region"
+      aria-label="Indicadores do mês"
+      style={{
+        display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory',
+        margin: '0 -14px', padding: '0 14px 6px', scrollPaddingLeft: 14,
+        WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain',
+      }}
+    >
+      {kpiItems.map((item, i) => (
+        <div key={i} style={{ flex: kpiItems.length === 1 ? '1 1 100%' : '0 0 min(82%, 340px)', scrollSnapAlign: 'start', minWidth: 0 }}>
+          {item}
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div style={{ display: 'flex', gap: 14, flexDirection: 'row' }}>
+      {kpiItems}
     </div>
   );
 
@@ -310,10 +338,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
-            {comDinheiro || loading ? 'ANÁLISE DE FATURAMENTO' : 'ORDENS POR DIA'}
+            {comDinheiro || loading ? 'Análise de faturamento' : 'Ordens por dia'}
           </div>
           {!isMobile && (
-            <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+            <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
               {comDinheiro || loading
                 ? (fat?.origem === 'estimado' ? 'Faturamento estimado (R$) — sem entradas no Financeiro' : 'Faturamento (R$)')
                 : 'Ordens de serviço abertas'}
@@ -327,16 +355,46 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
               {serieGrafico[0].dia} – {serieGrafico[serieGrafico.length - 1].dia}, {new Date().getFullYear()}
             </div>
           )}
-          <div style={{ width: 155 }}>
-            <Select
-              name="dash_periodo_faturamento"
-              value={periodoGrafico}
-              onChangeValue={(v: string) => setPeriodoGrafico(v as PeriodoGrafico)}
-              options={[...PERIODOS_GRAFICO]}
-            />
-          </div>
+          {!isMobile && (
+            <div style={{ width: 155 }}>
+              <Select
+                name="dash_periodo_faturamento"
+                value={periodoGrafico}
+                onChangeValue={(v: string) => setPeriodoGrafico(v as PeriodoGrafico)}
+                options={[...PERIODOS_GRAFICO]}
+              />
+            </div>
+          )}
         </div>
       </div>
+      {/* Mobile: período em chips (1 toque) em vez de um select de 155px que
+          disputava a linha com o título */}
+      {isMobile && (
+        <div role="radiogroup" aria-label="Período do gráfico" style={{ display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto' }}>
+          {PERIODOS_GRAFICO.map(p => {
+            const ativo = periodoGrafico === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                role="radio"
+                aria-checked={ativo}
+                onClick={() => setPeriodoGrafico(p)}
+                style={{
+                  flex: '1 1 0', minHeight: 44, padding: '0 12px', whiteSpace: 'nowrap',
+                  borderRadius: 999, cursor: 'pointer', fontFamily: tokens.fontSans,
+                  fontSize: '0.8125rem', fontWeight: ativo ? 700 : 600,
+                  border: `1.5px solid ${ativo ? tokens.color.ferrari : tokens.color.border}`,
+                  background: ativo ? tokens.color.accentDim : 'transparent',
+                  color: ativo ? tokens.color.ferrari : tokens.color.textSecond,
+                }}
+              >
+                {p.replace('Últimos ', '')}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {loading
         ? <Skeleton h={isMobile ? 160 : 220} r={8} />
         : <FaturamentoChart data={serieGrafico} height={isMobile ? 160 : 220} formato={comDinheiro ? 'moeda' : 'numero'} />
@@ -351,10 +409,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     <Card style={{ padding: isMobile ? '16px' : '20px 22px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <div className="dashboard-card__header-title">TOP SERVIÇOS</div>
-          <div style={{ fontSize: '0.68rem', color: tokens.color.muted, marginTop: 2 }}>OS finalizadas nos últimos 30 dias</div>
+          <div className="dashboard-card__header-title">Top serviços</div>
+          <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>OS finalizadas nos últimos 30 dias</div>
         </div>
-        {comDinheiro && (
+        {comDinheiro && !isMobile && (
           <div style={{ width: 160 }}>
             <Select
               name="dash_ordenar_top_servicos"
@@ -366,17 +424,32 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         )}
       </div>
 
+      {isMobile && comDinheiro && (
+        <div style={{ marginBottom: 12 }}>
+          <Select
+            name="dash_ordenar_top_servicos_m"
+            value={ordemTopServicos}
+            onChangeValue={(v: string) => setOrdemTopServicos(v as OrdemTopServicos)}
+            options={[...ORDEM_TOP_SERVICOS]}
+          />
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${tokens.color.border}` }}>
-        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Serviço</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted }}>Serviço</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em', width: 72, textAlign: 'right' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, width: 96, textAlign: 'right' }}>
             {comDinheiro ? 'Fat. est. (R$)' : 'Qtd.'}
           </span>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {HEAT_DAYS.map(d => (
-              <div key={d} style={{ width: 18, fontSize: '0.6rem', textAlign: 'center', color: tokens.color.muted, fontWeight: 600 }}>{d}</div>
-            ))}
-          </div>
+          {/* O mapa de calor da semana (7 quadradinhos) não cabe em telas
+              estreitas: no celular fica só nome + valor. */}
+          {!isMobile && (
+            <div style={{ display: 'flex', gap: 4 }}>
+              {HEAT_DAYS.map(d => (
+                <div key={d} style={{ width: 18, fontSize: '0.75rem', textAlign: 'center', color: tokens.color.muted, fontWeight: 600 }}>{d}</div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -393,26 +466,28 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '0.84rem', fontWeight: 500, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</div>
                 </div>
-                <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 72, textAlign: 'right', flexShrink: 0, fontWeight: 500 }}>
+                <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: isMobile ? 96 : 72, textAlign: 'right', flexShrink: 0, fontWeight: 500 }}>
                   {comDinheiro
                     ? (s.valorEstimado ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
                     : s.quantidade.toLocaleString('pt-BR')}
                 </div>
-                <HeatmapRow heatmap={s.semana} />
+                {!isMobile && <HeatmapRow heatmap={s.semana} />}
               </div>
             ))
         }
       </div>
 
+      {!isMobile && (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 10, borderTop: `1px solid ${tokens.color.border}` }}>
-        <span style={{ fontSize: '0.68rem', color: tokens.color.muted }}>Menor</span>
+        <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>Menor</span>
         <div style={{ display: 'flex', gap: 3 }}>
           {[0.07, 0.18, 0.32, 0.5, 0.72, 0.9].map((o, i) => (
             <div key={i} style={{ width: 16, height: 16, borderRadius: 4, background: `rgba(204,20,0,${o})` }} />
           ))}
         </div>
-        <span style={{ fontSize: '0.68rem', color: tokens.color.muted }}>Maior</span>
+        <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>Maior</span>
       </div>
+      )}
     </Card>
   );
 
@@ -488,7 +563,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
               <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 96, flexShrink: 0 }}>{row.name}</span>
               <ProgressBar pct={limitarPct(row.pct)} color={row.color} />
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text, width: 90, textAlign: 'right', flexShrink: 0 }}>{formatBRL(row.value)}</span>
-              <span style={{ fontSize: '0.7rem', color: tokens.color.muted, width: 36, flexShrink: 0 }}>{row.pct}%</span>
+              <span style={{ fontSize: '0.75rem', color: tokens.color.muted, width: 36, flexShrink: 0 }}>{row.pct}%</span>
             </div>
           ))}
 
@@ -573,7 +648,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
                 <span style={{ color: cfg.color, flexShrink: 0, marginTop: 1, display: 'flex' }}>{cfg.icon}</span>
                 <div>
                   <div style={{ fontSize: '0.84rem', fontWeight: 600, color: tokens.color.text }}>{a.msg}</div>
-                  {a.detalhe && <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>{a.detalhe}</div>}
+                  {a.detalhe && <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>{a.detalhe}</div>}
                 </div>
               </div>
               <span style={{ color: tokens.color.muted, flexShrink: 0, display: 'flex' }}>{Icons.arrow}</span>
@@ -620,7 +695,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   // ── MOBILE ─────────────────────────────────────────────────────────────────
   if (isMobile) return (
-    <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+    <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
       <MobileTopbar active={page} onNav={handleNav} />
       <div style={{ padding: '16px 14px 0' }}>
         <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: tokens.color.text, margin: '0 0 2px' }}>
@@ -632,7 +707,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         {erroCard}
         {kpiRow}
         {chartSection}
-        <div style={{ display: 'grid', gridTemplateColumns: topServicosSection ? '1fr 1fr' : '1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
           {topServicosSection}
           {acessosRapidos}
         </div>
@@ -646,7 +721,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   // ── DESKTOP ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: tokens.color.bg }}>
+    <div style={{ display: 'flex', minHeight: '100dvh', background: tokens.color.bg }}>
       <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <DesktopHeader onNav={handleNav} />

@@ -111,7 +111,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                     background: step >= n ? tokens.color.ferrari : tokens.color.border,
                     transition: 'background 0.25s',
                   }} />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
                     {n === 1 ? 'Data e Horário' : 'Dados do Agendamento'}
                   </span>
                 </div>
@@ -148,7 +148,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
               {/* Weekday headers */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
                 {WEEKDAYS_SHORT.map(d => (
-                  <div key={d} style={{ textAlign: 'center', fontSize: '0.62rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0' }}>
+                  <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0' }}>
                     {d}
                   </div>
                 ))}
@@ -173,7 +173,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                           style={{
                             width: 34, height: 34, borderRadius: 8, border: 'none',
                             background: isSel ? tokens.color.ferrari : isT ? tokens.color.ferrariMid : 'transparent',
-                            color: isSel ? 'white' : isT ? tokens.color.ferrari : !isCurrentM || isPast ? tokens.color.ghost : tokens.color.text,
+                            color: isSel ? 'white' : isT ? tokens.color.ferrari : !isCurrentM || isPast ? tokens.color.subtle : tokens.color.text,
                             fontWeight: isSel || isT ? 700 : 500,
                             fontSize: '0.82rem',
                             cursor: (!isCurrentM || isPast) ? 'default' : 'pointer',
@@ -192,11 +192,11 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
 
             {/* Time slots */}
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 10 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 10 }}>
                 Horários disponíveis
                 {selectedDate && <span style={{ color: tokens.color.text, marginLeft: 6 }}>· {formatDayMonth(parseISODate(selectedDate))}</span>}
               </div>
-              <div style={{ fontSize: '0.66rem', color: tokens.color.subtle, marginBottom: 8 }}>
+              <div style={{ fontSize: '0.75rem', color: tokens.color.subtle, marginBottom: 8 }}>
                 Funcionamento: {horaAbertura} – {horaFechamento}
               </div>
               {timeSlots.length === 0 ? (
@@ -217,7 +217,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                           padding: '9px 10px', borderRadius: 9, border: `1.5px solid`,
                           borderColor: isSel ? tokens.color.ferrari : occupied ? tokens.color.border : tokens.color.border,
                           background: isSel ? tokens.color.ferrariMid : occupied ? tokens.color.bg : 'white',
-                          color: isSel ? tokens.color.ferrari : occupied ? tokens.color.ghost : tokens.color.text,
+                          color: isSel ? tokens.color.ferrari : occupied ? tokens.color.subtle : tokens.color.text,
                           fontWeight: isSel ? 700 : 500,
                           fontSize: '0.82rem', fontFamily: tokens.fontMono,
                           cursor: occupied ? 'not-allowed' : 'pointer',
@@ -229,7 +229,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                       >
                         {slot}
                         {isSel && <span style={{ display: 'flex', color: tokens.color.ferrari }}>{AgendaIcons.checkCircle}</span>}
-                        {occupied && !isSel && <span style={{ fontSize: '0.62rem', fontFamily: tokens.fontSans }}>ocupado</span>}
+                        {occupied && !isSel && <span style={{ fontSize: '0.75rem', fontFamily: tokens.fontSans }}>ocupado</span>}
                       </button>
                     );
                   })}
@@ -270,7 +270,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                           key={v.placa}
                           onClick={() => setForm(prev => ({ ...prev, veiculo: v.veiculo, placa: v.placa }))}
                           style={{
-                            padding: '5px 10px', borderRadius: 7, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
+                            padding: '5px 10px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
                             border: `1.5px solid ${active ? tokens.color.ferrari : tokens.color.border}`,
                             background: active ? tokens.color.ferrariMid : 'white',
                             color: active ? tokens.color.ferrari : tokens.color.text,
@@ -305,7 +305,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
         )}
 
         {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           {step === 2 ? (
             <button
               onClick={() => setStep(1)}

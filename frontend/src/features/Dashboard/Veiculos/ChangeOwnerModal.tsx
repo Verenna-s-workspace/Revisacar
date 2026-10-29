@@ -36,7 +36,7 @@ export function ChangeOwnerModal({ veiculo, onSave, onClose }: ChangeOwnerModalP
         <div className="dashboard-modal__body">
           <div style={{
             display: 'flex', gap: 8, alignItems: 'center', padding: '9px 12px',
-            background: tokens.color.ferrariMid, borderRadius: 9, fontSize: '0.74rem', color: tokens.color.ferrari, fontWeight: 600,
+            background: tokens.color.ferrariMid, borderRadius: 9, fontSize: '0.75rem', color: tokens.color.ferrari, fontWeight: 600,
           }}>
             <span style={{ display: 'flex' }}>{VeiculoIcons.linkUser}</span>
             🔜 Em breve: selecionar um cliente já cadastrado na sua carteira.

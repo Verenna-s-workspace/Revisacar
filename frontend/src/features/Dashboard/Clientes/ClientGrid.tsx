@@ -24,7 +24,7 @@ const PAGE_SIZE = 12;
 
 function SkeletonCard() {
   return (
-    <div style={{ borderRadius: 20, border: `1px solid ${tokens.color.border}`, overflow: 'hidden', background: 'white' }}>
+    <div style={{ borderRadius: 20, border: `1px solid ${tokens.color.border}`, overflow: 'hidden', background: 'var(--color-surface)' }}>
       <div style={{ padding: '16px 16px 0', display: 'flex', gap: 12, alignItems: 'center' }}>
         <div style={{ width: 54, height: 54, borderRadius: '50%', background: tokens.color.surfaceHigh, flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
@@ -70,13 +70,13 @@ export function ClientGrid({
       <div
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '64px 24px', textAlign: 'center', background: 'white',
+          padding: '64px 24px', textAlign: 'center', background: 'var(--color-surface)',
           borderRadius: 18, border: `1px dashed ${tokens.color.border}`,
         }}
       >
         <div style={{
           width: 56, height: 56, borderRadius: '50%', background: tokens.color.surfaceHigh,
-          color: tokens.color.ghost, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+          color: tokens.color.subtle, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
         }}>
           <span style={{ display: 'flex', transform: 'scale(1.6)' }}>{Icons.user}</span>
         </div>
@@ -167,7 +167,7 @@ function PageBtn({ disabled, onClick, children }: { disabled?: boolean; onClick:
       onClick={onClick}
       style={{
         width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent',
-        color: disabled ? tokens.color.ghost : tokens.color.muted,
+        color: disabled ? tokens.color.subtle : tokens.color.muted,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: disabled ? 'default' : 'pointer',
       }}

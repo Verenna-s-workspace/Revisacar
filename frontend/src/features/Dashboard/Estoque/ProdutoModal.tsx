@@ -180,7 +180,7 @@ export function ProdutoModal({ item, categoriaInicial, onSave, erro, salvando, o
                 placeholder="Ex: Gol 1.6 2016-2019, Voyage 1.6 2015-2018"
                 rows={2}
               />
-              <span style={{ fontSize: '0.7rem', color: tokens.color.muted }}>
+              <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
                 Texto livre — entra na busca por nome/aplicação, além do nome do produto.
               </span>
             </div>
@@ -223,7 +223,7 @@ export function ProdutoModal({ item, categoriaInicial, onSave, erro, salvando, o
                       Remover foto
                     </button>
                   )}
-                  {erroFoto && <span style={{ fontSize: '0.72rem', color: tokens.color.crit }}>{erroFoto}</span>}
+                  {erroFoto && <span style={{ fontSize: '0.75rem', color: tokens.color.crit }}>{erroFoto}</span>}
                 </div>
               </div>
               <div className="dashboard-modal__remark" style={{ marginTop: 10 }}>

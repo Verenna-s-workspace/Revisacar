@@ -20,18 +20,15 @@
   border-color: var(--color-crit);
   background: var(--color-crit-bg);
 }
-.inp:focus {
-  border-color: #666;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
-}
+/* Foco: regra única em index.css (:focus-visible) — a antiga (#666) conflitava */
 .inp:hover {
   box-shadow: 0 0 0 0.7px rgba(0,0,0,0.1);
   transition: var(--transition-spring);
 }
 
-.inp.error:focus {
-  border-color: var(--color-crit);
-  box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.15);
+.inp.error:focus-visible {
+  outline-color: var(--color-crit);
+  border-color: var(--color-crit) !important;
 }
 
 /* Estado disabled/loading — comum a input, select e textarea */
@@ -62,34 +59,34 @@ input[type="search"]::-webkit-search-results-decoration {
   box-sizing: border-box;
 }
 .inp-label {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 500;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--color-muted);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-text-second);
 }
 .inp-required { color: var(--color-crit); }
 
 /* Texto de erro/dica abaixo do campo — versões escopadas do antigo seletor
    genérico `span`/`textarea` (mantidos abaixo por compatibilidade). */
 .inp-error-text {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;      /* era 9px em mono: erro precisa ser lido */
+  font-weight: 500;
   color: var(--color-crit);
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 .inp-hint-text {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
   color: var(--color-subtle);
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 .inp-count-text {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  color: var(--color-ghost);
-  letter-spacing: 0.04em;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-subtle);
+  letter-spacing: 0;
   text-align: right;
 }
 
@@ -125,6 +122,9 @@ input[type="search"]::-webkit-search-results-decoration {
   border-radius: var(--radius-sm, 5px);
 }
 .inp-icon-btn:hover { color: var(--color-text); }
+/* Botão de limpar/olho: visual pequeno, área de toque de 44px */
+.inp-icon-btn { position: absolute; }
+.inp-icon-btn::after { content: ""; position: absolute; inset: -14px -10px; }
 .inp-icon-btn:focus-visible { outline: 2px solid var(--color-ferrari); outline-offset: 1px; }
 
 .inp-spinner { animation: inp-spin 0.75s linear infinite; }
@@ -155,11 +155,11 @@ input[type="search"]::-webkit-search-results-decoration {
    seletor genérico acima, só que escopada. */
 .inp-textarea {
   resize: vertical;
-  min-height: 72px;
+  min-height: 88px;
   width: 100%;
   box-sizing: border-box;
   font-family: var(--font-sans);
-  font-size: 0.83rem;
+  font-size: 0.9rem;
   color: var(--color-text);
   background: var(--color-bg-alt);
   border: 1px solid var(--color-border);
@@ -173,10 +173,7 @@ input[type="search"]::-webkit-search-results-decoration {
   border-color: var(--color-crit);
   background: var(--color-crit-bg);
 }
-.inp-textarea:focus {
-  border-color: #666;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
-}
+
 .inp-textarea:disabled {
   opacity: 0.6;
   cursor: not-allowed;

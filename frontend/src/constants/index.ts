@@ -8,7 +8,7 @@ export const tokens = {
   fontMono:    "var(--font-mono)",
   fontSans:    "var(--font-sans)",
   fontDisplay: "var(--font-display)",
-  fontLogo:    "'Fredoka', cursive",
+  fontLogo:    "var(--font-logo)",
 
   color: {
     // Brand red

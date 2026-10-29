@@ -9,6 +9,28 @@
   --font-mono: 'DM Mono', 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
   --font-sans: 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'DM Sans', 'Inter', sans-serif;
+  /* Logo: antes só existia em tokens.fontLogo (TS) e var(--font-logo) nunca era
+   * definida. Fallback em sans (não mais 'cursive', que vira Comic Sans). */
+  --font-logo: 'Fredoka', 'DM Sans', 'Inter', sans-serif;
+
+  /* Escala tipográfica (mínimo 12px pra texto secundário, 16px em campos) */
+  --text-xs: 0.75rem;    /* 12px — legendas, erros, rótulos */
+  --text-sm: 0.875rem;   /* 14px — texto secundário */
+  --text-base: 1rem;     /* 16px — corpo e campos */
+  --text-lg: 1.25rem;    /* 20px — títulos de seção */
+  --text-xl: 1.5rem;     /* 24px — títulos de página */
+
+  /* Alvo de toque mínimo (WCAG 2.5.5 / Apple HIG) */
+  --tap-min: 44px;
+
+  /* Escala única de camadas — antes cada tela escolhia um z-index solto
+   * (bottom nav = 2, topbar = 50/300, rodapé = 100, modais = 9999). */
+  --z-sticky: 100;
+  --z-topbar: 300;
+  --z-bottom-nav: 400;
+  --z-drawer-backdrop: 2000;
+  --z-drawer: 2001;
+  --z-modal: 9999;
 
   /* Altura da bottom-nav mobile (fixed) + a área segura real do aparelho —
    * páginas usam isso como padding-bottom pra garantir que o conteúdo nunca
@@ -39,8 +61,8 @@
   --color-text-high: #0D0D0D;
   --color-text-second: #3D3B37;
   --color-muted: #6B6760;
-  --color-subtle: #9A958C;
-  --color-ghost: #C8C4BB;
+  --color-subtle: #736E65;   /* era #9A958C (2,8:1); agora 5:1 sobre branco */
+  --color-ghost: #8A857C;    /* era #C8C4BB (1,7:1); só ícones/desabilitado. Texto usa --color-subtle */
 
   /* Colors — Status */
   --color-ok: #1A7F4B;
@@ -63,6 +85,7 @@
   --color-accent: #CC1400;
   --color-accent-hover: #E01500;
   --color-accent-dim: rgba(204,20,0,0.1);
+  --color-accent-light: rgba(204,20,0,0.08);
 
   /* Radius */
   --radius-sm: 4px;
@@ -102,8 +125,8 @@ body.dark {
   --color-text-high: #ffffff;
   --color-text-second: #d4d4d8;
   --color-muted: #9ca3af;
-  --color-subtle: #71717a;
-  --color-ghost: #3f3f46;
+  --color-subtle: #8b8b94;
+  --color-ghost: #6b6b75;
 
   --color-ok: #10b981;
   --color-ok-bg: rgba(16,185,129,0.08);
@@ -124,6 +147,7 @@ body.dark {
   --color-accent: #ff3b30;
   --color-accent-hover: #ff453a;
   --color-accent-dim: rgba(255,59,48,0.12);
+  --color-accent-light: rgba(255,59,48,0.12);
 
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
@@ -137,7 +161,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  scroll-behavior: smooth;
+  /* Evita o "salto" de fonte do iOS ao girar o aparelho */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }
 
 body {
@@ -145,16 +175,17 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   min-height: 100vh;
+  min-height: 100dvh;   /* dvh: não corta o rodapé com a barra de endereço do mobile */
   overflow-x: hidden;
   transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
   
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #EDEBE6; }
-::-webkit-scrollbar-thumb { background: #C8C4BB; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--color-surface-high); }
+::-webkit-scrollbar-thumb { background: var(--color-border-high); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #CC1400; }
 
-::selection { background: rgba(204,20,0,0.12); color: #1A1A1A; }
+::selection { background: rgba(204,20,0,0.12); color: inherit; }
 
 :focus-visible {
   outline: 2px solid #CC1400;
@@ -200,10 +231,12 @@ body {
 .step-enter { animation: slideInRight 0.28s cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
 .step-enter-left { animation: slideInLeft 0.28s cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
 
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: rgba(204,20,0,0.55) !important;
-  box-shadow: 0 0 0 3px rgba(204,20,0,0.08) !important;
+/* Foco único e visível (antes: anel de 8% de opacidade + outro #666 em input.css) */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-color: var(--color-accent) !important;
+  box-shadow: none !important;
 }
 
 input[type="checkbox"] { accent-color: #CC1400; }
@@ -211,7 +244,10 @@ input[type="checkbox"] { accent-color: #CC1400; }
 .step-badge { transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1); }
 
 .checklist-item { transition: background 0.15s ease; }
-.checklist-item:hover { background: #F0EEE9 !important; }
+/* Hover só onde existe mouse; no toque ele "gruda" depois do tap */
+@media (hover: hover) {
+  .checklist-item:hover { background: var(--color-surface-high) !important; }
+}
 
 .checklist-dynamic-row {
   width: 100%;
@@ -243,8 +279,10 @@ input[type="checkbox"] { accent-color: #CC1400; }
   }
 }
 
-.photo-thumb { transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); }
-.photo-thumb:hover { transform: scale(1.04); }
+.photo-thumb { transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+@media (hover: hover) {
+  .photo-thumb:hover { transform: scale(1.04); }
+}
 
 .topbar-glass {
   backdrop-filter: blur(20px) saturate(160%);
@@ -252,7 +290,7 @@ input[type="checkbox"] { accent-color: #CC1400; }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #EDEBE6 25%, #E6E3DD 50%, #EDEBE6 75%);
+  background: linear-gradient(90deg, var(--color-surface-high) 25%, var(--color-border) 50%, var(--color-surface-high) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -269,5 +307,86 @@ input[type="checkbox"] { accent-color: #CC1400; }
 
 .divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, #DDD9D1 20%, #DDD9D1 80%, transparent);
+  background: linear-gradient(90deg, transparent, var(--color-border-md) 20%, var(--color-border-md) 80%, transparent);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Ajustes mobile
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* iOS Safari dá zoom em qualquer campo com fonte < 16px. !important porque
+ * muitos campos têm fontSize inline (0.8–0.9rem). */
+@media (max-width: 639px), (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Campos de data/hora com appearance:none ficam com altura zero no iOS. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"] {
+  min-height: var(--tap-min);
+  display: block;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.2em;
+}
+
+/* Campos confortáveis ao toque */
+@media (pointer: coarse) {
+  select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) {
+    min-height: var(--tap-min);
+  }
+}
+
+/* Área de toque ampliada sem mudar o visual: o ::after estende o alvo. */
+.tap-area { position: relative; }
+.tap-area::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+
+/* Quem pede menos movimento não recebe animações de entrada, molas nem
+ * deslizes (antes só o login respeitava isso). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Remove o atraso de ~300ms do toque duplo e o zoom por duplo toque em controles */
+a, button, input, select, textarea, label, summary, [role="button"], [role="tab"] {
+  touch-action: manipulation;
+}
+
+/* Modais montados com estilo inline (Orçamento, Fechamento, Financeiro,
+ * Funcionários) viram bottom sheet no celular, igual ao .dashboard-modal. */
+@media (max-width: 639px) {
+  .sheet-backdrop { align-items: flex-end !important; padding: 0 !important; }
+  .sheet-panel {
+    max-width: none !important;
+    max-height: 92dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior: contain;
+    animation: dashboard-sheet-up 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+}
+body:has(.sheet-backdrop) { overflow: hidden; }
+
+@keyframes dashboard-sheet-up {
+  from { transform: translateY(28px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }

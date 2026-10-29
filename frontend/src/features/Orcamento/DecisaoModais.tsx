@@ -18,20 +18,21 @@ function Casca({ titulo, onFechar, children }: { titulo: string; onFechar: () =>
   return (
     <div
       role="dialog" aria-modal="true" aria-label={titulo}
+      className="sheet-backdrop"
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
         justifyContent: 'center', zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
       }}
     >
-      <div style={{
-        background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 440, maxHeight: '90vh',
+      <div className="sheet-panel" style={{
+        background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 440, maxHeight: '90dvh',
         border: `1px solid ${tokens.color.border}`, boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ padding: '16px 22px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>{titulo}</h3>
           <button type="button" onClick={onFechar} aria-label="Fechar"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: tokens.color.muted, width: 44, height: 44, margin: '-10px -10px -10px 0' }}>×</button>
         </div>
         <div style={{ padding: 22, overflowY: 'auto' }}>{children}</div>
       </div>

@@ -44,7 +44,7 @@ export function KanbanColuna({ titulo, count, children, style, loading = false }
             borderRadius: 99,
             background: tokens.color.surfaceHigh,
             color: tokens.color.textSecond,
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',

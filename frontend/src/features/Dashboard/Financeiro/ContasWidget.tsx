@@ -32,7 +32,7 @@ function Lista({ titulo, itens, corValor, onMarcarPago, podeEditar }: {
                 <div style={{ fontSize: '0.82rem', fontWeight: 600, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {t.descricao || labelCategoria(t.tipo, t.categoria)}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: t.vencido ? tokens.color.crit : tokens.color.muted, fontWeight: t.vencido ? 700 : 400 }}>
+                <div style={{ fontSize: '0.75rem', color: t.vencido ? tokens.color.crit : tokens.color.muted, fontWeight: t.vencido ? 700 : 400 }}>
                   {t.vencido ? 'Venceu em ' : 'Vence em '}{t.data_vencimento ? formatDataCurta(t.data_vencimento) : formatDataCurta(t.data_competencia)}
                 </div>
               </div>
@@ -42,7 +42,7 @@ function Lista({ titulo, itens, corValor, onMarcarPago, podeEditar }: {
                   <button
                     onClick={() => onMarcarPago(t.id)}
                     title="Marcar como pago"
-                    style={{ padding: '4px 9px', fontSize: '0.68rem', fontWeight: 700, borderRadius: 6, border: `1px solid ${tokens.color.ok}`, color: tokens.color.ok, background: 'transparent', cursor: 'pointer' }}
+                    style={{ padding: '4px 9px', fontSize: '0.75rem', fontWeight: 700, borderRadius: 6, border: `1px solid ${tokens.color.ok}`, color: tokens.color.ok, background: 'transparent', cursor: 'pointer' }}
                   >
                     Pago
                   </button>

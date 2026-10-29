@@ -26,7 +26,7 @@ function Field({ icon, label, value, mono }: { icon: React.ReactNode; label: str
     <div style={{ padding: '11px 13px', borderRadius: 12, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, color: tokens.color.muted }}>
         <span style={{ display: 'flex' }}>{icon}</span>
-        <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
       </div>
       <div style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text, fontFamily: mono ? tokens.fontMono : tokens.fontSans, wordBreak: 'break-word' }}>
         {value || '—'}
@@ -63,7 +63,7 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
 
           <div style={{ position: 'absolute', left: 24, bottom: 18, right: 80 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ padding: '3px 9px', borderRadius: 6, background: tokens.color.ferrari, color: 'white', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ padding: '3px 9px', borderRadius: 6, background: tokens.color.ferrari, color: 'white', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {CATEGORIA_LABEL[v.categoria]}
               </span>
               <StatusBadge status={v.status} size="sm" />
@@ -78,9 +78,9 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
         </div>
 
         {/* Corpo */}
-        <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 22, maxHeight: '52vh', overflowY: 'auto' }}>
+        <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 22, maxHeight: '52dvh', overflowY: 'auto' }}>
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 10 }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 10 }}>
               Informações Gerais
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -101,7 +101,7 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
 
           {v.observacoes && (
             <div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 8 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 8 }}>
                 Observações
               </div>
               <div style={{ padding: '12px 14px', borderRadius: 12, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}`, fontSize: '0.84rem', color: tokens.color.text, lineHeight: 1.6 }}>
@@ -112,8 +112,8 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* Proprietário */}
-            <div style={{ padding: 16, borderRadius: 16, background: 'white', border: `1px solid ${tokens.color.border}` }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 12 }}>
+            <div style={{ padding: 16, borderRadius: 16, background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}` }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 12 }}>
                 Proprietário
               </div>
               {v.proprietario ? (
@@ -133,7 +133,7 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: tokens.color.ghost }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: tokens.color.subtle }}>
                   <span style={{ display: 'flex' }}>{VeiculoIcons.unlinkUser}</span>
                   <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>Veículo sem proprietário vinculado</span>
                 </div>
@@ -141,12 +141,12 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
             </div>
 
             {/* Histórico */}
-            <div style={{ padding: 16, borderRadius: 16, background: 'white', border: `1px solid ${tokens.color.border}` }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 12 }}>
+            <div style={{ padding: 16, borderRadius: 16, background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}` }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 12 }}>
                 Histórico de Ordens de Serviço
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8, padding: '8px 4px' }}>
-                <span style={{ color: tokens.color.ghost, display: 'flex' }}>{Icons.orders}</span>
+                <span style={{ color: tokens.color.subtle, display: 'flex' }}>{Icons.orders}</span>
                 <span style={{ fontSize: '0.78rem', color: tokens.color.muted, lineHeight: 1.5 }}>
                   Nenhuma OS registrada para este veículo ainda.
                 </span>
@@ -156,7 +156,7 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           <button
             onClick={onDelete}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, border: `1px solid ${tokens.color.critBorder}`, background: 'transparent', color: tokens.color.crit, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 700 }}

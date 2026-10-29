@@ -90,7 +90,7 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
     <div style={{
       fontFamily: tokens.fontSans,
       background: tokens.color.bg,
-      minHeight: '100vh',
+      minHeight: '100dvh',
       paddingBottom: 'var(--mobile-bottom-nav-h)',
     }}>
       <Topbar

@@ -8,7 +8,7 @@ function TooltipOrdens({ active, label, payload }: any) {
   return (
     <div
       style={{
-        background: 'white',
+        background: 'var(--color-surface)',
         border: `1px solid ${tokens.color.border}`,
         borderRadius: 10,
         boxShadow: tokens.shadow.md,
@@ -49,7 +49,7 @@ export function OrdensComparativoChart({ dados, height }: OrdensComparativoChart
           width={28}
         />
         <Tooltip content={<TooltipOrdens />} cursor={{ fill: 'rgba(204,20,0,0.08)' }} />
-        <Legend wrapperStyle={{ fontSize: '0.72rem' }} iconType="circle" iconSize={8} />
+        <Legend wrapperStyle={{ fontSize: '0.75rem' }} iconType="circle" iconSize={8} />
         <Bar dataKey="atual" name="Período atual" fill={tokens.color.ferrari} radius={[6, 6, 0, 0]} animationDuration={700} maxBarSize={34} />
         <Bar dataKey="anterior" name="Período anterior" fill={tokens.color.borderMd} radius={[6, 6, 0, 0]} animationDuration={700} maxBarSize={34} />
       </BarChart>

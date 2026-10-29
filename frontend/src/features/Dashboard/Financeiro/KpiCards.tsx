@@ -19,7 +19,7 @@ function KpiCard({ label, valor, corBorda, extra }: { label: string; valor: stri
   return (
     <Card style={{ padding: 18, borderLeft: `4px solid ${corBorda}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{label}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{label}</span>
         {extra}
       </div>
       <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: tokens.color.text, margin: '6px 0 0' }}>{valor}</h3>
@@ -52,7 +52,7 @@ export function KpiCards({ resumo, verMargem, isMobile }: { resumo: ResumoFinanc
         valor={formatBRL(resumo.a_receber)}
         corBorda={tokens.color.warn}
         extra={resumo.vencido_receber > 0 ? (
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: tokens.color.crit }}>{formatBRL(resumo.vencido_receber)} vencido</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.crit }}>{formatBRL(resumo.vencido_receber)} vencido</span>
         ) : undefined}
       />
       <KpiCard
@@ -60,7 +60,7 @@ export function KpiCards({ resumo, verMargem, isMobile }: { resumo: ResumoFinanc
         valor={formatBRL(resumo.a_pagar)}
         corBorda={tokens.color.muted}
         extra={resumo.vencido_pagar > 0 ? (
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: tokens.color.crit }}>{formatBRL(resumo.vencido_pagar)} vencido</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.crit }}>{formatBRL(resumo.vencido_pagar)} vencido</span>
         ) : undefined}
       />
     </div>

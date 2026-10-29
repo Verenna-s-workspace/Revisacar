@@ -29,7 +29,7 @@ function Pill({ label, icon, color, bg, border }: { label: string; icon?: JSX.El
         gap: 4,
         padding: '3px 8px',
         borderRadius: 99,
-        fontSize: '0.68rem',
+        fontSize: '0.75rem',
         fontWeight: 700,
         color,
         background: bg,
@@ -74,7 +74,7 @@ export function OSKanbanCard({ item, qtdPecas, possivelRetorno, onAbrir, onInici
           <span
             style={{
               flexShrink: 0,
-              fontSize: '0.7rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
               color: tokens.color.muted,
               background: tokens.color.surfaceHigh,
@@ -131,7 +131,7 @@ export function OSKanbanCard({ item, qtdPecas, possivelRetorno, onAbrir, onInici
           {!!qtdPecas && (
             <Pill
               label={`${qtdPecas} ${qtdPecas === 1 ? 'item' : 'itens'}`}
-              icon={<span style={{ fontSize: '0.7rem' }}>📦</span>}
+              icon={<span style={{ fontSize: '0.75rem' }}>📦</span>}
               color={tokens.color.textSecond}
               bg={tokens.color.surfaceHigh}
               border={tokens.color.border}
@@ -141,7 +141,7 @@ export function OSKanbanCard({ item, qtdPecas, possivelRetorno, onAbrir, onInici
       )}
 
       {emExecucao && ordem.iniciadoEm && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: tokens.color.muted, marginTop: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: tokens.color.muted, marginTop: 1 }}>
           <span style={{ display: 'flex' }}>{Icons.clock}</span>
           {formatDuracaoDesde(ordem.iniciadoEm)}
         </div>
@@ -153,7 +153,7 @@ export function OSKanbanCard({ item, qtdPecas, possivelRetorno, onAbrir, onInici
             display: 'flex',
             alignItems: 'flex-start',
             gap: 5,
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: tokens.color.crit,
             marginTop: 1,
             overflow: 'hidden',

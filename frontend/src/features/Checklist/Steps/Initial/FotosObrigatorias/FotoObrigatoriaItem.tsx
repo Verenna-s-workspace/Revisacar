@@ -83,7 +83,7 @@ export function FotoObrigatoriaItem({
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: tokens.fontSans, fontSize: '1rem', fontWeight: 700, color: tokens.color.text }}>{item.rotulo}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: tokens.fontMono, fontSize: '0.66rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: cor }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: cor }}>
               {situacao === 'foto' && !ocupado && <IconeCheck size={12} />}
               {rotuloEstado}
             </span>
@@ -97,7 +97,7 @@ export function FotoObrigatoriaItem({
             </div>
           )}
           {situacao !== 'pendente' && quem && (
-            <div style={{ fontFamily: tokens.fontMono, fontSize: '0.66rem', color: tokens.color.subtle, marginTop: 2 }}>
+            <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 2 }}>
               {situacao === 'foto' ? 'Tirada por' : 'Pulada por'} {quem}{item.refeitas ? ` · refeita ${item.refeitas}x` : ''}
             </div>
           )}

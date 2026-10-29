@@ -1,10 +1,11 @@
 import { tokens } from '../../constants';
+import { useResponsive } from '../../components/ui';
 import { formatBRL } from '../../utils/dashboard';
 import type { OrcamentoItem } from '../../types/orcamento';
 
 const th: React.CSSProperties = {
-  textAlign: 'left', fontFamily: tokens.fontMono, fontSize: '0.58rem', letterSpacing: '0.07em',
-  textTransform: 'uppercase', color: tokens.color.subtle, padding: '8px 10px', fontWeight: 500,
+  textAlign: 'left', fontFamily: tokens.fontSans, fontSize: '0.75rem',
+  color: tokens.color.muted, padding: '8px 10px', fontWeight: 700,
   borderBottom: `1px solid ${tokens.color.border}`, whiteSpace: 'nowrap',
 };
 const td: React.CSSProperties = {
@@ -15,10 +16,39 @@ const num: React.CSSProperties = { ...td, textAlign: 'right', whiteSpace: 'nowra
 
 /** Itens de uma versão que não está em edição (enviada, aprovada, recusada, substituída). */
 export function ItensLeitura({ itens }: { itens: OrcamentoItem[] }) {
+  const { isMobile } = useResponsive();
   if (itens.length === 0) {
     return <div style={{ padding: '24px 16px', textAlign: 'center', color: tokens.color.muted, fontSize: '0.86rem' }}>Esta versão não tem itens.</div>;
   }
   const comCusto = itens.some(i => i.custoUnitario != null);
+
+  // Celular: um cartão por item (a tabela de 520px forçava rolagem lateral)
+  if (isMobile) {
+    return (
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {itens.map(i => (
+          <li key={i.id} style={{ padding: '14px 16px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0, fontWeight: 600, fontSize: '0.9rem', color: tokens.color.text, overflowWrap: 'anywhere' }}>
+                {i.descricao}
+                <span style={{ marginLeft: 8, fontSize: '0.75rem', fontWeight: 600, color: tokens.color.subtle }}>
+                  {i.tipo === 'peca' ? 'peça' : 'serviço'}
+                </span>
+              </div>
+              <div style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.95rem', color: tokens.color.text }}>{formatBRL(i.subtotal)}</div>
+            </div>
+            <div style={{ fontSize: '0.8125rem', color: tokens.color.muted }}>
+              {i.quantidade.toLocaleString('pt-BR')} × {formatBRL(i.precoUnitario)}
+              {comCusto && i.custoUnitario != null ? ` · custo un. ${formatBRL(i.custoUnitario)}` : ''}
+            </div>
+            {i.marca && <div style={{ fontSize: '0.8125rem', color: tokens.color.muted }}>Marca: {i.marca}</div>}
+            {i.motivo && <div style={{ fontSize: '0.8125rem', color: tokens.color.muted }}>{i.motivo}</div>}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
@@ -37,7 +67,7 @@ export function ItensLeitura({ itens }: { itens: OrcamentoItem[] }) {
               <td style={td}>
                 <div style={{ fontWeight: 600 }}>
                   {i.descricao}
-                  <span style={{ marginLeft: 8, fontFamily: tokens.fontMono, fontSize: '0.56rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.subtle }}>
+                  <span style={{ marginLeft: 8, fontSize: '0.75rem', fontWeight: 600, color: tokens.color.subtle }}>
                     {i.tipo === 'peca' ? 'peça' : 'serviço'}
                   </span>
                 </div>

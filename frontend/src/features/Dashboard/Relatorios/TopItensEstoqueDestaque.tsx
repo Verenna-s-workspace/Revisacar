@@ -65,7 +65,7 @@ export function TopItensEstoqueDestaque({ itens, isMobile, onVerItem }: TopItens
           style={{
             position: 'absolute', top: 12, left: 12,
             background: tokens.color.ferrari, color: 'white',
-            fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.04em',
+            fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.04em',
             padding: '4px 10px', borderRadius: 999, textTransform: 'uppercase',
           }}
         >
@@ -84,7 +84,7 @@ export function TopItensEstoqueDestaque({ itens, isMobile, onVerItem }: TopItens
           <span
             style={{
               display: 'inline-block', padding: '3px 8px', background: tokens.color.surfaceHigh,
-              color: tokens.color.textSecond, borderRadius: 6, fontSize: '0.68rem', fontWeight: 700, marginBottom: 6,
+              color: tokens.color.textSecond, borderRadius: 6, fontSize: '0.75rem', fontWeight: 700, marginBottom: 6,
             }}
           >
             {destaque.categoria || 'Geral'}
@@ -110,12 +110,12 @@ export function TopItensEstoqueDestaque({ itens, isMobile, onVerItem }: TopItens
           <div style={{ display: 'flex', gap: 18, marginBottom: 14, flexWrap: 'wrap' }}>
             {destaque.quantidadeAtual !== undefined && (
               <div>
-                <div style={{ fontSize: '0.66rem', color: tokens.color.muted, textTransform: 'uppercase', fontWeight: 700 }}>Em estoque</div>
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted, textTransform: 'uppercase', fontWeight: 700 }}>Em estoque</div>
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: tokens.color.text }}>{formatarNumero(destaque.quantidadeAtual)} un.</div>
               </div>
             )}
             <div>
-              <div style={{ fontSize: '0.66rem', color: tokens.color.muted, textTransform: 'uppercase', fontWeight: 700 }}>Movimentado no período</div>
+              <div style={{ fontSize: '0.75rem', color: tokens.color.muted, textTransform: 'uppercase', fontWeight: 700 }}>Movimentado no período</div>
               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: tokens.color.text }}>{formatarNumero(destaque.quantidade)} un.</div>
             </div>
           </div>
@@ -137,7 +137,9 @@ export function TopItensEstoqueDestaque({ itens, isMobile, onVerItem }: TopItens
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? `repeat(${secundarios.length}, 1fr)` : '1fr',
+            // Sempre 1 coluna: no celular eram 3 caixas de ~100px lado a lado e o
+            // texto vazava. Agora cada item ocupa a largura toda, ícone + texto.
+            gridTemplateColumns: '1fr',
             gap: 10,
           }}
         >
@@ -146,26 +148,30 @@ export function TopItensEstoqueDestaque({ itens, isMobile, onVerItem }: TopItens
               key={item.id ?? item.nome}
               onClick={() => onVerItem(item.nome)}
               style={{
-                display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10,
-                flexDirection: isMobile ? 'column' : 'row',
-                textAlign: isMobile ? 'center' : 'left',
+                display: 'flex', alignItems: 'center', gap: 12,
+                flexDirection: 'row',
+                textAlign: 'left',
                 border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.md,
-                padding: isMobile ? '10px 8px' : '10px 12px',
-                background: 'transparent', cursor: 'pointer', minWidth: 0,
+                padding: isMobile ? '12px 14px' : '10px 12px',
+                minHeight: 56,
+                background: 'transparent', cursor: 'pointer', minWidth: 0, width: '100%',
               }}
             >
               <FotoOuIcone item={item} tamanho={isMobile ? 40 : 44} />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '0.66rem', color: tokens.color.muted, fontWeight: 700 }}>#{i + 2}</div>
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted, fontWeight: 700 }}>#{i + 2}</div>
                 <div
                   style={{
-                    fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    fontSize: '0.85rem', fontWeight: 700, color: tokens.color.text,
+                    // no celular o nome quebra em até 2 linhas em vez de vazar
+                    ...(isMobile
+                      ? { overflowWrap: 'anywhere' as const, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }
+                      : { whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }),
                   }}
                 >
                   {item.nome}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: tokens.color.muted }}>
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
                   {formatarNumero(item.quantidade)} un. movimentadas
                 </div>
               </div>

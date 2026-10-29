@@ -8,20 +8,25 @@ import type { EstoqueItem } from '../../../types/estoque';
 
 interface ActionBtnProps {
   title: string;
+  /** Texto curto mostrado ao lado do ícone no celular/tablet. */
+  label?: string;
   onClick: () => void;
   danger?: boolean;
   children: ReactNode;
 }
 
-function ActionBtn({ title, onClick, danger, children }: ActionBtnProps) {
+function ActionBtn({ title, label, onClick, danger, children }: ActionBtnProps) {
   return (
     <button
+      type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       className="dashboard-card__icon-button"
       style={danger ? { color: tokens.color.crit } : undefined}
     >
-      {children}
+      <span style={{ display: 'flex' }}>{children}</span>
+      <span className="dashboard-card__icon-button-label">{label ?? title}</span>
     </button>
   );
 }
@@ -63,18 +68,18 @@ export function EstoqueItemCard({ item, onEdit, onDelete }: EstoqueItemCardProps
         <span
           style={{
             padding: '2px 7px', background: tokens.color.surfaceHigh, color: tokens.color.textSecond,
-            borderRadius: 6, fontSize: '0.64rem', fontWeight: 700,
+            borderRadius: 6, fontSize: '0.75rem', fontWeight: 700,
           }}
         >
           {item.categoria}
         </span>
         {emQuarentena && (
-          <span style={{ padding: '2px 7px', background: tokens.color.warnBg, color: tokens.color.warn, borderRadius: 6, fontSize: '0.64rem', fontWeight: 700 }}>
+          <span style={{ padding: '2px 7px', background: tokens.color.warnBg, color: tokens.color.warn, borderRadius: 6, fontSize: '0.75rem', fontWeight: 700 }}>
             Quarentena
           </span>
         )}
         {!emQuarentena && baixo && (
-          <span style={{ padding: '2px 7px', background: tokens.color.warnBg, color: tokens.color.warn, borderRadius: 6, fontSize: '0.64rem', fontWeight: 700 }}>
+          <span style={{ padding: '2px 7px', background: tokens.color.warnBg, color: tokens.color.warn, borderRadius: 6, fontSize: '0.75rem', fontWeight: 700 }}>
             Estoque baixo
           </span>
         )}
@@ -90,7 +95,7 @@ export function EstoqueItemCard({ item, onEdit, onDelete }: EstoqueItemCardProps
         >
           {item.nome}
         </h3>
-        <div style={{ fontSize: '0.7rem', color: tokens.color.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {item.localizacao}
         </div>
       </div>
@@ -99,7 +104,7 @@ export function EstoqueItemCard({ item, onEdit, onDelete }: EstoqueItemCardProps
         <span style={{ fontSize: '1.02rem', fontWeight: 800, color: tokens.color.ferrari }}>{formatBRL(item.preco)}</span>
         <span
           style={{
-            fontSize: '0.74rem', fontWeight: 700, whiteSpace: 'nowrap',
+            fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap',
             color: emQuarentena || baixo ? tokens.color.warn : tokens.color.muted,
           }}
         >

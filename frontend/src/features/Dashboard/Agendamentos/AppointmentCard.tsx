@@ -24,7 +24,7 @@ export function AppointmentCard({ agendamento, variant = 'large', onClick, style
         onClick={onClick}
         className="appointment-card"
         style={{
-          background: 'white',
+          background: 'var(--color-surface)',
           borderRadius: 8,
           border: `1px solid ${tokens.color.border}`,
           borderLeft: `3px solid ${cfg.color}`,
@@ -40,7 +40,7 @@ export function AppointmentCard({ agendamento, variant = 'large', onClick, style
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-          <span style={{ fontSize: '0.66rem', fontWeight: 800, color: cfg.color, whiteSpace: 'nowrap', fontFamily: tokens.fontMono }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: cfg.color, whiteSpace: 'nowrap', fontFamily: tokens.fontMono }}>
             {agendamento.horaInicio}
           </span>
           {wasRescheduled && (
@@ -51,14 +51,14 @@ export function AppointmentCard({ agendamento, variant = 'large', onClick, style
         </div>
         <div
           style={{
-            fontSize: '0.74rem', fontWeight: 700, color: tokens.color.text, lineHeight: 1.25,
+            fontSize: '0.75rem', fontWeight: 700, color: tokens.color.text, lineHeight: 1.25,
             overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
             WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
           }}
         >
           {agendamento.cliente}
         </div>
-        <div style={{ fontSize: '0.66rem', color: tokens.color.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {agendamento.veiculo}
         </div>
       </div>
@@ -70,7 +70,7 @@ export function AppointmentCard({ agendamento, variant = 'large', onClick, style
       onClick={onClick}
       className="appointment-card"
       style={{
-        background: 'white',
+        background: 'var(--color-surface)',
         borderRadius: 14,
         border: `1px solid ${tokens.color.border}`,
         borderLeft: `4px solid ${cfg.color}`,
@@ -112,7 +112,7 @@ export function AppointmentCard({ agendamento, variant = 'large', onClick, style
               <span
                 style={{
                   fontFamily: tokens.fontMono, fontWeight: 700, color: tokens.color.textSecond,
-                  flexShrink: 0, fontSize: '0.72rem', background: tokens.color.surfaceHigh,
+                  flexShrink: 0, fontSize: '0.75rem', background: tokens.color.surfaceHigh,
                   padding: '1px 6px', borderRadius: 5, letterSpacing: '0.03em',
                 }}
               >

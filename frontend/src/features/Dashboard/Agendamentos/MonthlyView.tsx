@@ -38,7 +38,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
   return (
     // Container principal — minHeight:0 para não forçar o `body` da página a
     // ultrapassar o espaço disponível quando o viewport for baixo.
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'var(--color-surface)', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
       {/* Month/Year header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -94,7 +94,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
       {/* Weekday labels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         {WEEKDAYS_SHORT.map(d => (
-          <div key={d} style={{ textAlign: 'center', padding: '8px 4px', fontSize: '0.68rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div key={d} style={{ textAlign: 'center', padding: '8px 4px', fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {d}
           </div>
         ))}
@@ -158,7 +158,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
                       style={{
                         fontSize: '0.82rem',
                         fontWeight: isToday ? 800 : isCurrentMonth ? 600 : 400,
-                        color: isToday ? 'white' : isCurrentMonth ? tokens.color.text : tokens.color.ghost,
+                        color: isToday ? 'white' : isCurrentMonth ? tokens.color.text : tokens.color.subtle,
                         width: 26, height: 26,
                         borderRadius: '50%',
                         background: isToday ? tokens.color.ferrari : 'transparent',
@@ -179,7 +179,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
                           padding: '2px 8px', borderRadius: 99,
                           background: isToday ? tokens.color.ferrari : `${accentColor}18`,
                           color: isToday ? 'white' : accentColor,
-                          fontSize: '0.68rem', fontWeight: 700, alignSelf: 'flex-start',
+                          fontSize: '0.75rem', fontWeight: 700, alignSelf: 'flex-start',
                         }}
                       >
                         <span style={{ width: 5, height: 5, borderRadius: '50%', background: isToday ? 'rgba(255,255,255,0.7)' : accentColor, flexShrink: 0 }} />
@@ -188,7 +188,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
                           : `${active.length} agendamento${active.length > 1 ? 's' : ''}`}
                       </div>
                       {cancelled.length > 0 && (
-                        <div style={{ fontSize: '0.62rem', color: tokens.color.muted, paddingLeft: 2 }}>
+                        <div style={{ fontSize: '0.75rem', color: tokens.color.muted, paddingLeft: 2 }}>
                           {cancelled.length} cancelado{cancelled.length > 1 ? 's' : ''}
                         </div>
                       )}

@@ -84,7 +84,7 @@ export function CameraCapture({ onCapture, onClose, titulo, dica }: CameraCaptur
         <span
           style={{
             fontFamily: tokens.fontMono,
-            fontSize: '0.65rem',
+            fontSize: '0.75rem',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.5)',
@@ -100,7 +100,7 @@ export function CameraCapture({ onCapture, onClose, titulo, dica }: CameraCaptur
             borderRadius: 6,
             color: 'rgba(255,255,255,0.7)',
             fontFamily: tokens.fontMono,
-            fontSize: '0.62rem',
+            fontSize: '0.75rem',
             letterSpacing: '0.07em',
             textTransform: 'uppercase',
             cursor: 'pointer',
@@ -133,7 +133,7 @@ export function CameraCapture({ onCapture, onClose, titulo, dica }: CameraCaptur
             style={{
               color: tokens.color.crit,
               fontFamily: tokens.fontMono,
-              fontSize: '0.72rem',
+              fontSize: '0.75rem',
               textAlign: 'center',
               padding: 24,
             }}
@@ -192,7 +192,7 @@ export function CameraCapture({ onCapture, onClose, titulo, dica }: CameraCaptur
             margin: '12px 0 0',
             textAlign: 'center',
             fontFamily: tokens.fontMono,
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: 'rgba(255,255,255,0.7)',
           }}
         >
@@ -318,7 +318,7 @@ const ghostBtn: React.CSSProperties = {
   borderRadius: 8,
   color: 'rgba(255,255,255,0.7)',
   fontFamily: 'var(--font-mono, monospace)',
-  fontSize: '0.72rem',
+  fontSize: '0.75rem',
   letterSpacing: '0.05em',
   cursor: 'pointer',
   transition: 'background 0.15s',
@@ -334,7 +334,7 @@ const confirmBtn: React.CSSProperties = {
   borderRadius: 8,
   color: '#fff',
   fontFamily: 'var(--font-mono, monospace)',
-  fontSize: '0.72rem',
+  fontSize: '0.75rem',
   fontWeight: 600,
   letterSpacing: '0.05em',
   cursor: 'pointer',

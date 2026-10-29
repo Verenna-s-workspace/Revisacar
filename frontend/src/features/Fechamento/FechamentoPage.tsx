@@ -23,7 +23,7 @@ const cartao: React.CSSProperties = {
   display: 'flex', flexDirection: 'column', gap: 10,
 };
 const tituloBloco: React.CSSProperties = {
-  fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+  fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase',
   color: tokens.color.subtle, margin: 0,
 };
 const campo: React.CSSProperties = {
@@ -139,7 +139,7 @@ export default function FechamentoPage({ os, onBackToStart, onGoOrcamento }: Pro
         </div>
       </div>
       {status && ROTULO_STATUS[status] && (
-        <span style={{ fontFamily: tokens.fontMono, fontSize: '0.6rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.textSecond, background: tokens.color.surfaceHigh, borderRadius: tokens.radius.full, padding: '4px 12px' }}>
+        <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: tokens.color.textSecond, background: tokens.color.surfaceHigh, borderRadius: tokens.radius.full, padding: '4px 12px' }}>
           OS: {ROTULO_STATUS[status]}
         </span>
       )}
@@ -150,7 +150,7 @@ export default function FechamentoPage({ os, onBackToStart, onGoOrcamento }: Pro
   );
 
   const moldura = (conteudo: React.ReactNode) => (
-    <div style={{ fontFamily: tokens.fontSans, background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+    <div style={{ fontFamily: tokens.fontSans, background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
       {cabecalho}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {conteudo}
@@ -288,11 +288,11 @@ export default function FechamentoPage({ os, onBackToStart, onGoOrcamento }: Pro
       )}
 
       {modal && (
-        <div role="dialog" aria-modal="true" aria-label="Concluir serviço" style={{
+        <div role="dialog" aria-modal="true" aria-label="Concluir serviço" className="sheet-backdrop" style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
           justifyContent: 'center', zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
         }}>
-          <div style={{ background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', border: `1px solid ${tokens.color.border}`, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="sheet-panel" style={{ background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 460, maxHeight: '90dvh', overflowY: 'auto', border: `1px solid ${tokens.color.border}`, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>Concluir serviço</h3>
             <p style={{ margin: 0, fontSize: '0.86rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
               A OS passa para “Concluída” e as peças reservadas saem do estoque. Isso não pode ser desfeito por aqui.

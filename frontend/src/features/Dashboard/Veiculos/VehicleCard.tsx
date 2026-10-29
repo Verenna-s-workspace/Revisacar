@@ -115,7 +115,7 @@ function Pill({ children, color, bg, border }: { children: React.ReactNode; colo
         display: 'inline-flex', alignItems: 'center', gap: 4,
         padding: '4px 9px', borderRadius: 7,
         background: bg, border: `1px solid ${border}`, color,
-        fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
+        fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
         letterSpacing: '0.05em', whiteSpace: 'nowrap',
       }}
     >
@@ -127,7 +127,7 @@ function Pill({ children, color, bg, border }: { children: React.ReactNode; colo
 function Spec({ icon, value }: { icon: React.ReactNode; value: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-      <span style={{ display: 'flex', color: tokens.color.ghost, flexShrink: 0 }}>{icon}</span>
+      <span style={{ display: 'flex', color: tokens.color.subtle, flexShrink: 0 }}>{icon}</span>
       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {value}
       </span>
@@ -150,7 +150,7 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
       style={{
         position: 'relative', overflow: 'hidden',
         borderRadius: 20, cursor: 'pointer',
-        background: 'white', border: `1px solid ${tokens.color.border}`,
+        background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`,
         boxShadow: '0 8px 20px rgba(31,15,12,0.07)',
         transition: 'transform 0.22s ease, box-shadow 0.22s ease',
         display: 'flex', flexDirection: 'column',
@@ -167,7 +167,7 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
       {/* Título: marca (eyebrow) + modelo (destaque) + placa */}
       <div style={{ padding: '16px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: tokens.color.muted, marginBottom: 3 }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: tokens.color.muted, marginBottom: 3 }}>
             {v.marca}
           </div>
           <div style={{ fontSize: '1.05rem', fontWeight: 800, color: tokens.color.text, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -176,7 +176,7 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
         </div>
         <span
           style={{
-            fontFamily: tokens.fontMono, fontSize: '0.7rem', fontWeight: 700,
+            fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 700,
             color: tokens.color.ferrari, background: tokens.color.ferrariMid,
             padding: '3px 8px', borderRadius: 6, letterSpacing: '0.03em', flexShrink: 0, marginTop: 2,
           }}
@@ -205,7 +205,7 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
           margin: '12px 16px 0', aspectRatio: '16 / 9', borderRadius: 14,
           border: `1px solid ${tokens.color.border}`,
           overflow: 'hidden', position: 'relative', flexShrink: 0,
-          background: 'white',
+          background: 'var(--color-surface)',
         }}
       >
         {v.fotoPrincipal ? (
@@ -236,12 +236,12 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
               width: 27, height: 27, borderRadius: '50%', flexShrink: 0,
               background: tokens.color.ferrariMid, color: tokens.color.ferrari,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.66rem', fontWeight: 800,
+              fontSize: '0.75rem', fontWeight: 800,
             }}>
               {ownerInitial(v.proprietario!.nome)}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: '0.6rem', color: tokens.color.subtle, lineHeight: 1, marginBottom: 2 }}>Proprietário</div>
+              <div style={{ fontSize: '0.75rem', color: tokens.color.subtle, lineHeight: 1, marginBottom: 2 }}>Proprietário</div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.proprietario!.nome}
               </div>
@@ -251,12 +251,12 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <div style={{
               width: 27, height: 27, borderRadius: '50%', flexShrink: 0,
-              background: tokens.color.surfaceHigh, color: tokens.color.ghost,
+              background: tokens.color.surfaceHigh, color: tokens.color.subtle,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <span style={{ display: 'flex', transform: 'scale(0.8)' }}>{Icons.user}</span>
             </div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: tokens.color.ghost }}>Sem Proprietário</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: tokens.color.subtle }}>Sem Proprietário</div>
           </div>
         )}
       </div>

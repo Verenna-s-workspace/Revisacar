@@ -15,7 +15,7 @@ export function MediaDiariaInfo({ mediaDiaria }: MediaDiariaInfoProps) {
   return (
     <Card style={{ padding: '12px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 18 }}>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted }}>
           Média diária de OS
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

@@ -171,7 +171,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
       <div
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: isMobile ? '14px 16px' : '16px 28px', background: 'white',
+          padding: isMobile ? '14px 16px' : '16px 28px', background: 'var(--color-surface)',
           borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap', gap: 10,
         }}
       >
@@ -192,7 +192,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
               {usandoDadosDemo && (
                 <span
                   style={{
-                    fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                    fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
                     color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
                     borderRadius: 6, padding: '2px 7px',
                   }}
@@ -208,14 +208,15 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
         </div>
 
         {!erro && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={abrirNovoKit} style={BTN_SECUNDARIO}>
+          // Mobile: botões com texto, na largura toda, lado a lado (antes só o "+")
+          <div style={{ display: 'flex', gap: 10, width: isMobile ? '100%' : undefined }}>
+            <button type="button" onClick={abrirNovoKit} style={{ ...BTN_SECUNDARIO, ...(isMobile ? { flex: 1, justifyContent: 'center', minHeight: 44 } : null) }}>
               <span style={{ display: 'flex' }}>{Icons.plus}</span>
-              {!isMobile && 'Criar Kit'}
+              {isMobile ? 'Novo kit' : 'Criar Kit'}
             </button>
-            <button onClick={abrirNovoProduto} style={BTN_PRIMARIO}>
+            <button type="button" onClick={abrirNovoProduto} style={{ ...BTN_PRIMARIO, ...(isMobile ? { flex: 1, justifyContent: 'center', minHeight: 44 } : null) }}>
               <span style={{ display: 'flex' }}>{Icons.plus}</span>
-              {!isMobile && 'Adicionar Produto'}
+              {isMobile ? 'Novo produto' : 'Adicionar Produto'}
             </button>
           </div>
         )}
@@ -461,7 +462,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="estoque" onNav={onNav} />
         {content}
         <MobileNav active="estoque" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
@@ -471,7 +472,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="estoque" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}

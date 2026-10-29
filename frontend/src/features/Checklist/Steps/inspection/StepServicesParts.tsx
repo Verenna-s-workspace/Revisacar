@@ -60,7 +60,7 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
   const autoBadge = (
     <span style={{
       fontFamily: tokens.fontMono,
-      fontSize: '0.50rem',
+      fontSize: '0.75rem',
       letterSpacing: '0.08em',
       textTransform: 'uppercase',
       color: tokens.color.ferrari,
@@ -142,7 +142,7 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
             <div key={key}>
               <div style={{
                 fontFamily: tokens.fontMono,
-                fontSize: '0.52rem',
+                fontSize: '0.75rem',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 color: tokens.color.subtle,
@@ -240,12 +240,12 @@ function EmptyState({ onGoBack }: { onGoBack: () => void }) {
         <path d="M34 6l7 7M41 6l-7 7" strokeWidth={1.6} />
       </svg>
       <div style={{
-        fontFamily: tokens.fontMono, fontSize: '0.72rem', color: tokens.color.ghost,
+        fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle,
         textAlign: 'center', letterSpacing: '0.04em', lineHeight: 1.7,
       }}>
         Nenhuma peça marcada para troca
         <br />
-        <span style={{ fontSize: '0.62rem' }}>
+        <span style={{ fontSize: '0.75rem' }}>
           Ative "Trocar" em itens do diagnóstico ou adicione manualmente abaixo
         </span>
       </div>
@@ -293,7 +293,7 @@ export function Step3({ os }: StepProps) {
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: tokens.fontMono, fontSize: '0.62rem', letterSpacing: '0.1em',
+            fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.1em',
             textTransform: 'uppercase', color: tokens.color.subtle, marginBottom: 6,
           }}>
             Peças para troca
@@ -301,12 +301,12 @@ export function Step3({ os }: StepProps) {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{
               fontFamily: tokens.fontMono, fontSize: '1.8rem', fontWeight: 300, lineHeight: 1,
-              color: tabelaPecas.length > 0 ? tokens.color.ferrari : tokens.color.ghost,
+              color: tabelaPecas.length > 0 ? tokens.color.ferrari : tokens.color.subtle,
               letterSpacing: '-0.03em',
             }}>
               {tabelaPecas.length}
             </span>
-            <span style={{ fontFamily: tokens.fontMono, fontSize: '0.65rem', color: tokens.color.muted }}>
+            <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted }}>
               {tabelaPecas.length === 1 ? 'item' : 'itens'}
             </span>
           </div>
@@ -318,7 +318,7 @@ export function Step3({ os }: StepProps) {
               <span style={{ fontFamily: tokens.fontMono, fontSize: '1.2rem', fontWeight: 300, color: tokens.color.ferrari, display: 'block', lineHeight: 1 }}>
                 {autoCount}
               </span>
-              <span style={{ fontFamily: tokens.fontMono, fontSize: '0.56rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.color.subtle, display: 'block', marginTop: 4 }}>
+              <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.color.subtle, display: 'block', marginTop: 4 }}>
                 Automático
               </span>
             </div>
@@ -328,7 +328,7 @@ export function Step3({ os }: StepProps) {
               <span style={{ fontFamily: tokens.fontMono, fontSize: '1.2rem', fontWeight: 300, color: tokens.color.textSecond, display: 'block', lineHeight: 1 }}>
                 {manualCount}
               </span>
-              <span style={{ fontFamily: tokens.fontMono, fontSize: '0.56rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.color.subtle, display: 'block', marginTop: 4 }}>
+              <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.color.subtle, display: 'block', marginTop: 4 }}>
                 Manual
               </span>
             </div>
@@ -361,7 +361,7 @@ export function Step3({ os }: StepProps) {
                 }}>
                   {['Peça', 'Modelo', 'Marca', 'Código', 'Qtd.', ''].map((col, i) => (
                     <div key={i} style={{
-                      fontFamily: tokens.fontMono, fontSize: '0.58rem', fontWeight: 500,
+                      fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 500,
                       letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.color.subtle,
                       paddingRight: 14,
                     }}>
@@ -402,7 +402,7 @@ export function Step3({ os }: StepProps) {
               justifyContent: 'center',
               gap: 8,
               fontFamily: tokens.fontMono,
-              fontSize: '0.62rem',
+              fontSize: '0.75rem',
               fontWeight: 500,
               letterSpacing: '0.05em',
               textTransform: 'uppercase',

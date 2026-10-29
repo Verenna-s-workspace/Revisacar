@@ -1,33 +1,63 @@
-import { useState, useEffect, CSSProperties, ReactNode } from 'react';
+import { useEffect, useSyncExternalStore, CSSProperties, ReactNode } from 'react';
 import { tokens } from '../constants';
 
 // ── useResponsive hook ────────────────────────────────────────────────────────
 
+/** Breakpoints do app (px). Mantenha em sincronia com os @media dos .css:
+ *  639/640 (celular), 979/980 (desktop). */
+export const BREAKPOINTS = { sm: 480, md: 640, lg: 980 } as const;
+
 type Breakpoint = 'xs' | 'sm' | 'md' | 'lg';
 
 function getBreakpoint(w: number): Breakpoint {
-  if (w < 480)  return 'xs';
-  if (w < 640)  return 'sm';
-  if (w < 980)  return 'md';   // desktop layout kicks in at exactly 980 px
+  if (w < BREAKPOINTS.sm) return 'xs';
+  if (w < BREAKPOINTS.md) return 'sm';
+  if (w < BREAKPOINTS.lg) return 'md';   // desktop layout kicks in at exactly 980 px
   return 'lg';
 }
 
-export function useResponsive() {
-  const [bp, setBp] = useState<Breakpoint>(() =>
-    typeof window !== 'undefined' ? getBreakpoint(window.innerWidth) : 'lg'
-  );
+// Uma única assinatura de resize para o app inteiro. Antes cada componente que
+// chamava useResponsive() registrava o próprio listener (dezenas ao mesmo tempo).
+const listeners = new Set<() => void>();
+let current: Breakpoint =
+  typeof window !== 'undefined' ? getBreakpoint(window.innerWidth) : 'lg';
 
-  useEffect(() => {
-    const handler = () => setBp(getBreakpoint(window.innerWidth));
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
+function update() {
+  const next = getBreakpoint(window.innerWidth);
+  if (next !== current) {
+    current = next;
+    listeners.forEach(l => l());
+  }
+}
+
+function subscribe(cb: () => void) {
+  if (listeners.size === 0) {
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+  }
+  listeners.add(cb);
+  update();
+  return () => {
+    listeners.delete(cb);
+    if (listeners.size === 0) {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    }
+  };
+}
+
+export function useResponsive() {
+  const bp = useSyncExternalStore(subscribe, () => current, () => 'lg' as Breakpoint);
 
   return {
     bp,
     isMobile:  bp === 'xs' || bp === 'sm',
     isTablet:  bp === 'md',
     isDesktop: bp === 'lg',
+    /** Celular OU tablet/celular deitado (< 980px). É o que decide usar o
+     *  layout mobile (topbar + bottom nav) em vez da sidebar de 240px, que
+     *  espremia o conteúdo na faixa de 640–979px. */
+    isCompact: bp !== 'lg',
   };
 }
 
@@ -95,26 +125,30 @@ export function useGrid4(): CSSProperties {
  * React components.
  */
 
+// min(100%, …) evita estourar a largura em telas de 320px (antes: minmax(300px, …)).
 export const grid3: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 2fr))',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
   gap: '14px 18px',
 };
 
+// Antes: 'auto-fill, minmax(250px, 1fr))' — faltava `repeat(`, o navegador
+// descartava a regra e o formulário virava uma coluna só.
 export const grid4: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'auto-fill, minmax(250px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))',
   gap: '14px 18px',
 };
 
 // ── Button styles ─────────────────────────────────────────────────────────────
 
 const baseBtn: CSSProperties = {
-  fontFamily: tokens.fontMono,
-  fontSize: '0.72rem',
-  fontWeight: 500,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase',
+  fontFamily: tokens.fontSans,
+  fontSize: '0.875rem',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  minHeight: 44,            // alvo de toque mínimo
+  justifyContent: 'center',
   padding: '9px 20px',
   borderRadius: tokens.radius.md,
   border: 'none',
@@ -128,10 +162,10 @@ const baseBtn: CSSProperties = {
 export const btnSolid: CSSProperties    = { ...baseBtn, background: tokens.color.surfaceHigh, color: tokens.color.textSecond, border: `1px solid ${tokens.color.border}` };
 export const btnAccent: CSSProperties   = { ...baseBtn, background: tokens.color.ferrari,    color: '#fff', boxShadow: '0 1px 4px rgba(204,20,0,0.3)' };
 export const btnGhost: CSSProperties    = { ...baseBtn, background: 'transparent', color: tokens.color.muted, border: `1px solid ${tokens.color.border}` };
-export const btnDisabled: CSSProperties = { ...baseBtn, background: tokens.color.surfaceHigh, color: tokens.color.ghost, cursor: 'not-allowed', border: `1px solid ${tokens.color.border}` };
+export const btnDisabled: CSSProperties = { ...baseBtn, background: tokens.color.surfaceHigh, color: tokens.color.subtle, cursor: 'not-allowed', border: `1px solid ${tokens.color.border}` };
 export const pfNote: CSSProperties = {
-  fontFamily: tokens.fontMono,
-  fontSize: '0.67rem',
+  fontFamily: tokens.fontSans,
+  fontSize: '0.75rem',
   color: tokens.color.subtle,
 };
 // ── SectionTitle ──────────────────────────────────────────────────────────────
@@ -139,12 +173,11 @@ interface SectionTitleProps { children: ReactNode; }
 export function SectionTitle({ children }: SectionTitleProps) {
   return (
     <div style={{
-      fontFamily: tokens.fontMono,
-      fontSize: '0.62rem',
-      fontWeight: 500,
-      letterSpacing: '0.13em',
-      textTransform: 'uppercase',
-      color: tokens.color.subtle,
+      fontFamily: tokens.fontSans,
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      letterSpacing: '0.02em',
+      color: tokens.color.muted,
       marginBottom: 18,
       display: 'flex',
       alignItems: 'center',
@@ -195,22 +228,28 @@ interface FieldProps {
 }
 
 export function Field({ label, span, hint, children }: FieldProps) {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
+
+  // Colapsa o span: 1 coluna no celular; no tablet (grade de 2 colunas) qualquer
+  // span >= 2 ocupa a linha toda — antes `span 4` criava colunas implícitas.
+  const gridColumn = isMobile || !span
+    ? undefined
+    : isTablet
+      ? (span >= 2 ? '1 / -1' : undefined)
+      : `span ${span}`;
 
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       gap: 5,
-      // Collapse span on mobile so nothing overflows the single-column grid
-      gridColumn: (!isMobile && span) ? `span ${span}` : undefined,
+      gridColumn,
     }}>
       <label style={{
-        fontFamily: tokens.fontMono,
-        fontSize: '0.6rem',
-        fontWeight: 500,
-        letterSpacing: '0.09em',
-        textTransform: 'uppercase',
+        fontFamily: tokens.fontSans,
+        fontSize: '0.8125rem',
+        fontWeight: 600,
+        color: tokens.color.textSecond,
       }}>
         {label}
       </label>
@@ -218,9 +257,9 @@ export function Field({ label, span, hint, children }: FieldProps) {
      
       {hint && (
         <span style={{
-          fontFamily: tokens.fontMono,
-          fontSize: '0.58rem',
-          color: tokens.color.ghost,
+          fontFamily: tokens.fontSans,
+          fontSize: '0.75rem',
+          color: tokens.color.subtle,
         }}>
           {hint}
         </span>
@@ -234,34 +273,15 @@ export function Field({ label, span, hint, children }: FieldProps) {
 interface PanelFooterProps { left?: ReactNode; right?: ReactNode; }
 
 export function PanelFooter({ left, right }: PanelFooterProps) {
-  const { isMobile, isTablet } = useResponsive();
-  const px = isMobile ? 16 : isTablet ? 24 : 40;
+  const { isCompact } = useResponsive();
 
+  // Estilos em ui.css (.panel-footer): safe-area do iPhone, botões lado a lado
+  // no celular (secundário + primário, antes empilhados ocupando ~130px) e
+  // fundo que acompanha o modo escuro.
   return (
-    <div style={{
-      padding: `14px ${px}px`,
-      background: 'rgba(247,246,243,0.92)',
-      borderTop: `1px solid ${tokens.color.border}`,
-      display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      alignItems: isMobile ? 'stretch' : 'center',
-      justifyContent: 'space-between',
-      gap: isMobile ? 10 : 0,
-      position: 'sticky',
-      bottom: 0,
-      zIndex: 100,
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-    }}>
-      {left || (!isMobile && <div />)}
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        alignItems: 'center',
-        // On mobile, stack buttons full-width
-        flexDirection: isMobile ? 'column' : 'row',
-        width: isMobile ? '100%' : undefined,
-      }}>
+    <div className="panel-footer">
+      {left || (!isCompact && <div />)}
+      <div className="panel-footer__right">
         {right}
       </div>
     </div>
@@ -301,9 +321,10 @@ export function ValidationBanner({ show, children }: ValidationBannerProps) {
         <line x1="7" y1="5.5" x2="7" y2="8.5" />
         <circle cx="7" cy="10.5" r="0.5" fill={tokens.color.crit} />
       </svg>
-      <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.crit }}>
+      <span role="alert" style={{ fontFamily: tokens.fontSans, fontSize: '0.8125rem', fontWeight: 500, color: tokens.color.crit }}>
         {children}
-      </span>    </div>
+      </span>
+    </div>
   );
 }
 
@@ -356,10 +377,9 @@ export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGr
             <path d="M6 4l1.2-2h3.6L12 4" />
           </svg>
           <span style={{
-            fontFamily: tokens.fontMono,
-            fontSize: '0.58rem',
-            letterSpacing: '0.07em',
-            textTransform: 'uppercase',
+            fontFamily: tokens.fontSans,
+            fontSize: '0.75rem',
+            fontWeight: 600,
             color: tokens.color.subtle,
           }}>
             Foto
@@ -386,10 +406,12 @@ export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGr
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
             />
             <button
+              type="button"
+              className="tap-area"
               onClick={() => onRemove(i)}
               style={{
                 position: 'absolute', top: 4, right: 4,
-                width: 20, height: 20,
+                width: 24, height: 24,
                 background: 'rgba(255,255,255,0.9)',
                 color: tokens.color.textSecond,
                 border: `1px solid ${tokens.color.border}`,
@@ -410,7 +432,7 @@ export function PhotoGrid({ photos, handlePhotos, onRemove, onPreview }: PhotoGr
         ))}
       </div>
 
-      <p style={{ fontFamily: tokens.fontMono, fontSize: '0.62rem', color: tokens.color.subtle, marginTop: 10 }}>
+      <p style={{ fontFamily: tokens.fontSans, fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 10 }}>
         {photos.length === 0
           ? 'Nenhuma foto adicionada'
           : `${photos.length} foto${photos.length > 1 ? 's' : ''} adicionada${photos.length > 1 ? 's' : ''}`}
@@ -441,7 +463,7 @@ export function Lightbox({ src, onClose }: LightboxProps) {
         display: 'flex',
         position: 'fixed', inset: 0,
         background: 'rgba(26,26,26,0.88)',
-        zIndex: 9999,
+        zIndex: 'var(--z-modal)' as unknown as number,
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,           // breathing room on small screens
@@ -452,27 +474,27 @@ export function Lightbox({ src, onClose }: LightboxProps) {
       <button
         onClick={onClose}
         style={{
-          position: 'absolute', top: 16, right: 16,
-          background: 'rgba(255,255,255,0.12)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          color: 'rgba(255,255,255,0.8)',
-          width: 34, height: 34,
+          position: 'absolute', top: 'max(16px, env(safe-area-inset-top))', right: 16,
+          background: 'rgba(255,255,255,0.16)',
+          border: '1px solid rgba(255,255,255,0.28)',
+          color: '#fff',
+          width: 44, height: 44,
           cursor: 'pointer',
-          fontFamily: tokens.fontMono,
-          fontSize: '0.65rem',
+          fontFamily: tokens.fontSans,
+          fontSize: '1.5rem',
+          lineHeight: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderRadius: tokens.radius.md,
-          letterSpacing: '0.05em',
         }}
         aria-label="Fechar"
       >
-        ESC
+        ×
       </button>
       <img
         src={src}
         alt="Pré-visualização"
         style={{
-          maxWidth: '100%', maxHeight: '90vh',   // safe on all screen sizes
+          maxWidth: '100%', maxHeight: '90dvh',   // dvh: acompanha a barra de endereço do mobile
           display: 'block',
           borderRadius: tokens.radius.lg,
           boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
@@ -503,10 +525,8 @@ export function StatBadge({ value, label, color }: StatBadgeProps) {
         {value}
       </span>
       <span style={{
-        fontFamily: tokens.fontMono,
-        fontSize: '0.56rem',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
+        fontFamily: tokens.fontSans,
+        fontSize: '0.75rem',
         color: tokens.color.subtle,
         marginTop: 4,
         display: 'block',

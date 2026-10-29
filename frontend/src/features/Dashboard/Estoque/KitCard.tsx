@@ -6,20 +6,25 @@ import type { EstoqueItem, EstoqueKit } from '../../../types/estoque';
 
 interface ActionBtnProps {
   title: string;
+  /** Texto curto mostrado ao lado do ícone no celular/tablet. */
+  label?: string;
   onClick: () => void;
   danger?: boolean;
   children: ReactNode;
 }
 
-function ActionBtn({ title, onClick, danger, children }: ActionBtnProps) {
+function ActionBtn({ title, label, onClick, danger, children }: ActionBtnProps) {
   return (
     <button
+      type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
       className="dashboard-card__icon-button"
       style={danger ? { color: tokens.color.crit } : undefined}
     >
-      {children}
+      <span style={{ display: 'flex' }}>{children}</span>
+      <span className="dashboard-card__icon-button-label">{label ?? title}</span>
     </button>
   );
 }
@@ -56,11 +61,11 @@ export function KitCard({ kit, itensPorId, disponibilidade, aplicando, erro, onA
         </div>
         <div style={{ minWidth: 0 }}>
           {indisponivel ? (
-            <span style={{ padding: '3px 8px', background: tokens.color.critBg, color: tokens.color.crit, borderRadius: 6, fontSize: '0.68rem', fontWeight: 700 }}>
+            <span style={{ padding: '3px 8px', background: tokens.color.critBg, color: tokens.color.crit, borderRadius: 6, fontSize: '0.75rem', fontWeight: 700 }}>
               Indisponível
             </span>
           ) : (
-            <span style={{ padding: '3px 8px', background: tokens.color.okBg, color: tokens.color.ok, borderRadius: 6, fontSize: '0.68rem', fontWeight: 700 }}>
+            <span style={{ padding: '3px 8px', background: tokens.color.okBg, color: tokens.color.ok, borderRadius: 6, fontSize: '0.75rem', fontWeight: 700 }}>
               Dá pra montar {disponibilidade}
             </span>
           )}
@@ -85,7 +90,7 @@ export function KitCard({ kit, itensPorId, disponibilidade, aplicando, erro, onA
           style={{
             padding: '8px 16px', borderRadius: 8, border: 'none',
             background: indisponivel ? tokens.color.surfaceHigh : tokens.color.ferrari,
-            color: indisponivel ? tokens.color.ghost : 'white',
+            color: indisponivel ? tokens.color.subtle : 'white',
             fontSize: '0.8rem', fontWeight: 700, cursor: indisponivel || aplicando ? 'not-allowed' : 'pointer',
           }}
         >

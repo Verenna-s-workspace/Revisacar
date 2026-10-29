@@ -28,10 +28,10 @@ export function AppointmentModal({
 
   const Field = ({ label, value }: { label: string; value?: string }) => (
     <div>
-      <div style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 4 }}>
         {label}
       </div>
-      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: value ? tokens.color.text : tokens.color.ghost }}>
+      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: value ? tokens.color.text : tokens.color.subtle }}>
         {value || '—'}
       </div>
     </div>
@@ -74,16 +74,16 @@ export function AppointmentModal({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem', color: tokens.color.ferrari, marginBottom: 6 }}>Agendamento Remarcado</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ padding: '5px 12px', borderRadius: 8, background: 'white', border: `1px solid ${tokens.color.border}` }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 2 }}>Data Anterior</div>
+                  <div style={{ padding: '5px 12px', borderRadius: 8, background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}` }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 2 }}>Data Anterior</div>
                     <div style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.textSecond, textDecoration: 'line-through' }}>
                       {formatDateBR(ag.reagendamento.dataAnterior)}
                       {ag.reagendamento.horaAnterior && ` ${ag.reagendamento.horaAnterior}`}
                     </div>
                   </div>
                   <span style={{ color: tokens.color.ferrari, fontWeight: 700 }}>→</span>
-                  <div style={{ padding: '5px 12px', borderRadius: 8, background: 'white', border: `1px solid ${tokens.color.ferrariGlow}` }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.ferrari, marginBottom: 2 }}>Nova Data</div>
+                  <div style={{ padding: '5px 12px', borderRadius: 8, background: 'var(--color-surface)', border: `1px solid ${tokens.color.ferrariGlow}` }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.ferrari, marginBottom: 2 }}>Nova Data</div>
                     <div style={{ fontSize: '0.86rem', fontWeight: 800, color: tokens.color.ferrari }}>
                       {formatDateBR(ag.reagendamento.novaData)}
                       {ag.reagendamento.novaHora && ` ${ag.reagendamento.novaHora}`}
@@ -112,7 +112,7 @@ export function AppointmentModal({
 
           {/* Description */}
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 8 }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 8 }}>
               Descrição do Serviço
             </div>
             {ag.descricao ? (
@@ -120,13 +120,13 @@ export function AppointmentModal({
                 {ag.descricao}
               </div>
             ) : (
-              <div style={{ color: tokens.color.ghost, fontSize: '0.85rem' }}>Sem descrição registrada.</div>
+              <div style={{ color: tokens.color.subtle, fontSize: '0.85rem' }}>Sem descrição registrada.</div>
             )}
           </div>
         </div>
 
         {/* Footer actions */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
               onClick={() => onEdit(ag)}
@@ -159,7 +159,7 @@ export function AppointmentModal({
               {Icons.orders} Alterar Status
             </button>
             {showStatusPicker && (
-              <div style={{ position: 'absolute', bottom: '110%', right: 0, background: 'white', border: `1px solid ${tokens.color.border}`, borderRadius: 12, boxShadow: tokens.shadow.lg, padding: 8, minWidth: 220, zIndex: 10 }}>
+              <div style={{ position: 'absolute', bottom: '110%', right: 0, background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`, borderRadius: 12, boxShadow: tokens.shadow.lg, padding: 8, minWidth: 220, zIndex: 10 }}>
                 {APPOINTMENT_STATUS_ORDER.map(st => {
                   const cfg = APPOINTMENT_STATUS_CONFIG[st];
                   const isCurrent = ag.status === st;
@@ -178,7 +178,7 @@ export function AppointmentModal({
                     >
                       <span style={{ display: 'flex', color: cfg.color }}>{cfg.icon}</span>
                       {cfg.label}
-                      {isCurrent && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: cfg.color }}>✓ atual</span>}
+                      {isCurrent && <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: cfg.color }}>✓ atual</span>}
                     </button>
                   );
                 })}

@@ -73,7 +73,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: mobile ? '14px 16px' : '16px 28px',
-          background: 'white',
+          background: 'var(--color-surface)',
           borderBottom: `1px solid ${tokens.color.border}`,
           flexShrink: 0,
           flexWrap: 'wrap',
@@ -97,7 +97,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
               {usandoDadosDemo && (
                 <span
                   style={{
-                    fontSize: '0.65rem',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
@@ -202,7 +202,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                 <div className="dashboard-card__header">
                   <div>
                     <div className="dashboard-card__header-title">FATURAMENTO</div>
-                    <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
                       {faturamentoOrigem === 'financeiro'
                         ? 'Entradas lançadas no Financeiro (exceto canceladas), por período, comparado ao período anterior.'
                         : 'Valor estimado das OS finalizadas (ainda sem entradas no Financeiro), por período, comparado ao período anterior.'}
@@ -216,7 +216,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                 <div className="dashboard-card__header">
                   <div>
                     <div className="dashboard-card__header-title">ORDENS DE SERVIÇO</div>
-                    <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
                       Quantidade de OS abertas por período, comparado ao período anterior.
                     </div>
                   </div>
@@ -230,7 +230,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
               <div className="dashboard-card__header">
                 <div>
                   <div className="dashboard-card__header-title">SERVIÇOS MAIS REALIZADOS</div>
-                  <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
                     Serviços mais frequentes entre as OS finalizadas no período (quantidade e % do total).
                   </div>
                 </div>
@@ -256,8 +256,8 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
               <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
                 <div className="dashboard-card__header">
                   <div>
-                    <div className="dashboard-card__header-title">DESTAQUE DO PERÍODO</div>
-                    <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                    <div className="dashboard-card__header-title">Destaques do período</div>
+                    <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
                       Item de estoque com maior saída, com preço, disponibilidade e acesso direto — toque pra ver no Estoque.
                     </div>
                   </div>
@@ -276,7 +276,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
               <div className="dashboard-card__header">
                 <div>
                   <div className="dashboard-card__header-title">ITENS DE ESTOQUE MAIS MOVIMENTADOS</div>
-                  <div style={{ fontSize: '0.72rem', color: tokens.color.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
                     Peças com mais saída de estoque no período (quantidade e % do total).
                   </div>
                 </div>
@@ -306,7 +306,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
 
   if (mobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="relatorios" onNav={onNav} />
         {content}
         <MobileNav active="relatorios" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
@@ -315,7 +315,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="relatorios" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {content}

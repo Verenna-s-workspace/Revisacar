@@ -61,7 +61,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
     // Tamanho fixo: preenche o espaço que o `body` da página lhe dá (flex:1) e
     // NUNCA excede isso (minHeight:0 permite encolher, overflow:hidden garante
     // que nada vaze para fora do card). Ele mesmo não rola.
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'white', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: 'var(--color-surface)', borderRadius: 16, border: `1px solid ${tokens.color.border}`, boxShadow: tokens.shadow.xs, overflow: 'hidden' }}>
       {/* Day header — fixo, não faz parte da área rolável */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -77,7 +77,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
               {', '}
               <span style={{ color: tokens.color.muted, fontWeight: 500 }}>{date.getDate()} de {['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][date.getMonth()]}</span>
             </div>
-            <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 1 }}>
+            <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 1 }}>
               {WEEKDAYS_LONG[date.getDay()]} · {dayItems.length} agendamento{dayItems.length !== 1 ? 's' : ''}
             </div>
           </div>
@@ -120,7 +120,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                   width: '100%',
                   textAlign: 'right',
                   paddingRight: 12,
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: 600,
                   color: tokens.color.subtle,
                   fontFamily: tokens.fontMono,
@@ -184,7 +184,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                     top: top + 3,
                     height: height,
                     borderRadius: 12,
-                    background: 'white',
+                    background: 'var(--color-surface)',
                     border: `1px solid ${tokens.color.border}`,
                     borderLeft: `4px solid ${cfg.color}`,
                     boxShadow: tokens.shadow.sm,
@@ -214,7 +214,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                     </span>
                     <span
                       style={{
-                        fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                        fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99,
                         color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
                         whiteSpace: 'nowrap', flexShrink: 0,
                       }}
@@ -225,7 +225,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span
                       style={{
-                        fontFamily: tokens.fontMono, fontSize: '0.72rem', fontWeight: 700,
+                        fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 700,
                         background: cfg.bg, color: cfg.color, padding: '2px 7px', borderRadius: 6,
                       }}
                     >
@@ -233,7 +233,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                     </span>
                     <span
                       style={{
-                        fontFamily: tokens.fontMono, fontSize: '0.7rem', fontWeight: 700,
+                        fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 700,
                         background: tokens.color.surfaceHigh, color: tokens.color.textSecond,
                         padding: '2px 7px', borderRadius: 6, letterSpacing: '0.04em',
                       }}
@@ -243,11 +243,11 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                   </div>
                   {height > 55 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 2 }}>
-                      <span style={{ fontSize: '0.74rem', color: tokens.color.muted, fontFamily: tokens.fontMono }}>
+                      <span style={{ fontSize: '0.75rem', color: tokens.color.muted, fontFamily: tokens.fontMono }}>
                         🕐 {ag.horaInicio} - {ag.horaFim}
                       </span>
                       {ag.mecanico && (
-                        <span style={{ fontSize: '0.74rem', color: tokens.color.muted }}>
+                        <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
                           👤 {ag.mecanico}
                         </span>
                       )}

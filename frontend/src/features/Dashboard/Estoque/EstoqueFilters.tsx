@@ -18,7 +18,7 @@ export function EstoqueFilters({ busca, onBusca, somenteBaixo, onSomenteBaixo, m
   return (
     <div
       style={{
-        background: 'white', borderBottom: `1px solid ${tokens.color.border}`,
+        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`,
         padding: isMobile ? '10px 14px' : '12px 28px',
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       }}

@@ -55,7 +55,7 @@ export function ServicoStats({ stats, loading }: ServicoStatsProps) {
               )}
               <div
                 style={{
-                  fontSize: '0.64rem', fontWeight: 700, color: tokens.color.muted,
+                  fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted,
                   textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 3,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}

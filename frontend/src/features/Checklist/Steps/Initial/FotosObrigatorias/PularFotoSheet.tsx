@@ -67,13 +67,13 @@ export function PularFotoSheet({ rotulo, motivoAtual, ocupado, erro, onConfirmar
           borderRadius: `${tokens.radius.xl} ${tokens.radius.xl} 0 0`,
           padding: '18px 16px calc(16px + env(safe-area-inset-bottom, 0px))',
           boxShadow: '0 -8px 32px rgba(0,0,0,0.2)',
-          maxHeight: '90vh', overflowY: 'auto',
+          maxHeight: '90dvh', overflowY: 'auto',
         }}
       >
         <div style={{ fontFamily: tokens.fontSans, fontSize: '1.05rem', fontWeight: 700, color: tokens.color.text }}>
           Não consigo tirar esta foto
         </div>
-        <div style={{ fontFamily: tokens.fontMono, fontSize: '0.72rem', color: tokens.color.muted, margin: '2px 0 14px' }}>
+        <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted, margin: '2px 0 14px' }}>
           {rotulo} — escolha o motivo
         </div>
 
@@ -108,7 +108,7 @@ export function PularFotoSheet({ rotulo, motivoAtual, ocupado, erro, onConfirmar
                 borderRadius: tokens.radius.md,
               }}
             />
-            <div style={{ fontFamily: tokens.fontMono, fontSize: '0.65rem', color: tokens.color.subtle, marginTop: 4, textAlign: 'right' }}>
+            <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 4, textAlign: 'right' }}>
               {texto.trim().length}/{MOTIVO_MAX}
             </div>
           </div>

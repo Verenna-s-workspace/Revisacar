@@ -201,7 +201,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isMobile ? '14px 16px' : '16px 28px',
-        background: 'white', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0,
+        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0,
         flexWrap: 'wrap', gap: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -220,7 +220,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
               </h2>
               {usandoDadosDemo && (
                 <span style={{
-                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
                   color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
                   borderRadius: 6, padding: '2px 7px',
                 }}>
@@ -275,7 +275,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
 
       {/* ── Mobile view switcher (fixo) ─── */}
       {isMobile && (
-        <div style={{ padding: '10px 14px', background: 'white', borderBottom: `1px solid ${tokens.color.border}` }}>
+        <div style={{ padding: '10px 14px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}` }}>
           <ViewSwitcher active={viewMode} onChange={setViewMode} />
         </div>
       )}
@@ -342,14 +342,14 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
             {showList && filtered.length > 0 && (
               <div
                 style={{
-                  background: 'white', borderRadius: 14,
+                  background: 'var(--color-surface)', borderRadius: 14,
                   border: `1px solid ${tokens.color.border}`,
                   boxShadow: tokens.shadow.xs, overflow: 'hidden',
                 }}
               >
                 <div style={{ padding: '14px 18px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ fontWeight: 700, fontSize: '0.88rem', color: tokens.color.text }}>Lista de Agendamentos</div>
-                  <span style={{ fontSize: '0.72rem', color: tokens.color.muted }}>{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
+                  <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
                 </div>
                 <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {filtered.map(ag => (
@@ -365,7 +365,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   justifyContent: 'center', gap: 12, padding: '60px 20px',
-                  background: 'white', borderRadius: 16,
+                  background: 'var(--color-surface)', borderRadius: 16,
                   border: `1px solid ${tokens.color.border}`,
                 }}
               >
@@ -424,7 +424,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100vh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="agendamentos" onNav={onNav} />
         {content}
         <MobileNav active="agendamentos" onNav={onNav} onNewOS={onNewOS ?? (() => openNewModal())} />
@@ -439,7 +439,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     // Semanal/Mensal. Restaurado 1:1 para que a lista de agendamentos volte a
     // rolar como rolava antes, sem nenhum conteúdo cortado.
     return (
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <div style={{ display: 'flex', minHeight: '100dvh' }}>
         <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
         <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {content}
@@ -450,11 +450,11 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   }
 
   return (
-    // Modo calendário (Diário/Semanal/Mensal): shell travado em 100vh (ao invés
+    // Modo calendário (Diário/Semanal/Mensal): shell travado em 100dvh (ao invés
     // de minHeight). Isso é o que permite que os containers filhos com
     // `flex:1 + minHeight:0` calculem uma altura FINITA e, por consequência,
     // que o scroll interno do DailyView/WeeklyView funcione isoladamente.
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {content}

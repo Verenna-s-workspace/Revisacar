@@ -13,7 +13,7 @@ export function ProximoAgendamento({ agendamento, loading, onIniciarAtendimento 
     <Card style={{ padding: '16px 20px' }}>
       <div
         style={{
-          fontSize: '0.7rem',
+          fontSize: '0.75rem',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.05em',

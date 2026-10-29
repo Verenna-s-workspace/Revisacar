@@ -1,10 +1,11 @@
 .topbar {
-  background: rgba(247,246,243,0.9);
+  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: 300;
-  padding: 0 10px;
+  z-index: var(--z-topbar);
+  /* PWA em tela cheia: sem isso o conteúdo fica embaixo do notch/relógio */
+  padding: env(safe-area-inset-top) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
 }
 
 .topbar__inner {
@@ -73,12 +74,17 @@
 .topbar__subtitle {
   margin-left: -10px;
   white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 0.54rem;
-  color: var(--color-ghost);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  line-height: 1;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-subtle);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* O logo tinha width/height=70 dentro de uma linha de 56px e vazava para baixo */
+.topbar--mobile .topbar__logo img {
+  width: 36px;
+  height: 36px;
 }
 
 .topbar__actions {
@@ -88,8 +94,8 @@
 }
 
 .topbar-status {
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -116,11 +122,11 @@
 }
 
 .topbar-button {
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  min-height: 36px;
   padding: 7px 15px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -158,15 +164,71 @@
 
 .topbar-button--smaller {
   padding: 4px 10px;
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
 }
 
-.topbar-mobile-row {
-  height: 56px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+/* No toque, todo botão do topo tem 44px de altura */
+@media (pointer: coarse) {
+  .topbar-button,
+  .topbar-button--smaller,
+  .topbar-row-separator button { min-height: var(--tap-min); }
 }
+
+/* Menu "⋯" do checklist no mobile */
+.topbar-menu { position: relative; }
+.topbar-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 200px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: var(--z-topbar);
+}
+.topbar-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+.topbar-menu__item:active { background: var(--color-surface-high); }
+.topbar-menu__item--danger { color: var(--color-crit); }
+
+.topbar-mobile-row {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.topbar-icon-btn:active { background: var(--color-surface-high); }
 
 .topbar-mobile-slot {
   display: flex;
@@ -175,17 +237,20 @@
 
 .topbar-mobile-logo {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  min-width: 0;
 }
 
 .topbar-mobile-end {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 
 .topbar-row-separator {
   border-top: 1px solid var(--color-border);
-  height: 34px;
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -194,5 +259,5 @@
 
 .topbar-row-separator button {
   padding: 4px 10px;
-  font-size: 0.58rem;
+  font-size: var(--text-xs);
 }

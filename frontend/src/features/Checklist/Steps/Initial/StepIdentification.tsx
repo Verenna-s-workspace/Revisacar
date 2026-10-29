@@ -5,7 +5,7 @@ import { Select } from '../../../../components/inputs/select';
 import { COMBUSTIVEL_OPTIONS, NIVEL_COMBUSTIVEL_OPTIONS, tokens } from '../../../../constants';
 import {
   FormBlock, Field, PanelFooter, PhotoGrid,
-  ValidationBanner, grid3, grid4, btnGhost, btnAccent, pfNote,
+  ValidationBanner, useGrid3, useGrid4, btnGhost, btnAccent, pfNote,
 } from '../../../../components/ui';
 
 interface StepProps {
@@ -28,6 +28,8 @@ function StepWrapper({ children, direction = 'forward' }: {
 }
 
 export function Step1({ os }: StepProps) {
+  const g3 = useGrid3();
+  const g4 = useGrid4();
   const {
     osHeader, setOsHeader,
     cliente, setCliente,
@@ -70,7 +72,7 @@ export function Step1({ os }: StepProps) {
       </ValidationBanner>
 
       <FormBlock title="Ordem de Serviço">
-        <div style={grid4}>
+        <div style={g4}>
           <Field label="Nº da OS *">
             <Input
               name="os_num" onlyNumbers placeholder="000001"
@@ -104,7 +106,7 @@ export function Step1({ os }: StepProps) {
       </FormBlock>
 
       <FormBlock title="Dados do Cliente">
-        <div style={grid3}>
+        <div style={g3}>
           <Field label="Nome completo *" span={2}>
             <Input
               name="cliente_nome" placeholder="Ex: João da Silva" onlyText
@@ -139,7 +141,7 @@ export function Step1({ os }: StepProps) {
       </FormBlock>
 
       <FormBlock title="Dados do Veículo">
-        <div style={grid4}>
+        <div style={g4}>
           <Field label="Placa *">
             <Input
               name="veiculo_placa" placeholder="ABC1C34 / ABC-1234"

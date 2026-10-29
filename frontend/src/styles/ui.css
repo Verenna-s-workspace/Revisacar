@@ -1,5 +1,6 @@
 .step-wrapper {
-  will-change: transform, opacity;
+  /* will-change permanente mantinha uma camada de GPU por etapa (memória no
+   * celular). A animação .step-enter já promove a camada só enquanto roda. */
 }
 
 .form-block {
@@ -17,12 +18,11 @@
 }
 
 .section-title {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--color-subtle);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
   margin-bottom: 18px;
   display: flex;
   align-items: center;
@@ -45,22 +45,22 @@
 }
 
 .field__label {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 500;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-text-second);
 }
 
 .field__hint {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  color: var(--color-ghost);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-subtle);
 }
 
 .panel-footer {
   padding: 14px 40px;
-  background: rgba(247,246,243,0.92);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
   border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: row;
@@ -69,7 +69,9 @@
   gap: 0;
   position: sticky;
   bottom: 0;
-  z-index: 100;
+  z-index: var(--z-sticky);
+  /* home indicator do iPhone / barra de gestos do Android */
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -78,25 +80,40 @@
   .panel-footer {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px 24px;
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
   }
 }
 
+/* Celular: 20px de respiro nas laterais (antes 16px, os botões "encostavam"
+ * na borda) e 12px entre "Salvar rascunho" e "Próximo". */
 @media (max-width: 639px) {
-  .panel-footer { padding: 14px 16px; }
+  .panel-footer {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
 }
 
 .panel-footer__right {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
 }
 
+/* Celular: secundário + primário lado a lado (o primário um pouco maior) */
 @media (max-width: 979px) {
-  .panel-footer__right {
-    flex-direction: column;
-    width: 100%;
+  .panel-footer__right { width: 100%; }
+  .panel-footer__right > button,
+  .panel-footer__right > a {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    min-height: 48px;
   }
+  .panel-footer__right > button:last-child:not(:only-child) { flex-grow: 1.5; }
 }
 
 .validation-banner {
@@ -167,8 +184,8 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: rgba(255,255,255,0.9);
   color: var(--color-text-second);
   border: 1px solid var(--color-border);
@@ -182,12 +199,19 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* O botão continua visualmente pequeno, mas o toque vale 44px */
+.photo-grid__thumb button::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+
 .lightbox {
   display: flex;
   position: fixed;
   inset: 0;
   background: rgba(26,26,26,0.88);
-  z-index: 9999;
+  z-index: var(--z-modal);
   align-items: center;
   justify-content: center;
   padding: 16px;
@@ -197,16 +221,17 @@
 
 .lightbox__close {
   position: absolute;
-  top: 16px;
+  top: max(16px, env(safe-area-inset-top));
   right: 16px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.8);
-  width: 34px;
-  height: 34px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: #fff;
+  width: var(--tap-min);
+  height: var(--tap-min);
   cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 1.4rem;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,10 +254,9 @@
 }
 
 .stat-badge__label {
-  font-family: var(--font-mono);
-  font-size: 0.56rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: 0;
   color: var(--color-subtle);
   margin-top: 4px;
   display: block;

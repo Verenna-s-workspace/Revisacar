@@ -1,4 +1,5 @@
-﻿import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useResponsive } from './ui';
 import '../styles/steptabs.css';
 
 interface StepItem {
@@ -15,6 +16,34 @@ interface StepTabsProps {
 
 export function StepTabs({ step, onGoStep, steps }: StepTabsProps) {
   const [hovered, setHovered] = useState<number | null>(null);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const { isMobile } = useResponsive();
+
+  // No celular as abas rolam na horizontal: traz a etapa atual para a tela
+  // (antes a etapa 3/4 podia ficar escondida fora da área visível).
+  useEffect(() => {
+    if (isMobile) return;   // no celular só existe a etapa atual, não há o que rolar
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    activeRef.current?.scrollIntoView({
+      behavior: reduce ? 'auto' : 'smooth', inline: 'center', block: 'nearest',
+    });
+  }, [step, isMobile]);
+
+  // Celular: só a etapa atual, centralizada no topo, sem rolagem horizontal.
+  // A troca de etapa é feita pelos botões "Voltar/Próximo" do rodapé.
+  if (isMobile) {
+    const atual = steps.find(s => s.id === step) ?? steps[0];
+    if (!atual) return null;
+    return (
+      <div className="step-tabs step-tabs--mobile" role="status" aria-live="polite">
+        <span className="step-tab step-tab--active step-tab--static" aria-current="step">
+          <span className="step-badge step-badge--active"><span>{atual.id}</span></span>
+          <span className="step-tab__label">{atual.label}</span>
+          {atual.icon && <span className="step-tab__icon">{atual.icon}</span>}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="step-tabs">
@@ -45,7 +74,9 @@ export function StepTabs({ step, onGoStep, steps }: StepTabsProps) {
         return (
           <button
             key={n}
+            ref={active ? activeRef : undefined}
             type="button"
+            aria-current={active ? 'step' : undefined}
             className={tabClasses}
             onClick={() => onGoStep(n)}
             onMouseEnter={() => setHovered(n)}

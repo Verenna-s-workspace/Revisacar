@@ -43,7 +43,7 @@ export default function Check2({ os, onBackToStart, onNextChecklist }: Check2Pro
     <div style={{
       fontFamily: tokens.fontSans,
       background: tokens.color.bg,
-      minHeight: '100vh',
+      minHeight: '100dvh',
       paddingBottom: 'var(--mobile-bottom-nav-h)',
     }}>
       <Topbar

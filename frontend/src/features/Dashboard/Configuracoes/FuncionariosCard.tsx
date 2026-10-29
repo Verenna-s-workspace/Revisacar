@@ -120,7 +120,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
           <span style={{ color: 'var(--color-ferrari)', display: 'flex' }}>{Icons.user}</span>
           <div>
             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: tokens.color.text }}>Funcionários e Cargos</div>
-            <div style={{ fontSize: '0.74rem', color: tokens.color.muted }}>Controla quem acessa o quê no sistema</div>
+            <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>Controla quem acessa o quê no sistema</div>
           </div>
         </div>
         <button
@@ -215,7 +215,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
             >
               <div>
                 <div style={{ fontSize: '0.86rem', fontWeight: 600, color: tokens.color.text }}>{f.nome}</div>
-                <div style={{ fontSize: '0.74rem', color: tokens.color.muted }}>{f.email}</div>
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{f.email}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
                 <Select
@@ -231,7 +231,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
                   style={{
                     padding: '6px 10px',
                     borderRadius: 8,
-                    fontSize: '0.72rem',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     background: f.ativo ? 'var(--color-ok-bg)' : tokens.color.surfaceHigh,
@@ -263,7 +263,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
       )}
 
       {showModal && (
-        <div style={{
+        <div className="sheet-backdrop" style={{
           position: 'fixed',
           top: 0,
           left: 0,
@@ -277,7 +277,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
           padding: 16,
           backdropFilter: 'blur(4px)',
         }}>
-          <div style={{
+          <div className="sheet-panel" style={{
             background: tokens.color.card,
             borderRadius: 16,
             width: '100%',

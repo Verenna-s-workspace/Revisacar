@@ -116,7 +116,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
+    fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
     letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 5, display: 'block',
   };
 
@@ -136,7 +136,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
                     background: step >= n ? tokens.color.ferrari : tokens.color.border,
                     transition: 'background 0.25s',
                   }} />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
                     {n === 1 ? 'Dados do Veículo' : 'Fotos e Proprietário'}
                   </span>
                 </div>
@@ -212,7 +212,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
                   ) : (
                     <>
                       <span style={{ color: tokens.color.muted, display: 'flex' }}>{VeiculoIcons.uploadCloud}</span>
-                      <span style={{ fontSize: '0.62rem', color: tokens.color.subtle, marginTop: 6, fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <span style={{ fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 6, fontFamily: tokens.fontMono, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         Adicionar foto
                       </span>
                     </>
@@ -246,7 +246,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Proprietário (opcional)</label>
                 <span style={{
-                  fontSize: '0.62rem', fontWeight: 700, color: tokens.color.ferrari, background: tokens.color.ferrariMid,
+                  fontSize: '0.75rem', fontWeight: 700, color: tokens.color.ferrari, background: tokens.color.ferrariMid,
                   padding: '2px 7px', borderRadius: 99, textTransform: 'none', letterSpacing: 0,
                 }}>
                   🔜 vínculo com cliente cadastrado em breve
@@ -267,7 +267,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
         )}
 
         {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'white', borderRadius: '0 0 20px 20px' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           {step === 2 ? (
             <button
               onClick={() => setStep(1)}
