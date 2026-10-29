@@ -24,8 +24,12 @@ Resposta (camelCase):
       "anterior": {…} | null       # null = sem nenhuma OS no período anterior
     },
     "dias": [{dia: "YYYY-MM-DD", ordens, finalizadas, faturamento}, …],
-    "servicos": [{nome, quantidade}, …]   # OS finalizadas do período atual (ver "Serviços" abaixo)
+    "servicos": [{nome, quantidade}, …],  # OS finalizadas do período atual (ver "Serviços" abaixo)
+    "ticketMedio": {"atual": n, "anterior": n | null}
   }
+  Ticket médio = valor das OS FINALIZADAS ÷ nº de finalizadas. Com o Financeiro, o faturamento
+  inclui OS aprovadas ainda não concluídas (entradas pendentes); o ticket conta só as entradas
+  ligadas a OS finalizadas — senão o numerador teria OS que o divisor não conta.
   `dias` é esparso (só dias com algum dado) e cobre os dois períodos; quem
   agrupa em semana/mês é o frontend.
 
@@ -285,7 +289,7 @@ def _buscar_lancamentos(oficina_doc, tipo: str, janela_ini: date, janela_fim: da
     """Lançamentos do Financeiro (tipo 'entrada' ou 'saida'), sem os cancelados,
     por data de competência — a mesma regra de /financeiro/resumo."""
     return _listar_todos(lambda: (
-        supabase.table("financeiro_transacoes").select("id,valor,data_competencia")
+        supabase.table("financeiro_transacoes").select("id,valor,data_competencia,ordem_servico_id")
         .eq("oficina_doc", oficina_doc).eq("tipo", tipo).neq("status", "cancelado")
         .gte("data_competencia", janela_ini.isoformat()).lte("data_competencia", janela_fim.isoformat())
         .order("data_competencia").order("id")
@@ -313,6 +317,24 @@ def _totais(dias: dict, periodo) -> dict:
     return t
 
 
+def _finalizadas_entre(oficina_doc, ordem_ids) -> set:
+    """Quais destas OS estão finalizadas (a OS pode ter sido criada antes da janela do relatório)."""
+    ids = sorted({str(i) for i in ordem_ids if i})
+    finalizadas = set()
+    for i in range(0, len(ids), 100):
+        linhas = (supabase.table("ordens").select("id").eq("oficina_doc", oficina_doc)
+                  .eq("status", "finalizada").in_("id", ids[i:i + 100]).execute().data or [])
+        finalizadas.update(str(o["id"]) for o in linhas)
+    return finalizadas
+
+
+def _ticket(valor_finalizadas: dict, totais: dict | None, periodo):
+    if totais is None:
+        return None
+    valor = sum(v for dia, v in valor_finalizadas.items() if _dentro(dia, periodo))
+    return round(valor / totais["finalizadas"], 2) if totais["finalizadas"] else 0.0
+
+
 @api_view(["GET"])
 @require_permission("relatorios.ver")
 @_tratar_erros_banco
@@ -327,6 +349,7 @@ def relatorios(request):
     janela_fim = max(atual[1], anterior[1]) if anterior else atual[1]
 
     dias: dict[date, dict] = defaultdict(lambda: {"ordens": 0, "finalizadas": 0, "faturamento": 0.0})
+    valor_finalizadas: dict[date, float] = defaultdict(float)   # numerador do ticket médio
     contagem_servicos: dict[str, dict] = {}
     usa_financeiro = _usa_financeiro(oficina_doc)
 
@@ -345,6 +368,7 @@ def relatorios(request):
         servicos = _servicos_da_ordem(ordem.get("payload"))
         if not usa_financeiro:
             d["faturamento"] += _valor_estimado(servicos)
+            valor_finalizadas[dia] += _valor_estimado(servicos)
         if _dentro(dia, atual):
             if ordem["id"] in reais:
                 for s in reais[ordem["id"]]:
@@ -354,13 +378,17 @@ def relatorios(request):
                     somar_servicos(contagem_servicos, nome, 1)
 
     if usa_financeiro:
-        for entrada in _buscar_entradas(oficina_doc, janela_ini, janela_fim):
+        entradas = _buscar_entradas(oficina_doc, janela_ini, janela_fim)
+        finalizadas = _finalizadas_entre(oficina_doc, (e.get("ordem_servico_id") for e in entradas))
+        for entrada in entradas:
             try:
                 dia = date.fromisoformat(str(entrada["data_competencia"])[:10])
                 valor = float(entrada["valor"])
             except (ValueError, TypeError, KeyError):
                 continue
             dias[dia]["faturamento"] += valor
+            if str(entrada.get("ordem_servico_id")) in finalizadas:
+                valor_finalizadas[dia] += valor
 
     total_atual = _totais(dias, atual)
     total_anterior = _totais(dias, anterior) if anterior else None
@@ -389,4 +417,6 @@ def relatorios(request):
             for dia, v in sorted(dias.items())
         ],
         "servicos": servicos,
+        "ticketMedio": {"atual": _ticket(valor_finalizadas, total_atual, atual),
+                        "anterior": _ticket(valor_finalizadas, total_anterior, anterior)},
     })

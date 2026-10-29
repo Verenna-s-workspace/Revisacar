@@ -78,11 +78,11 @@ def _ordem(db, created_at, status="finalizada", servicos=None, oficina=OFICINA_A
     return oid
 
 
-def _entrada(db, valor, dia, status="pago", tipo="entrada", oficina=OFICINA_A):
+def _entrada(db, valor, dia, status="pago", tipo="entrada", oficina=OFICINA_A, ordem=None):
     db.cursor().execute(
-        "insert into financeiro_transacoes (oficina_doc, tipo, categoria, valor, status, data_competencia) "
-        "values (%s,%s,'servicos',%s,%s,%s)",
-        (oficina, tipo, valor, status, dia),
+        "insert into financeiro_transacoes (oficina_doc, tipo, categoria, valor, status, data_competencia, "
+        "ordem_servico_id) values (%s,%s,'servicos',%s,%s,%s,%s)",
+        (oficina, tipo, valor, status, dia, ordem),
     )
 
 
@@ -318,6 +318,26 @@ def test_usa_entradas_do_financeiro_quando_existem(api, db):
     assert corpo["faturamentoOrigem"] == "financeiro"
     assert corpo["totais"]["atual"] == {"faturamento": 1250.5, "ordens": 1, "finalizadas": 1}
     assert corpo["dias"] == [{"dia": "2026-10-05", "ordens": 1, "finalizadas": 1, "faturamento": 1250.5}]
+
+
+def test_ticket_medio_conta_so_as_os_finalizadas(api, db):
+    pronta = _ordem(db, "2026-10-05T12:00:00-03:00")
+    na_oficina = _ordem(db, "2026-10-05T13:00:00-03:00", status="em_execucao")   # aprovada, ainda não concluída
+    _entrada(db, 300, "2026-10-05", ordem=pronta)
+    _entrada(db, 100, "2026-10-05", ordem=pronta, status="pendente")
+    _entrada(db, 1000, "2026-10-05", ordem=na_oficina, status="pendente")
+    _entrada(db, 50, "2026-10-05")                                               # avulsa, sem OS
+    corpo = _get(api).json()
+    assert corpo["totais"]["atual"] == {"faturamento": 1450.0, "ordens": 2, "finalizadas": 1}   # card não muda
+    assert corpo["ticketMedio"] == {"atual": 400.0, "anterior": None}
+
+
+def test_ticket_medio_estimado_e_sem_finalizadas(api, db):
+    _ordem(db, "2026-10-05T12:00:00-03:00", servicos=["Motor"])
+    _ordem(db, "2026-10-06T12:00:00-03:00")
+    _ordem(db, "2026-09-10T12:00:00-03:00", status="rascunho")
+    corpo = _get(api, de_anterior="2026-09-01", ate_anterior="2026-09-30").json()
+    assert corpo["ticketMedio"] == {"atual": (800 + 480) / 2, "anterior": 0.0}
 
 
 def test_entrada_em_dia_sem_os_aparece_na_serie(api, db):
