@@ -569,6 +569,12 @@ export const api = {
   visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
 
   // Exige configuracoes.editar. `null` remove a meta.
+  /** Dados da oficina (Configurações). Ler: qualquer usuário logado; salvar: configuracoes.editar. */
+  obterConfigOficina: () => authFetch(`${API_BASE}/oficina/config`),
+
+  salvarConfigOficina: (payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/oficina/config`, { method: 'PUT', body: JSON.stringify(payload) }),
+
   definirMetaMensal: (valor: number | null) =>
     authFetch(`${API_BASE}/visao-geral/meta`, { method: 'PUT', body: JSON.stringify({ valor }) }),
 

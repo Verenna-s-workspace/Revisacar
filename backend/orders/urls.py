@@ -7,6 +7,7 @@ from . import relatorios_views
 from . import visao_geral_views
 from . import agendamentos_views, clientes_views, veiculos_views
 from . import alertas_views, fechamento_views, fotos_obrigatorias, orcamento_link_views, orcamento_views
+from . import oficina_config_views
 
 urlpatterns = [
     # Root
@@ -112,6 +113,9 @@ urlpatterns = [
     # meta mensal: configuracoes.editar
     path("visao-geral", visao_geral_views.visao_geral),
     path("visao-geral/meta", visao_geral_views.meta_mensal),
+
+    # Dados da oficina (tela Configurações): ler = qualquer usuário logado; salvar = configuracoes.editar
+    path("oficina/config", oficina_config_views.oficina_config),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),

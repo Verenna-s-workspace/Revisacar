@@ -6,8 +6,10 @@ import { useTheme } from '../../hooks/useTheme';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { Input } from '../../components/inputs/input';
 import { DEFAULT_HORA_ABERTURA, DEFAULT_HORA_FECHAMENTO } from '../../utils/agenda';
-import { notificarHorarioAtualizado } from '../../utils/horario_funcionamento';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../utils/api';
+import { mensagemDoErro } from '../../utils/api_erro';
+import { donoDaCopiaLocal, podeEditarConfiguracoes, salvarOficinaConfig, sincronizarOficinaConfig } from '../../utils/oficina_config';
 
 // Sem nada salvo neste navegador, os campos começam vazios (nome e CNPJ vêm da
 // conta logada) — antes vinham dados de exemplo que pareciam ser da oficina.
@@ -43,7 +45,10 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
     const saved = localStorage.getItem('oficina_config');
     if (saved) {
       try {
-        return { ...padrao, ...JSON.parse(saved) };
+        const local = JSON.parse(saved);
+        // Cópia de outra oficina (computador compartilhado) não aparece aqui nem por um instante;
+        // a antiga (CNPJ de exemplo) aparece pra pessoa conferir — e só vai ao servidor se ela salvar.
+        return donoDaCopiaLocal(local, user?.doc) === 'outra' ? padrao : { ...padrao, ...local };
       } catch {
         return padrao;
       }
@@ -51,6 +56,29 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
     return padrao;
   });
 
+  const podeEditar = podeEditarConfiguracoes(user);
+
+  // O servidor é a fonte (migração 0005); o estado acima, da cópia local, só evita a tela vazia
+  // enquanto ele responde. Sem resposta (rede/servidor), fica a cópia local.
+  const [carregandoServidor, setCarregandoServidor] = useState(true);
+  useEffect(() => {
+    let vivo = true;
+    sincronizarOficinaConfig(podeEditar).then(servidor => {
+      if (!vivo) return;
+      if (servidor) {
+        const { salvo, atualizadoEm: _em, ...dados } = servidor;
+        // Salvo no servidor: vale o servidor. Ainda não: fica o que a tela mostrava (cópia local
+        // desta oficina ou antiga), só com o CNPJ e o nome da conta quando faltam.
+        setWorkshop((atual: typeof workshop) => salvo ? dados : { ...atual, cnpj: dados.cnpj, nome: atual.nome || dados.nome });
+      }
+      setCarregandoServidor(false);
+    });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [horarioTentouSalvar, setHorarioTentouSalvar] = useState(false);
   const horarioInvalido = workshop.horaFechamento <= workshop.horaAbertura;
@@ -82,16 +110,27 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
     };
   }, []);
 
-  const handleSaveWorkshop = (e: React.FormEvent) => {
+  const handleSaveWorkshop = async (e: React.FormEvent) => {
     e.preventDefault();
     if (horarioInvalido) {
       setHorarioTentouSalvar(true);
       return;
     }
-    localStorage.setItem('oficina_config', JSON.stringify(workshop));
-    notificarHorarioAtualizado();
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setErroSalvar(null);
+    setSalvando(true);
+    try {
+      const { cnpj: _cnpj, ...dados } = workshop;   // CNPJ é o login da conta: o servidor não troca
+      const salvo = await api.salvarConfigOficina(dados);
+      const { salvo: _s, atualizadoEm: _em, ...confirmado } = salvo;
+      setWorkshop(confirmado);
+      try { salvarOficinaConfig(confirmado); } catch { /* cópia local é só cache */ }
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (erro) {
+      setErroSalvar(mensagemDoErro(erro, 'Não foi possível salvar os dados da oficina. Tente de novo.'));
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const handleInstallPWA = async () => {
@@ -132,9 +171,9 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
                 name="workshop_cnpj"
                 type="cpf_cnpj"
                 label="CNPJ"
-                required
                 value={workshop.cnpj}
-                onChangeValue={v => setWorkshop({ ...workshop, cnpj: v })}
+                disabled
+                hint="É o login da conta; não muda por aqui."
               />
               <Input
                 name="workshop_valor_hora"
@@ -213,9 +252,24 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
                 Configurações da oficina salvas com sucesso!
               </div>
             )}
+            {erroSalvar && (
+              <div role="alert" style={{
+                padding: '10px 14px',
+                background: 'var(--color-crit-bg)',
+                color: 'var(--color-crit)',
+                border: '1px solid var(--color-crit-border)',
+                borderRadius: 8,
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                textAlign: 'center',
+              }}>
+                {erroSalvar}
+              </div>
+            )}
 
             <button
               type="submit"
+              disabled={salvando || carregandoServidor || !podeEditar}
               style={{
                 alignSelf: 'flex-end',
                 padding: '10px 22px',
@@ -225,12 +279,13 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
                 borderRadius: 10,
                 fontSize: '0.86rem',
                 fontWeight: 700,
-                cursor: 'pointer',
+                cursor: salvando || carregandoServidor || !podeEditar ? 'not-allowed' : 'pointer',
+                opacity: salvando || carregandoServidor || !podeEditar ? 0.6 : 1,
                 boxShadow: 'var(--shadow-sm)',
                 width: isMobile ? '100%' : 'auto',
               }}
             >
-              Salvar Dados
+              {salvando ? 'Salvando…' : carregandoServidor ? 'Carregando…' : 'Salvar Dados'}
             </button>
           </form>
         </Card>

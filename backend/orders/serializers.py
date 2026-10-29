@@ -566,6 +566,30 @@ class OrcamentoRecusaSerializer(serializers.Serializer):
 
 # ── Visão Geral ───────────────────────────────────────────────────────────────
 
+class OficinaConfigSerializer(serializers.Serializer):
+    """Dados da oficina (tela Configurações). PUT manda tudo: o que vier substitui o que havia."""
+    nome = serializers.CharField(max_length=120)
+    telefone = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+    email = serializers.EmailField(max_length=200, required=False, allow_blank=True, default="")
+    endereco = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    valorHora = _NumeroFinito(min_value=0, max_value=99_999, required=False, default=0)
+    horaAbertura = serializers.RegexField(r"^([01]\d|2[0-3]):[0-5]\d$", max_length=5)
+    horaFechamento = serializers.RegexField(r"^([01]\d|2[0-3]):[0-5]\d$", max_length=5)
+
+    def validate_nome(self, value):
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError("Informe o nome da oficina.")
+        return value.strip()
+
+    def validate(self, attrs):
+        if attrs["horaFechamento"] <= attrs["horaAbertura"]:   # 'HH:MM' compara certo como texto
+            raise serializers.ValidationError({"horaFechamento": ["Deve ser depois do horário de abertura."]})
+        attrs["telefone"] = attrs["telefone"].strip()
+        attrs["endereco"] = attrs["endereco"].strip()
+        attrs["valorHora"] = round(attrs["valorHora"], 2)
+        return attrs
+
+
 class MetaMensalSerializer(serializers.Serializer):
     """Meta de faturamento mensal da oficina. `null` = remover a meta."""
     valor = _NumeroFinito(min_value=0, max_value=99_999_999, allow_null=True)
