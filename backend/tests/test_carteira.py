@@ -1,4 +1,6 @@
 """Carteira de clientes, veículos, agendamentos e convites: SQL real (Postgres descartável) + views."""
+import json
+
 import django
 import psycopg2
 import pytest
@@ -430,6 +432,87 @@ def test_lista_filtra_e_isola_por_oficina(api, api_b):
     assert api_b.get(f"/agendamentos/{a1['id']}").status_code == 404
     assert api_b.patch(f"/agendamentos/{a1['id']}", {"titulo": "x"}, format="json").status_code == 404
     assert api_b.delete(f"/agendamentos/{a1['id']}").status_code == 404
+
+
+# ── Agendamento acompanha a OS ────────────────────────────────────────────────
+
+def _os_no_banco(db, oid, status, dia="2026-11-10", placa="ABC1D23", oficina=OFICINA_A, vehicle_id=None):
+    cur = db.cursor()
+    cur.execute("insert into ordens (id, created_at, updated_at, placa, status, payload, oficina_doc, vehicle_id) "
+                "values (%s,'2026-11-12T15:00:00Z','2026-11-12T15:00:00Z',%s,%s,%s,%s,%s)",
+                (oid, placa, status, json.dumps({"os_header": {"os_num": oid, "os_date": dia}}), oficina, vehicle_id))
+
+
+def _entrada(db, oid, status, oficina=OFICINA_A):
+    db.cursor().execute("insert into financeiro_transacoes (oficina_doc, tipo, categoria, valor, status, "
+                        "data_competencia, ordem_servico_id) values (%s,'entrada','servicos',100,%s,'2026-11-10',%s)",
+                        (oficina, status, oid))
+
+
+def _status(api, ag_id):
+    a = api.get(f"/agendamentos/{ag_id}").json()
+    return a["status"], a.get("ordemServicoId")
+
+
+def test_agendamento_acompanha_a_os_do_mesmo_carro_no_mesmo_dia(api, db):
+    ag = _agendamento(api, placa="abc1234")
+    assert _status(api, ag["id"]) == ("agendado", None)
+    _os_no_banco(db, "os-1", "em_orcamento", placa="ABC-1234")   # placa antiga, salva com hífen na OS
+    assert _status(api, ag["id"]) == ("em_andamento", "os-1")
+    cur = db.cursor()
+    cur.execute("update ordens set status='finalizada' where id='os-1'")
+    _entrada(db, "os-1", "pendente")
+    assert _status(api, ag["id"]) == ("aguardando_pagamento", "os-1")
+    cur.execute("update financeiro_transacoes set status='pago' where ordem_servico_id='os-1'")
+    assert _status(api, ag["id"]) == ("concluido", "os-1")
+    cur.execute("update ordens set status='recusada' where id='os-1'")
+    assert _status(api, ag["id"]) == ("concluido", "os-1")
+    # nada foi gravado no agendamento: é só leitura
+    cur.execute("select status, ordem_id from appointments where id=%s", (ag["id"],))
+    assert cur.fetchone() == ("confirmado", None)
+
+
+def test_liga_pelo_veiculo_da_carteira_mesmo_com_placa_diferente_no_texto(api, db):
+    v = _veiculo(api)
+    ag = _agendamento(api)
+    assert ag.get("veiculoId") == v["id"]
+    _os_no_banco(db, "os-1", "em_execucao", placa="ZZZ9Z99", vehicle_id=v["id"])
+    assert _status(api, ag["id"]) == ("em_andamento", "os-1")
+
+
+def test_nao_liga_em_outro_dia_outra_oficina_nem_com_duas_candidatas(api, api_b, db):
+    ag = _agendamento(api)
+    _os_no_banco(db, "os-outro-dia", "em_execucao", dia="2026-11-11")
+    _os_no_banco(db, "os-outra-oficina", "em_execucao", oficina=OFICINA_B)
+    assert _status(api, ag["id"]) == ("agendado", None)
+    _os_no_banco(db, "os-a", "em_execucao")
+    assert _status(api, ag["id"]) == ("em_andamento", "os-a")
+    _os_no_banco(db, "os-b", "em_execucao")            # duas OS do carro no dia: não chuta
+    assert _status(api, ag["id"]) == ("agendado", None)
+
+
+def test_dois_agendamentos_disputando_a_mesma_os_ficam_sem_ligacao(api, db):
+    a1 = _agendamento(api)
+    a2 = _agendamento(api, horaInicio="14:00", horaFim="15:00")
+    _os_no_banco(db, "os-1", "em_execucao")
+    assert _status(api, a1["id"]) == ("agendado", None) and _status(api, a2["id"]) == ("agendado", None)
+
+
+def test_ligacao_gravada_vale_e_status_manual_e_respeitado(api, db):
+    ag = _agendamento(api)
+    _os_no_banco(db, "os-gravada", "em_execucao", dia="2026-11-20", placa="XYZ9W87")
+    assert api.patch(f"/agendamentos/{ag['id']}", {"ordemServicoId": "os-gravada"}, format="json").status_code == 200
+    assert _status(api, ag["id"]) == ("em_andamento", "os-gravada")
+    assert api.patch(f"/agendamentos/{ag['id']}", {"status": "cancelado"}, format="json").json()["status"] == "cancelado"
+    assert _status(api, ag["id"])[0] == "cancelado"
+
+
+def test_filtro_de_status_usa_o_status_que_vem_da_os(api, db):
+    ag = _agendamento(api)
+    outro = _agendamento(api, data="2026-11-11")
+    _os_no_banco(db, "os-1", "em_execucao")
+    assert [a["id"] for a in api.get("/agendamentos?status=em_andamento").json()] == [ag["id"]]
+    assert [a["id"] for a in api.get("/agendamentos?status=agendado").json()] == [outro["id"]]
 
 
 def _pedido_do_app(db, oficina=OFICINA_A, nome="Ana App", email="ana@app.com"):
