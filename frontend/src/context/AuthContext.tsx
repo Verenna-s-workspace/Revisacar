@@ -45,6 +45,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(false);
   }, []);
 
+  // Renovação de token: grava o par novo (senão recarregar volta com um refresh já invalidado)
+  // e, se a sessão acabou de vez, sai — em vez de deixar o painel com cara de logado e todo vazio.
+  useEffect(() => {
+    api.aoRenovarSessao(
+      (accessToken, refreshToken) => {
+        setUser(atual => {
+          if (!atual) return atual;
+          const novo = { ...atual, accessToken, refreshToken };
+          localStorage.setItem('revisacarUser', JSON.stringify(novo));
+          return novo;
+        });
+      },
+      () => {
+        setUser(null);
+        localStorage.removeItem('revisacarUser');
+      },
+      () => {
+        try { return JSON.parse(localStorage.getItem('revisacarUser') || 'null'); } catch { return null; }
+      },
+    );
+  }, []);
+
   const login = (userData: AuthResult) => {
     setUser(userData);
     localStorage.setItem('revisacarUser', JSON.stringify(userData));

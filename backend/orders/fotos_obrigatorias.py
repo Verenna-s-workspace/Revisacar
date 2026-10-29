@@ -34,6 +34,7 @@ regra de avanço simplesmente não vale (o resto do sistema segue funcionando).
 """
 import logging
 import re
+import time
 import uuid
 
 from postgrest.exceptions import APIError
@@ -49,6 +50,11 @@ from .views import (
 )
 
 logger = logging.getLogger(__name__)
+
+# O storage às vezes falha por um instante (visto no teste em escala: 1 em ~40 fotos).
+# O caminho tem uuid, então repetir o envio não sobrescreve nada.
+TENTATIVAS_STORAGE = 2
+ESPERA_ENTRE_TENTATIVAS_S = 0.5
 
 # (id, rótulo, dica). A tela tem a mesma lista (com ícones) em
 # frontend/src/utils/fotos_obrigatorias.ts — manter as duas iguais.
@@ -277,12 +283,16 @@ def foto_obrigatoria(request, ordem_id, slot):
     existente = existentes[0] if existentes else None
 
     caminho = f"{ordem_id}/obrig-{slot}-{uuid.uuid4()}.{extensao}"
-    try:
-        supabase.storage.from_(BUCKET).upload(caminho, conteudo)
-    except Exception as e:  # noqa: BLE001
-        logger.error("Erro ao enviar foto obrigatória ao storage: %s", e)
-        return Response({"detail": "Não foi possível guardar a foto. Tente de novo."},
-                        status=http_status.HTTP_502_BAD_GATEWAY)
+    for tentativa in range(1, TENTATIVAS_STORAGE + 1):
+        try:
+            supabase.storage.from_(BUCKET).upload(caminho, conteudo)
+            break
+        except Exception as e:  # noqa: BLE001
+            logger.error("Erro ao enviar foto obrigatória ao storage (tentativa %s): %s", tentativa, e)
+            if tentativa == TENTATIVAS_STORAGE:
+                return Response({"detail": "Não foi possível guardar a foto. Tente de novo."},
+                                status=http_status.HTTP_502_BAD_GATEWAY)
+            time.sleep(ESPERA_ENTRE_TENTATIVAS_S)
 
     try:
         linha = _gravar(oficina_doc, ordem_id, slot, existente,

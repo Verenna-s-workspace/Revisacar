@@ -42,10 +42,11 @@ export function OSRow({ ordem, onClick }: { ordem: OrdemRow; onClick: () => void
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.875rem', color: tokens.color.text }}>OS #{ordem.os_num}</div>
         <div style={{ fontSize: '0.74rem', color: tokens.color.muted, marginTop: 1 }}>
-          Cliente: {ordem.cliente} · Veículo: {ordem.placa}
+          Cliente: {ordem.cliente}
         </div>
+        {/* A lista de OS não traz os serviços: aqui é o veículo (antes vinha rotulado como "Serviço"). */}
         <div style={{ fontSize: '0.7rem', color: tokens.color.subtle, marginTop: 1 }}>
-          Serviço: {ordem.modelo || 'Inspeção geral'}
+          Veículo: {[ordem.modelo, ordem.placa].filter(Boolean).join(' · ')}
         </div>
       </div>
       <div className="dashboard-order-row__status">

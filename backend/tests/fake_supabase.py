@@ -188,6 +188,7 @@ class FakeStorage:
     def __init__(self):
         self.arquivos = {}
         self.falhar_upload = False
+        self.falhas_restantes = 0   # falha só nas N próximas chamadas (instabilidade passageira)
         self.opcoes = {}
 
     def from_(self, _bucket):
@@ -196,6 +197,9 @@ class FakeStorage:
     def upload(self, caminho, conteudo, opcoes=None):
         if self.falhar_upload:
             raise RuntimeError("storage fora do ar")
+        if self.falhas_restantes > 0:
+            self.falhas_restantes -= 1
+            raise RuntimeError("storage instável")
         self.arquivos[caminho] = bytes(conteudo)
         self.opcoes[caminho] = opcoes or {}
 
