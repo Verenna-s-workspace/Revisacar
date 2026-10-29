@@ -12,6 +12,7 @@ import { api } from './utils/api';
 import type { AuthResult } from './types';
 import type { OSPrefillInput } from './types/atendimento';
 import { useAuth } from './context/AuthContext';
+import { DEVICE_OFICINA_KEY } from './utils/acesso_equipe_utils';
 
 type View = 'dashboard' | 'os' | 'os2' | 'orcamento' | 'fechamento' | 'login' | 'reset-password';
 
@@ -145,7 +146,7 @@ export default function App() {
           // Guarda o CNPJ neste dispositivo — é o que permite a tela de
           // login de funcionário já abrir direto no seletor de nomes,
           // sem pedir CNPJ de novo (ver FuncionarioLoginScreen).
-          if (role === 'dono' && result.doc) localStorage.setItem('revisacarDeviceOficinaDoc', result.doc);
+          if (role === 'dono' && result.doc) localStorage.setItem(DEVICE_OFICINA_KEY, result.doc);
           // depois do login vai pro dash
           setView('dashboard');
         }}

@@ -11,6 +11,8 @@ interface AuthScreenProps {
   onAuthenticated: (result: AuthResult) => void;
   /** Avisa o painel da marca em qual fluxo/etapa esta tela está (acende o quadrado). */
   onProgress?: (flow: AuthFlow, step: number) => void;
+  /** Mostra "É funcionário?" no login do dono e leva ao login por nome + PIN. */
+  onIrParaFuncionario?: () => void;
 }
 
 type AuthMode = 'login' | 'register' | 'forgot';
@@ -28,7 +30,7 @@ const COPY: Record<AuthMode, { title: string; subtitle: string }> = {
  * deslize para o login de funcionário) é do AuthShell/AuthPage — aqui só
  * existe o conteúdo do lado do formulário.
  */
-export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
+export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -199,6 +201,13 @@ export function AuthScreen({ onAuthenticated, onProgress }: AuthScreenProps) {
             <button type="button" className="auth-link" onClick={() => switchMode('login')}>Voltar ao login</button>
           )}
         </p>
+
+        {mode === 'login' && onIrParaFuncionario && (
+          <p className="auth-foot">
+            É funcionário?
+            <button type="button" className="auth-link" onClick={onIrParaFuncionario}>Entre com seu PIN</button>
+          </p>
+        )}
       </form>
 
       {/* Portal no <body>: o painel de auth usa transform/will-change, que

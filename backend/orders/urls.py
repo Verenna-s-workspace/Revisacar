@@ -7,7 +7,7 @@ from . import relatorios_views
 from . import visao_geral_views
 from . import agendamentos_views, clientes_views, veiculos_views
 from . import alertas_views, fechamento_views, fotos_obrigatorias, orcamento_link_views, orcamento_views
-from . import oficina_config_views
+from . import oficina_config_views, acesso_equipe_views
 
 urlpatterns = [
     # Root
@@ -116,6 +116,11 @@ urlpatterns = [
 
     # Dados da oficina (tela Configurações): ler = qualquer usuário logado; salvar = configuracoes.editar
     path("oficina/config", oficina_config_views.oficina_config),
+
+    # Acesso da equipe: o dono gera/vê/desativa o código do link /f/<código> (funcionarios.gerenciar);
+    # o aparelho do funcionário resolve o código sem login (ninguém logou ainda).
+    path("oficina/acesso-equipe", acesso_equipe_views.acesso_equipe),
+    path("publico/oficina/<str:codigo>", acesso_equipe_views.publico_oficina_por_codigo),
 
     # Upload avulso e listagem
     path("upload", views.upload_avulso),
