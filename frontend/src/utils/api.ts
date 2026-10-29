@@ -88,7 +88,7 @@ const fetchComRetentativa = async (input: RequestInfo, init: RequestInit) => {
   }
 };
 
-const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
+const authFetchDireto = async (input: RequestInfo, init: RequestInit = {}) => {
   const headers = semContentTypeFixo({
     ...baseHeaders,
     ...(init.headers as Record<string, string> | undefined),
@@ -124,6 +124,39 @@ const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   return handleResponse(response);
 };
 
+// Leituras repetidas: o sino do topo e a tela pedem as mesmas listas (/ordens, /estoque,
+// /alertas) juntos, e cada troca de tela repete tudo. Um GET igual em curso é reaproveitado e a
+// resposta vale por alguns segundos; qualquer escrita limpa tudo, pra nunca mostrar dado de antes
+// de uma ação. Erro não fica guardado. Cada chamador recebe uma cópia (ninguém mexe no do outro).
+const VALIDADE_LEITURA_MS = 5000;
+const leituras = new Map<string, { promessa: Promise<unknown>; validaAte?: number }>();
+const copia = <T,>(valor: T): T => (valor == null ? valor : structuredClone(valor));
+
+const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
+  const metodo = (init.method || 'GET').toUpperCase();
+  if (metodo !== 'GET' || typeof input !== 'string') {
+    try {
+      return await authFetchDireto(input, init);
+    } finally {
+      if (metodo !== 'GET') leituras.clear();
+    }
+  }
+  const guardada = leituras.get(input);
+  if (guardada && (guardada.validaAte === undefined || Date.now() < guardada.validaAte)) {
+    return copia(await guardada.promessa);
+  }
+  const entrada: { promessa: Promise<unknown>; validaAte?: number } = { promessa: authFetchDireto(input, init) };
+  leituras.set(input, entrada);
+  try {
+    const valor = await entrada.promessa;
+    entrada.validaAte = Date.now() + VALIDADE_LEITURA_MS;
+    return copia(valor);
+  } catch (erro) {
+    if (leituras.get(input) === entrada) leituras.delete(input);
+    throw erro;
+  }
+};
+
 /** Baixa um arquivo (PDF) autenticado como Blob; renova o token uma vez se preciso. */
 const authFetchBlob = async (url: string): Promise<Blob> => {
   const buscar = () => fetch(url, { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
@@ -144,12 +177,17 @@ export const api = {
   setAuthTokens: (access: string, refresh: string) => {
     accessToken = access;
     refreshToken = refresh;
+    leituras.clear();   // outra conta não pode ver o que a anterior leu
   },
 
   clearAuthTokens: () => {
     accessToken = '';
     refreshToken = '';
+    leituras.clear();
   },
+
+  /** Para "Atualizar": a próxima leitura vai ao servidor mesmo que a última seja recente. */
+  esquecerLeituras: () => leituras.clear(),
 
   /** AuthContext grava o par renovado, lê o que outra aba gravou e volta ao login quando a sessão acaba. */
   aoRenovarSessao: (

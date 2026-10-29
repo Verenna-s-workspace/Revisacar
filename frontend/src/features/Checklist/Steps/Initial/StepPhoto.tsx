@@ -177,6 +177,7 @@ export function Step2({ os }: StepProps) {
                   podeReenviar={!!fotosObrig.falhas[item.slot]}
                   destacar={mostrarFaltas && item.situacao === 'pendente'}
                   desabilitado={!orderId || fonte === 'carregando' || fonte === 'erro' || somenteLeitura}
+                  somenteLeitura={somenteLeitura}
                   onTirar={() => setCameraSlot(item.slot)}
                   onPular={() => setPularSlot(item.slot)}
                   onReenviar={() => void fotosObrig.reenviar(item.slot)}

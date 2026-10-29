@@ -97,4 +97,6 @@ export interface RelatorioResposta {
   dias: DiaRelatorio[];
   /** OS finalizadas do período atual, da mais para a menos frequente. */
   servicos: ServicoContado[];
+  /** Valor das OS finalizadas ÷ nº de finalizadas (servidor). Ausente em respostas antigas. */
+  ticketMedio?: { atual: number; anterior: number | null };
 }

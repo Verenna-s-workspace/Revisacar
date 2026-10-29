@@ -111,12 +111,16 @@ export function useRelatorios() {
   const temPeriodoAnteriorComDados = anterior !== null;
 
   const kpis: KpisRelatorio = useMemo(() => {
-    // Ticket médio = faturamento ÷ OS finalizadas — mesma população usada no
-    // faturamento, para o número continuar significando "valor médio por
-    // serviço concluído" (dividir pelo total de OS, incluindo as ainda em
-    // andamento, distorceria a média para baixo).
-    const ticketAtual = atual.finalizadas > 0 ? atual.faturamento / atual.finalizadas : 0;
-    const ticketAnterior = !anterior
+    // Ticket médio = valor das OS finalizadas ÷ nº de finalizadas ("valor médio por serviço
+    // concluído"). Vem do servidor: com o Financeiro, o faturamento inclui OS aprovadas ainda não
+    // concluídas, e dividi-lo só pelas finalizadas inflava a média. O cálculo local fica para a
+    // resposta antiga e para os dados de demonstração (onde faturamento = só finalizadas).
+    const ticketAtual = dados.ticketMedio
+      ? dados.ticketMedio.atual
+      : atual.finalizadas > 0 ? atual.faturamento / atual.finalizadas : 0;
+    const ticketAnterior = dados.ticketMedio
+      ? (anterior ? dados.ticketMedio.anterior : null)
+      : !anterior
       ? null
       : anterior.finalizadas > 0
       ? anterior.faturamento / anterior.finalizadas
@@ -141,7 +145,7 @@ export function useRelatorios() {
         variacaoPercentual: calcularVariacao(ticketAtual, ticketAnterior),
       },
     };
-  }, [atual, anterior]);
+  }, [atual, anterior, dados.ticketMedio]);
 
   const serieFaturamento = useMemo(
     () => montarSerieDeDias(dados.dias, intervaloAtual, intervaloAnterior, (d) => d.faturamento),
