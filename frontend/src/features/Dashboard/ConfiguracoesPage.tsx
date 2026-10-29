@@ -9,7 +9,7 @@ import { DEFAULT_HORA_ABERTURA, DEFAULT_HORA_FECHAMENTO } from '../../utils/agen
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { mensagemDoErro } from '../../utils/api_erro';
-import { podeEditarConfiguracoes, salvarOficinaConfig, sincronizarOficinaConfig } from '../../utils/oficina_config';
+import { donoDaCopiaLocal, podeEditarConfiguracoes, salvarOficinaConfig, sincronizarOficinaConfig } from '../../utils/oficina_config';
 
 // Sem nada salvo neste navegador, os campos começam vazios (nome e CNPJ vêm da
 // conta logada) — antes vinham dados de exemplo que pareciam ser da oficina.
@@ -45,7 +45,10 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
     const saved = localStorage.getItem('oficina_config');
     if (saved) {
       try {
-        return { ...padrao, ...JSON.parse(saved) };
+        const local = JSON.parse(saved);
+        // Cópia de outra oficina (computador compartilhado) não aparece aqui nem por um instante;
+        // a antiga (CNPJ de exemplo) aparece pra pessoa conferir — e só vai ao servidor se ela salvar.
+        return donoDaCopiaLocal(local, user?.doc) === 'outra' ? padrao : { ...padrao, ...local };
       } catch {
         return padrao;
       }
@@ -63,8 +66,10 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
     sincronizarOficinaConfig(podeEditar).then(servidor => {
       if (!vivo) return;
       if (servidor) {
-        const { salvo: _salvo, atualizadoEm: _em, ...dados } = servidor;
-        setWorkshop((atual: typeof workshop) => ({ ...atual, ...dados }));
+        const { salvo, atualizadoEm: _em, ...dados } = servidor;
+        // Salvo no servidor: vale o servidor. Ainda não: fica o que a tela mostrava (cópia local
+        // desta oficina ou antiga), só com o CNPJ e o nome da conta quando faltam.
+        setWorkshop((atual: typeof workshop) => salvo ? dados : { ...atual, cnpj: dados.cnpj, nome: atual.nome || dados.nome });
       }
       setCarregandoServidor(false);
     });

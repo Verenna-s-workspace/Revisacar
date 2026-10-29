@@ -119,10 +119,36 @@ function lerCopiaLocal(): Partial<OficinaConfig> | null {
   }
 }
 
+const soDigitos = (v: unknown) => String(v ?? '').replace(/\D/g, '');
+
+// CNPJ de exemplo que a tela gravava antes (até o #29): cópia com ele é de antes, de dono incerto.
+const CNPJ_DE_EXEMPLO = '12345678000195';
+
+/** A cópia local é do navegador, não da conta: num computador compartilhado ela pode ser de outra
+ * oficina. 'esta' = CNPJ da conta logada; 'antiga' = sem CNPJ ou com o de exemplo (a pessoa confere
+ * no formulário, mas nada sobe sozinho); 'outra' = de outra oficina. */
+export function donoDaCopiaLocal(local: Partial<OficinaConfig> | null, cnpjDaConta: string | undefined): 'esta' | 'antiga' | 'outra' | 'nenhuma' {
+  if (!local) return 'nenhuma';
+  const cnpj = soDigitos(local.cnpj);
+  if (cnpj && cnpj === soDigitos(cnpjDaConta)) return 'esta';
+  if (!cnpj || cnpj === CNPJ_DE_EXEMPLO) return 'antiga';
+  return 'outra';
+}
+
+let sincronizacaoEmCurso: Promise<OficinaConfigServidor | null> | null = null;
+
 /** Traz os dados da oficina do servidor para a cópia local (a Agenda lê o horário dela). Se o
- * servidor ainda não tem nada e este navegador tem dados de antes da 0005, sobe-os uma vez —
- * só quem pode editar Configurações. Falha de rede devolve null e a cópia local fica como está. */
-export async function sincronizarOficinaConfig(podeEditar: boolean): Promise<OficinaConfigServidor | null> {
+ * servidor ainda não tem nada e este navegador tem dados de antes da 0005 DESTA oficina, sobe-os
+ * uma vez — só quem pode editar Configurações. Cópia de outra oficina é substituída pela do servidor.
+ * Uma sincronização por vez (painel e Configurações abrem juntos). Falha de rede devolve null. */
+export function sincronizarOficinaConfig(podeEditar: boolean): Promise<OficinaConfigServidor | null> {
+  if (!sincronizacaoEmCurso) {
+    sincronizacaoEmCurso = sincronizar(podeEditar).finally(() => { sincronizacaoEmCurso = null; });
+  }
+  return sincronizacaoEmCurso;
+}
+
+async function sincronizar(podeEditar: boolean): Promise<OficinaConfigServidor | null> {
   let servidor: OficinaConfigServidor;
   try {
     servidor = await api.obterConfigOficina();
@@ -130,7 +156,8 @@ export async function sincronizarOficinaConfig(podeEditar: boolean): Promise<Ofi
     return null;
   }
   const local = lerCopiaLocal();
-  if (!servidor.salvo && podeEditar && local?.nome && local.horaAbertura && local.horaFechamento) {
+  const dono = donoDaCopiaLocal(local, servidor.cnpj);
+  if (!servidor.salvo && podeEditar && dono === 'esta' && local?.nome && local.horaAbertura && local.horaFechamento) {
     try {
       const { cnpj: _cnpj, ...dados } = { ...servidor, ...local };
       servidor = await api.salvarConfigOficina(dados);
@@ -138,7 +165,7 @@ export async function sincronizarOficinaConfig(podeEditar: boolean): Promise<Ofi
       return servidor;   // não conseguiu subir agora; tenta de novo na próxima abertura
     }
   }
-  if (servidor.salvo) {
+  if (servidor.salvo || dono === 'outra') {
     try {
       const { nome, cnpj, telefone, email, endereco, valorHora, horaAbertura, horaFechamento } = servidor;
       salvarOficinaConfig({ nome, cnpj, telefone, email, endereco, valorHora, horaAbertura, horaFechamento });
