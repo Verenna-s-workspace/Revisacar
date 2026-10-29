@@ -15,13 +15,26 @@ Status — um vocabulário só para os dois apps (banco → API):
 Agendamento criado pela oficina já nasce confirmado. Confirmar/recusar um pedido avisa o cliente do app
 (tabela notifications) — só quando ele tem conta no app.
 
+Agendamento × OS (só na leitura, nada é gravado): o agendamento acompanha a OS do mesmo carro.
+  - Ligação: `ordem_id` gravado ("Iniciar Atendimento") ou, sem ele, a OS da mesma oficina com o mesmo
+    veículo (vehicle_id) ou a mesma placa e o mesmo dia (data de entrada da OS). Só liga com UMA candidata
+    — duas OS do carro no dia, ou dois agendamentos disputando a mesma OS, ficam sem ligação.
+  - Status: só os de andamento (agendado, em_andamento, aguardando_pagamento, pronto_retirada) seguem a
+    OS; pendente, cancelado, recusado e concluido são decisão de alguém e ficam. OS aberta → em_andamento;
+    finalizada com entrada pendente no Financeiro → aguardando_pagamento; finalizada paga → concluido;
+    recusada → concluido (o cliente veio e foi atendido).
+
 Formato JSON: `Agendamento` (frontend/src/types/agendamento.ts) + `clienteId`, `veiculoId`, `motivoRecusa`.
 O formulário manda cliente/veículo/placa como TEXTO: o cliente é resolvido (ou cadastrado de balcão) como em
 veiculos_views.py; o veículo, se a placa já existe entre os do cliente. O rótulo é guardado em vehicle_label
 como "Marca Modelo — PLACA" (mesmo formato do app do cliente).
 """
+import json
+import logging
 import re
+from collections import Counter
 from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from rest_framework import status as http_status
 from rest_framework.decorators import api_view
@@ -31,6 +44,8 @@ from . import carteira as cart
 from . import veiculos_views as veic
 from .estoque_views import _corpo_valido, _listar_todos, _negado, _nao_encontrado, _uuid_valido
 from .views import supabase, require_auth, _now, _oficina_doc_do_token
+
+log = logging.getLogger(__name__)
 
 AGENDA = "appointments"
 DURACAO_PADRAO_MIN = 60
@@ -43,6 +58,9 @@ STATUS_API = ("pendente", "agendado", "em_andamento", "aguardando_pagamento", "p
               "concluido", "cancelado", "recusado")
 
 HORA_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+SEGUE_A_OS = {"confirmado", "em_andamento", "aguardando_pagamento", "pronto_retirada"}
+FUSO_PADRAO = ZoneInfo("America/Sao_Paulo")
 
 
 def _transicao_permitida(de: str, para: str) -> bool:
@@ -121,7 +139,109 @@ def agendamento_para_api(row: dict, cliente: dict | None, mecanico: dict | None)
     return out
 
 
+# ── Agendamento × OS ──────────────────────────────────────────────────────────
+
+def status_pela_os(status_os: str, a_receber: bool) -> str:
+    if status_os == "finalizada":
+        return "aguardando_pagamento" if a_receber else "concluido"
+    if status_os == "recusada":
+        return "concluido"
+    return "em_andamento"
+
+
+def _dia_da_os(ordem: dict) -> str:
+    """Data de entrada da OS (os_header.os_date); sem ela, o dia em que foi criada, no fuso da oficina."""
+    payload = ordem.get("payload")
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except ValueError:
+            payload = None
+    dia = str(((payload or {}).get("os_header") or {}).get("os_date") or "")[:10] if isinstance(payload, dict) else ""
+    if dia:
+        return dia
+    criado = str(ordem.get("created_at") or "")
+    try:
+        quando = datetime.fromisoformat(criado.replace("Z", "+00:00"))
+    except ValueError:
+        return criado[:10]
+    return (quando.astimezone(FUSO_PADRAO) if quando.tzinfo else quando).date().isoformat()
+
+
+def _placa_do_agendamento(linha: dict) -> str:
+    return cart.normalizar_placa(_veiculo_e_placa(linha.get("vehicle_label"))[1])
+
+
+def _seguir_as_os(oficina_doc: str, linhas):
+    """As linhas com `ordem_id` e `status` vindos da OS ligada (ver o topo do módulo). Melhor esforço:
+    qualquer falha devolve as linhas como estão no banco."""
+    alvo = [linha for linha in linhas if linha.get("status") in SEGUE_A_OS]
+    if not alvo:
+        return linhas
+    try:
+        # A disputa (dois agendamentos pela mesma OS) é vista no DIA inteiro, não só nas linhas pedidas:
+        # senão GET /agendamentos/<id> e a lista dariam respostas diferentes.
+        do_dia = {str(li["id"]): li for li in cart.buscar_por_ids(
+            AGENDA, {str(li["date"]) for li in alvo}, coluna="date",
+            extra=lambda q: q.eq("oficina_doc", oficina_doc))}
+        do_dia.update({str(li["id"]): li for li in alvo})
+        do_dia = [li for li in do_dia.values() if li.get("status") in SEGUE_A_OS]
+        explicitas = [str(linha["ordem_id"]) for linha in do_dia if linha.get("ordem_id")]
+        sem_os = [linha for linha in do_dia if not linha.get("ordem_id")]
+        placas = set()
+        for linha in sem_os:
+            p = _placa_do_agendamento(linha)
+            if p:
+                placas.add(p)
+                if re.fullmatch(r"[A-Z]{3}\d{4}", p):  # placa antiga também pode estar salva como ABC-1234
+                    placas.add(f"{p[:3]}-{p[3:]}")
+
+        def da_oficina(q):
+            return q.eq("oficina_doc", oficina_doc)
+        ordens = {}
+        for o in (cart.buscar_por_ids("ordens", explicitas, extra=da_oficina)
+                  + cart.buscar_por_ids("ordens", [li["vehicle_id"] for li in sem_os if li.get("vehicle_id")],
+                                        coluna="vehicle_id", extra=da_oficina)
+                  + cart.buscar_por_ids("ordens", placas, coluna="placa", extra=da_oficina)):
+            ordens[str(o["id"])] = o
+
+        candidatas = {}
+        for linha in sem_os:
+            placa, veiculo, dia = _placa_do_agendamento(linha), linha.get("vehicle_id"), str(linha["date"])
+            candidatas[str(linha["id"])] = [
+                oid for oid, o in ordens.items()
+                if oid not in explicitas and _dia_da_os(o) == dia
+                and ((veiculo and str(o.get("vehicle_id")) == str(veiculo))
+                     or (placa and cart.normalizar_placa(o.get("placa")) == placa))]
+        disputa = Counter(oid for c in candidatas.values() for oid in c)
+        ordem_de = {str(li["id"]): str(li["ordem_id"]) for li in do_dia if li.get("ordem_id")}
+        ordem_de.update({aid: c[0] for aid, c in candidatas.items() if len(c) == 1 and disputa[c[0]] == 1})
+
+        finalizadas = [oid for oid in set(ordem_de.values()) if (ordens.get(oid) or {}).get("status") == "finalizada"]
+        try:
+            a_receber = {str(t["ordem_servico_id"]) for t in cart.buscar_por_ids(
+                "financeiro_transacoes", finalizadas, coluna="ordem_servico_id",
+                extra=lambda q: q.eq("oficina_doc", oficina_doc).eq("tipo", "entrada").eq("status", "pendente"))}
+        except Exception:  # noqa: BLE001 — sem o Financeiro não dá pra saber se foi pago: finalizada fica como está
+            log.warning("Agenda: não consegui ler o Financeiro para os agendamentos.", exc_info=True)
+            a_receber = None
+    except Exception:  # noqa: BLE001 — a agenda continua aparecendo, só sem acompanhar a OS
+        log.warning("Agenda: não consegui ligar os agendamentos às OS.", exc_info=True)
+        return linhas
+
+    saida = []
+    for linha in linhas:
+        oid = ordem_de.get(str(linha["id"]))
+        o = ordens.get(oid) if oid else None
+        if o is None or (o.get("status") == "finalizada" and a_receber is None):
+            saida.append(linha)
+            continue
+        saida.append({**linha, "ordem_id": oid, "status": status_pela_os(o.get("status"), oid in (a_receber or ()))})
+    return saida
+
+
 def _montar(oficina_doc: str, linhas):
+    linhas = _seguir_as_os(oficina_doc, linhas)
     clientes = {str(c["id"]): c for c in cart.buscar_por_ids(cart.CLIENTES, [l.get("customer_id") for l in linhas])}
     func_ids = [l["mecanico_id"] for l in linhas if l.get("mecanico_id")]
     funcs = {str(f["id"]): f for f in cart.buscar_por_ids("funcionarios", func_ids)} if func_ids else {}
@@ -276,10 +396,11 @@ def agendamentos_list(request):
             q = q.gte("date", de)
         if ate:
             q = q.lte("date", ate)
-        if filtro_status:
-            q = q.eq("status", API_PARA_DB.get(filtro_status, filtro_status))
         return q.order("date", desc=True).order("time_slot", desc=True).order("id")
-    return Response(_montar(oficina_doc, _listar_todos(consulta)))
+    agenda = _montar(oficina_doc, _listar_todos(consulta))
+    if filtro_status:  # depois de montar: o status pode vir da OS, não só do banco
+        agenda = [a for a in agenda if a["status"] == filtro_status]
+    return Response(agenda)
 
 
 def _linha_da_oficina(oficina_doc: str, agendamento_id):
