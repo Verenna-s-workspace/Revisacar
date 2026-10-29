@@ -6,7 +6,7 @@ em produção: ao reiniciar o servidor todos são deslogados e, com mais de uma
 instância, uma não enxerga o estado da outra (o rate-limiting deixa de valer).
 
 Aqui esse estado passa a morar em três tabelas no Supabase (ver
-`db/migrations/0001_auth_persistence.sql`). Guardamos apenas o **hash SHA-256**
+`sql/migrations/0004_auth_persistence.sql`). Guardamos apenas o **hash SHA-256**
 dos tokens — um vazamento do banco não expõe tokens utilizáveis.
 
 O store é resiliente: se o banco estiver indisponível, leituras degradam para
