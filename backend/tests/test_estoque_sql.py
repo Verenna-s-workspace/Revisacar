@@ -120,8 +120,9 @@ def test_item_que_esta_numa_receita_nao_pode_ser_apagado(db):
     item = novo_item(db)
     kit = salvar_kit(db, [(item, 1)])["kit"]["id"]
     cur = db.cursor()
-    # ON DELETE RESTRICT => SQLSTATE 23001 (não 23503). A view trata os dois.
-    with pytest.raises(pgerr.RestrictViolation):
+    # ON DELETE RESTRICT => SQLSTATE 23001 ou 23503, conforme a versão do Postgres (o
+    # pixeltable-pgserver 0.7 já devolve 23503). A view trata os dois (CODIGOS_REFERENCIADO).
+    with pytest.raises((pgerr.RestrictViolation, pgerr.ForeignKeyViolation)):
         cur.execute("delete from estoque_itens where id = %s", (item,))
     # depois de apagar o kit, apaga normal
     cur.execute("delete from estoque_kits where id = %s", (kit,))
