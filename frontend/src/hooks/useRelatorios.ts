@@ -9,9 +9,7 @@ import type {
   RelatorioResposta,
 } from '../types/relatorios';
 import {
-  agregarOrdensLocal,
   agruparServicosMaisRealizados,
-  buildSeedOrdens,
   calcularVariacao,
   chaveDia,
   formatarMes,
@@ -41,7 +39,6 @@ export function useRelatorios() {
   const [dados, setDados] = useState<RelatorioResposta>(SEM_DADOS);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [usandoDadosDemo, setUsandoDadosDemo] = useState(false);
   const [filtro, setFiltro] = useState<FiltroPeriodo>(FILTRO_PADRAO);
 
   const intervaloAtual = useMemo(
@@ -67,11 +64,8 @@ export function useRelatorios() {
   // O servidor agrega (GET /relatorios) e devolve só totais e séries por dia;
   // aqui sobra agrupar em semana/mês e desenhar. Muda o período, busca de novo.
   //
-  // Se a chamada falhar, cai para dados de demonstração — mas só em
-  // desenvolvimento (import.meta.env.DEV), igual aos outros hooks. Aqui é
-  // faturamento de verdade, então em produção um backend fora do ar mostra o
-  // erro real em vez de números fictícios. Uma resposta bem-sucedida com
-  // período vazio nunca é substituída por dados falsos, em nenhum ambiente.
+  // Se a chamada falhar, mostra o erro real (faturamento fictício levaria decisão real em cima de
+  // número inventado). Uma resposta bem-sucedida com período vazio é exibida como veio.
   const carregar = useCallback(async () => {
     const chamada = ++ultimaChamada.current;
     setCarregando(true);
@@ -86,21 +80,13 @@ export function useRelatorios() {
       });
       if (chamada !== ultimaChamada.current) return;
       setDados(resposta);
-      setUsandoDadosDemo(false);
     } catch (e) {
       if (chamada !== ultimaChamada.current) return;
-      if (import.meta.env.DEV) {
-        setDados(agregarOrdensLocal(buildSeedOrdens(), intervaloAtual, intervaloAnterior));
-        setUsandoDadosDemo(true);
-      } else {
-        setDados(SEM_DADOS);
-        setErro(mensagemDoErro(e, 'Não foi possível carregar os relatórios.'));
-      }
+      setDados(SEM_DADOS);
+      setErro(mensagemDoErro(e, 'Não foi possível carregar os relatórios.'));
     } finally {
       if (chamada === ultimaChamada.current) setCarregando(false);
     }
-    // intervaloAtual/intervaloAnterior só entram no demo; mudam junto com as chaves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [de, ate, deAnterior, ateAnterior]);
 
   useEffect(() => {
@@ -114,7 +100,7 @@ export function useRelatorios() {
     // Ticket médio = valor das OS finalizadas ÷ nº de finalizadas ("valor médio por serviço
     // concluído"). Vem do servidor: com o Financeiro, o faturamento inclui OS aprovadas ainda não
     // concluídas, e dividi-lo só pelas finalizadas inflava a média. O cálculo local fica para a
-    // resposta antiga e para os dados de demonstração (onde faturamento = só finalizadas).
+    // resposta antiga.
     const ticketAtual = dados.ticketMedio
       ? dados.ticketMedio.atual
       : atual.finalizadas > 0 ? atual.faturamento / atual.finalizadas : 0;
@@ -196,7 +182,6 @@ export function useRelatorios() {
   return {
     carregando,
     erro,
-    usandoDadosDemo,
     filtro,
     setFiltro,
     intervaloAtual,

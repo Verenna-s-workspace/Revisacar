@@ -3,12 +3,6 @@ import { api } from '../utils/api';
 import { mensagemDoErro } from '../utils/api_erro';
 import type { Transacao, Categorias } from '../features/Dashboard/Financeiro/types';
 import type { ResumoFinanceiro } from '../features/Dashboard/Financeiro/KpiCards';
-import {
-  buildSeedCategorias,
-  buildSeedResumo,
-  buildSeedTransacoes,
-  filtrarSeedPorPeriodo,
-} from '../utils/financeiro_utils';
 
 const CATEGORIAS_VAZIAS: Categorias = { entrada: [], saida: [], formas_pagamento: [] };
 
@@ -34,10 +28,8 @@ interface Opcoes {
  * Só a resposta da ÚLTIMA carga vale: trocar de período rápido não deixa a
  * resposta lenta do período antigo sobrescrever a do novo.
  *
- * Se a carga falhar, cai pra dados de demonstração só em desenvolvimento
- * (import.meta.env.DEV) — em produção mostra o erro de verdade, porque
- * faturamento e margem fictícios levam a decisão real em cima de número
- * inventado. Resposta bem-sucedida (mesmo vazia) nunca é trocada por demo.
+ * Se a carga falhar, mostra o erro de verdade: faturamento e margem fictícios levam a
+ * decisão real em cima de número inventado.
  */
 export function useFinanceiro({ de, ate, podeVer, podeVerMargem }: Opcoes) {
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
@@ -47,7 +39,6 @@ export function useFinanceiro({ de, ate, podeVer, podeVerMargem }: Opcoes) {
   const [categorias, setCategorias] = useState<Categorias>(CATEGORIAS_VAZIAS);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [usandoDadosDemo, setUsandoDadosDemo] = useState(false);
   const ultimaCarga = useRef(0);
 
   const carregar = useCallback(async () => {
@@ -68,19 +59,9 @@ export function useFinanceiro({ de, ate, podeVer, podeVerMargem }: Opcoes) {
       setTransacoes(t);
       setPendentesReceber(pr);
       setPendentesPagar(pp);
-      setUsandoDadosDemo(false);
     } catch (e) {
       if (carga !== ultimaCarga.current) return;
-      if (import.meta.env.DEV) {
-        const todas = buildSeedTransacoes();
-        setResumo(buildSeedResumo(todas, de, ate, podeVerMargem));
-        setTransacoes(filtrarSeedPorPeriodo(todas, de, ate));
-        setPendentesReceber(todas.filter(x => x.status === 'pendente' && x.tipo === 'entrada'));
-        setPendentesPagar(todas.filter(x => x.status === 'pendente' && x.tipo === 'saida'));
-        setUsandoDadosDemo(true);
-      } else {
-        setErro(mensagemDoErro(e, 'Não foi possível carregar os dados financeiros.'));
-      }
+      setErro(mensagemDoErro(e, 'Não foi possível carregar os dados financeiros.'));
     } finally {
       if (carga === ultimaCarga.current) setCarregando(false);
     }
@@ -94,7 +75,7 @@ export function useFinanceiro({ de, ate, podeVer, podeVerMargem }: Opcoes) {
     if (!podeVer) return;
     api.categoriasFinanceiro()
       .then(setCategorias)
-      .catch(() => { if (import.meta.env.DEV) setCategorias(buildSeedCategorias()); });
+      .catch(() => { /* sem categorias o formulário fica vazio; o erro de carga já aparece na tela */ });
   }, [podeVer]);
 
   // As ações propagam o erro (o chamador decide onde mostrá-lo) e, dando
@@ -123,7 +104,6 @@ export function useFinanceiro({ de, ate, podeVer, podeVerMargem }: Opcoes) {
     carregando,
     erro,
     setErro,
-    usandoDadosDemo,
     recarregar: carregar,
     criar,
     atualizar,

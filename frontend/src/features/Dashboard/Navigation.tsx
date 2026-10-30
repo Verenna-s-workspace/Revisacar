@@ -7,6 +7,7 @@ import { useAlertasResumo } from '../../hooks/useAlertasResumo';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { rotuloDoCargo } from '../../utils/cargo';
 // ── Acessibilidade de diálogos (drawer) ──────────────────────────────────────
 // Foco entra no painel, Tab fica preso dentro dele, Esc fecha, o fundo não rola
 // e o foco volta pro botão que abriu. Antes o drawer tinha role="dialog" mas
@@ -259,7 +260,7 @@ export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) 
           <div className="dashboard-header__avatar">{Icons.user}</div>
           <div>
             <div className="dashboard-header__name">{user?.nome ?? 'Usuário'}</div>
-            <div className="dashboard-header__role">Administrador</div>
+            <div className="dashboard-header__role">{rotuloDoCargo(user)}</div>
           </div>
         </div>
         

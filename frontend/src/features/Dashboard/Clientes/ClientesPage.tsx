@@ -69,7 +69,6 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
   // As três fontes desta tela (clientes/veículos/agendamentos) seguem o
   // mesmo padrão dev-only de demonstração — se qualquer uma caiu pra dados
   // de demo, ou se a principal (clientes) falhou de verdade, sinaliza aqui.
-  const usandoDadosDemo = !loading && (!clientesUsingApi || !veiculosUsingApi || !agendamentosUsingApi) && !clientesErro;
   const erro = clientesErro;
 
   const clientesEnriquecidos = useMemo(
@@ -188,15 +187,6 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
               <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
                 Clientes
               </h2>
-              {usandoDadosDemo && (
-                <span style={{
-                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-                  color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
-                  borderRadius: 6, padding: '2px 7px',
-                }}>
-                  dados de demonstração
-                </span>
-              )}
             </div>
             <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
               Gerencie a carteira de clientes da oficina.

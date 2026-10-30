@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../utils/api';
-import { buildSeedVeiculos } from '../utils/veiculos_utils';
 import { mensagemDeErro } from '../utils/erros';
 import type {
   NovoVeiculoInput,
@@ -26,11 +25,8 @@ export function useVeiculos() {
   const [usingApi, setUsingApi] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Mesmo padrão de useEstoque/useRelatorios: fallback pra dados de
-  // demonstração só em desenvolvimento (import.meta.env.DEV). Em produção
-  // mostra o erro real em vez de veículos fictícios. Uma resposta bem
-  // sucedida (mesmo com lista vazia) nunca é substituída por demo, em
-  // nenhum ambiente.
+  // Se a API falhar, mostra o erro real (nunca dados fictícios). Uma resposta bem
+  // sucedida, mesmo com lista vazia, é sempre exibida como veio.
   const load = useCallback(async () => {
     setLoading(true);
     setErro(null);
@@ -40,14 +36,9 @@ export function useVeiculos() {
       setVeiculos(lista);
       setUsingApi(true);
     } catch {
-      if (import.meta.env.DEV) {
-        setVeiculos(buildSeedVeiculos());
-        setUsingApi(false);
-      } else {
-        setVeiculos([]);
-        setUsingApi(false);
-        setErro('Não foi possível carregar os veículos.');
-      }
+      setVeiculos([]);
+      setUsingApi(false);
+      setErro('Não foi possível carregar os veículos.');
     } finally {
       setLoading(false);
     }

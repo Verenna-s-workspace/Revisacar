@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../utils/api';
-import { buildSeedClientes } from '../utils/clientes_utils';
 import { mensagemDeErro } from '../utils/erros';
 import type { Cliente, NovoClienteInput } from '../types/cliente';
 
@@ -26,11 +25,8 @@ export function useClientes() {
   const [usingApi, setUsingApi] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Mesmo padrão de useEstoque/useRelatorios: se a API falhar, só cai pra
-  // dados de demonstração em desenvolvimento (import.meta.env.DEV). Em
-  // produção mostra o erro real em vez de clientes fictícios. Uma resposta
-  // bem sucedida (mesmo com lista vazia) nunca é substituída por dados de
-  // demonstração, em nenhum ambiente.
+  // Se a API falhar, mostra o erro real (nunca dados fictícios). Uma resposta bem
+  // sucedida, mesmo com lista vazia, é sempre exibida como veio.
   const load = useCallback(async () => {
     setLoading(true);
     setErro(null);
@@ -40,14 +36,9 @@ export function useClientes() {
       setClientes(lista);
       setUsingApi(true);
     } catch {
-      if (import.meta.env.DEV) {
-        setClientes(buildSeedClientes());
-        setUsingApi(false);
-      } else {
-        setClientes([]);
-        setUsingApi(false);
-        setErro('Não foi possível carregar os clientes.');
-      }
+      setClientes([]);
+      setUsingApi(false);
+      setErro('Não foi possível carregar os clientes.');
     } finally {
       setLoading(false);
     }

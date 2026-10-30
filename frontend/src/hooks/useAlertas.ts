@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { api } from '../utils/api';
 import { mensagemDoErro } from '../utils/api_erro';
-import { buildSeedOrdensAtendimento } from '../utils/atendimento_utils';
 import { migrarAvisadosLocais } from '../utils/cliente_avisado';
-import { buildSeedEstoque } from '../utils/estoque_utils';
 import { agruparAlertas, aplicarEscondidos, dispensadosResolvidos, fontesCompletas, gerarAlertas } from '../utils/alertas';
 import type { AlertaEscondidoApi, AlertasBackend } from '../types/alertas';
 import type { OrdemRow } from '../types/dashboard';
@@ -83,9 +81,7 @@ const SCRIPT_DA_ORIGEM: Record<string, string> = {
 /**
  * Lista de alertas da oficina (ver utils/alertas.ts pra regra de cada tipo).
  *
- * Em desenvolvimento, se a API de ordens/estoque falhar, usa os mesmos dados de
- * demonstração do Atendimento/Estoque; em produção mostra o erro — nunca
- * "nenhum alerta" por engano. `avisos` lista o que veio incompleto (ex.: alertas de
+ * Se a API de ordens/estoque falhar, mostra o erro — nunca "nenhum alerta" por engano. `avisos` lista o que veio incompleto (ex.: alertas de
  * financeiro indisponíveis) pra tela não fingir que está tudo conferido.
  *
  * `alertas`/`grupos`/`total` já descontam o que o usuário adiou ou dispensou (por usuário, no
@@ -113,13 +109,8 @@ export function useAlertas() {
         });
       } catch (e) {
         if (cancelado) return;
-        if (import.meta.env.DEV) {
-          setDados({ ordens: buildSeedOrdensAtendimento(), estoque: buildSeedEstoque(), backend: null, backendFalhou: false });
-          setErro(null);
-        } else {
-          setDados({ ordens: [], estoque: [], backend: null, backendFalhou: false });
-          setErro(mensagemDoErro(e, 'Não foi possível carregar os alertas.'));
-        }
+        setDados({ ordens: [], estoque: [], backend: null, backendFalhou: false });
+        setErro(mensagemDoErro(e, 'Não foi possível carregar os alertas.'));
       } finally {
         if (!cancelado) setLoading(false);
       }
