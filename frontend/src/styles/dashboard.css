@@ -649,10 +649,17 @@ body:has(.dashboard-modal-backdrop) { overflow: hidden; }
 .status-badge {
   font-size: var(--text-xs);
   font-weight: 700;
+  line-height: 1.4;
   padding: 3px 10px;
   border-radius: 99px;
   display: inline-flex;
   white-space: nowrap;
+  /* Como item direto da grade da tabela (e de colunas flex) o selo esticava
+   * até a largura da célula: o fundo ficava muito maior que o texto.
+   * fit-content mantém só o tamanho do texto. */
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
 }
 
 .status-badge--rascunho { background: #FFF3E0; color: #A33A00; }   /* #E65100 tinha 3,5:1 */
@@ -1262,4 +1269,16 @@ body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: 
   flex-shrink: 0;
   fill: none;
   stroke: currentColor;
+}
+
+
+/* Lista de cards do Kanban: os cards NÃO podem encolher.
+ * Numa coluna flex com altura limitada, o padrão (flex-shrink: 1) espremia os
+ * cards uns sobre os outros em vez de gerar rolagem — era o "bug" quando a
+ * coluna recebia muitos itens. */
+.kanban-lista > * { flex-shrink: 0; }
+.kanban-lista {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
 }

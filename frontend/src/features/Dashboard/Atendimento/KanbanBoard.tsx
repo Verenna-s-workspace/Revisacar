@@ -63,7 +63,7 @@ export function KanbanBoard({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {colunasData.map(c => (
-          <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading}>
+          <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading} limite={5}>
             {renderCards(c.itens)}
           </KanbanColuna>
         ))}
@@ -74,7 +74,7 @@ export function KanbanBoard({
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
       {colunasData.map(c => (
-        <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading}>
+        <KanbanColuna key={c.id} titulo={c.titulo} count={c.itens.length} style={colunaStyle} loading={loading} limite={8}>
           {renderCards(c.itens)}
         </KanbanColuna>
       ))}
