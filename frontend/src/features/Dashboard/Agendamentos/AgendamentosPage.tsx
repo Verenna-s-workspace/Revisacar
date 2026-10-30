@@ -25,6 +25,7 @@ import { MonthlyView } from './MonthlyView';
 import { AppointmentCard } from './AppointmentCard';
 import { AppointmentModal } from './AppointmentModal';
 import { NewAppointmentModal } from './NewAppointmentModal';
+import { AgendaMobile } from './mobile/AgendaMobile';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -413,10 +414,30 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   // ── Layout ───────────────────────────────────────────────────────────────────
 
   if (isMobile) {
+    // Mobile: layout próprio (pasta ./mobile), com as visões Diária/Semanal/Mensal.
+    // O desktop abaixo permanece exatamente como estava.
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div className="agm-shell" style={{ minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="agendamentos" onNav={onNav} />
-        {content}
+        <AgendaMobile
+          agendamentos={filtered}
+          total={agendamentos.length}
+          loading={loading}
+          erro={erro}
+          stats={stats}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          viewDate={viewDate}
+          onViewDateChange={setViewDate}
+          search={search}
+          onSearchChange={setSearch}
+          filtros={filtros}
+          onFiltrosChange={setFiltros}
+          onBack={() => onNav('dashboard')}
+          onCardClick={setSelectedAg}
+          onNew={openNewModal}
+          onDayClick={handleDayClick}
+        />
         <MobileNav active="agendamentos" onNav={onNav} onNewOS={onNewOS ?? (() => openNewModal())} />
         {modals}
       </div>
