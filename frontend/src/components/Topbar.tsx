@@ -196,7 +196,6 @@ export function Topbar({
   return (
     <nav className="topbar topbar--mobile topbar-glass">
       <div className="topbar-mobile-row">
-<<<<<<< HEAD
         {/* O logo também volta, mas ninguém adivinha isso no celular: botão explícito. */}
         <div className="topbar-mobile-slot">
           {onBackToStart && (
@@ -207,22 +206,6 @@ export function Topbar({
         </div>
         <div className="topbar-mobile-logo">{Logo}</div>
         <div className="topbar-mobile-end">
-          <button className={buttonClass(true)} onClick={onExportPDF} aria-label="Gerar PDF" title="Gerar PDF">
-            <svg
-              width={11}
-              height={11}
-              viewBox="0 0 11 11"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-            >
-              <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
-            </svg>
-            {isMobile ? " PDF" : " Gerar PDF"}
-=======
-        <div className="topbar-mobile-logo">{Logo}</div>
-        <div className="topbar-mobile-end">
           <button
             type="button"
             className={buttonClass(true)}
@@ -231,7 +214,6 @@ export function Topbar({
           >
             {pdfIcon}
             {isMobile ? "PDF" : "Gerar PDF"}
->>>>>>> 8410f51e (feat: mobile bugs fix)
           </button>
           <div className="topbar-menu" ref={menuRef}>
             <button
