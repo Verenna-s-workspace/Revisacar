@@ -575,6 +575,19 @@ export const api = {
   salvarConfigOficina: (payload: Record<string, unknown>) =>
     authFetch(`${API_BASE}/oficina/config`, { method: 'PUT', body: JSON.stringify(payload) }),
 
+  /** Código de acesso da equipe (link /f/<código>). Exige funcionarios.gerenciar. */
+  obterAcessoEquipe: () => authFetch(`${API_BASE}/oficina/acesso-equipe`),
+
+  gerarAcessoEquipe: (renovar = false) =>
+    authFetch(`${API_BASE}/oficina/acesso-equipe`, { method: 'POST', body: JSON.stringify({ renovar }) }),
+
+  desativarAcessoEquipe: () =>
+    authFetch(`${API_BASE}/oficina/acesso-equipe`, { method: 'DELETE' }),
+
+  /** Sem login: o aparelho do funcionário troca o código pela oficina. */
+  resolverCodigoOficina: (codigo: string) =>
+    fetch(`${API_BASE}/publico/oficina/${encodeURIComponent(codigo)}`, { headers: baseHeaders }).then(handleResponse),
+
   definirMetaMensal: (valor: number | null) =>
     authFetch(`${API_BASE}/visao-geral/meta`, { method: 'PUT', body: JSON.stringify({ valor }) }),
 

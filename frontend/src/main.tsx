@@ -5,6 +5,8 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import OrcamentoPublicoPage from './features/OrcamentoPublico/OrcamentoPublicoPage';
 import { tokenDoCaminho } from './utils/orcamento_link_utils';
+import AcessoEquipePage from './features/AcessoEquipe/AcessoEquipePage';
+import { codigoDoCaminho } from './utils/acesso_equipe_utils';
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 // In development: unregister any previously installed SW so it never
@@ -41,14 +43,24 @@ if (!rootElement) throw new Error('[RevisaCar] Elemento #root não encontrado no
 // (não monta AuthProvider nem App, então nada da sessão da oficina entra nela).
 const tokenPublico = tokenDoCaminho(window.location.pathname);
 
+// Link de acesso da equipe (/f/<código>): pareia este aparelho com a oficina e abre o login do
+// funcionário. Depois disso é o painel normal (por isso o painel entra como filho).
+const codigoEquipe = codigoDoCaminho(window.location.pathname);
+
+const painel = (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
+
 createRoot(rootElement).render(
   <StrictMode>
     {tokenPublico ? (
       <OrcamentoPublicoPage token={tokenPublico} />
+    ) : codigoEquipe ? (
+      <AcessoEquipePage codigo={codigoEquipe}>{painel}</AcessoEquipePage>
     ) : (
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      painel
     )}
   </StrictMode>
 );

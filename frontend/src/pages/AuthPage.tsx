@@ -5,6 +5,7 @@ import type { AuthFlow, AuthRole } from './auth/authFlows';
 import { AuthScreen } from './AuthScreen';
 import { FuncionarioLoginScreen } from './FuncionarioLogin/FuncionarioLoginScreen';
 import type { AuthResult } from '../types';
+import { deveAbrirComoFuncionario, limparAberturaComoFuncionario } from '../utils/acesso_equipe_utils';
 
 interface AuthPageProps {
   onAuthenticated: (result: AuthResult, role: AuthRole) => void;
@@ -25,13 +26,18 @@ const prefersReducedMotion = () =>
  *   ~800 ms  painel chega ao outro lado; novo formulário já está visível
  */
 export function AuthPage({ onAuthenticated }: AuthPageProps) {
-  const [role, setRole] = useState<AuthRole>('dono');          // lado do painel + gradiente
-  const [formRole, setFormRole] = useState<AuthRole>('dono');  // formulário montado
+  // Quem chegou pelo link de acesso da equipe (/f/<código>) abre direto no lado do funcionário.
+  const [papelInicial] = useState<AuthRole>(() => (deveAbrirComoFuncionario() ? 'funcionario' : 'dono'));
+  const [role, setRole] = useState<AuthRole>(papelInicial);          // lado do painel + gradiente
+  const [formRole, setFormRole] = useState<AuthRole>(papelInicial);  // formulário montado
   const [formVisible, setFormVisible] = useState(true);
   const [moving, setMoving] = useState(false);
-  const [progress, setProgress] = useState<{ flow: AuthFlow; step: number }>({ flow: 'login', step: 0 });
+  const [progress, setProgress] = useState<{ flow: AuthFlow; step: number }>({
+    flow: DEFAULT_FLOW_BY_ROLE[papelInicial],
+    step: 0,
+  });
 
-  const targetRole = useRef<AuthRole>('dono');
+  const targetRole = useRef<AuthRole>(papelInicial);
   const timers = useRef<number[]>([]);
 
   const clearTimers = () => {
@@ -39,6 +45,8 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
     timers.current = [];
   };
   useEffect(() => clearTimers, []);
+  // A marca de "abrir como funcionário" vale uma vez só (recarregar volta ao padrão).
+  useEffect(() => { limparAberturaComoFuncionario(); }, []);
 
   const switchRole = useCallback((next: AuthRole) => {
     if (next === targetRole.current) return;
@@ -86,6 +94,7 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
         <AuthScreen
           onAuthenticated={(result) => onAuthenticated(result, 'dono')}
           onProgress={handleProgress}
+          onIrParaFuncionario={() => switchRole('funcionario')}
         />
       ) : (
         <FuncionarioLoginScreen

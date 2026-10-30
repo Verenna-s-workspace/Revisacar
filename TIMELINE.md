@@ -403,3 +403,24 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - **Consequência:** sem backend, as telas mostram erro/vazio em vez de dados de exemplo. Pra desenvolver, suba o backend local (o `API_BASE` cai em `http://127.0.0.1:8000`).
 - **Validado:** `tsc` + `vite build` limpos (cópia temporária com os conflitos de merge da `main` resolvidos), "demonstração" ausente do bundle, helper de cargo testado em Node. **NÃO validado:** no navegador contra o backend real.
 - **Não mexido:** nos hooks de Veículos/Clientes/Agendamentos/Serviços o ramo de escrita "sem API" (`usingApi` falso) continua; só deixou de ser alcançado por dados fictícios. A barra lateral e o menu mobile ainda rotulam o nome como "Oficina", inclusive para funcionário.
+## Acesso da equipe — login de funcionário em qualquer aparelho (2026-10-29, branch `feat/acesso-equipe-link`)
+**Problema:** o login de funcionário (nome + PIN) depende do CNPJ da oficina guardado no `localStorage` do aparelho (`revisacarDeviceOficinaDoc`). Funcionário e PIN já ficavam no banco, mas num computador novo ele caía em "Configurar este dispositivo" e tinha que saber o CNPJ de cabeça. E não havia como trocar a oficina pareada: um CNPJ digitado errado prendia o aparelho.
+
+**Entrega**
+- **Código da oficina + link `/f/<código>`.** Migração `0006_codigo_acesso_equipe.sql` (`admins.codigo_acesso`, único). Código de 8 caracteres sem 0/O/1/I/L (≈ 8,5e11 combinações), gerado com `secrets`. Em Configurações, o card "Acesso da equipe" (`AcessoEquipeCard.tsx`, só com `funcionarios.gerenciar`, ou seja, o dono) gera o código, copia código/link, manda por WhatsApp, gera um novo (o antigo para de valer) ou desativa o link.
+- **Backend** (`orders/acesso_equipe_views.py`): `GET/POST/DELETE /oficina/acesso-equipe` (login + `funcionarios.gerenciar`) e `GET /publico/oficina/<código>` (sem login) → `{oficinaDoc, nome}`. Formato inválido é descartado antes de tocar no banco; código errado e desativado respondem o mesmo 404; limite de 30 consultas/min por IP; `Cache-Control: no-store` e `noindex`. Coluna ausente (0006 não rodada) → 503 com mensagem clara.
+- **Frontend:** `/f/<código>` (`features/AcessoEquipe/AcessoEquipePage.tsx`, montada no `main.tsx`) troca o código pela oficina, grava a mesma chave que o login já lia e abre o login no lado do funcionário, já com a lista de nomes. Link inválido/desativado explica e deixa seguir pro login normal.
+- **Tela do funcionário:** o pareamento pede o código da oficina (CNPJ continua como alternativa) e o seletor ganhou "Não é a sua oficina? Trocar". No login do dono entrou "É funcionário? Entre com seu PIN".
+
+**Arquivos:** backend `orders/acesso_equipe_views.py`, `orders/urls.py`, `sql/migrations/0006_codigo_acesso_equipe.sql`, `tests/test_acesso_equipe.py` (21 testes), `tests/conftest.py`. Frontend `utils/acesso_equipe_utils.ts`, `utils/api.ts`, `main.tsx`, `App.tsx`, `pages/AuthPage.tsx`, `pages/AuthScreen.tsx`, `pages/FuncionarioLogin/FuncionarioLoginScreen.tsx`, `features/Dashboard/Configuracoes/AcessoEquipeCard.tsx`, `features/Dashboard/ConfiguracoesPage.tsx`.
+
+**Rodar no Supabase antes de usar:** `backend/sql/migrations/0006_codigo_acesso_equipe.sql` (idempotente).
+
+**Validado:** testes do backend (21 novos, Postgres real descartável; suíte inteira 774 passando); `tsc` e `vite build` limpos numa cópia temporária com os conflitos de merge abaixo resolvidos; funções puras do código/link conferidas em Node. **NÃO validado:** fluxo no navegador contra o backend/Supabase reais (link aberto em outro computador, WhatsApp, cópia pro clipboard).
+
+**Decisões e pendências**
+- O código dá acesso só ao que o CNPJ já dá (nome da oficina e a lista nome/cargo). O PIN segue protegido pelo bloqueio anti-força-bruta. Desativar o link não desfaz aparelhos já configurados nem o pareamento por CNPJ: o que protege o acesso é o PIN, e `ativo=false` no funcionário.
+- Sem QR code por enquanto (exigiria uma dependência nova); copiar link e WhatsApp resolvem. Fácil de somar depois.
+- O host precisa devolver o `index.html` para `/f/*`, como já precisa para `/o/*` (ver Fase 6A). O `vite preview` já faz isso.
+- **`main` com conflitos de merge commitados** (commit `96dfcf2`): `frontend/index.html` (linhas 17–21) e `frontend/src/components/Topbar.tsx` (linhas 199–234) têm `<<<<<<<`/`>>>>>>>`, então `npm run build` falha na `main` hoje. Não mexido nesta entrega (é escolher entre os dois lados); precisa resolver antes do próximo deploy.
+- Falha pré-existente na `main`: `tests/test_estoque_sql.py::test_item_que_esta_numa_receita_nao_pode_ser_apagado`. Não mexido.
