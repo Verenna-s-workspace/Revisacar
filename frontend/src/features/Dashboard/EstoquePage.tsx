@@ -31,7 +31,7 @@ type Visao = { tipo: 'inicio' } | { tipo: 'categoria'; categoria: string } | { t
 
 export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: EstoquePageProps) {
   const {
-    itens, kits, carregando, erro, usandoDadosDemo, stats,
+    itens, kits, carregando, erro, stats,
     recarregar, criarItem, atualizarItem, excluirItem,
     criarKit, atualizarKit, excluirKit, aplicarKit, disponibilidadeKit,
   } = useEstoque();
@@ -189,17 +189,6 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
               <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
                 Estoque
               </h2>
-              {usandoDadosDemo && (
-                <span
-                  style={{
-                    fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-                    color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
-                    borderRadius: 6, padding: '2px 7px',
-                  }}
-                >
-                  dados de demonstração
-                </span>
-              )}
             </div>
             <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
               Peças, insumos e kits da oficina.

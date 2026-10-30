@@ -171,9 +171,8 @@ export function agendamentoParaPrefill(agendamento: Agendamento): OSPrefillInput
 // modelo de dado novo aqui. `servicos_selecionados` na OS guarda ids de seção
 // do checklist (motor/freios/...), não nomes do Catálogo — mesma ambiguidade
 // que já existe em extractTopServicos/SVC_PRECO (utils/relatorios.ts). O
-// casamento abaixo é o mesmo "melhor esforço" por nome: funciona de ponta a
-// ponta com dado demo (ver buildSeedOrdensAtendimento), pode não achar nada em
-// produção — comportamento aceito pela Seção 6 ("não é obrigatório").
+// casamento abaixo é o mesmo "melhor esforço" por nome: pode não achar nada —
+// comportamento aceito pela Seção 6 ("não é obrigatório").
 export function kitsVinculadosNaOrdem(ordem: OSAtendimento, kits: EstoqueKit[], servicos: ServicoItem[]): EstoqueKit[] {
   const selecionados = parseOrdemPayload(ordem).servicos_selecionados ?? [];
   if (selecionados.length === 0) return [];
@@ -249,123 +248,4 @@ export function formatDuracaoDesde(iso: string, agora: Date = new Date()): strin
 
   const dias = Math.floor(horas / 24);
   return `há ${dias}d`;
-}
-
-// ── Dados de demonstração (só em desenvolvimento) ──────────────────────────────
-// Mesmo racional do useEstoque (import.meta.env.DEV): dado operacional errado
-// em produção é tão arriscado quanto faturamento fictício — um mecânico vendo
-// cards de clientes que não existem no meio da fila real é pior que uma tela
-// vazia. Só cobre a metade "ordens"; os agendamentos de hoje já vêm do próprio
-// fallback (sempre ligado) de useAgendamentos().
-
-function minutosAtras(min: number): string {
-  return new Date(Date.now() - min * 60 * 1000).toISOString();
-}
-
-function horasAtras(h: number): string {
-  return minutosAtras(h * 60);
-}
-
-function diasAtrasComHora(dias: number, hora: number): string {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - dias);
-  dt.setHours(hora, 0, 0, 0);
-  return dt.toISOString();
-}
-
-/** OS de demonstração já "pré-mescladas" com overlay (é sintético, não passa pelo localStorage). */
-export function buildSeedOrdensAtendimento(): OSAtendimento[] {
-  return [
-    {
-      id: 'atd-seed-1',
-      os_num: '1042',
-      cliente: 'Marcos Almeida',
-      placa: 'MKA3F71',
-      modelo: 'VW Gol 1.6',
-      status: 'rascunho',
-      created_at: horasAtras(1),
-      updated_at: horasAtras(1),
-      payload: { veiculo: { ano: '2019', cor: 'Prata' }, servicos_selecionados: ['pneus'] },
-    },
-    {
-      id: 'atd-seed-2',
-      os_num: '1041',
-      cliente: 'Fernanda Rocha',
-      placa: 'FRC1G82',
-      modelo: 'Honda Civic EXL',
-      status: 'rascunho',
-      created_at: horasAtras(3),
-      updated_at: minutosAtras(42),
-      iniciadoEm: minutosAtras(42),
-      prioridade: 'vip',
-      reclamacaoCliente: 'Barulho no motor ao dar partida a frio.',
-      // Bate com o kit "Kit Troca de Óleo Completa" (servicoId '1') do seed de Estoque —
-      // mostra a seção de Peças Necessárias funcionando de ponta a ponta em modo demo.
-      payload: { veiculo: { ano: '2022', cor: 'Branco' }, servicos_selecionados: ['Troca de Óleo e Filtro'] },
-    },
-    {
-      id: 'atd-seed-3',
-      os_num: '1039',
-      cliente: 'Paulo Henrique Souza',
-      placa: 'PHS4D30',
-      modelo: 'Fiat Toro Volcano',
-      status: 'rascunho',
-      created_at: horasAtras(5),
-      updated_at: horasAtras(2),
-      iniciadoEm: horasAtras(2),
-      payload: { veiculo: { ano: '2021', cor: 'Cinza' }, servicos_selecionados: ['motor'] },
-    },
-    {
-      id: 'atd-seed-4',
-      os_num: '1036',
-      cliente: 'Juliana Prado',
-      placa: 'JPD8H55',
-      modelo: 'Chevrolet Onix Plus',
-      status: 'aguardando',
-      created_at: horasAtras(9),
-      updated_at: horasAtras(4),
-      prioridade: 'garantia',
-      reclamacaoCliente: 'Retornou com o mesmo barulho na suspensão dianteira.',
-      observacoesInternas: 'Aguardando peça de fornecedor externo — previsão amanhã.',
-      payload: { veiculo: { ano: '2020', cor: 'Vermelho' }, servicos_selecionados: ['suspensao'] },
-    },
-    {
-      // Mesma placa da atd-seed-4, serviço parecido, 12 dias atrás — alimenta o
-      // Histórico Express e o alerta de possível retorno (Fase 6).
-      id: 'atd-seed-5',
-      os_num: '0998',
-      cliente: 'Juliana Prado',
-      placa: 'JPD8H55',
-      modelo: 'Chevrolet Onix Plus',
-      status: 'finalizada',
-      created_at: diasAtrasComHora(12, 9),
-      updated_at: diasAtrasComHora(12, 17),
-      clienteAvisado: true,
-      payload: { veiculo: { ano: '2020', cor: 'Vermelho' }, servicos_selecionados: ['suspensao'] },
-    },
-    {
-      id: 'atd-seed-6',
-      os_num: '1044',
-      cliente: 'Bruno Teixeira',
-      placa: 'BTX2K19',
-      modelo: 'Hyundai HB20 Comfort',
-      status: 'finalizada',
-      created_at: horasAtras(6),
-      updated_at: horasAtras(1),
-      clienteAvisado: true,
-      payload: { veiculo: { ano: '2023', cor: 'Prata' }, servicos_selecionados: ['eletrica'] },
-    },
-    {
-      // clienteAvisado não setado de propósito — é essa que acende o alerta vermelho.
-      id: 'atd-seed-7',
-      os_num: '1045',
-      cliente: 'Camila Duarte',
-      placa: 'CDT7M63',
-      modelo: 'Renault Kwid Zen',
-      status: 'finalizada',
-      created_at: horasAtras(4),
-      updated_at: minutosAtras(30),
-      payload: { veiculo: { ano: '2022', cor: 'Laranja' }, servicos_selecionados: ['pneus'] },
-    },
-  ];
 }

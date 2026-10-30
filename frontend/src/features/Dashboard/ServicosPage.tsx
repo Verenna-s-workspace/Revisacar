@@ -96,7 +96,6 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   }
 
   const temFiltroAtivo = search !== '' || categoria !== 'todas';
-  const usandoDadosDemo = !loading && !usingApi && !erro;
 
   // ── conteúdo ────────────────────────────────────────────────────────────────
 
@@ -124,15 +123,6 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
               <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
                 Catálogo de Serviços
               </h2>
-              {usandoDadosDemo && (
-                <span style={{
-                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-                  color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
-                  borderRadius: 6, padding: '2px 7px',
-                }}>
-                  dados de demonstração
-                </span>
-              )}
             </div>
             <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
               Serviços, preços e duração estimada oferecidos pela oficina.

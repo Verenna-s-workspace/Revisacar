@@ -52,7 +52,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   const { de, ate } = periodoDoPreset(preset);
   const {
     resumo, transacoes, pendentesReceber, pendentesPagar, categorias,
-    carregando, erro, usandoDadosDemo, criar, atualizar, cancelar,
+    carregando, erro, criar, atualizar, cancelar,
   } = useFinanceiro({ de, ate, podeVer, podeVerMargem });
 
   const fluxoDiario = useMemo<FluxoDia[]>(() => {
@@ -116,17 +116,6 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Financeiro</h2>
-            {usandoDadosDemo && (
-              <span
-                style={{
-                  fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-                  color: tokens.color.warn, background: tokens.color.warnBg, border: `1px solid ${tokens.color.warnBorder}`,
-                  borderRadius: 6, padding: '2px 7px',
-                }}
-              >
-                dados de demonstração
-              </span>
-            )}
           </div>
           <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '2px 0 0' }}>Entradas, saídas e fluxo de caixa da oficina.</p>
         </div>

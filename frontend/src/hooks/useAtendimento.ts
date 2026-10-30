@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../utils/api';
 import {
-  buildSeedOrdensAtendimento,
   derivarColunasKanban,
   lerTodosOverlays,
   mesclarOverlayNaOrdem,
@@ -42,11 +41,7 @@ export function useAtendimento() {
     try {
       const data = await api.listarOrdens();
       const lista: OrdemRow[] = Array.isArray(data) ? data : [];
-      // Fallback de demo só em desenvolvimento — ver comentário em
-      // buildSeedOrdensAtendimento (mesmo racional do useEstoque). Uma lista
-      // vazia só vira demo em DEV; em produção uma resposta bem sucedida
-      // (mesmo vazia) nunca é substituída.
-      setOrdensRaw(lista.length === 0 && import.meta.env.DEV ? buildSeedOrdensAtendimento() : lista);
+      setOrdensRaw(lista);
       // Marcações antigas de "cliente avisado" (só no navegador) sobem pro banco, uma vez.
       void migrarAvisadosLocais(lista).then(ids => {
         if (ids.length) {
@@ -55,12 +50,8 @@ export function useAtendimento() {
         }
       });
     } catch {
-      if (import.meta.env.DEV) {
-        setOrdensRaw(buildSeedOrdensAtendimento());
-      } else {
-        setOrdensRaw([]);
-        setErroOrdens('Não foi possível carregar as ordens de serviço.');
-      }
+      setOrdensRaw([]);
+      setErroOrdens('Não foi possível carregar as ordens de serviço.');
     } finally {
       setLoadingOrdens(false);
     }

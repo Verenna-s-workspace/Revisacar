@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../utils/api';
 import { mensagemDoErro } from '../utils/api_erro';
-import { buildSeedServicos } from '../utils/servicos_utils';
 import type { NovoServicoInput, ServicoItem } from '../types/servico';
 
 function makeId(): string {
@@ -21,11 +20,8 @@ export function useServicos() {
   const [usingApi, setUsingApi] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Mesmo padrão de useEstoque/useRelatorios: fallback pra dados de
-  // demonstração só em desenvolvimento (import.meta.env.DEV). Em produção
-  // mostra o erro real em vez de serviços fictícios. Uma resposta bem
-  // sucedida (mesmo com lista vazia) nunca é substituída por demo, em
-  // nenhum ambiente.
+  // Se a API falhar, mostra o erro real (nunca dados fictícios). Uma resposta bem
+  // sucedida, mesmo com lista vazia, é sempre exibida como veio.
   const load = useCallback(async () => {
     setLoading(true);
     setErro(null);
@@ -35,14 +31,9 @@ export function useServicos() {
       setServicos(lista);
       setUsingApi(true);
     } catch {
-      if (import.meta.env.DEV) {
-        setServicos(buildSeedServicos());
-        setUsingApi(false);
-      } else {
-        setServicos([]);
-        setUsingApi(false);
-        setErro('Não foi possível carregar o catálogo de serviços.');
-      }
+      setServicos([]);
+      setUsingApi(false);
+      setErro('Não foi possível carregar o catálogo de serviços.');
     } finally {
       setLoading(false);
     }
