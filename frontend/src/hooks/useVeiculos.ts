@@ -64,7 +64,7 @@ export function useVeiculos() {
       chassi: input.chassi,
       renavam: input.renavam,
       observacoes: input.observacoes,
-      fotoPrincipal: input.fotoPrincipal,
+      fotoPrincipal: input.fotoPrincipal ?? undefined,
       fotosAdicionais: input.fotosAdicionais ?? [],
       proprietario: input.proprietario ?? null,
       status: input.status ?? 'disponivel',
@@ -88,7 +88,15 @@ export function useVeiculos() {
 
   const updateVeiculo = useCallback(async (id: string, patch: Partial<NovoVeiculoInput>) => {
     const anterior = veiculos.find(v => v.id === id);
-    setVeiculos(prev => prev.map(v => (v.id === id ? { ...v, ...patch, updatedAt: new Date().toISOString() } : v)));
+    const { fotoPrincipal, ...resto } = patch;
+    setVeiculos(prev => prev.map(v => (v.id === id
+      ? {
+        ...v, ...resto,
+        // `null` remove a foto; ausente não mexe
+        ...(fotoPrincipal !== undefined ? { fotoPrincipal: fotoPrincipal ?? undefined } : {}),
+        updatedAt: new Date().toISOString(),
+      }
+      : v)));
 
     if (usingApi) {
       try {

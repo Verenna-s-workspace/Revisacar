@@ -22,6 +22,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Orçamento — Fase 6A (link público do cliente) | 🟡 SQL + API + front prontos (584 testes; smoke no navegador com API simulada: bloco "Link para o cliente", página pública `/o/<código>` — ver, aprovar, recusar, vencido/aprovado/recusado/substituído, erros 404/410/429/rede, celular 390px — e o grupo de alertas "Clientes que responderam"). Falta: rodar `orcamento_link.sql` (depois de `orcamentos.sql`), garantir que a hospedagem entrega o `index.html` em `/o/*` e validar contra o Supabase real. Conta do cliente (parte B) não iniciada |
 | Entrada — fotos obrigatórias | 🟡 SQL + API + front prontos (647 testes; smoke no navegador 390px com API simulada: 5 itens, "3 de 5", refazer, pular com motivo, bloqueio nas duas etapas, reenvio, modo sem script). Falta: rodar `ordens_fotos.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase/Storage reais |
 | Cadastro — etapa 2 (dados da oficina) | 🟡 Front pronto (tsc + build ok; smoke no navegador com API de cadastro simulada: desktop e 390px, validação, gravação em Configurações). Só frontend, grava no `localStorage` como a tela de Configurações. Etapa 3 (boas-vindas) não iniciada |
+| Veículos ↔ Clientes (vínculo, fotos, Nova OS) | 🟡 Backend + SQL + testes + front prontos (796 testes; tsc + build ok; smoke no navegador com API simulada, 35 verificações). Falta: rodar `0007_fotos_veiculos.sql` e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -425,6 +426,21 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - **`main` com conflitos de merge commitados** (commit `96dfcf2`): `frontend/index.html` (linhas 17–21) e `frontend/src/components/Topbar.tsx` (linhas 199–234) têm `<<<<<<<`/`>>>>>>>`, então `npm run build` falha na `main` hoje. Não mexido nesta entrega (é escolher entre os dois lados); precisa resolver antes do próximo deploy.
 - Falha pré-existente na `main`: `tests/test_estoque_sql.py::test_item_que_esta_numa_receita_nao_pode_ser_apagado`. Não mexido.
 
+## Veículos ↔ Clientes: vínculo, fotos e "Nova OS" (2026-10-31)
+**Arquivos:** backend `orders/carteira.py`, `orders/clientes_views.py`, `orders/veiculos_views.py`, `sql/migrations/0007_fotos_veiculos.sql`, `tests/test_carteira.py` (+21), `tests/conftest.py`. Frontend `features/Dashboard/Veiculos/OwnerPicker.tsx` (novo), `VehicleFormModal.tsx`, `ChangeOwnerModal.tsx`, `VeiculosPage.tsx`, `features/Dashboard/Clientes/ClientFormModal.tsx`, `ClientesPage.tsx`, `hooks/useVeiculos.ts`, `hooks/useClientes.ts`, `utils/veiculos_utils.ts`, `utils/clientes_utils.ts`, `pages/InitialChecklist.tsx`, `pages/Dashboard.tsx`, `types/*`.
+
+**Vínculo veículo ↔ cliente.** O backend/banco já tinham (`customer_vehicles.customer_id`, `proprietario.clienteId` conferido contra a carteira); faltava a tela: o formulário só aceitava texto e dizia "em breve". Agora `OwnerPicker` (cadastro/edição do veículo e "Alterar proprietário") escolhe um cliente da carteira (manda `clienteId`) ou cadastra um novo (texto, como antes). Na edição, o dono só é reenviado se mudou. A tela de Clientes passa a cruzar veículos pelo `clienteId` (antes só por nome).
+
+**Fotos.** Estavam sendo ignoradas pelo backend (cliente e veículo) e o formulário mandava o arquivo cru. Agora seguem o estoque: comprime no navegador (cliente 480px; veículo 800px/640px), envia data URL, backend valida (jpeg/png/webp/gif ou https, ≤ 700 mil caracteres) e grava. Cliente em `customers.avatar_url` (sem migration; conta do app continua sendo do próprio cliente → 403 se a oficina tentar trocar); veículo em `foto_data_url` + `fotos_adicionais` (máx. 5), migration 0007. `null` limpa; chave ausente não mexe. **Salvar veículo sem foto não depende da 0007.**
+
+**"Nova OS" a partir do veículo.** `veiculoParaPrefill` + `OSPrefillInput.apenasPreencher`: com proprietário preenche cliente (nome, CPF/CNPJ, telefone, e-mail) e veículo (modelo, placa, ano, cor, combustível, chassi); sem proprietário, só o veículo. Só preenche — a OS é criada quando o mecânico salvar (o "Iniciar Atendimento" continua criando na hora, como antes). Não leva a quilometragem cadastrada (o Km da entrada é o do hodômetro de agora).
+
+**Rodar no Supabase antes de usar fotos de veículo:** `backend/sql/migrations/0007_fotos_veiculos.sql` (idempotente).
+
+**Decisões e pendências**
+- Fotos ficam no próprio registro (como o estoque), então `GET /veiculos` e `GET /clientes` devolvem todas. Com a frota crescendo, vale migrar para o Storage (a coluna `foto_principal_path` da 0003 já está reservada para isso).
+- `foto_principal_path` não foi reaproveitada: é caminho de Storage lido pelo app do cliente.
+- `ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade. Não mexido.
 ## Auditoria UX/UI e responsividade do painel (2026-10-30, branch `feat/ux-responsivo`)
 **Auditoria:** 11 telas medidas por script e por print no build de produção ligado ao backend do Render, em 390×844, 768×1024, 844×390 (celular deitado), 1024×768 e 1366/1440. O pior caso era o notebook (980–1279 px): larguras fixas pensadas para 1440 px.
 

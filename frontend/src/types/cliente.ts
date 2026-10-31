@@ -4,11 +4,9 @@
 // cliente em texto livre (ver `VeiculoProprietario.nome` e `Agendamento.cliente`).
 //
 // O cruzamento entre um Cliente e seus veículos/agendamentos/ordens é feito
-// por nome (ver `enrichClientes` em `utils/clientes_utils.ts`) — o mesmo
-// padrão de vínculo "por nome" já adotado no restante do projeto.
-// `VeiculoProprietario` já reserva um campo `clienteId` para uma futura
-// ligação relacional direta; quando esse vínculo existir, `Cliente.id` é o
-// identificador que ele deverá referenciar.
+// em `enrichClientes` (`utils/clientes_utils.ts`): veículos pelo `clienteId` do
+// proprietário (`VeiculoProprietario.clienteId` = `Cliente.id`, vínculo real em
+// `customer_vehicles.customer_id`); agendamentos e ordens ainda por nome.
 
 import type { VeiculoCadastrado, VeiculoCategoria } from './veiculo';
 import type { Agendamento } from './agendamento';
@@ -35,7 +33,8 @@ export interface NovoClienteInput {
   telefone?: string;
   email?: string;
   endereco?: string;
-  fotoPrincipal?: string;
+  /** Data URL já comprimida (ver `comprimirImagem`). `null` remove a foto; ausente = não mexe. */
+  fotoPrincipal?: string | null;
   observacoes?: string;
 }
 

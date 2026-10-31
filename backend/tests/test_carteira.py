@@ -695,3 +695,143 @@ def test_falha_no_vinculo_nao_derruba_a_os(api, fake):
     fake.falhar_em[("select", "oficina_clientes")] = "42P01"
     r = api.post("/ordens", _corpo_os(), format="json")
     assert r.status_code == 201
+
+
+# ── Fotos de clientes e veículos (migration 0007 + customers.avatar_url) ──────────
+
+FOTO_A = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+FOTO_B = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+
+
+def test_foto_do_cliente_e_gravada_e_volta_na_lista(api, db):
+    c = _cliente(api, fotoPrincipal=FOTO_A)
+    assert c["fotoPrincipal"] == FOTO_A
+    # sobrevive a recarregar a tela (era o bug: a foto sumia porque o backend a ignorava)
+    assert api.get("/clientes").json()[0]["fotoPrincipal"] == FOTO_A
+    assert api.get(f"/clientes/{c['id']}").json()["fotoPrincipal"] == FOTO_A
+    cur = db.cursor()
+    cur.execute("select avatar_url from customers where id=%s", (c["id"],))
+    assert cur.fetchone() == (FOTO_A,)
+
+
+def test_foto_do_cliente_troca_limpa_e_ausente_nao_mexe(api):
+    c = _cliente(api, fotoPrincipal=FOTO_A)
+    # editar outra coisa sem mandar a foto não a apaga
+    r = api.patch(f"/clientes/{c['id']}", {"observacoes": "novo"}, format="json")
+    assert r.status_code == 200 and r.json()["fotoPrincipal"] == FOTO_A
+    # trocar
+    assert api.patch(f"/clientes/{c['id']}", {"fotoPrincipal": FOTO_B}, format="json").json()["fotoPrincipal"] == FOTO_B
+    # null limpa (mesma convenção do estoque)
+    r = api.patch(f"/clientes/{c['id']}", {"fotoPrincipal": None}, format="json")
+    assert r.status_code == 200 and "fotoPrincipal" not in r.json()
+    assert "fotoPrincipal" not in api.get(f"/clientes/{c['id']}").json()
+
+
+@pytest.mark.parametrize("foto", [
+    "http://inseguro.com/a.jpg",                      # só https
+    "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",     # svg não
+    "data:text/html;base64,PGgxPmE8L2gxPg==",         # nem outro tipo
+    "isto nao e foto",
+    "data:image/jpeg;base64," + "A" * 700_001,        # grande demais
+    123,
+])
+def test_foto_de_cliente_invalida_e_422(api, foto):
+    r = api.post("/clientes", {"nome": "Ok", "fotoPrincipal": foto}, format="json")
+    assert r.status_code == 422 and "fotoPrincipal" in r.json()
+
+
+def test_foto_de_conta_do_app_so_o_cliente_troca(api, db):
+    cid = _conta_app(db)
+    cur = db.cursor()
+    cur.execute("update customers set avatar_url=%s where id=%s", ("https://cdn.app/ana.jpg", cid))
+    _vincular(db, OFICINA_A, cid)
+    assert api.get(f"/clientes/{cid}").json()["fotoPrincipal"] == "https://cdn.app/ana.jpg"
+    # a oficina não troca a foto do cliente...
+    assert api.patch(f"/clientes/{cid}", {"fotoPrincipal": FOTO_A}, format="json").status_code == 403
+    # ...mas o formulário reenvia a que recebeu junto com a observação: aceito
+    ok = api.patch(f"/clientes/{cid}", {"fotoPrincipal": "https://cdn.app/ana.jpg", "observacoes": "VIP"}, format="json")
+    assert ok.status_code == 200 and ok.json()["observacoes"] == "VIP"
+
+
+def test_avatar_estranho_do_app_nao_vaza_nem_trava_a_edicao(api, db):
+    cid = _conta_app(db)
+    cur = db.cursor()
+    cur.execute("update customers set avatar_url=%s where id=%s", ("avatars/ana.jpg", cid))  # caminho, não URL
+    _vincular(db, OFICINA_A, cid)
+    assert "fotoPrincipal" not in api.get(f"/clientes/{cid}").json()
+    assert api.patch(f"/clientes/{cid}", {"observacoes": "ok"}, format="json").status_code == 200
+
+
+def test_fotos_do_veiculo_sao_gravadas_e_voltam(api, db):
+    v = _veiculo(api, fotoPrincipal=FOTO_A, fotosAdicionais=[FOTO_B, FOTO_A])
+    assert v["fotoPrincipal"] == FOTO_A and v["fotosAdicionais"] == [FOTO_B, FOTO_A]
+    lista = api.get("/veiculos").json()
+    assert lista[0]["fotoPrincipal"] == FOTO_A and lista[0]["fotosAdicionais"] == [FOTO_B, FOTO_A]
+    cur = db.cursor()
+    cur.execute("select foto_data_url, fotos_adicionais from customer_vehicles where id=%s", (v["id"],))
+    foto, extras = cur.fetchone()
+    assert foto == FOTO_A and extras == [FOTO_B, FOTO_A]
+    # não usa a coluna reservada ao Storage do app do cliente
+    cur.execute("select foto_principal_path from customer_vehicles where id=%s", (v["id"],))
+    assert cur.fetchone() == (None,)
+
+
+def test_veiculo_sem_foto_nao_traz_foto_e_adicionais_vazia(api):
+    v = _veiculo(api, fotosAdicionais=[])  # o formulário sempre manda a lista (vazia)
+    assert "fotoPrincipal" not in v and v["fotosAdicionais"] == []
+
+
+def test_editar_veiculo_troca_limpa_e_ausente_nao_mexe_nas_fotos(api):
+    v = _veiculo(api, fotoPrincipal=FOTO_A, fotosAdicionais=[FOTO_B])
+    # editar outro campo sem mandar fotos não as apaga
+    r = api.patch(f"/veiculos/{v['id']}", {"cor": "Preto"}, format="json")
+    assert r.json()["fotoPrincipal"] == FOTO_A and r.json()["fotosAdicionais"] == [FOTO_B]
+    # a lista é sempre a completa: remover uma foto = reenviar sem ela
+    r = api.patch(f"/veiculos/{v['id']}", {"fotosAdicionais": [FOTO_A, FOTO_B]}, format="json")
+    assert r.json()["fotosAdicionais"] == [FOTO_A, FOTO_B]
+    r = api.patch(f"/veiculos/{v['id']}", {"fotosAdicionais": [FOTO_B]}, format="json")
+    assert r.json()["fotosAdicionais"] == [FOTO_B]
+    # null limpa a principal; lista vazia limpa as adicionais
+    r = api.patch(f"/veiculos/{v['id']}", {"fotoPrincipal": None, "fotosAdicionais": []}, format="json")
+    assert "fotoPrincipal" not in r.json() and r.json()["fotosAdicionais"] == []
+    r = api.get(f"/veiculos/{v['id']}").json()
+    assert "fotoPrincipal" not in r and r["fotosAdicionais"] == []
+
+
+@pytest.mark.parametrize("corpo,campo", [
+    ({"fotoPrincipal": "http://x/a.jpg"}, "fotoPrincipal"),
+    ({"fotoPrincipal": "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="}, "fotoPrincipal"),
+    ({"fotosAdicionais": "nao-e-lista"}, "fotosAdicionais"),
+    ({"fotosAdicionais": [FOTO_A, "lixo"]}, "fotosAdicionais"),
+    ({"fotosAdicionais": [FOTO_A] * 6}, "fotosAdicionais"),  # máx. 5
+])
+def test_foto_de_veiculo_invalida_e_422(api, corpo, campo):
+    r = api.post("/veiculos", {"placa": "ABC1D23", "marca": "VW", "modelo": "Gol", "ano": 2018, **corpo}, format="json")
+    assert r.status_code == 422 and campo in r.json()
+
+
+def test_cinco_fotos_adicionais_e_o_limite(api):
+    assert len(_veiculo(api, fotosAdicionais=[FOTO_A] * 5)["fotosAdicionais"]) == 5
+
+
+def test_foto_do_veiculo_de_outra_oficina_e_404(api, api_b):
+    v = _veiculo(api, fotoPrincipal=FOTO_A)
+    assert api_b.patch(f"/veiculos/{v['id']}", {"fotoPrincipal": None}, format="json").status_code == 404
+    assert api.get(f"/veiculos/{v['id']}").json()["fotoPrincipal"] == FOTO_A
+
+
+def test_salvar_veiculo_sem_foto_nao_depende_da_migration_0007(api, db):
+    """Quem ainda não rodou a 0007 continua cadastrando/editando veículo (só a foto exige a coluna)."""
+    cur = db.cursor()
+    cur.execute("alter table customer_vehicles drop constraint customer_vehicles_fotos_adicionais_check")
+    cur.execute("alter table customer_vehicles drop column foto_data_url, drop column fotos_adicionais")
+    try:
+        v = _veiculo(api, fotosAdicionais=[])
+        assert v["fotosAdicionais"] == [] and "fotoPrincipal" not in v
+        r = api.patch(f"/veiculos/{v['id']}", {"cor": "Azul", "fotoPrincipal": None, "fotosAdicionais": []}, format="json")
+        assert r.status_code == 200 and r.json()["cor"] == "Azul"
+        # mandar uma foto de verdade sem a coluna: avisa para rodar a migration (não é erro 500 cru)
+        r = api.patch(f"/veiculos/{v['id']}", {"fotoPrincipal": FOTO_A}, format="json")
+        assert r.status_code == 503 and "0007" in r.json()["detail"]
+    finally:
+        cur.execute((BACKEND_DIR / "sql/migrations/0007_fotos_veiculos.sql").read_text(encoding="utf-8"))

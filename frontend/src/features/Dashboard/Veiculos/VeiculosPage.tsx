@@ -4,8 +4,10 @@ import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useResponsive } from '../../../components/ui';
 import { useVeiculos } from '../../../hooks/useVeiculos';
-import { emptyFiltros, filtrosAtivos } from '../../../utils/veiculos_utils';
+import { useClientes } from '../../../hooks/useClientes';
+import { emptyFiltros, filtrosAtivos, veiculoParaPrefill } from '../../../utils/veiculos_utils';
 import type { NavPage } from '../../../types/dashboard';
+import type { OSPrefillInput } from '../../../types/atendimento';
 import type { VeiculoCadastrado, VeiculoFiltros, NovoVeiculoInput, VeiculoProprietario } from '../../../types/veiculo';
 
 import { VehicleStats } from './VehicleStats';
@@ -21,6 +23,8 @@ interface VeiculosPageProps {
   onNav: (p: NavPage) => void;
   isMobile: boolean;
   onNewOS?: () => void;
+  /** "Nova OS" a partir de um veículo: abre o checklist já com os dados dele (e do cliente, se houver). */
+  onNewOSComPrefill?: (prefill: OSPrefillInput) => void;
 }
 
 function applyFilters(list: VeiculoCadastrado[], search: string, f: VeiculoFiltros): VeiculoCadastrado[] {
@@ -53,8 +57,10 @@ function applyFilters(list: VeiculoCadastrado[], search: string, f: VeiculoFiltr
   });
 }
 
-export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
+export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: VeiculosPageProps) {
   const { veiculos, loading, usingApi, erro, stats, addVeiculo, updateVeiculo, deleteVeiculo, changeOwner } = useVeiculos();
+  // Clientes da carteira: é entre eles que o proprietário do veículo é escolhido (vínculo veículo ↔ cliente).
+  const { clientes } = useClientes();
 
   const [search,          setSearch]          = useState('');
   const [filtros,         setFiltros]         = useState<VeiculoFiltros>(emptyFiltros());
@@ -96,6 +102,12 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
 
   const handleConfirmDelete = () => {
     if (deleteTarget) deleteVeiculo(deleteTarget.id).catch(avisarErro);
+  };
+
+  // Com proprietário vinculado o checklist já abre com cliente + veículo; sem, só com o veículo.
+  const handleNovaOS = (v: VeiculoCadastrado) => {
+    if (onNewOSComPrefill) onNewOSComPrefill(veiculoParaPrefill(v));
+    else onNewOS?.();
   };
 
   // ── conteúdo ────────────────────────────────────────────────────────────────
@@ -200,12 +212,13 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
           onClose={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
           onDelete={() => { setDeleteTarget(selected); setSelected(null); }}
-          onNewOS={onNewOS}
+          onNewOS={() => handleNovaOS(selected)}
         />
       )}
       {formOpen && (
         <VehicleFormModal
           veiculo={editing ?? undefined}
+          clientes={clientes}
           onSave={handleSaveForm}
           onClose={() => { setFormOpen(false); setEditing(null); }}
         />
@@ -220,6 +233,7 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
       {ownerTarget && (
         <ChangeOwnerModal
           veiculo={ownerTarget}
+          clientes={clientes}
           onSave={handleSaveOwner}
           onClose={() => setOwnerTarget(null)}
         />

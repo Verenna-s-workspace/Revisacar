@@ -60,16 +60,31 @@ export interface ColunasKanban {
 }
 
 /**
- * Dados pra pré-preencher uma OS NOVA a partir de um agendamento (Seção 8 —
- * "Iniciar Atendimento"). Extensão mínima e opcional do ponto de entrada do
- * checklist (`pages/InitialChecklist.tsx`) — não altera a lógica interna dele.
+ * Dados pra pré-preencher uma OS NOVA — a partir de um agendamento (Seção 8 —
+ * "Iniciar Atendimento") ou de um veículo ("Nova OS" na tela de Veículos/Clientes).
+ * Extensão mínima e opcional do ponto de entrada do checklist
+ * (`pages/InitialChecklist.tsx`) — não altera a lógica interna dele.
  */
 export interface OSPrefillInput {
+  /** Vazio = sem cliente: o bloco "Dados do Cliente" fica como está (em branco). */
   clienteNome: string;
+  /** Só dígitos (o formato que o checklist guarda). */
+  clienteDoc?: string;
+  /** Já formatado como no checklist: (11) 99999-0000. */
+  clienteTel?: string;
+  clienteEmail?: string;
   veiculoModelo: string;
   veiculoPlaca: string;
+  veiculoAno?: string;
+  veiculoCor?: string;
+  /** Já casado com uma das opções do checklist (COMBUSTIVEL_OPTIONS); vazio se não casar. */
+  veiculoCombustivel?: string;
+  veiculoChassi?: string;
   /** Se veio de um agendamento, permite marcar `ordemServicoId` nele assim que a OS ganhar um id de verdade. */
   agendamentoId?: string;
+  /** Só preenche o formulário. Sem isto, o checklist também CRIA a OS (rascunho) na hora — o que o
+   *  "Iniciar Atendimento" precisa, mas não quem só abriu a OS pelo veículo e pode desistir. */
+  apenasPreencher?: boolean;
 }
 
 export const KANBAN_COLUNAS: { id: KanbanColunaId; titulo: string }[] = [

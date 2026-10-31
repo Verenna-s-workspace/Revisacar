@@ -25,13 +25,13 @@ export type VeiculoStatus =
   | 'pronto_entrega';        // serviço concluído, aguardando retirada
 
 /**
- * Proprietário do veículo — modelagem propositalmente simples (texto livre).
- * 🔜 Feature futura: substituir por vínculo relacional com um Cliente cadastrado
- * (seleção de cliente existente ou criação rápida). Por enquanto, apenas os
- * dados básicos são armazenados diretamente no veículo.
+ * Proprietário do veículo = o cliente da carteira ao qual ele está vinculado.
+ * Ao enviar: com `clienteId`, o backend vincula esse cliente (precisa estar na carteira);
+ * sem `clienteId`, só com texto, ele acha o cliente por CPF/CNPJ, e-mail ou nome — ou
+ * cadastra um novo. Ao receber, `clienteId` vem sempre que há proprietário.
  */
 export interface VeiculoProprietario {
-  clienteId?: string;   // reservado para o vínculo relacional futuro
+  clienteId?: string;
   nome: string;
   docCpfCnpj?: string;
   telefone?: string;
@@ -80,11 +80,17 @@ export interface NovoVeiculoInput {
   chassi?: string;
   renavam?: string;
   observacoes?: string;
-  fotoPrincipal?: string;
+  /** Data URL já comprimida (ver `comprimirImagem`). `null` remove a foto; ausente = não mexe. */
+  fotoPrincipal?: string | null;
+  /** Lista COMPLETA desejada (até `MAX_FOTOS_ADICIONAIS`); ausente = não mexe. */
   fotosAdicionais?: string[];
+  /** Ausente = não mexe no dono; `null` = sem proprietário; com `clienteId` = cliente cadastrado. */
   proprietario?: VeiculoProprietario | null;
   status?: VeiculoStatus;
 }
+
+/** Limite de fotos adicionais por veículo — igual ao do backend (veiculos_views.MAX_FOTOS_ADICIONAIS). */
+export const MAX_FOTOS_ADICIONAIS = 5;
 
 /** Filtro de vínculo com proprietário. */
 export type VeiculoVinculo = 'todos' | 'com' | 'sem';

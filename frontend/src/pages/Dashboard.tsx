@@ -205,7 +205,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     );
   }
   if (page === 'veiculos') {
-    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} />;
+    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onNewOSComPrefill={onNewOSComPrefill} />;
   }
   if (page === 'estoque') {
     return (
@@ -223,6 +223,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         onNav={handleNav}
         isMobile={isMobile}
         onNewOS={onNewOS}
+        onNewOSComPrefill={onNewOSComPrefill}
         onLoadOS={onLoadOS}
         onGoToAgendamentos={handleGoToAgendamentos}
       />

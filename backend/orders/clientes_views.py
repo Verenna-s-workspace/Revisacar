@@ -10,7 +10,9 @@ Tabelas: customers + oficina_clientes + oficina_convites (backend/sql/migrations
 Convenções:
   - JSON em camelCase, no formato de `Cliente` (frontend/src/types/cliente.ts); opcionais vazios são omitidos.
   - Cadastro de balcão (origem "oficina"): a oficina edita tudo. Cliente com conta no app (origem "app"):
-    a oficina só edita as próprias `observacoes`; nome, documento, telefone, e-mail e endereço são do cliente.
+    a oficina só edita as próprias `observacoes`; nome, documento, telefone, e-mail, endereço e foto são do cliente.
+  - Foto (`fotoPrincipal`): data URL de imagem já comprimida pelo navegador, gravada em `customers.avatar_url`
+    (mesmo funcionamento da foto dos itens do estoque). `null` limpa; chave ausente não mexe.
   - Excluir = arquivar o vínculo. O histórico (OS, orçamentos, financeiro) continua apontando para ele.
   - Entrar na carteira de uma conta do app só acontece por convite aceito pelo próprio cliente — a oficina
     nunca "puxa" uma conta do app pelo e-mail/CPF (isso revelaria quem tem conta).
@@ -44,6 +46,9 @@ def cliente_para_api(c: dict, v: dict) -> dict:
     ):
         if valor:
             out[chave] = valor
+    # Só devolve foto válida: o formulário reenvia o que recebeu, e o backend recusaria um valor estranho.
+    if cart.foto_valida(c.get("avatar_url")):
+        out["fotoPrincipal"] = c["avatar_url"]
     if c.get("updated_at"):
         out["updatedAt"] = c["updated_at"]
     return out
@@ -116,12 +121,13 @@ def cliente_detail(request, cliente_id):
     if not _dono_do_cadastro(c, oficina_doc):
         # Conta do app: dados pessoais são do cliente. Aceita o que vier igual (o formulário reenvia tudo).
         atual = {"name": c.get("name"), "cpf": c.get("cpf"), "phone": c.get("phone"),
-                 "email": c.get("email"), "address": c.get("address")}
+                 "email": c.get("email"), "address": c.get("address"),
+                 "avatar_url": c.get("avatar_url") if cart.foto_valida(c.get("avatar_url")) else None}
         mudou = [k for k, novo in cols.items() if (novo or None) != (atual.get(k) or None)]
         if mudou:
             return Response(
-                {"detail": "Este cliente tem conta no app: nome, documento, telefone, e-mail e endereço "
-                           "só ele pode alterar. Você pode editar as observações."},
+                {"detail": "Este cliente tem conta no app: nome, documento, telefone, e-mail, endereço "
+                           "e foto só ele pode alterar. Você pode editar as observações."},
                 status=http_status.HTTP_403_FORBIDDEN)
         cols = {}
 
