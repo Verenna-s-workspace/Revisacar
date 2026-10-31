@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { tokens, COMBUSTIVEL_OPTIONS } from '../../../constants';
 import { CATEGORIA_OPTIONS } from '../../../utils/veiculos_utils';
+import { comprimirImagem } from '../../../utils/estoque_utils';
 import { ClienteIcons } from './icons';
 import { Icons } from '../Icons';
 import { Input } from '../../../components/inputs/input';
@@ -43,18 +44,28 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>(() => buildInitialState(cliente));
   const [fotoPrincipal, setFotoPrincipal] = useState<string | undefined>(cliente?.fotoPrincipal);
+  const [comprimindo, setComprimindo] = useState(false);
+  const [erroFoto, setErroFoto] = useState<string | null>(null);
   const [veiculosNovos, setVeiculosNovos] = useState<NovoVeiculoClienteInput[]>([]);
 
   const setField = <K extends keyof FormState>(key: K) => (v: string) =>
     setForm(prev => ({ ...prev, [key]: v }));
 
-  const handleFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Mesmo caminho da foto dos itens do estoque: comprime no navegador (480px, JPEG) e envia como data URL.
+  // Sem isto o arquivo cru (3–6 MB) estourava o limite do servidor e a foto não ficava salva.
+  const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = ev => setFotoPrincipal(ev.target?.result as string);
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+    setErroFoto(null);
+    setComprimindo(true);
+    try {
+      setFotoPrincipal(await comprimirImagem(file));
+    } catch {
+      setErroFoto('Não foi possível processar essa imagem. Tente outra foto.');
+    } finally {
+      setComprimindo(false);
+    }
   };
 
   const updateVeiculo = (idx: number, patch: Partial<NovoVeiculoClienteInput>) =>
@@ -66,7 +77,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
   const veiculosValid = veiculosNovos.every(v => v.marca.trim() && v.modelo.trim() && v.placa.trim());
 
   const handleSubmit = () => {
-    if (!step1Valid || !veiculosValid) return;
+    if (!step1Valid || !veiculosValid || comprimindo) return;
     const input: NovoClienteInput = {
       nome: form.nome.trim(),
       cpfCnpj: form.cpfCnpj.trim() || undefined,
@@ -74,7 +85,8 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
       email: form.email.trim() || undefined,
       endereco: form.endereco.trim() || undefined,
       observacoes: form.observacoes.trim() || undefined,
-      fotoPrincipal,
+      // Editando: `null` avisa o servidor que a foto foi removida (chave ausente = não mexe).
+      fotoPrincipal: fotoPrincipal ?? (isEdit ? null : undefined),
     };
     onSave(input, veiculosNovos);
     onClose();
@@ -127,13 +139,14 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                     </span>
                   </>
                 )}
-                <input type="file" accept="image/*" onChange={handleFoto} style={{ display: 'none' }} />
+                <input type="file" accept="image/*" onChange={handleFoto} disabled={comprimindo} style={{ display: 'none' }} />
               </label>
               <div>
                 <div style={{ fontSize: '0.82rem', fontWeight: 700, color: tokens.color.text, marginBottom: 4 }}>Foto do Cliente</div>
                 <div style={{ fontSize: '0.76rem', color: tokens.color.muted, lineHeight: 1.5, marginBottom: fotoPrincipal ? 8 : 0 }}>
-                  Opcional. Sem foto, o card exibe as iniciais do nome.
+                  {comprimindo ? 'Processando a imagem...' : 'Opcional. Sem foto, o card exibe as iniciais do nome.'}
                 </div>
+                {erroFoto && <div style={{ fontSize: '0.75rem', color: tokens.color.crit, marginBottom: 6 }}>{erroFoto}</div>}
                 {fotoPrincipal && (
                   <button
                     onClick={() => setFotoPrincipal(undefined)}

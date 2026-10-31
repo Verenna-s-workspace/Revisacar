@@ -22,6 +22,7 @@ from rest_framework import status as http_status
 from rest_framework.response import Response
 
 from .estoque_views import _listar_todos
+from .serializers import MAX_FOTO_DATA_URL_CHARS
 from .views import supabase, _now
 
 logger = logging.getLogger(__name__)
@@ -47,8 +48,8 @@ def tratar_erros_carteira(view_func):
             if codigo in OBJETO_INEXISTENTE:
                 logger.error("Carteira: objeto do banco não encontrado (%s): %s", codigo, getattr(e, "message", e))
                 return Response(
-                    {"detail": "O banco ainda não tem as tabelas de clientes. Rode as migrations de "
-                               "backend/sql/migrations (0001 a 0003) no SQL Editor do Supabase."},
+                    {"detail": "O banco ainda não tem as tabelas ou colunas desta tela. Rode as migrations "
+                               "pendentes de backend/sql/migrations (em ordem, até a 0007) no SQL Editor do Supabase."},
                     status=http_status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
             if codigo == "23505":
@@ -144,6 +145,32 @@ def texto(dados: dict, chave: str, maximo: int, erros: dict, obrigatorio=False, 
     return True, valor
 
 
+FOTO_DATA_URL_RE = re.compile(r"^data:image/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$")
+
+
+def foto_valida(valor) -> bool:
+    """Data URL de imagem (o que o frontend envia, já comprimida) ou URL https."""
+    return (isinstance(valor, str) and 0 < len(valor) <= MAX_FOTO_DATA_URL_CHARS
+            and (valor.startswith("https://") or bool(FOTO_DATA_URL_RE.match(valor))))
+
+
+def ler_foto(valor, campo: str, erros: dict):
+    """Valida UMA foto. Vazio/None = sem foto (limpa). Devolve (ok, valor|None); em erro anota `erros`."""
+    if valor is None or (isinstance(valor, str) and not valor.strip()):
+        return True, None
+    if not isinstance(valor, str):
+        erros[campo] = ["Foto inválida."]
+        return False, None
+    valor = valor.strip()
+    if len(valor) > MAX_FOTO_DATA_URL_CHARS:
+        erros[campo] = ["Foto grande demais. Escolha uma imagem menor."]
+        return False, None
+    if not foto_valida(valor):
+        erros[campo] = ["Formato de foto inválido."]
+        return False, None
+    return True, valor
+
+
 def ler_cliente(dados, parcial=False):
     """Valida o corpo de POST/PATCH de cliente. Devolve ({colunas de customers}, observacoes|None).
     Opcionais vazios viram None (limpam o campo)."""
@@ -181,6 +208,12 @@ def ler_cliente(dados, parcial=False):
     ok, v = texto(dados, "observacoes", 1000, erros)
     if ok:
         obs = v
+
+    # Foto do cliente: `null`/"" limpa; chave ausente = não mexe (mesma convenção do estoque).
+    if "fotoPrincipal" in dados:
+        ok, v = ler_foto(dados["fotoPrincipal"], "fotoPrincipal", erros)
+        if ok:
+            cols["avatar_url"] = v
 
     if erros:
         raise ErroCarteira(erros)

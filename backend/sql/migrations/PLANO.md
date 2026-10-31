@@ -57,7 +57,8 @@ Rotas novas, todas com `oficina_doc` do token, permissões do RBAC (`clientes.ve
 - `/veiculos` (GET/POST), `/veiculos/<id>` (GET/PATCH/DELETE): veículos dos clientes da carteira + os cadastrados pela própria oficina sem dono. Dono em texto (nome/CPF) cadastra ou reaproveita o cliente; dono por `clienteId` exige estar na carteira. Placa única entre os veículos visíveis. Excluir = soft delete. Status do veículo é derivado da última OS.
 - `/agendamentos` (GET/POST), `/agendamentos/<id>` (GET/PATCH/DELETE): lê os pedidos `pendente` do app, confirma/recusa (com motivo), reagenda (guarda data/hora anterior) e liga à OS da mesma oficina. Confirmar/recusar avisa o cliente do app em `notifications`; cliente de balcão não recebe aviso.
 - OS ↔ carteira (`orders/os_vinculo.py`): ao salvar uma OS, liga `customer_id`/`vehicle_id` por documento ou e-mail do cliente e pela placa, **só dentro da carteira da oficina**, sem criar nada e sem nunca derrubar o salvamento da OS. É isso que deixa o cliente do app ver os orçamentos da oficina onde está vinculado.
-- Ainda não: fotos de veículo não são gravadas (o campo é ignorado); a oficina enxerga todos os veículos dos clientes vinculados; nunca devolver `orcamento_itens.custo_unitario` ao app do cliente (vale para as rotas futuras).
+- Fotos (migration 0007): do veículo em `customer_vehicles.foto_data_url` + `fotos_adicionais` (até 5); do cliente em `customers.avatar_url` (só cadastro de balcão — conta do app é do cliente). Mesmo funcionamento da foto do estoque (data URL comprimida no navegador).
+- Ainda não: a oficina enxerga todos os veículos dos clientes vinculados; nunca devolver `orcamento_itens.custo_unitario` ao app do cliente (vale para as rotas futuras).
 
 ### 4.4 App do cliente — FEITO no patch `cliente-oficinas-convite-orcamentos.patch` (aplicar depois do `cliente-origem-e-boot.patch`)
 

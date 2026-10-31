@@ -1,7 +1,7 @@
 // ── Clientes: utilitários e cruzamento de dados ────────────────
 // A tela de Clientes não duplica dados de Veículos/Agendamentos/Ordens — ela
-// os CRUZA por nome (mesmo padrão de vínculo já usado em `VeiculoProprietario`
-// e `Agendamento.cliente`, ambos texto livre hoje). `enrichClientes` é o ponto
+// os CRUZA: veículos pelo `clienteId` do proprietário (vínculo real no banco);
+// agendamentos e ordens ainda por nome (`Agendamento.cliente` é texto). `enrichClientes` é o ponto
 // único onde esse cruzamento acontece; o restante da tela consome apenas o
 // resultado já combinado (`ClienteComDados`).
 
@@ -76,9 +76,13 @@ export function enrichClientes(
   return clientes.map(c => {
     const alvo = normalizeName(c.nome);
 
-    const veiculosDoCliente = veiculos.filter(
-      v => !!v.proprietario && normalizeName(v.proprietario.nome) === alvo,
-    );
+    // Veículo vinculado a um cliente carrega o `clienteId`: casa por id (dois clientes com o mesmo nome não
+    // se misturam). Sem id (proprietário só em texto), cai no nome.
+    const veiculosDoCliente = veiculos.filter(v => {
+      if (!v.proprietario) return false;
+      if (v.proprietario.clienteId) return v.proprietario.clienteId === c.id;
+      return normalizeName(v.proprietario.nome) === alvo;
+    });
     const agendamentosDoCliente = agendamentos.filter(a => normalizeName(a.cliente) === alvo);
     const ordensDoCliente = ordens.filter(o => normalizeName(o.cliente) === alvo);
 

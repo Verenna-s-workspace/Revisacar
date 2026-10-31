@@ -33,7 +33,7 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
     if (currentStep?.hasSignature) os.initSig();
   }, [os.step]);
 
-  // Pré-preenchimento vindo da tela de Atendimento (ver Seção 8 do prompt).
+  // Pré-preenchimento vindo da tela de Atendimento (ver Seção 8 do prompt) ou de um veículo.
   // 3 passos, cada um só dispara depois que o anterior comprovadamente se
   // efetivou — nenhum toca a lógica interna do checklist, só usa o que o
   // próprio hook já expõe publicamente (setCliente/setVeiculo/saveOrder/orderId,
@@ -47,22 +47,41 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
   const prefillSalvo = useRef(false);
   const prefillVinculado = useRef(false);
 
+  // `apenasPreencher` (OS aberta a partir de um veículo): só o passo 1 — preenche o formulário e deixa
+  // o mecânico revisar; a OS é criada quando ele salvar. Com cliente vinculado vêm os dados dos dois;
+  // sem cliente, só os do veículo (`clienteNome` vazio não toca no bloco do cliente).
   useEffect(() => {
     if (!prefill || prefillAplicado.current) return;
     prefillAplicado.current = true;
-    os.setCliente(prev => ({ ...prev, nome: prefill.clienteNome }));
-    os.setVeiculo(prev => ({ ...prev, modelo: prefill.veiculoModelo, placa: prefill.veiculoPlaca }));
+    if (prefill.clienteNome) {
+      os.setCliente(prev => ({
+        ...prev,
+        nome: prefill.clienteNome,
+        ...(prefill.clienteDoc ? { doc: prefill.clienteDoc } : {}),
+        ...(prefill.clienteTel ? { tel: prefill.clienteTel } : {}),
+        ...(prefill.clienteEmail ? { email: prefill.clienteEmail } : {}),
+      }));
+    }
+    os.setVeiculo(prev => ({
+      ...prev,
+      modelo: prefill.veiculoModelo,
+      placa: prefill.veiculoPlaca,
+      ...(prefill.veiculoAno ? { ano: prefill.veiculoAno } : {}),
+      ...(prefill.veiculoCor ? { cor: prefill.veiculoCor } : {}),
+      ...(prefill.veiculoCombustivel ? { combustivel: prefill.veiculoCombustivel } : {}),
+      ...(prefill.veiculoChassi ? { chassi: prefill.veiculoChassi } : {}),
+    }));
   }, [prefill]);
 
   useEffect(() => {
-    if (!prefill || !prefillAplicado.current || prefillSalvo.current) return;
+    if (!prefill || prefill.apenasPreencher || !prefillAplicado.current || prefillSalvo.current) return;
     if (os.cliente.nome !== prefill.clienteNome || os.veiculo.placa !== prefill.veiculoPlaca) return;
     prefillSalvo.current = true;
     os.saveOrder();
   }, [prefill, os.cliente, os.veiculo]);
 
   useEffect(() => {
-    if (!prefill || !prefillSalvo.current || prefillVinculado.current || !os.orderId) return;
+    if (!prefill || prefill.apenasPreencher || !prefillSalvo.current || prefillVinculado.current || !os.orderId) return;
     prefillVinculado.current = true;
     salvarOverlay(os.orderId, { iniciadoEm: new Date().toISOString() });
     if (prefill.agendamentoId) {

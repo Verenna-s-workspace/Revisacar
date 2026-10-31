@@ -7,7 +7,9 @@ import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
 import { useOrdens } from '../../../hooks/useOrdens';
 import { emptyFiltros, filtrosAtivos, enrichClientes, computeClienteStats } from '../../../utils/clientes_utils';
+import { veiculoParaPrefill } from '../../../utils/veiculos_utils';
 import type { NavPage } from '../../../types/dashboard';
+import type { OSPrefillInput } from '../../../types/atendimento';
 import type { ClienteComDados, ClienteFiltros, NovoClienteInput, NovoVeiculoClienteInput } from '../../../types/cliente';
 import type { VeiculoCadastrado, NovoVeiculoInput } from '../../../types/veiculo';
 import type { OrdemRow } from '../../../types/dashboard';
@@ -31,6 +33,8 @@ interface ClientesPageProps {
   onNav: (p: NavPage) => void;
   isMobile: boolean;
   onNewOS?: () => void;
+  /** "Nova OS" a partir de um veículo do cliente: abre o checklist já com os dados dele e do veículo. */
+  onNewOSComPrefill?: (prefill: OSPrefillInput) => void;
   onLoadOS?: (id: string) => void;
   /** Navega para a tela de Agendamentos já filtrada/focada em um agendamento específico. */
   onGoToAgendamentos: (focus: { search?: string; highlightId?: string }) => void;
@@ -59,7 +63,7 @@ function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros
   });
 }
 
-export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendamentos }: ClientesPageProps) {
+export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLoadOS, onGoToAgendamentos }: ClientesPageProps) {
   const { clientes, loading: clientesLoading, usingApi: clientesUsingApi, erro: clientesErro, addCliente, updateCliente, deleteCliente } = useClientes();
   const { veiculos, loading: veiculosLoading, usingApi: veiculosUsingApi, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
   const { agendamentos, loading: agendamentosLoading, usingApi: agendamentosUsingApi, addAgendamento, getOcupados } = useAgendamentos();
@@ -159,6 +163,11 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
 
   const handleSaveVeiculoEdit = async (input: NovoVeiculoInput) => {
     if (editingVeiculo) await updateVeiculo(editingVeiculo.id, input).catch(avisarErro);
+  };
+
+  const handleNovaOS = (v: VeiculoCadastrado) => {
+    if (onNewOSComPrefill) onNewOSComPrefill(veiculoParaPrefill(v));
+    else onNewOS?.();
   };
 
   // ── conteúdo ────────────────────────────────────────────────────────────────
@@ -312,12 +321,13 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onLoadOS, onGoToAgendam
           onClose={() => setViewingVeiculo(null)}
           onEdit={() => { setEditingVeiculo(viewingVeiculo); setViewingVeiculo(null); }}
           onDelete={() => { setDeletingVeiculo(viewingVeiculo); setViewingVeiculo(null); }}
-          onNewOS={onNewOS}
+          onNewOS={() => handleNovaOS(viewingVeiculo)}
         />
       )}
       {editingVeiculo && (
         <VehicleFormModal
           veiculo={editingVeiculo}
+          clientes={clientes}
           onSave={handleSaveVeiculoEdit}
           onClose={() => setEditingVeiculo(null)}
         />

@@ -13,8 +13,9 @@ Formato JSON: `VeiculoCadastrado` (frontend/src/types/veiculo.ts).
   • `proprietario`: o formulário manda texto (nome, CPF/CNPJ, telefone, e-mail) ou `clienteId`. Com texto, o
     cliente é achado na carteira (CPF/CNPJ, e-mail ou nome exato) ou cadastrado na hora (balcão).
   • `status` é derivado da OS mais recente ligada ao veículo; nunca é gravado.
-  • Fotos ainda não são persistidas (não vão para o banco em base64): `fotoPrincipal`/`fotosAdicionais` são
-    aceitas e ignoradas; o card usa a imagem padrão da categoria.
+  • Fotos (migration 0007): `fotoPrincipal` e `fotosAdicionais` (até 5) são data URLs de imagem já comprimidas
+    pelo navegador, gravadas em `foto_data_url` / `fotos_adicionais` — o mesmo funcionamento da foto dos itens
+    do estoque. `fotoPrincipal: null` limpa; chave ausente não mexe. Sem foto, o card usa a imagem da categoria.
   • Excluir é "soft": o veículo some das listas mas continua no banco (histórico de OS e agendamentos).
 """
 from datetime import date
@@ -28,6 +29,7 @@ from .estoque_views import _corpo_valido, _negado, _nao_encontrado, _uuid_valido
 from .views import supabase, require_auth, _now, _oficina_doc_do_token
 
 VEICULOS = "customer_vehicles"
+MAX_FOTOS_ADICIONAIS = 5  # manter em sincronia com a constraint da 0007 e com o formulário
 CATEGORIAS = ("sedan", "hatch", "suv", "picape", "van", "utilitario", "esportivo")
 CAMBIOS = ("Manual", "Automático", "CVT", "Automatizado")
 
@@ -65,7 +67,7 @@ def veiculo_para_api(v: dict, dono: dict | None, ultima_os: dict | None) -> dict
         "combustivel": v.get("fuel_type") or "",
         "cambio": v.get("cambio") if v.get("cambio") in CAMBIOS else "Manual",
         "portas": v.get("portas") or 4,
-        "fotosAdicionais": [],
+        "fotosAdicionais": _fotos_adicionais_do_banco(v),
         "proprietario": proprietario_para_api(dono),
         "status": STATUS_VEICULO.get((ultima_os or {}).get("status"), "disponivel"),
         "createdAt": v["created_at"],
@@ -74,11 +76,19 @@ def veiculo_para_api(v: dict, dono: dict | None, ultima_os: dict | None) -> dict
                          ("observacoes", v.get("notes"))):
         if valor:
             out[chave] = valor
+    if cart.foto_valida(v.get("foto_data_url")):
+        out["fotoPrincipal"] = v["foto_data_url"]
     if ultima_os:
         out["ultimaOSId"] = ultima_os["id"]
     if v.get("updated_at"):
         out["updatedAt"] = v["updated_at"]
     return out
+
+
+def _fotos_adicionais_do_banco(v: dict) -> list:
+    """Lista de fotos do registro. Sem a coluna (0007 não rodada) ou com lixo, vem vazia."""
+    fotos = v.get("fotos_adicionais")
+    return [f for f in fotos if cart.foto_valida(f)] if isinstance(fotos, list) else []
 
 
 # ── Consulta ──────────────────────────────────────────────────────────────────
@@ -192,8 +202,43 @@ def ler_veiculo(dados, parcial=False):
             cols["cambio"] = dados["cambio"]
         else:
             erros["cambio"] = [f"Use uma de: {', '.join(CAMBIOS)}."]
+
+    # Fotos: `null`/"" limpa a principal; chave ausente não mexe. A lista de adicionais é sempre a lista
+    # COMPLETA desejada (o formulário reenvia as que ficaram).
+    if "fotoPrincipal" in dados:
+        ok, v = cart.ler_foto(dados["fotoPrincipal"], "fotoPrincipal", erros)
+        if ok:
+            cols["foto_data_url"] = v
+    if "fotosAdicionais" in dados:
+        bruto = dados["fotosAdicionais"]
+        if bruto is None:
+            bruto = []
+        if not isinstance(bruto, list):
+            erros["fotosAdicionais"] = ["Lista de fotos inválida."]
+        elif len(bruto) > MAX_FOTOS_ADICIONAIS:
+            erros["fotosAdicionais"] = [f"No máximo {MAX_FOTOS_ADICIONAIS} fotos adicionais."]
+        else:
+            fotos = []
+            for foto in bruto:
+                ok, v = cart.ler_foto(foto, "fotosAdicionais", erros)
+                if ok and v:
+                    fotos.append(v)
+            if "fotosAdicionais" not in erros:
+                cols["fotos_adicionais"] = fotos
     if erros:
         raise cart.ErroCarteira(erros)
+    return cols
+
+
+def _sem_mudanca_de_foto(cols: dict, atual: dict | None) -> dict:
+    """Tira de `cols` a foto que não mudou (ou que continua vazia). O formulário reenvia as fotos em todo
+    salvamento (`fotosAdicionais: []` quando não há nenhuma): sem isto, qualquer veículo sem foto tentaria
+    gravar as colunas da 0007 — e falharia em quem ainda não rodou a migration."""
+    atual = atual or {}
+    if "foto_data_url" in cols and (cols["foto_data_url"] or None) == (atual.get("foto_data_url") or None):
+        del cols["foto_data_url"]
+    if "fotos_adicionais" in cols and cols["fotos_adicionais"] == _fotos_adicionais_do_banco(atual):
+        del cols["fotos_adicionais"]
     return cols
 
 
@@ -246,7 +291,7 @@ def veiculos_list(request):
         negado = _negado(request, "clientes.editar")
         if negado:
             return negado
-        cols = ler_veiculo(request.data)
+        cols = _sem_mudanca_de_foto(ler_veiculo(request.data), None)
         if _placa_em_uso(oficina_doc, cols["plate"], carteira):
             raise cart.erro_campo("placa", "Já existe um veículo com esta placa.", http_status.HTTP_409_CONFLICT)
         dono_id, origem_doc = _resolver_dono(oficina_doc, request.data.get("proprietario"), carteira)
@@ -293,7 +338,7 @@ def veiculo_detail(request, veiculo_id):
 
     if not _corpo_valido(request):
         return Response({"detail": "Corpo inválido."}, status=http_status.HTTP_400_BAD_REQUEST)
-    cols = ler_veiculo(request.data, parcial=True)
+    cols = _sem_mudanca_de_foto(ler_veiculo(request.data, parcial=True), v)
     if "plate" in cols and _placa_em_uso(oficina_doc, cols["plate"], carteira, ignorar_id=v["id"]):
         raise cart.erro_campo("placa", "Já existe um veículo com esta placa.", http_status.HTTP_409_CONFLICT)
     if "proprietario" in request.data:

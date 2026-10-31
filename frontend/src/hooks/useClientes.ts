@@ -56,7 +56,7 @@ export function useClientes() {
       telefone: input.telefone,
       email: input.email,
       endereco: input.endereco,
-      fotoPrincipal: input.fotoPrincipal,
+      fotoPrincipal: input.fotoPrincipal ?? undefined,
       observacoes: input.observacoes,
       createdAt: new Date().toISOString(),
     };
@@ -79,7 +79,15 @@ export function useClientes() {
 
   const updateCliente = useCallback(async (id: string, patch: Partial<NovoClienteInput>) => {
     const anterior = clientes.find(c => c.id === id);
-    setClientes(prev => prev.map(c => (c.id === id ? { ...c, ...patch, updatedAt: new Date().toISOString() } : c)));
+    const { fotoPrincipal, ...resto } = patch;
+    setClientes(prev => prev.map(c => (c.id === id
+      ? {
+        ...c, ...resto,
+        // `null` remove a foto; ausente não mexe
+        ...(fotoPrincipal !== undefined ? { fotoPrincipal: fotoPrincipal ?? undefined } : {}),
+        updatedAt: new Date().toISOString(),
+      }
+      : c)));
 
     if (usingApi) {
       try {

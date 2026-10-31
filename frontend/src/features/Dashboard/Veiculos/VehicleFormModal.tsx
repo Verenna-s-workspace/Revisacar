@@ -3,17 +3,25 @@ import { tokens } from '../../../constants';
 import { COMBUSTIVEL_OPTIONS } from '../../../constants';
 import { PhotoGrid, Lightbox } from '../../../components/ui';
 import { CATEGORIA_OPTIONS, CAMBIO_OPTIONS, PORTAS_OPTIONS } from '../../../utils/veiculos_utils';
+import { comprimirImagem } from '../../../utils/estoque_utils';
 import { VeiculoIcons } from './icons';
+import { OwnerPicker, mesmoProprietario } from './OwnerPicker';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
 import { Textarea } from '../../../components/inputs/textarea';
-import type { NovoVeiculoInput, VeiculoCadastrado, VeiculoCategoria, VeiculoCambio } from '../../../types/veiculo';
+import { MAX_FOTOS_ADICIONAIS } from '../../../types/veiculo';
+import type { Cliente } from '../../../types/cliente';
+import type {
+  NovoVeiculoInput, VeiculoCadastrado, VeiculoCategoria, VeiculoCambio, VeiculoProprietario,
+} from '../../../types/veiculo';
 
 interface Photo { src: string; name: string; }
 
 interface VehicleFormModalProps {
   /** Quando presente, o modal funciona em modo edição. */
   veiculo?: VeiculoCadastrado;
+  /** Clientes da carteira — para vincular o veículo a um cliente já cadastrado. */
+  clientes?: Cliente[];
   onSave: (input: NovoVeiculoInput) => void;
   onClose: () => void;
 }
@@ -22,8 +30,13 @@ interface FormState {
   placa: string; marca: string; modelo: string; ano: string; cor: string; quilometragem: string;
   categoria: VeiculoCategoria; combustivel: string; cambio: VeiculoCambio; portas: string;
   chassi: string; renavam: string; observacoes: string;
-  proprietarioNome: string; proprietarioDoc: string; proprietarioTelefone: string; proprietarioEmail: string;
 }
+
+// As fotos seguem o mesmo caminho das do estoque (comprimir no navegador → data URL → banco), com mais
+// resolução que o estoque (480px), porque o veículo aparece grande no card e no topo dos detalhes.
+const LARGURA_FOTO_PRINCIPAL = 800;
+const LARGURA_FOTO_ADICIONAL = 640;
+const QUALIDADE_FOTO = 0.72;
 
 function buildInitialState(v?: VeiculoCadastrado): FormState {
   return {
@@ -40,51 +53,78 @@ function buildInitialState(v?: VeiculoCadastrado): FormState {
     chassi: v?.chassi ?? '',
     renavam: v?.renavam ?? '',
     observacoes: v?.observacoes ?? '',
-    proprietarioNome: v?.proprietario?.nome ?? '',
-    proprietarioDoc: v?.proprietario?.docCpfCnpj ?? '',
-    proprietarioTelefone: v?.proprietario?.telefone ?? '',
-    proprietarioEmail: v?.proprietario?.email ?? '',
   };
 }
 
 const PORTAS_SELECT_OPTIONS = PORTAS_OPTIONS.map(p => ({ value: String(p), label: `${p} portas` }));
 
-export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalProps) {
+export function VehicleFormModal({ veiculo, clientes = [], onSave, onClose }: VehicleFormModalProps) {
   const isEdit = !!veiculo;
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>(() => buildInitialState(veiculo));
   const [fotoPrincipal, setFotoPrincipal] = useState<string | undefined>(veiculo?.fotoPrincipal);
   const [fotos, setFotos] = useState<Photo[]>(() => (veiculo?.fotosAdicionais ?? []).map(src => ({ src, name: 'foto' })));
   const [preview, setPreview] = useState<string | null>(null);
+  const [proprietario, setProprietario] = useState<VeiculoProprietario | null>(veiculo?.proprietario ?? null);
+  const [comprimindo, setComprimindo] = useState(false);
+  const [erroFoto, setErroFoto] = useState<string | null>(null);
 
   const setField = <K extends keyof FormState>(key: K) => (v: string) =>
     setForm(prev => ({ ...prev, [key]: v as FormState[K] }));
 
-  const handleFotoPrincipal = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoPrincipal = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = ev => setFotoPrincipal(ev.target?.result as string);
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    setErroFoto(null);
+    setComprimindo(true);
+    try {
+      setFotoPrincipal(await comprimirImagem(file, LARGURA_FOTO_PRINCIPAL, QUALIDADE_FOTO));
+    } catch {
+      setErroFoto('Não foi possível processar essa imagem. Tente outra foto.');
+    } finally {
+      setComprimindo(false);
+    }
   };
 
-  const handleFotosAdicionais = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files ?? []).forEach(file => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = ev => setFotos(prev => [...prev, { src: ev.target?.result as string, name: file.name }]);
-      reader.readAsDataURL(file);
-    });
+  const handleFotosAdicionais = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = Array.from(e.target.files ?? []).filter(f => f.type.startsWith('image/'));
     e.target.value = '';
+    if (arquivos.length === 0) return;
+    setErroFoto(null);
+    const vagas = MAX_FOTOS_ADICIONAIS - fotos.length;
+    if (arquivos.length > vagas) {
+      setErroFoto(`No máximo ${MAX_FOTOS_ADICIONAIS} fotos adicionais por veículo.`);
+    }
+    setComprimindo(true);
+    try {
+      const novas: Photo[] = [];
+      for (const file of arquivos.slice(0, Math.max(vagas, 0))) {
+        novas.push({ src: await comprimirImagem(file, LARGURA_FOTO_ADICIONAL, QUALIDADE_FOTO), name: file.name });
+      }
+      setFotos(prev => [...prev, ...novas].slice(0, MAX_FOTOS_ADICIONAIS));
+    } catch {
+      setErroFoto('Não foi possível processar uma das imagens. Tente outra foto.');
+    } finally {
+      setComprimindo(false);
+    }
   };
 
-  const removeFoto = (i: number) => setFotos(prev => prev.filter((_, idx) => idx !== i));
+  const removeFoto = (i: number) => { setErroFoto(null); setFotos(prev => prev.filter((_, idx) => idx !== i)); };
 
   const step1Valid = form.placa.trim() && form.marca.trim() && form.modelo.trim() && form.ano.trim();
 
   const handleSubmit = () => {
-    if (!step1Valid) return;
+    if (!step1Valid || comprimindo) return;
+    const dono: VeiculoProprietario | null = proprietario && proprietario.nome.trim()
+      ? {
+          clienteId: proprietario.clienteId,
+          nome: proprietario.nome.trim(),
+          docCpfCnpj: proprietario.docCpfCnpj?.trim() || undefined,
+          telefone: proprietario.telefone?.trim() || undefined,
+          email: proprietario.email?.trim() || undefined,
+        }
+      : null;
     const input: NovoVeiculoInput = {
       placa: form.placa.trim().toUpperCase(),
       marca: form.marca.trim(),
@@ -99,18 +139,15 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
       chassi: form.chassi.trim() || undefined,
       renavam: form.renavam.trim() || undefined,
       observacoes: form.observacoes.trim() || undefined,
-      fotoPrincipal,
+      // Editando: `null` avisa o servidor que a foto foi removida (chave ausente = não mexe).
+      fotoPrincipal: fotoPrincipal ?? (isEdit ? null : undefined),
       fotosAdicionais: fotos.map(f => f.src),
-      proprietario: form.proprietarioNome.trim()
-        ? {
-            nome: form.proprietarioNome.trim(),
-            docCpfCnpj: form.proprietarioDoc.trim() || undefined,
-            telefone: form.proprietarioTelefone.trim() || undefined,
-            email: form.proprietarioEmail.trim() || undefined,
-          }
-        : null,
+      proprietario: dono,
       status: veiculo?.status,
     };
+    // Dono inalterado na edição: nem manda o campo. Reenviar o mesmo cliente a cada salvamento só serviria
+    // para falhar se ele tiver sido arquivado da carteira depois (o servidor exige cliente ativo).
+    if (isEdit && mesmoProprietario(dono, veiculo?.proprietario)) delete input.proprietario;
     onSave(input);
     onClose();
   };
@@ -217,7 +254,7 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
                       </span>
                     </>
                   )}
-                  <input type="file" accept="image/*" onChange={handleFotoPrincipal} style={{ display: 'none' }} />
+                  <input type="file" accept="image/*" onChange={handleFotoPrincipal} disabled={comprimindo} style={{ display: 'none' }} />
                 </label>
                 {fotoPrincipal && (
                   <button
@@ -232,36 +269,32 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
 
             {/* Fotos adicionais */}
             <div>
-              <label style={labelStyle}>Fotos Adicionais</label>
+              <label style={labelStyle}>
+                Fotos Adicionais <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 600 }}>({fotos.length}/{MAX_FOTOS_ADICIONAIS})</span>
+              </label>
               <PhotoGrid
                 photos={fotos}
                 handlePhotos={handleFotosAdicionais}
                 onRemove={removeFoto}
                 onPreview={setPreview}
               />
+              {comprimindo && (
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 8 }}>Processando a imagem...</div>
+              )}
+              {erroFoto && (
+                <div style={{ fontSize: '0.75rem', color: tokens.color.crit, marginTop: 8 }}>{erroFoto}</div>
+              )}
             </div>
 
-            {/* Proprietário (improvisado) */}
+            {/* Proprietário = cliente vinculado ao veículo */}
             <div style={{ borderTop: `1px solid ${tokens.color.border}`, paddingTop: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <label style={{ ...labelStyle, marginBottom: 0 }}>Proprietário (opcional)</label>
-                <span style={{
-                  fontSize: '0.75rem', fontWeight: 700, color: tokens.color.ferrari, background: tokens.color.ferrariMid,
-                  padding: '2px 7px', borderRadius: 99, textTransform: 'none', letterSpacing: 0,
-                }}>
-                  🔜 vínculo com cliente cadastrado em breve
-                </span>
-              </div>
-              <div className="dashboard-form-grid-2col" style={{ gap: '12px 20px' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <Input name="prop_nome" label="Nome do Proprietário" placeholder="Deixe em branco para salvar sem proprietário" value={form.proprietarioNome} onChangeValue={setField('proprietarioNome')} />
+              <label style={{ ...labelStyle, marginBottom: 10 }}>Proprietário (opcional)</label>
+              <OwnerPicker name="prop" clientes={clientes} value={proprietario} onChange={setProprietario} />
+              {!proprietario?.nome.trim() && (
+                <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 10 }}>
+                  Sem proprietário, o veículo fica cadastrado só na oficina e pode ser vinculado a um cliente depois.
                 </div>
-                <Input name="prop_doc" type="cpf_cnpj" label="CPF/CNPJ" placeholder="000.000.000-00" value={form.proprietarioDoc} onChangeValue={setField('proprietarioDoc')} />
-                <Input name="prop_tel" type="phone" label="Telefone" placeholder="(11) 99999-9999" value={form.proprietarioTelefone} onChangeValue={setField('proprietarioTelefone')} />
-                <div style={{ gridColumn: 'span 2' }}>
-                  <Input name="prop_email" type="email" label="E-mail" placeholder="email@exemplo.com" value={form.proprietarioEmail} onChangeValue={setField('proprietarioEmail')} />
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -300,9 +333,11 @@ export function VehicleFormModal({ veiculo, onSave, onClose }: VehicleFormModalP
           ) : (
             <button
               onClick={handleSubmit}
+              disabled={comprimindo}
               style={{
                 padding: '9px 22px', borderRadius: 10, border: 'none',
-                background: tokens.color.ferrari, color: 'white', cursor: 'pointer',
+                background: tokens.color.ferrari, color: 'white', cursor: comprimindo ? 'wait' : 'pointer',
+                opacity: comprimindo ? 0.6 : 1,
                 fontSize: '0.84rem', fontWeight: 700, boxShadow: tokens.shadow.ferrari,
               }}
             >

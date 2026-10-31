@@ -1,5 +1,8 @@
 // ── Veículos: utilitários e opções ────────────────────
 
+import { COMBUSTIVEL_OPTIONS } from '../constants';
+import { formatPhoneBR, onlyDigits } from '../components/inputs/masks';
+import type { OSPrefillInput } from '../types/atendimento';
 import type {
   VeiculoCadastrado,
   VeiculoCategoria,
@@ -71,4 +74,38 @@ export function filtrosAtivos(f: VeiculoFiltros): boolean {
     f.status !== 'todos' ||
     f.vinculo !== 'todos'
   );
+}
+
+// ── "Nova OS" a partir do veículo ─────────────────────────────────────────────
+
+const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+
+/** Casa o combustível do cadastro ("flex", "Gasolina") com uma opção do checklist; sem casar, vazio. */
+function combustivelDoChecklist(valor: string | undefined): string {
+  const alvo = semAcento(valor ?? '');
+  return COMBUSTIVEL_OPTIONS.find(o => semAcento(o) === alvo) ?? '';
+}
+
+/**
+ * Monta o pré-preenchimento do checklist inicial a partir de um veículo da frota.
+ *  • Com proprietário vinculado: dados do cliente (nome, CPF/CNPJ, telefone, e-mail) + dados do veículo.
+ *  • Sem proprietário: só os dados do veículo — o bloco do cliente fica em branco.
+ * Só preenche (`apenasPreencher`): a OS só é criada quando o mecânico salvar. Não leva a quilometragem
+ * cadastrada: o "Km atual" da entrada é o que o hodômetro marca agora.
+ */
+export function veiculoParaPrefill(v: VeiculoCadastrado): OSPrefillInput {
+  const dono = v.proprietario && v.proprietario.nome.trim() ? v.proprietario : null;
+  return {
+    clienteNome: dono?.nome.trim() ?? '',
+    clienteDoc: dono?.docCpfCnpj ? onlyDigits(dono.docCpfCnpj) || undefined : undefined,
+    clienteTel: dono?.telefone ? formatPhoneBR(dono.telefone) || undefined : undefined,
+    clienteEmail: dono?.email || undefined,
+    veiculoModelo: `${v.marca} ${v.modelo}`.trim(),
+    veiculoPlaca: v.placa,
+    veiculoAno: v.ano ? String(v.ano) : undefined,
+    veiculoCor: v.cor || undefined,
+    veiculoCombustivel: combustivelDoChecklist(v.combustivel) || undefined,
+    veiculoChassi: v.chassi ? v.chassi.toUpperCase().slice(0, 17) : undefined,
+    apenasPreencher: true,
+  };
 }
