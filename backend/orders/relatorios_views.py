@@ -57,6 +57,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .estoque_views import _listar_todos
+from .paralelo import em_paralelo, em_paralelo_cada
 from .views import supabase, require_permission, _oficina_doc_do_token
 
 logger = logging.getLogger(__name__)
@@ -351,10 +352,25 @@ def relatorios(request):
     dias: dict[date, dict] = defaultdict(lambda: {"ordens": 0, "finalizadas": 0, "faturamento": 0.0})
     valor_finalizadas: dict[date, float] = defaultdict(float)   # numerador do ticket médio
     contagem_servicos: dict[str, dict] = {}
-    usa_financeiro = _usa_financeiro(oficina_doc)
-
-    ordens = _buscar_ordens(oficina_doc, janela_ini, janela_fim)
-    reais = servicos_reais(oficina_doc, [o["id"] for o in ordens if o.get("status") == "finalizada"])
+    # Duas rodadas de consultas que saem juntas (ver paralelo.py): primeiro o que não depende de
+    # nada (as entradas vêm antes de saber se a oficina usa o Financeiro; se não usar, são ignoradas),
+    # depois o que depende das OS e das entradas.
+    (usa_financeiro, erro), (ordens, erro_ordens), (entradas, erro_entradas) = em_paralelo_cada(
+        lambda: _usa_financeiro(oficina_doc),
+        lambda: _buscar_ordens(oficina_doc, janela_ini, janela_fim),
+        lambda: _buscar_entradas(oficina_doc, janela_ini, janela_fim),
+    )
+    for falha in (erro, erro_ordens):
+        if falha is not None:
+            raise falha
+    if not usa_financeiro:
+        entradas = []          # sem Financeiro (ou sem a tabela): o erro da busca adiantada não importa
+    elif erro_entradas is not None:
+        raise erro_entradas
+    reais, finalizadas = em_paralelo(
+        lambda: servicos_reais(oficina_doc, [o["id"] for o in ordens if o.get("status") == "finalizada"]),
+        lambda: _finalizadas_entre(oficina_doc, (e.get("ordem_servico_id") for e in entradas)),
+    )
 
     for ordem in ordens:
         dia = _dia_da_ordem(ordem.get("created_at"), tz)
@@ -378,8 +394,6 @@ def relatorios(request):
                     somar_servicos(contagem_servicos, nome, 1)
 
     if usa_financeiro:
-        entradas = _buscar_entradas(oficina_doc, janela_ini, janela_fim)
-        finalizadas = _finalizadas_entre(oficina_doc, (e.get("ordem_servico_id") for e in entradas))
         for entrada in entradas:
             try:
                 dia = date.fromisoformat(str(entrada["data_competencia"])[:10])
