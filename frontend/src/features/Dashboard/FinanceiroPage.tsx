@@ -112,7 +112,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Financeiro</h2>
@@ -123,7 +123,8 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
           <select
             value={preset}
             onChange={e => setPreset(e.target.value as Preset)}
-            style={{ padding: '9px 12px', borderRadius: 10, border: `1px solid ${tokens.color.border}`, background: tokens.color.surface, color: tokens.color.text, fontSize: '0.82rem', fontWeight: 600 }}
+            aria-label="Período"
+            style={{ flex: isMobile ? 1 : undefined, minWidth: 0, padding: '9px 12px', borderRadius: 10, border: `1px solid ${tokens.color.border}`, background: tokens.color.surface, color: tokens.color.text, fontSize: '0.82rem', fontWeight: 600 }}
           >
             <option value="este-mes">Este mês</option>
             <option value="mes-passado">Mês passado</option>

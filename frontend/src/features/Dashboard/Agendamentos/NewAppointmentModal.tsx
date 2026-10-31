@@ -128,7 +128,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
             <div>
               {/* Month nav */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <button
+                <button className="tap-area"
                   onClick={() => setCalDate(d => addMonths(d, -1))}
                   style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
                 >
@@ -137,7 +137,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                 <span style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
                   {MONTHS[month]} {year}
                 </span>
-                <button
+                <button className="tap-area"
                   onClick={() => setCalDate(d => addMonths(d, 1))}
                   style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
                 >
@@ -166,7 +166,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                       const isPast = iso < todayISO;
 
                       return (
-                        <button
+                        <button className="tap-area"
                           key={di}
                           disabled={!isCurrentM || isPast}
                           onClick={() => { setSelectedDate(iso); setSelectedSlot(null); }}

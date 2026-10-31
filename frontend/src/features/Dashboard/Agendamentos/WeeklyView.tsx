@@ -72,14 +72,14 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
       {/* Week header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addDays(weekStart, -7))}
             style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
           >
             {AgendaIcons.chevR}
           </button>
           <div style={{ fontWeight: 700, fontSize: '1rem', color: tokens.color.text }}>{weekLabel}</div>
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addDays(weekEnd, 1))}
             style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
           >

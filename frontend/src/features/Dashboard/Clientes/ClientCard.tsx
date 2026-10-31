@@ -97,7 +97,7 @@ function ClientAvatar({ nome, foto, gradientId, size = 54 }: { nome: string; fot
 
 function ActionBtn({ title, onClick, danger, children }: { title: string; onClick: (e: React.MouseEvent) => void; danger?: boolean; children: React.ReactNode }) {
   return (
-    <button
+    <button className="tap-area"
       title={title}
       onClick={onClick}
       style={{

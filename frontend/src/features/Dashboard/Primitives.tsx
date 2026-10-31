@@ -93,7 +93,8 @@ function Sparkline({ data }: { data: number[] }) {
   const maxValue = Math.max(...data, 1);
 
   return (
-    <div style={{ width: 96, height: 40, minWidth: 96 }}>
+    // Encolhe antes do valor: num cartão estreito o "R$" quebrava de linha.
+    <div style={{ flex: '0 1 96px', height: 40, minWidth: 56 }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
           <XAxis dataKey="index" hide />
@@ -152,7 +153,9 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
   const pos = pct !== null && pct >= 0;
   return (
     <Card style={{ padding: '18px 20px', flex: 1, minWidth: 0 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+      {/* Mini-gráfico alinhado embaixo, ao lado do valor: no topo ele passava por
+          cima do título quando o cartão estreitava (notebook de 1024px). */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: '#CC1400', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
@@ -169,7 +172,7 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
             </>
           ) : (
             <>
-              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: tokens.color.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <div style={{ fontSize: 'clamp(1.35rem, 6.2vw, 1.65rem)', fontWeight: 800, color: tokens.color.text, letterSpacing: '-0.02em', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 {value}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, minHeight: 17 }}>
@@ -297,7 +300,7 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div>
             <div style={{ fontSize: '0.75rem', color: tokens.color.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
-              Meta {editavel && <button style={botao} onClick={abrirEdicao}>Editar</button>}
+              Meta {editavel && <button className="visao-geral__link" style={botao} onClick={abrirEdicao} aria-label="Editar meta mensal">Editar</button>}
             </div>
             <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(meta)}</div>
             <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 8 }}>Alcançado</div>

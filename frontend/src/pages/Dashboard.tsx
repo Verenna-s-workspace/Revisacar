@@ -151,6 +151,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     [vg, ordemTopServicos, comDinheiro]
   );
 
+  // Trocar de tela começa do topo: a rolagem é da página inteira (a sidebar é
+  // sticky), então sem isto a tela nova abria no meio, na altura da anterior.
+  useEffect(() => { window.scrollTo(0, 0); }, [page]);
+
   const handleNav = (p: NavPage) => {
     if (p === 'dicas') { onOpenLearningCenter?.(); return; }
     setAgendaFocus(null); setEstoqueFocus(null); setPage(p);
@@ -318,18 +322,12 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // Mobile: os 3 indicadores viram um carrossel horizontal com "snap" (o
   // próximo cartão aparece pela metade, sinalizando que dá pra deslizar) em
   // vez de 3 cartões empilhados que ocupavam a primeira tela inteira.
+  // A partir de 720px (tablet) os cartões cabem lado a lado e o carrossel vira
+  // uma grade (ver .visao-geral__kpis em dashboard.css).
   const kpiRow = semDados ? null : isMobile ? (
-    <div
-      role="region"
-      aria-label="Indicadores do mês"
-      style={{
-        display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory',
-        margin: '0 -14px', padding: '0 14px 6px', scrollPaddingLeft: 14,
-        WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain',
-      }}
-    >
+    <div role="region" aria-label="Indicadores do mês" className="visao-geral__kpis">
       {kpiItems.map((item, i) => (
-        <div key={i} style={{ flex: kpiItems.length === 1 ? '1 1 100%' : '0 0 min(82%, 340px)', scrollSnapAlign: 'start', minWidth: 0 }}>
+        <div key={i} className={`visao-geral__kpi${kpiItems.length === 1 ? ' visao-geral__kpi--unico' : ''}`}>
           {item}
         </div>
       ))}
@@ -342,9 +340,9 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   // ── Chart Section ──────────────────────────────────────────────────────────
   const chartSection = semDados ? null : (
-    <Card style={{ padding: isMobile ? '16px' : '20px 24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div>
+    <Card style={{ padding: isMobile ? '16px' : '20px 24px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px 12px', flexWrap: 'wrap', marginBottom: 12 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
             {comDinheiro || loading ? 'Análise de faturamento' : 'Ordens por dia'}
           </div>
@@ -356,7 +354,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {!isMobile && serieGrafico.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: tokens.color.muted }}>
               <span style={{ display: 'flex' }}>{Icons.cal}</span>
@@ -414,8 +412,8 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // OS finalizadas dos últimos 30 dias. O valor é ESTIMADO (preço por tipo de
   // serviço × quantidade), não faturamento real — por isso "est." no cabeçalho.
   const topServicosSection = semDados ? null : (
-    <Card style={{ padding: isMobile ? '16px' : '20px 22px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+    <Card style={{ padding: isMobile ? '16px' : '20px 22px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px 12px', flexWrap: 'wrap', marginBottom: 14 }}>
         <div>
           <div className="dashboard-card__header-title">Top serviços</div>
           <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>OS finalizadas nos últimos 30 dias</div>
@@ -533,7 +531,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: '0.82rem', color: tokens.color.muted, lineHeight: 1.5 }}>
           Ainda não há entradas nem saídas lançadas no Financeiro neste período.
           <div style={{ marginTop: 10 }}>
-            <button onClick={() => handleNav('financeiro')} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+            <button className="visao-geral__link" onClick={() => handleNav('financeiro')} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
               Ir para o Financeiro →
             </button>
           </div>
@@ -591,10 +589,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   // ── Ordens Recentes ────────────────────────────────────────────────────────
   const ordensRecentes = (
-    <Card style={{ padding: isMobile ? '14px 16px' : '18px 20px' }}>
+    <Card className="visao-geral__ordens" style={{ padding: isMobile ? '14px 16px' : '18px 20px', minWidth: 0 }}>
       <div className="dashboard-card__header">
         <div className="dashboard-card__header-title">ORDENS RECENTES</div>
-        <button onClick={() => setPage('ordens')} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+        <button className="visao-geral__link" onClick={() => setPage('ordens')} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
           Ver todas
         </button>
       </div>
@@ -631,7 +629,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     >
       <div className="dashboard-card__header" style={{ marginBottom: 12 }}>
         <div className="dashboard-card__header-title">ALERTAS IMPORTANTES</div>
-        <button onClick={(e) => { e.stopPropagation(); handleNav('alertas'); }} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
+        <button className="visao-geral__link" onClick={(e) => { e.stopPropagation(); handleNav('alertas'); }} style={{ border: 'none', background: 'transparent', color: '#CC1400', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Ver todas</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {alertasResumo.loading && Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} h={46} r={10} />)}
@@ -649,8 +647,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
           return (
             <div
               key={i}
+              role="button"
+              tabIndex={0}
               onClick={(e) => { e.stopPropagation(); handleNav('alertas'); }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 13px', borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, cursor: 'pointer' }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); handleNav('alertas'); } }}
+              style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 13px', borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ color: cfg.color, flexShrink: 0, marginTop: 1, display: 'flex' }}>{cfg.icon}</span>
@@ -689,7 +690,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         <button
           key={item.p}
           onClick={() => setPage(item.p)}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 8px', width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: `1px solid ${tokens.color.border}`, borderRadius: 6 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 8px', minHeight: 48, width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: `1px solid ${tokens.color.border}`, borderRadius: 6 }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, color: tokens.color.text }}>
             <span style={{ color: tokens.color.muted, display: 'flex' }}>{item.icon}</span>
@@ -715,12 +716,15 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         {erroCard}
         {kpiRow}
         {chartSection}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+        {/* No tablet (≥ 720px) cada par fica lado a lado em vez de uma coluna esticada */}
+        <div className="visao-geral__dupla">
           {topServicosSection}
           {acessosRapidos}
         </div>
-        {ordensRecentes}
-        {alertasSection}
+        <div className="visao-geral__dupla">
+          {ordensRecentes}
+          {alertasSection}
+        </div>
       </div>
       <MobileNav active={page} onNav={handleNav} onNewOS={onNewOS} />
       {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
@@ -736,13 +740,16 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {erroCard}
           {kpiRow}
+          {/* Larguras em dashboard.css (.visao-geral__grafico / __rodape): antes eram
+              fixas (1fr 420px / 320px 1fr 310px) e, num notebook de 1024px, o
+              card de Ordens Recentes ficava com ~20px. */}
           {(chartSection || topServicosSection) && (
-            <div style={{ display: 'grid', gridTemplateColumns: chartSection && topServicosSection ? '1fr 420px' : '1fr', gap: 18 }}>
+            <div className={`visao-geral__grafico${chartSection && topServicosSection ? '' : ' visao-geral__grafico--unico'}`}>
               {chartSection}
               {topServicosSection}
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: `${resumoFinanceiro ? '320px ' : ''}1fr 310px`, gap: 18 }}>
+          <div className={`visao-geral__rodape${resumoFinanceiro ? '' : ' visao-geral__rodape--sem-financeiro'}`}>
             {resumoFinanceiro}
             {ordensRecentes}
             {alertasSection}

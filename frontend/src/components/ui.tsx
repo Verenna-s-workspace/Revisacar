@@ -1,5 +1,9 @@
 import { useEffect, useSyncExternalStore, CSSProperties, ReactNode } from 'react';
 import { tokens } from '../constants';
+// O PanelFooter depende de .panel-footer (sticky, safe-area, botões lado a lado
+// no celular) — o arquivo existia mas nunca era importado, e o rodapé das
+// etapas da OS ficava solto no fim da página.
+import '../styles/ui.css';
 
 // ── useResponsive hook ────────────────────────────────────────────────────────
 

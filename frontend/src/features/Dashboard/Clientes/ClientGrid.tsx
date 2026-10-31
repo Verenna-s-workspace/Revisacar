@@ -47,6 +47,9 @@ export function ClientGrid({
 }: ClientGridProps) {
   const { isMobile, isTablet } = useResponsive();
   const columns = isMobile ? 1 : isTablet ? 2 : 4;
+  // Colunas pelo espaço que sobra (não pela largura da janela): com a sidebar,
+  // 4 colunas fixas a partir de 980px cortavam nome, placa e km dos cartões.
+  const gridCols = isMobile ? '1fr' : 'repeat(auto-fill, minmax(250px, 1fr))';
   const [page, setPage] = useState(1);
 
   // Sempre que a lista filtrada mudar de tamanho (nova busca/filtro), volta para a página 1.
@@ -59,7 +62,7 @@ export function ClientGrid({
 
   if (loading) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 18 }}>
         {Array.from({ length: columns * 2 }).map((_, i) => <SkeletonCard key={i} />)}
       </div>
     );
@@ -110,7 +113,7 @@ export function ClientGrid({
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: isMobile ? 14 : 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: isMobile ? 14 : 18 }}>
         {pageItems.map(c => (
           <ClientCard
             key={c.id}
@@ -138,7 +141,7 @@ export function ClientGrid({
               const n = i + 1;
               const active = n === safePage;
               return (
-                <button
+                <button className="tap-area"
                   key={n}
                   onClick={() => setPage(n)}
                   style={{
@@ -162,7 +165,7 @@ export function ClientGrid({
 
 function PageBtn({ disabled, onClick, children }: { disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
+    <button className="tap-area"
       disabled={disabled}
       onClick={onClick}
       style={{

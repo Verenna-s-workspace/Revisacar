@@ -79,7 +79,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
   const [menuAberto, setMenuAberto] = useState(false);
 
   return (
-    <aside className="dashboard-sidebar" style={{ position: 'relative' }}>
+    <aside className="dashboard-sidebar">
       <div className="dashboard-sidebar__brand">
         <div className="dashboard-sidebar__brand-logo">
           <img
@@ -111,7 +111,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
           <div className="dashboard-sidebar__identity-nome">{user?.nome ?? 'Oficina'}</div>
         </div>
         <button
-          className="dashboard-sidebar__identity-chevron"
+          className="dashboard-sidebar__identity-chevron tap-area"
           onClick={() => setMenuAberto(v => !v)}
           title="Sessão"
           aria-label="Menu da sessão"
@@ -170,21 +170,21 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
       {/* Dock — Catálogo / Dicas / Configurações. Dicas ainda não tem tela própria
           (cai no PlaceholderPage genérico até existir uma). */}
       <div className="dashboard-sidebar__dock">
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('servicos')} title="Catálogo">
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('servicos')} title="Catálogo" aria-label="Catálogo de serviços">
           {Icons.wrench}
         </button>     
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('relatorios')} title="Relátorios">
+        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('relatorios')} title="Relatórios" aria-label="Relatórios">
           {Icons.chart}
         </button>
         {can('financeiro.ver') && (
-          <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro">
+          <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro" aria-label="Financeiro">
             {Icons.money}
           </button>
         )}   
-         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas">
+         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas" aria-label="Dicas">
           {Icons.help}
         </button>
-         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações">
+         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações" aria-label="Configurações">
           {Icons.cog}
         </button>
       </div>
@@ -193,8 +193,10 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
         <button
           onClick={onNewOS}
           style={{
+            // Era 56px de padding vertical: sozinho ocupava ~190px e empurrava a
+            // sidebar pra além de 768px de altura.
             margin: '0 16px 18px',
-            padding: '56px 10px',
+            padding: '18px 10px',
             borderRadius: 16,
             border: `2px dashed rgba(204, 20, 0, 0.64)`,
             background: 'var(--color-bg-alt)',
