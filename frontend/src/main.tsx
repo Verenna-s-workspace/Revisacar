@@ -1,12 +1,16 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
-import OrcamentoPublicoPage from './features/OrcamentoPublico/OrcamentoPublicoPage';
 import { tokenDoCaminho } from './utils/orcamento_link_utils';
-import AcessoEquipePage from './features/AcessoEquipe/AcessoEquipePage';
 import { codigoDoCaminho } from './utils/acesso_equipe_utils';
+import { telaSobDemanda } from './utils/telaSobDemanda';
+
+// Páginas abertas por link: só quem abre o link baixa o código delas.
+const OrcamentoPublicoPage = telaSobDemanda(
+  () => import('./features/OrcamentoPublico/OrcamentoPublicoPage').then((m) => m.default));
+const AcessoEquipePage = telaSobDemanda(() => import('./features/AcessoEquipe/AcessoEquipePage').then((m) => m.default));
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 // In development: unregister any previously installed SW so it never
@@ -56,9 +60,9 @@ const painel = (
 createRoot(rootElement).render(
   <StrictMode>
     {tokenPublico ? (
-      <OrcamentoPublicoPage token={tokenPublico} />
+      <Suspense fallback={null}><OrcamentoPublicoPage token={tokenPublico} /></Suspense>
     ) : codigoEquipe ? (
-      <AcessoEquipePage codigo={codigoEquipe}>{painel}</AcessoEquipePage>
+      <Suspense fallback={null}><AcessoEquipePage codigo={codigoEquipe}>{painel}</AcessoEquipePage></Suspense>
     ) : (
       painel
     )}
