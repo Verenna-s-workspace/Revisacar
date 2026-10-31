@@ -43,7 +43,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Year navigation */}
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addYears(date, -1))}
             style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
             title="Ano anterior"
@@ -51,7 +51,7 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
             {AgendaIcons.chevsL}
           </button>
           {/* Month navigation */}
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addMonths(date, -1))}
             style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
             title="Mês anterior"
@@ -68,14 +68,14 @@ export function MonthlyView({ date, agendamentos, onDateChange, onDayClick }: Mo
             </span>
           </div>
 
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addMonths(date, 1))}
             style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
             title="Próximo mês"
           >
             {AgendaIcons.chevsR}
           </button>
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addYears(date, 1))}
             style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
             title="Próximo ano"

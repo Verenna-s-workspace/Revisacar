@@ -65,7 +65,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
       {/* Day header — fixo, não faz parte da área rolável */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addDays(date, -1))}
             style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
           >
@@ -81,7 +81,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
               {WEEKDAYS_LONG[date.getDay()]} · {dayItems.length} agendamento{dayItems.length !== 1 ? 's' : ''}
             </div>
           </div>
-          <button
+          <button className="tap-area"
             onClick={() => onDateChange(addDays(date, 1))}
             style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
           >

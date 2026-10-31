@@ -81,7 +81,7 @@ function PhotoPlaceholderArt({ gradientId }: { gradientId: string }) {
 
 function ActionBtn({ title, onClick, danger, children }: { title: string; onClick: (e: React.MouseEvent) => void; danger?: boolean; children: React.ReactNode }) {
   return (
-    <button
+    <button className="tap-area"
       title={title}
       onClick={onClick}
       style={{
@@ -201,8 +201,9 @@ export function VehicleCard({ veiculo: v, onView, onEdit, onChangeOwner, onUnlin
           deste componente precisa ser alterado — a arte decorativa some
           automaticamente e dá lugar à imagem. */}
       <div
+        className={`vehicle-card__foto${v.fotoPrincipal ? '' : ' vehicle-card__foto--vazia'}`}
         style={{
-          margin: '12px 16px 0', aspectRatio: '16 / 9', borderRadius: 14,
+          margin: '12px 16px 0', borderRadius: 14,
           border: `1px solid ${tokens.color.border}`,
           overflow: 'hidden', position: 'relative', flexShrink: 0,
           background: 'var(--color-surface)',
