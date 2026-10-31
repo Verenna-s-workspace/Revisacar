@@ -36,6 +36,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from . import relatorios_views as rel
+from .paralelo import em_paralelo_cada
 from .serializers import MetaMensalSerializer
 from .views import supabase, require_auth, require_permission, _oficina_doc_do_token
 
@@ -118,17 +119,27 @@ def visao_geral(request):
     ini_servicos = hoje - timedelta(days=DIAS_DOS_SERVICOS - 1)
     janela_ini = min(anterior[0], ini_serie)
 
-    usa_financeiro = rel._usa_financeiro(oficina_doc) if pode_fat else False
-    entradas = saidas = []
-    if (pode_fat and usa_financeiro) or pode_fin:
-        entradas = rel._buscar_lancamentos(oficina_doc, "entrada", janela_ini, hoje)
-    if pode_fin:
-        saidas = rel._buscar_lancamentos(oficina_doc, "saida", janela_ini, hoje)
+    # As consultas não dependem uma da outra: saem todas juntas (ver paralelo.py). As entradas são
+    # buscadas antes de saber se a oficina usa o Financeiro; se não usar, nem o erro delas importa.
+    *demais, (entradas, erro_entradas) = em_paralelo_cada(
+        (lambda: rel._usa_financeiro(oficina_doc)) if pode_fat else (lambda: False),
+        (lambda: rel._buscar_lancamentos(oficina_doc, "saida", janela_ini, hoje)) if pode_fin else list,
+        lambda: rel._buscar_ordens(oficina_doc, janela_ini, hoje),
+        (lambda: _meta_da_oficina(oficina_doc)) if pode_fat else (lambda: None),
+        (lambda: rel._buscar_lancamentos(oficina_doc, "entrada", janela_ini, hoje)) if pode_fat or pode_fin else list,
+    )
+    for _, falha in demais:
+        if falha is not None:
+            raise falha
+    usa_financeiro, saidas, ordens, meta = (valor for valor, _ in demais)
+    if not ((pode_fat and usa_financeiro) or pode_fin):
+        entradas = []
+    elif erro_entradas is not None:
+        raise erro_entradas
 
     dias: dict[date, dict] = defaultdict(lambda: {"ordens": 0, "faturamento": 0.0})
     servicos: dict[str, dict] = {}
 
-    ordens = rel._buscar_ordens(oficina_doc, janela_ini, hoje)
     reais = rel.servicos_reais(oficina_doc, [o["id"] for o in ordens if o.get("status") == "finalizada"])
 
     for ordem in ordens:
@@ -217,9 +228,9 @@ def visao_geral(request):
             "anterior": fat_ant if tem_anterior else None,
             "origem": "financeiro" if usa_financeiro else "estimado",
         }
-        meta, coluna_existe = _meta_da_oficina(oficina_doc)
+        meta_valor, coluna_existe = meta
         resposta["meta"] = {
-            "valor": meta,
+            "valor": meta_valor,
             "editavel": coluna_existe and "configuracoes.editar" in permissoes,
         }
 

@@ -441,3 +441,63 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - Fotos ficam no próprio registro (como o estoque), então `GET /veiculos` e `GET /clientes` devolvem todas. Com a frota crescendo, vale migrar para o Storage (a coluna `foto_principal_path` da 0003 já está reservada para isso).
 - `foto_principal_path` não foi reaproveitada: é caminho de Storage lido pelo app do cliente.
 - `ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade. Não mexido.
+## Auditoria UX/UI e responsividade do painel (2026-10-30, branch `feat/ux-responsivo`)
+**Auditoria:** 11 telas medidas por script e por print no build de produção ligado ao backend do Render, em 390×844, 768×1024, 844×390 (celular deitado), 1024×768 e 1366/1440. O pior caso era o notebook (980–1279 px): larguras fixas pensadas para 1440 px.
+
+**Corrigido**
+- **Visão Geral:** as grades `1fr 420px` e `320px 1fr 310px` viraram classes com `minmax` (`.visao-geral__*` em `dashboard.css`). Abaixo de 1280 px o gráfico ocupa a linha toda, Resumo e Alertas dividem uma linha e Ordens Recentes ocupa a largura inteira. Antes, em 1024 px, o card de Ordens ficava com cerca de 20 px e o seletor de período era cortado. No tablet (≥ 720 px) os KPIs saem do carrossel e ficam em grade de 3, e os cards vão em pares. O mini-gráfico dos KPIs desceu para o lado do valor (passava por cima do título).
+- **Tabela de OS:** as colunas fixas somavam cerca de 780 px, então as ações saíam do card em 1024 px. Agora as colunas são flexíveis, e abaixo de 1280 px a coluna Placa some e a placa aparece sob o cliente. O nº da OS virou `<button>` e as ações têm 34 px com rótulo.
+- **Veículos e Clientes:** os cards usam `auto-fill, minmax(250px)` pelo espaço real (antes eram 4 colunas fixas a partir de 980 px, mesmo com a sidebar). Os rótulos dos indicadores quebram linha em vez de cortar.
+- **Sidebar:** fica parada de verdade. Um `position: relative` inline anulava o `sticky`, e a altura era `auto`. Agora tem `100dvh` com rolagem própria, e o botão "Criar Nova Solicitação" ficou compacto (tinha 56 px de padding vertical). Os ícones do dock ganharam `aria-label`.
+- **Toque (layout compacto ou `pointer: coarse`):** regra única em `index.css` deixa todo botão e `role=button/tab/radio` com no mínimo 44×44 px. Os ícones quadrados que não podem crescer usam `.tap-area` (área estendida pelo `::after`). Campos com 44 px também no tablet. O voltar das telas virou `.dashboard-back-button` (era 24 px). Os links "Ver todas" e "Editar" ganharam alvo de 44 px sem mudar o desenho.
+- **Teclado:** a linha de OS e os itens de alerta da Visão Geral recebem foco e abrem com Enter/Espaço.
+- **Celular deitado (altura < 500 px):** a barra inferior caiu de 93 para 56 px (ícone ao lado do rótulo), e a topbar rola junto com a página. Antes as duas ocupavam 37 % da tela.
+- **Linha de OS no celular:** a margem negativa fixa de −20 px gerava 6 px de rolagem horizontal na tela de Ordens.
+- **Troca de tela:** volta ao topo (a rolagem é da página e a tela nova abria no meio).
+
+**Validado:**
+- `tsc` e `vite build` limpos;
+- no navegador, nas 11 telas em 390, 768 e 1024 px: zero rolagem horizontal e nenhum alvo de toque menor que 44 px (em 390 e 768);
+- prints em 844×390 e 1440 px.
+
+**NÃO validado:**
+- iPhone e Android reais (só emulação de viewport);
+- modais e formulários abertos um a um;
+- leitor de tela.
+
+**Não mexido (pendências):**
+- A casca (Sidebar, MobileTopbar, MobileNav) continua copiada em 12 telas. Vale um `AppShell` único depois do PR #38, que mexe em `Dashboard.tsx`.
+- A cor da marca no código é `#CC1400` (59 valores fixos), e o briefing fala em Coral Red `#FF3231`. Decisão da equipe.
+- Sobraram variáveis de tema escuro sem uso.
+- Configurações e Financeiro não têm o botão "voltar" no celular.
+- Esta branch evita as linhas que o PR #38 altera (imports e topo do `Dashboard.tsx`, `App.tsx`, `main.tsx`, `vite.config.ts`).
+
+**2ª rodada — celular (2026-10-30, mesma branch).** O usuário achou o celular ainda ruim. Revi tela por tela em 360 px (Android pequeno) olhando os prints, não só as medições.
+- **Causa grande:** `styles/ui.css` nunca era importado. O `PanelFooter` das etapas da OS dependia de `.panel-footer` (fixo embaixo, safe-area, "Salvar rascunho" + "Próximo" ocupando a largura), e o rodapé ficava solto no fim da página, com botões pequenos. Agora `components/ui.tsx` importa o arquivo. Ele também vale no desktop, como o código já previa.
+- **Densidade:**
+  - Os indicadores de Clientes, Veículos, Estoque e Agenda viram uma faixa de uma linha que desliza (`.stats-faixa`). Antes eram 2–3 linhas de cartões (cerca de 250 px) antes do primeiro item.
+  - Os filtros da tela de Ordens ficam numa linha deslizante (antes eram 3 linhas).
+  - A linha de OS perdeu o ícone genérico de carro abaixo de 640 px, e o cliente e o veículo não quebram mais em 3 linhas.
+  - Veículo sem foto mostra uma faixa decorativa baixa (16:5) em vez de cerca de 185 px vazios.
+- **Texto:**
+  - O valor dos KPIs não quebra mais "R$" numa linha e o número na outra (fonte com `clamp` e o mini-gráfico encolhe primeiro).
+  - "BLOQUEADOS" não passa mais da coluna no Atendimento.
+  - O cabeçalho dos modais não espreme mais o título: as ações descem de linha.
+  - O carrossel da Visão Geral ficou sem barra de rolagem visível.
+- **Financeiro:** o seletor de período ocupa o espaço que sobra ao lado de "Novo Lançamento".
+- **Erro evitado:** a faixa de filtros, sem `minWidth: 0` dentro de uma coluna com `flex-wrap`, alargava a página inteira para 604 px (o celular daria "zoom out"). Foi corrigido e a varredura agora mede `innerWidth`.
+- **Não mexido:** a Agenda mobile (feita por outro integrante) tem dois botões "+" na tela ("Novo Agendamento" e a nova OS da barra). Vale a equipe decidir.
+## Desempenho — telas lentas no Render (2026-10-30, branch `perf/telas-mais-rapidas`)
+**Medido em produção antes da mudança (conta de teste):** ida e volta até o backend sem banco ≈ 0,47 s; cada consulta ao Supabase ≈ +0,3 s. `/alertas` 3,5 s, `/visao-geral` 2,7 s, `/relatorios` 2,5 s, `/agendamentos` 2,3 s. E o principal: **8 chamadas simultâneas saíam em fila** (0,97 s → 4,75 s, uma atrás da outra), porque o Render roda `gunicorn DjangoSet.wsgi` sem configuração = 1 processo que atende uma requisição por vez. Cada tela dispara 5 a 10 chamadas juntas.
+
+**Entrega**
+- **`backend/gunicorn.conf.py`** (o gunicorn lê sozinho, sem mudar o painel do Render): 2 processos × 8 threads (`gthread`), timeout 60 s, recicla processo a cada ~1000 requisições, log com o tempo de cada chamada (`%(M)sms`). Ajustável por `WEB_CONCURRENCY`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT`. Teste local com um app que demora 0,5 s: 8 chamadas simultâneas de 4,05 s → 0,52 s.
+- **Consultas em paralelo dentro das rotas** (`orders/paralelo.py`, `em_paralelo`/`em_paralelo_cada`): `/alertas` (5 blocos + dispensados juntos), `/visao-geral` (5 consultas juntas), `/relatorios` (2 rodadas em vez de 6 consultas em fila), `/agendamentos` (clientes, mecânicos e OS ligadas juntos). O supabase-py é seguro entre threads (cada consulta monta os próprios cabeçalhos). As entradas do Financeiro passaram a ser buscadas antes de saber se a oficina usa o Financeiro; se não usar, o resultado (e o erro, se a tabela não existir) é ignorado — regra de faturamento igual.
+- **Frontend dividido por tela** (`utils/telaSobDemanda.ts`, `React.lazy`): o pacote inicial caiu de 1.288 KB (335 KB gzip) para 183 KB (60 KB gzip). A tela de login não baixa mais os gráficos; as outras telas são baixadas em segundo plano depois que a Visão Geral aparece (troca de tela continua instantânea) e a troca usa `startTransition` (a tela atual fica à mostra até a próxima chegar). Depois de um deploy, uma aba antiga que peça um arquivo que não existe mais recarrega uma vez. `vite.config.ts`: o `manualChunks` antigo deixava o React dentro do arquivo dos gráficos (563 KB) — agora só o React tem arquivo próprio.
+
+**Validado:** pytest 781 (6 novos em `test_paralelo.py`), flake8, `tsc`, `vite build`; build novo em `localhost:3000` contra o backend de produção, conta de teste: todas as telas abrem (Visão Geral, OS, Atendimento, Agenda, Clientes, Veículos, Estoque, Catálogo, Relatórios, Financeiro, Configurações, Alertas, Dicas, Entrada, Diagnóstico, Orçamento, Fechamento) em ~0,1 s depois de pré-carregadas, sem erro de JS. **NÃO validado:** o ganho do backend em produção (só depois do deploy da `main`).
+
+**Fora do código (decisão da equipe)**
+- **Região:** cada consulta leva ~0,3 s entre o Render e o Supabase. Conferir no painel se o serviço do Render e o projeto do Supabase estão na mesma região; se não, mover o backend para a região mais próxima do Supabase reduz todas as telas.
+- **Servidor dormindo:** no plano gratuito o backend dorme depois de 15 min sem uso e a primeira chamada demora ~1 min. Opções: plano pago, ou um "ping" a cada 10 min (consome as 750 h/mês gratuitas do workspace).
+- Teste instável pré-existente: `test_publico_nao_vaza_custo_margem_nem_dados_internos` procura o texto "61" na página pública e às vezes o código aleatório do link contém "61".

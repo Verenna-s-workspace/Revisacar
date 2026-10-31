@@ -206,7 +206,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Veículo {idx + 1}
                   </span>
-                  <button
+                  <button className="tap-area"
                     onClick={() => removeVeiculo(idx)}
                     title="Remover veículo"
                     style={{ width: 24, height: 24, borderRadius: 7, border: `1px solid ${tokens.color.critBorder}`, background: 'transparent', color: tokens.color.crit, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}

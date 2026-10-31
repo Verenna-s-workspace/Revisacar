@@ -43,6 +43,7 @@ from rest_framework.response import Response
 from . import carteira as cart
 from . import veiculos_views as veic
 from .estoque_views import _corpo_valido, _listar_todos, _negado, _nao_encontrado, _uuid_valido
+from .paralelo import em_paralelo
 from .views import supabase, require_auth, _now, _oficina_doc_do_token
 
 log = logging.getLogger(__name__)
@@ -199,10 +200,12 @@ def _seguir_as_os(oficina_doc: str, linhas):
         def da_oficina(q):
             return q.eq("oficina_doc", oficina_doc)
         ordens = {}
-        for o in (cart.buscar_por_ids("ordens", explicitas, extra=da_oficina)
-                  + cart.buscar_por_ids("ordens", [li["vehicle_id"] for li in sem_os if li.get("vehicle_id")],
-                                        coluna="vehicle_id", extra=da_oficina)
-                  + cart.buscar_por_ids("ordens", placas, coluna="placa", extra=da_oficina)):
+        por_id, por_veiculo, por_placa = em_paralelo(
+            lambda: cart.buscar_por_ids("ordens", explicitas, extra=da_oficina),
+            lambda: cart.buscar_por_ids("ordens", [li["vehicle_id"] for li in sem_os if li.get("vehicle_id")],
+                                        coluna="vehicle_id", extra=da_oficina),
+            lambda: cart.buscar_por_ids("ordens", placas, coluna="placa", extra=da_oficina))
+        for o in por_id + por_veiculo + por_placa:
             ordens[str(o["id"])] = o
 
         candidatas = {}
@@ -241,10 +244,14 @@ def _seguir_as_os(oficina_doc: str, linhas):
 
 
 def _montar(oficina_doc: str, linhas):
-    linhas = _seguir_as_os(oficina_doc, linhas)
-    clientes = {str(c["id"]): c for c in cart.buscar_por_ids(cart.CLIENTES, [l.get("customer_id") for l in linhas])}
+    # Clientes e mecânicos não dependem da OS ligada: as três buscas saem juntas (ver paralelo.py).
     func_ids = [l["mecanico_id"] for l in linhas if l.get("mecanico_id")]
-    funcs = {str(f["id"]): f for f in cart.buscar_por_ids("funcionarios", func_ids)} if func_ids else {}
+    linhas, lista_clientes, lista_funcs = em_paralelo(
+        lambda: _seguir_as_os(oficina_doc, linhas),
+        lambda: cart.buscar_por_ids(cart.CLIENTES, [l.get("customer_id") for l in linhas]),
+        (lambda: cart.buscar_por_ids("funcionarios", func_ids)) if func_ids else list)
+    clientes = {str(c["id"]): c for c in lista_clientes}
+    funcs = {str(f["id"]): f for f in lista_funcs}
     return [agendamento_para_api(l, clientes.get(str(l.get("customer_id"))), funcs.get(str(l.get("mecanico_id"))))
             for l in linhas]
 

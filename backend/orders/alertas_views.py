@@ -41,6 +41,7 @@ from rest_framework.response import Response
 
 from . import visao_geral_views as vg
 from .estoque_views import _listar_todos, _num
+from .paralelo import em_paralelo_cada
 from .serializers import AlertaDispensarSerializer, AlertaLimparSerializer, ClienteAvisadoSerializer
 from .views import supabase, require_auth, _get_ordem_or_404, _now, _oficina_doc_do_token, _ordens_precisam_do_sql, _require_auth
 
@@ -351,27 +352,31 @@ def alertas(request):
     ]
     corpo = {"hoje": hoje.isoformat(), "limites": LIMITES}
     indisponiveis = []
-    for chave, origem, permissao, calcular in blocos:
-        if permissao not in permissoes:
+    blocos = [b for b in blocos if b[2] in permissoes]
+    usuario = _usuario_chave(request.admin)
+    # Os blocos não dependem um do outro: saem todos juntos (ver paralelo.py).
+    *resultados, (dispensados, erro_dispensados) = em_paralelo_cada(
+        *(calcular for *_, calcular in blocos), lambda: _dispensados(oficina_doc, usuario, agora))
+    for (chave, origem, _, _), (valor, erro) in zip(blocos, resultados):
+        if erro is None:
+            corpo[chave] = valor
             continue
-        try:
-            corpo[chave] = calcular()
-        except APIError as e:
-            if getattr(e, "code", None) in OBJETO_INEXISTENTE:
-                logger.error("Alertas: %s indisponível (%s): %s", chave, e.code, getattr(e, "message", e))
-                corpo[chave] = []
-                if origem not in indisponiveis:
-                    indisponiveis.append(origem)
-                continue
-            raise
-    try:
-        corpo["dispensados"] = _dispensados(oficina_doc, _usuario_chave(request.admin), agora)
-    except APIError as e:
-        if getattr(e, "code", None) not in OBJETO_INEXISTENTE:
-            raise
-        logger.error("Alertas: alertas_dispensados indisponível (%s): %s", e.code, getattr(e, "message", e))
+        if isinstance(erro, APIError) and getattr(erro, "code", None) in OBJETO_INEXISTENTE:
+            logger.error("Alertas: %s indisponível (%s): %s", chave, erro.code, getattr(erro, "message", erro))
+            corpo[chave] = []
+            if origem not in indisponiveis:
+                indisponiveis.append(origem)
+            continue
+        raise erro
+    if erro_dispensados is None:
+        corpo["dispensados"] = dispensados
+    elif isinstance(erro_dispensados, APIError) and getattr(erro_dispensados, "code", None) in OBJETO_INEXISTENTE:
+        logger.error("Alertas: alertas_dispensados indisponível (%s): %s",
+                     erro_dispensados.code, getattr(erro_dispensados, "message", erro_dispensados))
         corpo["dispensados"] = []
         indisponiveis.append("alertas_dispensados")
+    else:
+        raise erro_dispensados
     corpo["indisponiveis"] = indisponiveis
     return Response(corpo)
 
