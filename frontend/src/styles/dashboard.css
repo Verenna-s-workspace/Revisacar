@@ -37,17 +37,27 @@ input, textarea, select, [contenteditable="true"] {
 .dashboard-sidebar {
   width: 240px;
   flex-shrink: 0;
+  /* Fica parada enquanto o conteúdo rola. Antes era height:auto (esticava
+   * junto com a página e o menu sumia nas listas longas); agora tem a altura
+   * da janela e rola sozinha se não couber (notebook de 768px de altura). */
   position: sticky;
   top: 0;
-  height: auto;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
-  overflow-y: hidden;
+  overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   box-shadow: 0 0 24px rgba(0,0,0,0.04);
 }
+
+/* Com altura fixa, os blocos não podem encolher: quem não couber rola. */
+.dashboard-sidebar > * { flex-shrink: 0; }
 
 .dashboard-sidebar__wave {
   position: absolute;
@@ -791,9 +801,18 @@ body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: 
   transition: background 0.12s ease;
 }
 
+.dashboard-order-row {
+  /* O fundo do hover/foco encosta na borda do card; 14px é o menor padding
+   * dos contêineres que usam a linha (lista de Ordens no celular). */
+  margin: 0 -14px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
 .dashboard-order-row:hover {
   background: var(--color-bg-alt);
 }
+.dashboard-order-row:focus-visible { outline-offset: -2px; }
 
 .dashboard-order-row__status {
   display: flex;
@@ -1281,4 +1300,143 @@ body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: 
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding-right: 2px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Visão Geral — grades por faixa de largura
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Celular: indicadores em carrossel com "snap" (o próximo cartão aparece pela
+ * metade, sinalizando que dá pra deslizar). */
+.visao-geral__kpis {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -14px;
+  padding: 0 14px 6px;
+  scroll-padding-left: 14px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.visao-geral__kpi { flex: 0 0 min(82%, 340px); scroll-snap-align: start; min-width: 0; }
+.visao-geral__kpi--unico { flex: 1 1 100%; }
+
+.visao-geral__dupla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+
+/* Tablet (720–979px): tudo cabe lado a lado — carrossel vira grade e os pares
+ * de cartões (Top serviços + Acessos, Ordens + Alertas) dividem a linha. */
+@media (min-width: 720px) {
+  .visao-geral__kpis {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+  .visao-geral__dupla { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+
+/* Desktop: gráfico + Top serviços, e embaixo Resumo / Ordens / Alertas. */
+.visao-geral__grafico {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  gap: 18px;
+}
+.visao-geral__grafico--unico { grid-template-columns: minmax(0, 1fr); }
+
+.visao-geral__rodape {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(260px, 310px);
+  gap: 18px;
+  align-items: start;
+}
+.visao-geral__rodape--sem-financeiro { grid-template-columns: minmax(0, 1fr) minmax(260px, 310px); }
+
+/* Notebook (980–1279px): com a sidebar de 240px sobram ~700px. O gráfico
+ * ganha a linha toda; Resumo e Alertas dividem uma linha e as Ordens
+ * Recentes ficam com a largura inteira embaixo. */
+@media (max-width: 1279px) {
+  .visao-geral__grafico { grid-template-columns: minmax(0, 1fr); }
+  .visao-geral__rodape {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+  }
+  .visao-geral__rodape .visao-geral__ordens { grid-column: 1 / -1; }
+  .visao-geral__rodape--sem-financeiro { grid-template-columns: minmax(0, 1fr) minmax(260px, 300px); }
+  .visao-geral__rodape--sem-financeiro .visao-geral__ordens { grid-column: auto; }
+}
+
+/* Links de texto ("Ver todas", "Editar") com alvo de 44px no toque, sem
+ * mudar o desenho: o padding cresce e a margem negativa compensa. */
+@media (max-width: 979px), (pointer: coarse) {
+  .visao-geral__link {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+    padding: 0 8px !important;
+    margin: -12px -8px;
+  }
+}
+
+
+/* ── Tabela de Ordens (desktop) ──────────────────────────────────────────────
+ * Antes: 90px 1fr 110px 140px 150px 120px 80px ≈ 780px fixos — num notebook
+ * de 1024px a coluna de ações saía do card e o Cliente ficava com ~50px. */
+.ordens-tabela__linha {
+  display: grid;
+  grid-template-columns: 84px minmax(140px, 1.4fr) 100px minmax(110px, 1fr) 156px 90px 78px;
+  gap: 0 10px;
+  align-items: center;
+}
+.ordens-tabela__placa-sub { display: none; }
+
+@media (max-width: 1279px) {
+  /* Sem a coluna Placa: a placa vai pra baixo do nome do cliente. */
+  .ordens-tabela__linha { grid-template-columns: 76px minmax(120px, 1.3fr) minmax(100px, 1fr) 156px 80px 78px; }
+  .ordens-tabela__col-placa { display: none; }
+  .ordens-tabela__placa-sub { display: block; }
+}
+
+/* Voltar (chevron) do cabeçalho das telas no celular: era um ícone de 24px.
+ * 44px de alvo, com margem negativa pra não empurrar o título. */
+.dashboard-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  margin: -10px -6px -10px -12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dashboard-back-button:active { background: var(--color-surface-high); }
+
+/* ── Celular deitado (altura < 500px) ────────────────────────────────────────
+ * Topbar + barra inferior ocupavam 146 de 390px (37% da tela). A barra fica
+ * mais baixa (ícone ao lado do rótulo) e a topbar rola junto com a página —
+ * o menu continua a um gesto, e a navegação principal fica sempre embaixo. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --mobile-bottom-nav-h: calc(56px + env(safe-area-inset-bottom)); }
+  .dashboard-mobile-topbar { position: static; }
+  .dashboard-mobile-bottom-nav {
+    padding-top: 4px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+  .dashboard-mobile-bottom-nav__item {
+    flex-direction: row;
+    gap: 8px;
+    min-height: var(--tap-min);
+    padding: 4px 14px;
+  }
+  .dashboard-mobile-bottom-nav__fab {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 0;
+  }
 }

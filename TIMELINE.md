@@ -424,3 +424,34 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - O host precisa devolver o `index.html` para `/f/*`, como já precisa para `/o/*` (ver Fase 6A). O `vite preview` já faz isso.
 - **`main` com conflitos de merge commitados** (commit `96dfcf2`): `frontend/index.html` (linhas 17–21) e `frontend/src/components/Topbar.tsx` (linhas 199–234) têm `<<<<<<<`/`>>>>>>>`, então `npm run build` falha na `main` hoje. Não mexido nesta entrega (é escolher entre os dois lados); precisa resolver antes do próximo deploy.
 - Falha pré-existente na `main`: `tests/test_estoque_sql.py::test_item_que_esta_numa_receita_nao_pode_ser_apagado`. Não mexido.
+
+## Auditoria UX/UI e responsividade do painel (2026-10-30, branch `feat/ux-responsivo`)
+**Auditoria:** 11 telas medidas por script e por print no build de produção ligado ao backend do Render, em 390×844, 768×1024, 844×390 (celular deitado), 1024×768 e 1366/1440. O pior caso era o notebook (980–1279 px): larguras fixas pensadas para 1440 px.
+
+**Corrigido**
+- **Visão Geral:** as grades `1fr 420px` e `320px 1fr 310px` viraram classes com `minmax` (`.visao-geral__*` em `dashboard.css`). Abaixo de 1280 px o gráfico ocupa a linha toda, Resumo e Alertas dividem uma linha e Ordens Recentes ocupa a largura inteira. Antes, em 1024 px, o card de Ordens ficava com cerca de 20 px e o seletor de período era cortado. No tablet (≥ 720 px) os KPIs saem do carrossel e ficam em grade de 3, e os cards vão em pares. O mini-gráfico dos KPIs desceu para o lado do valor (passava por cima do título).
+- **Tabela de OS:** as colunas fixas somavam cerca de 780 px, então as ações saíam do card em 1024 px. Agora as colunas são flexíveis, e abaixo de 1280 px a coluna Placa some e a placa aparece sob o cliente. O nº da OS virou `<button>` e as ações têm 34 px com rótulo.
+- **Veículos e Clientes:** os cards usam `auto-fill, minmax(250px)` pelo espaço real (antes eram 4 colunas fixas a partir de 980 px, mesmo com a sidebar). Os rótulos dos indicadores quebram linha em vez de cortar.
+- **Sidebar:** fica parada de verdade. Um `position: relative` inline anulava o `sticky`, e a altura era `auto`. Agora tem `100dvh` com rolagem própria, e o botão "Criar Nova Solicitação" ficou compacto (tinha 56 px de padding vertical). Os ícones do dock ganharam `aria-label`.
+- **Toque (layout compacto ou `pointer: coarse`):** regra única em `index.css` deixa todo botão e `role=button/tab/radio` com no mínimo 44×44 px. Os ícones quadrados que não podem crescer usam `.tap-area` (área estendida pelo `::after`). Campos com 44 px também no tablet. O voltar das telas virou `.dashboard-back-button` (era 24 px). Os links "Ver todas" e "Editar" ganharam alvo de 44 px sem mudar o desenho.
+- **Teclado:** a linha de OS e os itens de alerta da Visão Geral recebem foco e abrem com Enter/Espaço.
+- **Celular deitado (altura < 500 px):** a barra inferior caiu de 93 para 56 px (ícone ao lado do rótulo), e a topbar rola junto com a página. Antes as duas ocupavam 37 % da tela.
+- **Linha de OS no celular:** a margem negativa fixa de −20 px gerava 6 px de rolagem horizontal na tela de Ordens.
+- **Troca de tela:** volta ao topo (a rolagem é da página e a tela nova abria no meio).
+
+**Validado:**
+- `tsc` e `vite build` limpos;
+- no navegador, nas 11 telas em 390, 768 e 1024 px: zero rolagem horizontal e nenhum alvo de toque menor que 44 px (em 390 e 768);
+- prints em 844×390 e 1440 px.
+
+**NÃO validado:**
+- iPhone e Android reais (só emulação de viewport);
+- modais e formulários abertos um a um;
+- leitor de tela.
+
+**Não mexido (pendências):**
+- A casca (Sidebar, MobileTopbar, MobileNav) continua copiada em 12 telas. Vale um `AppShell` único depois do PR #38, que mexe em `Dashboard.tsx`.
+- A cor da marca no código é `#CC1400` (59 valores fixos), e o briefing fala em Coral Red `#FF3231`. Decisão da equipe.
+- Sobraram variáveis de tema escuro sem uso.
+- Configurações e Financeiro não têm o botão "voltar" no celular.
+- Esta branch evita as linhas que o PR #38 altera (imports e topo do `Dashboard.tsx`, `App.tsx`, `main.tsx`, `vite.config.ts`).

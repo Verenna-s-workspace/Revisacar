@@ -22,19 +22,17 @@ function formatDate(isoStr: string) {
 // ── OSRow ─────────────────────────────────────────────────────────────────────
 
 export function OSRow({ ordem, onClick }: { ordem: OrdemRow; onClick: () => void }) {
-  const [hov, setHov] = useState(false);
+  // A margem negativa (pro fundo do hover encostar na borda do card) vem do
+  // CSS: era -20px fixo e, na tela de Ordens (padding 14px), gerava rolagem
+  // horizontal no celular. role/tabIndex: a linha abre a OS também pelo teclado.
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir OS ${ordem.os_num} de ${ordem.cliente}`}
       onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       className="dashboard-order-row"
-      style={{
-        background: hov ? tokens.color.bg : 'transparent',
-        margin: '0 -20px',
-        paddingLeft: 20,
-        paddingRight: 20,
-      }}
     >
       <div style={{ width: 52, height: 40, borderRadius: 8, background: tokens.color.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted, flexShrink: 0 }}>
         {Icons.car}
@@ -73,12 +71,10 @@ function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowP
   const d = new Date(o.created_at);
   return (
     <div
+      className="ordens-tabela__linha"
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        display: 'grid',
-        gridTemplateColumns: '90px 1fr 110px 140px 150px 120px 80px',
-        gap: '0 10px',
         padding: '13px 16px',
         background: hov ? tokens.color.bg : 'white',
         border: `1px solid ${tokens.color.border}`,
@@ -88,18 +84,21 @@ function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowP
         transition: 'background 0.1s',
       }}
     >
-      <span
-        style={{ fontWeight: 700, fontSize: '0.875rem', color: '#CC1400', cursor: 'pointer' }}
+      <button
+        type="button"
         onClick={onSelect}
+        aria-label={`Abrir OS ${o.os_num}`}
+        style={{ fontWeight: 700, fontSize: '0.875rem', color: '#CC1400', cursor: 'pointer', border: 'none', background: 'transparent', padding: 0, textAlign: 'left', fontFamily: 'inherit' }}
       >
         #{o.os_num}
-      </span>
-      <div onClick={onSelect} style={{ cursor: 'pointer' }}>
-        <div style={{ fontWeight: 600, fontSize: '0.84rem', color: tokens.color.text }}>{o.cliente}</div>
-        <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{o.placa}</div>
+      </button>
+      {/* A placa embaixo do cliente só aparece quando a coluna Placa some (< 1280px) */}
+      <div onClick={onSelect} style={{ cursor: 'pointer', minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: '0.84rem', color: tokens.color.text, overflowWrap: 'anywhere' }}>{o.cliente}</div>
+        <div className="ordens-tabela__placa-sub" style={{ fontSize: '0.75rem', color: tokens.color.muted, fontFamily: "'DM Mono',monospace" }}>{o.placa}</div>
       </div>
-      <span style={{ fontSize: '0.82rem', color: tokens.color.muted, fontFamily: "'DM Mono',monospace" }}>{o.placa}</span>
-      <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond }}>{o.modelo || '—'}</span>
+      <span className="ordens-tabela__col-placa" style={{ fontSize: '0.82rem', color: tokens.color.muted, fontFamily: "'DM Mono',monospace" }}>{o.placa}</span>
+      <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond, minWidth: 0, overflowWrap: 'anywhere' }}>{o.modelo || '—'}</span>
       <StatusBadge status={o.status} />
       <div>
         <div style={{ fontSize: '0.8rem', color: tokens.color.text }}>
@@ -110,15 +109,15 @@ function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowP
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button
-          onClick={onEdit} title="Editar"
-          style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
+        <button className="tap-area"
+          onClick={onEdit} title="Editar" aria-label={`Editar OS ${o.os_num}`}
+          style={{ width: 34, height: 34, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
         >
           {Icons.edit}
         </button>
-        <button
-          onClick={onDelete} disabled={deleting} title="Excluir"
-          style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(204,20,0,0.2)', background: 'rgba(204,20,0,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CC1400', opacity: deleting ? 0.5 : 1 }}
+        <button className="tap-area"
+          onClick={onDelete} disabled={deleting} title="Excluir" aria-label={`Excluir OS ${o.os_num}`}
+          style={{ width: 34, height: 34, borderRadius: 7, border: '1px solid rgba(204,20,0,0.2)', background: 'rgba(204,20,0,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CC1400', opacity: deleting ? 0.5 : 1 }}
         >
           {Icons.trash}
         </button>
@@ -292,7 +291,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '14px 16px' : '18px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {isMobile && (
-            <button onClick={() => onNav('dashboard')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}>
+            <button onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button">
               {Icons.chevL}
             </button>
           )}
@@ -303,9 +302,9 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
         </div>
         <button
           onClick={onNewOS}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', minHeight: isMobile ? 44 : undefined, background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}
         >
-          <span style={{ display: 'flex' }}></span>Nova OS
+          Nova OS
         </button>
       </div>
 
@@ -316,7 +315,8 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
             <button
               key={f}
               onClick={() => setFilter(f)}
-              style={{ padding: '6px 13px', borderRadius: 8, border: `1.5px solid ${filter === f ? '#CC1400' : tokens.color.border}`, background: filter === f ? 'rgba(204,20,0,0.06)' : 'transparent', color: filter === f ? '#CC1400' : tokens.color.muted, fontSize: '0.8rem', fontWeight: filter === f ? 600 : 400, cursor: 'pointer' }}
+              aria-pressed={filter === f}
+              style={{ padding: '6px 13px', minHeight: isMobile ? 44 : undefined, borderRadius: 8, border: `1.5px solid ${filter === f ? '#CC1400' : tokens.color.border}`, background: filter === f ? 'rgba(204,20,0,0.06)' : 'transparent', color: filter === f ? '#CC1400' : tokens.color.muted, fontSize: '0.8rem', fontWeight: filter === f ? 600 : 400, cursor: 'pointer' }}
             >
               {FILTER_LABELS[f]} <span style={{ opacity: 0.55, fontSize: '0.75rem' }}>({counts[f]})</span>
             </button>
@@ -349,9 +349,9 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
           <div>{filtered.map(o => <OSRow key={o.id} ordem={o} onClick={() => setSel(o)} />)}</div>
         ) : (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 140px 150px 120px 80px', gap: '0 10px', padding: '9px 16px', background: tokens.color.surfaceHigh, borderRadius: '10px 10px 0 0', border: `1px solid ${tokens.color.border}`, borderBottom: 'none' }}>
+            <div className="ordens-tabela__linha" style={{ padding: '9px 16px', background: tokens.color.surfaceHigh, borderRadius: '10px 10px 0 0', border: `1px solid ${tokens.color.border}`, borderBottom: 'none' }}>
               {['Nº OS', 'Cliente', 'Placa', 'Modelo', 'Status', 'Data', ''].map(h => (
-                <span key={h} style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+                <span key={h} className={h === 'Placa' ? 'ordens-tabela__col-placa' : undefined} style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
               ))}
             </div>
             {filtered.map((o, i) => (

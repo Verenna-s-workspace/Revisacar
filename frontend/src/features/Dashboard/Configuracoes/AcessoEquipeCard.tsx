@@ -170,6 +170,7 @@ export function AcessoEquipeCard({ isMobile, nomeOficina }: { isMobile: boolean;
                   {copiado === 'link' ? <>{Icons.check} Copiado</> : 'Copiar link'}
                 </button>
                 <a
+                  className="tap-min"
                   style={botaoSecundario}
                   href={linkDoWhatsApp(mensagemDoWhatsApp({ url, oficina: nomeOficina }))}
                   target="_blank"

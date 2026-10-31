@@ -339,20 +339,37 @@ input[type="time"]::-webkit-date-and-time-value {
   min-height: 1.2em;
 }
 
-/* Campos confortáveis ao toque */
-@media (pointer: coarse) {
+/* Campos confortáveis ao toque (e em todo o layout compacto: tablet pode ter
+ * mouse emulado e ainda assim ser usado com o dedo) */
+@media (max-width: 979px), (pointer: coarse) {
   select,
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) {
     min-height: var(--tap-min);
   }
 }
 
-/* Área de toque ampliada sem mudar o visual: o ::after estende o alvo. */
+/* Área de toque ampliada sem mudar o visual: o ::after estende o alvo.
+ * Usada nos botões de ícone quadrados (24–34px) que não podem crescer. */
 .tap-area { position: relative; }
 .tap-area::after {
   content: "";
   position: absolute;
   inset: -10px;
+}
+
+/* Celular, tablet e qualquer tela de toque: todo botão com pelo menos 44px
+ * de altura (WCAG 2.5.5 / Apple HIG). Antes cada tela tinha os seus — filtros
+ * de 29px, chips de 36px, botões de Configurações de 28–35px. Os ícones
+ * quadrados (.tap-area) ficam de fora: crescem pelo ::after acima. */
+@media (max-width: 979px), (pointer: coarse) {
+  button:not(.tap-area),
+  [role="button"]:not(.tap-area),
+  [role="tab"],
+  [role="radio"],
+  .tap-min {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+  }
 }
 
 /* Quem pede menos movimento não recebe animações de entrada, molas nem

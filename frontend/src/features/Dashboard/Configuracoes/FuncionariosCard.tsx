@@ -228,6 +228,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
                 <button
                   onClick={() => handleToggleAtivo(f)}
                   title={f.ativo ? 'Clique para desativar o acesso' : 'Clique para reativar o acesso'}
+                  aria-pressed={f.ativo}
                   style={{
                     padding: '6px 10px',
                     borderRadius: 8,
@@ -244,6 +245,8 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
                 <button
                   onClick={() => handleRemover(f.id)}
                   title="Remover funcionário"
+                  aria-label={`Remover ${f.nome}`}
+                  className="tap-area"
                   style={{
                     padding: 7,
                     borderRadius: 8,

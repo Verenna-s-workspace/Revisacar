@@ -113,8 +113,7 @@ export function VeiculosPage({ onNav, isMobile, onNewOS }: VeiculosPageProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {isMobile && (
             <button
-              onClick={() => onNav('dashboard')}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}
+              onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
             >
               {Icons.chevL}
             </button>

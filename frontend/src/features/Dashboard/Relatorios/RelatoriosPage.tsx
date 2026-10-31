@@ -82,8 +82,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {mobile && (
             <button
-              onClick={() => onNav('dashboard')}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}
+              onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
             >
               {Icons.chevL}
             </button>

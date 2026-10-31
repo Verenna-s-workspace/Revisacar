@@ -168,8 +168,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
         background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0,
       }}>
         {isMobile && (
-          <button onClick={() => onNav('dashboard')} aria-label="Voltar"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}>
+          <button onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button">
             {Icons.chevL}
           </button>
         )}
