@@ -455,3 +455,19 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - Sobraram variáveis de tema escuro sem uso.
 - Configurações e Financeiro não têm o botão "voltar" no celular.
 - Esta branch evita as linhas que o PR #38 altera (imports e topo do `Dashboard.tsx`, `App.tsx`, `main.tsx`, `vite.config.ts`).
+
+**2ª rodada — celular (2026-10-30, mesma branch).** O usuário achou o celular ainda ruim. Revi tela por tela em 360 px (Android pequeno) olhando os prints, não só as medições.
+- **Causa grande:** `styles/ui.css` nunca era importado. O `PanelFooter` das etapas da OS dependia de `.panel-footer` (fixo embaixo, safe-area, "Salvar rascunho" + "Próximo" ocupando a largura), e o rodapé ficava solto no fim da página, com botões pequenos. Agora `components/ui.tsx` importa o arquivo. Ele também vale no desktop, como o código já previa.
+- **Densidade:**
+  - Os indicadores de Clientes, Veículos, Estoque e Agenda viram uma faixa de uma linha que desliza (`.stats-faixa`). Antes eram 2–3 linhas de cartões (cerca de 250 px) antes do primeiro item.
+  - Os filtros da tela de Ordens ficam numa linha deslizante (antes eram 3 linhas).
+  - A linha de OS perdeu o ícone genérico de carro abaixo de 640 px, e o cliente e o veículo não quebram mais em 3 linhas.
+  - Veículo sem foto mostra uma faixa decorativa baixa (16:5) em vez de cerca de 185 px vazios.
+- **Texto:**
+  - O valor dos KPIs não quebra mais "R$" numa linha e o número na outra (fonte com `clamp` e o mini-gráfico encolhe primeiro).
+  - "BLOQUEADOS" não passa mais da coluna no Atendimento.
+  - O cabeçalho dos modais não espreme mais o título: as ações descem de linha.
+  - O carrossel da Visão Geral ficou sem barra de rolagem visível.
+- **Financeiro:** o seletor de período ocupa o espaço que sobra ao lado de "Novo Lançamento".
+- **Erro evitado:** a faixa de filtros, sem `minWidth: 0` dentro de uma coluna com `flex-wrap`, alargava a página inteira para 604 px (o celular daria "zoom out"). Foi corrigido e a varredura agora mede `innerWidth`.
+- **Não mexido:** a Agenda mobile (feita por outro integrante) tem dois botões "+" na tela ("Novo Agendamento" e a nova OS da barra). Vale a equipe decidir.

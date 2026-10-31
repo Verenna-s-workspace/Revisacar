@@ -32,7 +32,9 @@ export function ClientStats({ stats, loading }: ClientStatsProps) {
   const columns = isMobile ? 2 : isTablet ? 3 : 5;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: isMobile ? 10 : 14 }}>
+    // Celular: vira uma faixa de uma linha que desliza (.stats-faixa) em vez de
+    // 2–3 linhas de cartões empurrando a lista pra fora da primeira tela.
+    <div className="stats-faixa" style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: isMobile ? 10 : 14 }}>
       {STAT_DEFS.map(d => (
         <Card key={d.key} style={{ padding: isMobile ? '12px 12px' : '14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

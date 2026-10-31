@@ -15,7 +15,7 @@ export function ResumoOperacional({ resumo, loading }: ResumoOperacionalProps) {
   ];
 
   return (
-    <Card style={{ padding: '16px 20px' }}>
+    <Card style={{ padding: 'clamp(14px, 4vw, 20px)' }}>
       <div style={{ display: 'flex' }}>
         {itens.map((item, i) => (
           <div
@@ -23,7 +23,7 @@ export function ResumoOperacional({ resumo, loading }: ResumoOperacionalProps) {
             style={{
               flex: 1,
               minWidth: 0,
-              paddingLeft: i > 0 ? 20 : 0,
+              paddingLeft: i > 0 ? 'clamp(10px, 3vw, 20px)' : 0,
               borderLeft: i > 0 ? `1px solid ${tokens.color.border}` : 'none',
             }}
           >
@@ -36,7 +36,7 @@ export function ResumoOperacional({ resumo, loading }: ResumoOperacionalProps) {
               </>
             ) : (
               <>
-                <div style={{ fontSize: '1.9rem', fontWeight: 800, color: item.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: 'clamp(1.5rem, 7vw, 1.9rem)', fontWeight: 800, color: item.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
                   {item.value}
                 </div>
                 <div
@@ -44,9 +44,12 @@ export function ResumoOperacional({ resumo, loading }: ResumoOperacionalProps) {
                     fontSize: '0.75rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
+                    // Num celular de 360px "BLOQUEADOS" passava da coluna
+                    letterSpacing: '0.02em',
                     color: tokens.color.muted,
                     marginTop: 6,
+                    lineHeight: 1.25,
+                    overflowWrap: 'anywhere',
                   }}
                 >
                   {item.label}

@@ -34,7 +34,7 @@ export function OSRow({ ordem, onClick }: { ordem: OrdemRow; onClick: () => void
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       className="dashboard-order-row"
     >
-      <div style={{ width: 52, height: 40, borderRadius: 8, background: tokens.color.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted, flexShrink: 0 }}>
+      <div className="dashboard-order-row__icon" style={{ width: 52, height: 40, borderRadius: 8, background: tokens.color.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted, flexShrink: 0 }}>
         {Icons.car}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -182,7 +182,8 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
             </button>
             <button
               onClick={onClose}
-              className="dashboard-button--close"
+              aria-label="Fechar"
+              className="dashboard-button--close tap-area"
               style={{ width: 32, height: 32, border: `1px solid ${tokens.color.border}`, borderRadius: 8, background: 'transparent', cursor: 'pointer', color: tokens.color.muted, fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               ×
@@ -309,14 +310,17 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: 10, padding: isMobile ? '12px 14px' : '14px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: 10, padding: isMobile ? '12px 14px' : '14px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexDirection: isMobile ? 'column' : 'row', flexWrap: isMobile ? 'nowrap' : 'wrap' }}>
+        {/* Celular: uma linha que desliza (antes quebrava em 3 linhas, ~150px).
+            minWidth 0 + coluna sem wrap: senão a faixa assume a largura de todos
+            os filtros e a página inteira fica mais larga que a tela. */}
+        <div className={isMobile ? 'faixa-rolavel' : undefined} style={{ display: 'flex', gap: 6, flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: 0 }}>
           {FILTROS.map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               aria-pressed={filter === f}
-              style={{ padding: '6px 13px', minHeight: isMobile ? 44 : undefined, borderRadius: 8, border: `1.5px solid ${filter === f ? '#CC1400' : tokens.color.border}`, background: filter === f ? 'rgba(204,20,0,0.06)' : 'transparent', color: filter === f ? '#CC1400' : tokens.color.muted, fontSize: '0.8rem', fontWeight: filter === f ? 600 : 400, cursor: 'pointer' }}
+              style={{ padding: '6px 13px', minHeight: isMobile ? 44 : undefined, flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 8, border: `1.5px solid ${filter === f ? '#CC1400' : tokens.color.border}`, background: filter === f ? 'rgba(204,20,0,0.06)' : 'transparent', color: filter === f ? '#CC1400' : tokens.color.muted, fontSize: '0.8rem', fontWeight: filter === f ? 600 : 400, cursor: 'pointer' }}
             >
               {FILTER_LABELS[f]} <span style={{ opacity: 0.55, fontSize: '0.75rem' }}>({counts[f]})</span>
             </button>

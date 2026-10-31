@@ -1440,3 +1440,52 @@ body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: 
     margin-bottom: 0;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Celular — densidade (2ª rodada)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Linha horizontal que desliza (filtros, indicadores) sem barra de rolagem
+ * visível: o item cortado na borda já mostra que dá pra arrastar. */
+.faixa-rolavel {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.faixa-rolavel,
+.visao-geral__kpis { scrollbar-width: none; }
+.faixa-rolavel::-webkit-scrollbar,
+.visao-geral__kpis::-webkit-scrollbar { display: none; }
+
+@media (max-width: 639px) {
+  /* Indicadores de Clientes/Veículos/Estoque: 1 linha deslizante em vez de
+   * 2–3 linhas de cartões (~250px) antes do primeiro item da lista. */
+  .stats-faixa {
+    display: flex !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+  }
+  .stats-faixa::-webkit-scrollbar { display: none; }
+  .stats-faixa > * { flex: 0 0 auto; min-width: 148px; max-width: 190px; scroll-snap-align: start; }
+
+  /* Linha de OS: sem o ícone de carro (genérico, igual em todas) sobra
+   * largura pro cliente e o veículo não quebra em 3 linhas. */
+  .dashboard-order-row__icon { display: none !important; }
+
+  /* Cabeçalho de modal: título numa linha; ações descem se não couberem
+   * (antes "OS #252128" quebrava em 2 linhas e a data em 3). */
+  .dashboard-modal__header { flex-wrap: wrap; gap: 10px 12px; }
+  .dashboard-modal__header > :first-child { flex: 1 1 190px; min-width: 0; }
+  .dashboard-modal__actions { flex-wrap: wrap; }
+}
+
+/* Foto do veículo: 16:9 com foto; sem foto, no celular a arte decorativa vira
+ * uma faixa baixa (antes ~185px de nada em cada cartão). */
+.vehicle-card__foto { aspect-ratio: 16 / 9; }
+@media (max-width: 639px) {
+  .vehicle-card__foto--vazia { aspect-ratio: 16 / 5; }
+}

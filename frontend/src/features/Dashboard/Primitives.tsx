@@ -93,7 +93,8 @@ function Sparkline({ data }: { data: number[] }) {
   const maxValue = Math.max(...data, 1);
 
   return (
-    <div style={{ width: 96, height: 40, minWidth: 96 }}>
+    // Encolhe antes do valor: num cartão estreito o "R$" quebrava de linha.
+    <div style={{ flex: '0 1 96px', height: 40, minWidth: 56 }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
           <XAxis dataKey="index" hide />
@@ -171,7 +172,7 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
             </>
           ) : (
             <>
-              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: tokens.color.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <div style={{ fontSize: 'clamp(1.35rem, 6.2vw, 1.65rem)', fontWeight: 800, color: tokens.color.text, letterSpacing: '-0.02em', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 {value}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, minHeight: 17 }}>
