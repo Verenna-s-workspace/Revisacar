@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/dashboard.css';
 import { tokens } from '../constants';
 import { useResponsive } from '../components/ui';
@@ -14,6 +14,7 @@ import {
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/oficina_config';
+import { preCarregarQuandoOcioso, telaSobDemanda } from '../utils/telaSobDemanda';
 
 // Components
 import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../features/Dashboard/Navigation';
@@ -23,17 +24,20 @@ import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
 import { Select } from '../components/inputs/select';
 import { OSRow, OSModal, OrdensPage } from '../features/Dashboard/OrdensPage';
 
-// High-fidelity Sub-pages
-import { ClientesPage } from '../features/Dashboard/Clientes/ClientesPage';
-import { VeiculosPage } from '../features/Dashboard/Veiculos/VeiculosPage';
-import { EstoquePage } from '../features/Dashboard/EstoquePage';
-import { FinanceiroPage } from '../features/Dashboard/FinanceiroPage';
-import { ConfiguracoesPage } from '../features/Dashboard/ConfiguracoesPage';
-import { AgendamentosPage } from '../features/Dashboard/Agendamentos/AgendamentosPage';
-import { ServicosPage } from '../features/Dashboard/ServicosPage';
-import { RelatoriosPage } from '../features/Dashboard/Relatorios/RelatoriosPage';
-import { AtendimentoPage } from '../features/Dashboard/Atendimento/AtendimentoPage';
-import { AlertasPage } from '../features/Dashboard/Alertas/AlertasPage';
+// High-fidelity Sub-pages — cada uma num arquivo à parte, baixado quando abre ou em segundo plano
+// depois que a Visão Geral aparece (ver utils/telaSobDemanda.ts).
+const ClientesPage = telaSobDemanda(() => import('../features/Dashboard/Clientes/ClientesPage').then((m) => m.ClientesPage));
+const VeiculosPage = telaSobDemanda(() => import('../features/Dashboard/Veiculos/VeiculosPage').then((m) => m.VeiculosPage));
+const EstoquePage = telaSobDemanda(() => import('../features/Dashboard/EstoquePage').then((m) => m.EstoquePage));
+const FinanceiroPage = telaSobDemanda(() => import('../features/Dashboard/FinanceiroPage').then((m) => m.FinanceiroPage));
+const ConfiguracoesPage = telaSobDemanda(() => import('../features/Dashboard/ConfiguracoesPage').then((m) => m.ConfiguracoesPage));
+const AgendamentosPage = telaSobDemanda(() => import('../features/Dashboard/Agendamentos/AgendamentosPage').then((m) => m.AgendamentosPage));
+const ServicosPage = telaSobDemanda(() => import('../features/Dashboard/ServicosPage').then((m) => m.ServicosPage));
+const RelatoriosPage = telaSobDemanda(() => import('../features/Dashboard/Relatorios/RelatoriosPage').then((m) => m.RelatoriosPage));
+const AtendimentoPage = telaSobDemanda(() => import('../features/Dashboard/Atendimento/AtendimentoPage').then((m) => m.AtendimentoPage));
+const AlertasPage = telaSobDemanda(() => import('../features/Dashboard/Alertas/AlertasPage').then((m) => m.AlertasPage));
+const SUBPAGINAS = [AtendimentoPage, AgendamentosPage, AlertasPage, ClientesPage, VeiculosPage, EstoquePage,
+  ServicosPage, FinanceiroPage, RelatoriosPage, ConfiguracoesPage];
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
@@ -100,7 +104,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   const { ordens, loading: ordensLoading, erro: ordensErro } = useOrdens();
   const { dados: vg, loading, erro: vgErro, recarregar: recarregarVg, salvarMeta } = useVisaoGeral();
   const alertasResumo = useAlertas();
-  const [page, setPage] = useState<NavPage>('dashboard');
+  const [page, setPagina] = useState<NavPage>('dashboard');
+  // Em transição: se o arquivo da próxima tela ainda não chegou, a tela atual continua à mostra
+  // (em vez de piscar "Carregando...") até ele chegar.
+  const setPage = (p: NavPage) => startTransition(() => setPagina(p));
   // Esta tela fica montada enquanto se navega pelas outras páginas: sem isto,
   // lançamentos feitos no Financeiro (ou OS criadas) não apareciam aqui até
   // recarregar o navegador. Ao VOLTAR pra Visão Geral, busca de novo.
@@ -114,6 +121,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // abertura, pra outro aparelho ver o que foi salvo em Configurações.
   useEffect(() => {
     void sincronizarOficinaConfig(podeEditarConfiguracoes(user));
+    preCarregarQuandoOcioso(SUBPAGINAS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [sel, setSel] = useState<OrdemRow | null>(null);
