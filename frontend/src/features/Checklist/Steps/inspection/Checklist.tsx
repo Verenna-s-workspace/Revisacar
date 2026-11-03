@@ -3,6 +3,7 @@ import { STATUS_CONFIG, tokens } from '../../../../constants';
 import type { StatusConfig } from '../../../../types';
 import { SectionIcon, useResponsive } from '../../../../components/ui';
 import { Textarea } from '../../../../components/inputs/textarea';
+import { LIM, sanitizarItemAdicional } from '../../../../utils/campos_checklist';
 
 // ── ChecklistItem ─────────────────────────────────────────────────────────────
 
@@ -218,6 +219,7 @@ export function ChecklistItem({
             value={data?.obs || ''}
             onChangeValue={(v) => onSetObs(key, v)}
             rows={2}
+            maxLength={LIM.obsItem}
             placeholder="Observação técnica..."
             autoFocus={obsOpen && !data?.obs}
           />
@@ -291,7 +293,8 @@ function AddItemRow({ onAdd }: AddItemRowProps) {
       
         ref={inputRef}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => setValue(sanitizarItemAdicional(e.target.value))}
+        maxLength={LIM.itemAdicional}
         onKeyDown={handleKeyDown}
         enterKeyHint="done"
         aria-label="Nome da peça"

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
@@ -9,6 +9,7 @@ import { tokens } from '../constants';
 import { api } from '../utils/api';
 import { salvarOverlay } from '../utils/atendimento_utils';
 import type { OSPrefillInput } from '../types/atendimento';
+import { sanitizarPrefill } from '../utils/campos_checklist';
 
 interface CheckProps {
   /** Estado da OS — vive no App e é compartilhado entre as etapas (entrada, diagnóstico, orçamento). */
@@ -43,6 +44,8 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
   //     (cria a OS de verdade — mesmo caminho de sempre, só chamado programaticamente);
   //  3) assim que a OS ganhar um id real, registra iniciadoEm no overlay local e
   //     tenta vincular o agendamento de origem (melhor esforço, sem travar o fluxo).
+  // Dados de fora passam pelas mesmas regras dos campos (telefone só dígitos, ano com 4 dígitos...).
+  const limpo = useMemo(() => (prefill ? sanitizarPrefill(prefill) : null), [prefill]);
   const prefillAplicado = useRef(false);
   const prefillSalvo = useRef(false);
   const prefillVinculado = useRef(false);
@@ -51,34 +54,34 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
   // o mecânico revisar; a OS é criada quando ele salvar. Com cliente vinculado vêm os dados dos dois;
   // sem cliente, só os do veículo (`clienteNome` vazio não toca no bloco do cliente).
   useEffect(() => {
-    if (!prefill || prefillAplicado.current) return;
+    if (!prefill || !limpo || prefillAplicado.current) return;
     prefillAplicado.current = true;
-    if (prefill.clienteNome) {
+    if (limpo.clienteNome) {
       os.setCliente(prev => ({
         ...prev,
-        nome: prefill.clienteNome,
-        ...(prefill.clienteDoc ? { doc: prefill.clienteDoc } : {}),
-        ...(prefill.clienteTel ? { tel: prefill.clienteTel } : {}),
-        ...(prefill.clienteEmail ? { email: prefill.clienteEmail } : {}),
+        nome: limpo.clienteNome,
+        ...(limpo.clienteDoc ? { doc: limpo.clienteDoc } : {}),
+        ...(limpo.clienteTel ? { tel: limpo.clienteTel } : {}),
+        ...(limpo.clienteEmail ? { email: limpo.clienteEmail } : {}),
       }));
     }
     os.setVeiculo(prev => ({
       ...prev,
-      modelo: prefill.veiculoModelo,
-      placa: prefill.veiculoPlaca,
-      ...(prefill.veiculoAno ? { ano: prefill.veiculoAno } : {}),
-      ...(prefill.veiculoCor ? { cor: prefill.veiculoCor } : {}),
-      ...(prefill.veiculoCombustivel ? { combustivel: prefill.veiculoCombustivel } : {}),
-      ...(prefill.veiculoChassi ? { chassi: prefill.veiculoChassi } : {}),
+      modelo: limpo.veiculoModelo,
+      placa: limpo.veiculoPlaca,
+      ...(limpo.veiculoAno ? { ano: limpo.veiculoAno } : {}),
+      ...(limpo.veiculoCor ? { cor: limpo.veiculoCor } : {}),
+      ...(limpo.veiculoCombustivel ? { combustivel: limpo.veiculoCombustivel } : {}),
+      ...(limpo.veiculoChassi ? { chassi: limpo.veiculoChassi } : {}),
     }));
-  }, [prefill]);
+  }, [prefill, limpo]);
 
   useEffect(() => {
-    if (!prefill || prefill.apenasPreencher || !prefillAplicado.current || prefillSalvo.current) return;
-    if (os.cliente.nome !== prefill.clienteNome || os.veiculo.placa !== prefill.veiculoPlaca) return;
+    if (!prefill || !limpo || prefill.apenasPreencher || !prefillAplicado.current || prefillSalvo.current) return;
+    if (os.cliente.nome !== limpo.clienteNome || os.veiculo.placa !== limpo.veiculoPlaca) return;
     prefillSalvo.current = true;
     os.saveOrder();
-  }, [prefill, os.cliente, os.veiculo]);
+  }, [prefill, limpo, os.cliente, os.veiculo]);
 
   useEffect(() => {
     if (!prefill || prefill.apenasPreencher || !prefillSalvo.current || prefillVinculado.current || !os.orderId) return;

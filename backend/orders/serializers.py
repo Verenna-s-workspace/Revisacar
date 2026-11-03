@@ -5,6 +5,8 @@ from decimal import Decimal
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password, check_password
 
+from . import campos_os as campos
+
 # ── Sub-serializers ────────────────────────────────────────────────────────────
 
 
@@ -14,37 +16,37 @@ class OSHeaderSerializer(serializers.Serializer):
     os_time = serializers.CharField(default="", allow_blank=True)
     os_km = serializers.CharField(default="", allow_blank=True)
 
+    # Regras de formato dos campos da OS: orders/campos_os.py (espelho de utils/campos_checklist.ts).
     def validate_os_num(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("os_num não pode ser vazio")
-        return value.strip()
+        return campos.os_num(value)
 
     def validate_os_date(self, value):
-        if value and not re.match(r"^\d{4}-\d{2}-\d{2}$", value):
-            raise serializers.ValidationError("os_date inválido (esperado AAAA-MM-DD)")
-        return value
+        return campos.data_iso(value)
 
     def validate_os_time(self, value):
-        if value and not re.match(r"^\d{2}:\d{2}$", value):
-            raise serializers.ValidationError("os_time inválido (esperado HH:MM)")
-        return value
+        return campos.hora(value)
+
+    def validate_os_km(self, value):
+        return campos.km(value)
 
 
 class ClienteSerializer(serializers.Serializer):
     nome = serializers.CharField()
-    doc = serializers.CharField(default="")
+    doc = serializers.CharField(default="", allow_blank=True)
     tel = serializers.CharField()
-    email = serializers.CharField(default="")
+    email = serializers.CharField(default="", allow_blank=True)
 
     def validate_nome(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Campo obrigatório")
-        return value.strip()
+        return campos.nome(value, obrigatorio=True)
+
+    def validate_doc(self, value):
+        return campos.documento(value)
 
     def validate_tel(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Campo obrigatório")
-        return value.strip()
+        return campos.telefone(value)
+
+    def validate_email(self, value):
+        return campos.email(value)
 
 
 def normalize_doc(value: str) -> str:
@@ -173,6 +175,7 @@ class VeiculoSerializer(serializers.Serializer):
     nivel_combustivel = serializers.CharField(default="", allow_blank=True)
     chassi = serializers.CharField(default="", allow_blank=True)
     obs_entrada = serializers.CharField(default="", allow_blank=True)
+    obs_cliente = serializers.CharField(default="", allow_blank=True)
 
     def validate_placa(self, value):
         v = value.upper().strip()
@@ -181,14 +184,41 @@ class VeiculoSerializer(serializers.Serializer):
         return v
 
     def validate_modelo(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Campo obrigatório")
-        return value.strip()
+        return campos.modelo(value, obrigatorio=True)
+
+    def validate_ano(self, value):
+        return campos.ano(value)
+
+    def validate_cor(self, value):
+        return campos.cor(value)
+
+    def validate_combustivel(self, value):
+        return campos.opcao(value, campos.COMBUSTIVEIS)
+
+    def validate_nivel_combustivel(self, value):
+        return campos.opcao(value, campos.NIVEIS_COMBUSTIVEL)
+
+    def validate_chassi(self, value):
+        return campos.chassi(value)
+
+    def validate_obs_entrada(self, value):
+        return campos.texto_livre(value, campos.OBS_LONGA_MAX)
+
+    def validate_obs_cliente(self, value):
+        return campos.texto_livre(value, campos.OBS_LONGA_MAX)
 
 
 class ChecklistItemSerializer(serializers.Serializer):
     status = serializers.CharField(allow_null=True, required=False)
     obs = serializers.CharField(default="", allow_blank=True)
+
+    def validate_status(self, value):
+        if value is not None and value not in ("ok", "warn", "crit", "na"):
+            raise serializers.ValidationError("Status inválido")
+        return value
+
+    def validate_obs(self, value):
+        return campos.texto_livre(value, campos.OBS_ITEM_MAX)
 
 
 class TecnicoSerializer(serializers.Serializer):
@@ -199,6 +229,51 @@ class TecnicoSerializer(serializers.Serializer):
     km_saida = serializers.CharField(default="", allow_blank=True)
     parecer_geral = serializers.CharField(default="", allow_blank=True)
 
+    def validate_nome(self, value):
+        return campos.nome(value)
+
+    def validate_registro(self, value):
+        return campos.registro(value)
+
+    def validate_data_saida(self, value):
+        return campos.data_iso(value)
+
+    def validate_hora_saida(self, value):
+        return campos.hora(value)
+
+    def validate_km_saida(self, value):
+        return campos.km(value)
+
+    def validate_parecer_geral(self, value):
+        return campos.texto_livre(value, campos.PARECER_MAX)
+
+
+class TabelaPecaSerializer(serializers.Serializer):
+    """Linha da tabela de peças do diagnóstico (inspeção). Todo texto é opcional: a linha manual nasce vazia."""
+    id = serializers.CharField(max_length=64)
+    peca = serializers.CharField(default="", allow_blank=True)
+    modelo = serializers.CharField(default="", allow_blank=True)
+    marca = serializers.CharField(default="", allow_blank=True)
+    codigo = serializers.CharField(default="", allow_blank=True)
+    quantidade = serializers.CharField(default="", allow_blank=True)
+    isAuto = serializers.BooleanField(required=False, default=False)
+    sourceKey = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=200)
+
+    def validate_peca(self, value):
+        return campos.campo_peca("peca", value)
+
+    def validate_modelo(self, value):
+        return campos.campo_peca("modelo", value)
+
+    def validate_marca(self, value):
+        return campos.campo_peca("marca", value)
+
+    def validate_codigo(self, value):
+        return campos.campo_peca("codigo", value)
+
+    def validate_quantidade(self, value):
+        return campos.campo_peca("quantidade", value)
+
 
 # ── Ordem principal ────────────────────────────────────────────────────────────
 
@@ -207,11 +282,20 @@ class OrdemServicoSerializer(serializers.Serializer):
     cliente = ClienteSerializer()
     veiculo = VeiculoSerializer()
     servicos_selecionados = serializers.ListField(
-        child=serializers.CharField(), default=list
+        child=serializers.CharField(max_length=60), default=list, max_length=campos.MAX_SERVICOS
     )
     checklist = serializers.DictField(
         child=ChecklistItemSerializer(), default=dict
     )
+    # Estado do checklist de inspeção que a tela já carrega de volta (loadOrder) — antes eram descartados
+    # no salvamento. Itens livres, peças a trocar e a tabela de peças do diagnóstico.
+    itens_adicionais = serializers.ListField(
+        child=serializers.CharField(), default=list, max_length=campos.MAX_ITENS_ADICIONAIS
+    )
+    troca_set = serializers.ListField(
+        child=serializers.CharField(max_length=200), default=list, max_length=campos.MAX_TROCA
+    )
+    tabela_pecas = TabelaPecaSerializer(many=True, required=False, default=list, max_length=campos.MAX_PECAS)
     fotos_base64 = serializers.ListField(
         child=serializers.CharField(), default=list
     )
@@ -221,6 +305,14 @@ class OrdemServicoSerializer(serializers.Serializer):
     tecnico = TecnicoSerializer(required=False, allow_null=True)
     # Só uma sugestão (rascunho/em_orcamento): quem decide é ordem_status.status_no_salvamento.
     status = serializers.CharField(default="rascunho", required=False)
+
+    def validate_itens_adicionais(self, value):
+        return [campos.item_adicional(v) for v in value]
+
+    def validate_checklist(self, value):
+        if len(value) > 1000 or any(len(k) > 200 for k in value):
+            raise serializers.ValidationError("Checklist grande demais")
+        return value
 
     def validate(self, data):
         # Valida sub-serializers aninhados manualmente

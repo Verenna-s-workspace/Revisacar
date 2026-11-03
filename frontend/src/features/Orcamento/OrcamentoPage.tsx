@@ -7,6 +7,7 @@ import { btnAccent, btnGhost, btnSolid, btnDisabled, pfNote, useResponsive } fro
 import { formatBRL } from '../../utils/dashboard';
 import { api } from '../../utils/api';
 import { mensagemDoErro } from '../../utils/api_erro';
+import { onlyDigits } from '../../components/inputs/masks';
 import { ROTULO_STATUS } from '../../utils/ordem_status';
 import {
   apontamentosDoDiagnostico, custoDosItens, dadosDoPayload, dataBR, itensSemPreco, LIMITES,
@@ -472,7 +473,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
           <>
             <div>
               <label htmlFor="orc-validade" style={{ ...tituloBloco, display: 'block', marginBottom: 4 }}>Validade (dias)</label>
-              <input id="orc-validade" value={orc.validadeDias} inputMode="numeric" onChange={e => orc.setValidadeDias(e.target.value)}
+              <input id="orc-validade" value={orc.validadeDias} inputMode="numeric" onChange={e => orc.setValidadeDias(onlyDigits(e.target.value).slice(0, 2))} maxLength={2}
                 style={{ ...campo, borderColor: orc.mostrarErros && orc.diasValidos == null ? tokens.color.crit : tokens.color.border }} />
               <div style={{ ...pfNote, marginTop: 4 }}>
                 {orc.diasValidos == null && orc.mostrarErros ? 'Use de 1 a 90 dias.' : 'Conta a partir do envio ao cliente.'}
@@ -480,7 +481,7 @@ export default function OrcamentoPage({ os, onBackToStart, onGoEntrada, onGoDiag
             </div>
             <div>
               <label htmlFor="orc-obs" style={{ ...tituloBloco, display: 'block', marginBottom: 4 }}>Observações</label>
-              <textarea id="orc-obs" value={orc.observacoes} rows={3} onChange={e => orc.setObservacoes(e.target.value)}
+              <textarea id="orc-obs" value={orc.observacoes} rows={3} maxLength={LIMITES.observacoes} onChange={e => orc.setObservacoes(e.target.value)}
                 placeholder="Condições, prazo estimado, garantia…" style={{ ...campo, resize: 'vertical' }} />
               {orc.observacoesLongas && <div style={{ fontSize: '0.75rem', color: tokens.color.crit }}>Máximo de {LIMITES.observacoes} caracteres.</div>}
             </div>

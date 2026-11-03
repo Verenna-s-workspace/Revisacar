@@ -1,5 +1,6 @@
 
 import { nowDate, escapeHtml } from "./index";
+import { formatCpfCnpj, formatPhoneBR, formatKm } from "../components/inputs/masks";
 import type {
   OSHeader,
   Cliente,
@@ -103,7 +104,7 @@ body{font-family:'DM Sans',sans-serif;font-size:9.5px;color:#1a1a1a;background:#
     <div class="os-meta">
       <strong>OS Nº ${escapeHtml(osHeader.os_num)}</strong>
       Entrada: ${escapeHtml(osHeader.os_date)} às ${escapeHtml(osHeader.os_time)}<br>
-      Quilometragem: ${escapeHtml(osHeader.os_km) || "—"}
+      Quilometragem: ${escapeHtml(formatKm(osHeader.os_km)) || "—"}
     </div>
   </div>
 
@@ -112,8 +113,8 @@ body{font-family:'DM Sans',sans-serif;font-size:9.5px;color:#1a1a1a;background:#
     <div class="section">
       <div class="section-title">Cliente</div>
       <div class="field"><span class="field-label">Nome</span><span class="field-value">${escapeHtml(cliente.nome) || "—"}</span></div>
-      <div class="field"><span class="field-label">CPF / CNPJ</span><span class="field-value">${escapeHtml(cliente.doc) || "—"}</span></div>
-      <div class="field"><span class="field-label">Telefone</span><span class="field-value">${escapeHtml(cliente.tel) || "—"}</span></div>
+      <div class="field"><span class="field-label">CPF / CNPJ</span><span class="field-value">${escapeHtml(formatCpfCnpj(cliente.doc)) || "—"}</span></div>
+      <div class="field"><span class="field-label">Telefone</span><span class="field-value">${escapeHtml(formatPhoneBR(cliente.tel)) || "—"}</span></div>
       <div class="field"><span class="field-label">E-mail</span><span class="field-value">${escapeHtml(cliente.email) || "—"}</span></div>
     </div>
 
@@ -146,7 +147,7 @@ body{font-family:'DM Sans',sans-serif;font-size:9.5px;color:#1a1a1a;background:#
         <div class="field"><span class="field-label">Data saída</span><span class="field-value">${escapeHtml(tecnico.data_saida) || "—"}</span></div>
         <div class="field"><span class="field-label">Hora saída</span><span class="field-value">${escapeHtml(tecnico.hora_saida) || "—"}</span></div>
       </div>
-      <div class="field"><span class="field-label">Km saída</span><span class="field-value">${escapeHtml(tecnico.km_saida) || "—"}</span></div>
+      <div class="field"><span class="field-label">Km saída</span><span class="field-value">${escapeHtml(formatKm(tecnico.km_saida)) || "—"}</span></div>
     </div>
 
 

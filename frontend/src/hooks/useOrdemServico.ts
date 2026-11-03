@@ -3,9 +3,10 @@ import { SECTIONS } from '../constants';
 import {
   nowDate, nowTime, randomOsNum,
   initChecklist,
-  validateStep1,
+  validateStep1, validateStep5,
   getChecklistStats, getCritItems,
 } from '../utils';
+import { LIM, sanitizarCampoPeca, sanitizarItemAdicional } from '../utils/campos_checklist';
 import { api } from '../utils/api';
 import { comprimirImagem } from '../utils/imagem';
 import { useFotosObrigatorias } from './useFotosObrigatorias';
@@ -181,14 +182,19 @@ export function useOrdemServico() {
     });
   }, []);
 
-  const addChecklistItem = useCallback((name: string) => {
+  // Item livre: nome limpo (regex), sem repetir (ignora maiúsculas) e com teto de itens.
+  const addChecklistItem = useCallback((raw: string) => {
+    const name = sanitizarItemAdicional(raw).trim();
+    if (!name) return;
+    if (itensAdicionais.length >= LIM.maxItensAdicionais) return;
+    if (itensAdicionais.some((n) => n.toLowerCase() === name.toLowerCase())) return;
     setItensAdicionais((prev) => [...prev, name]);
     const key = `adicionais:${name}`;
     setChecklist((prev) => ({
       ...prev,
       [key]: prev[key] ?? { status: null, obs: '' },
     }));
-  }, []);
+  }, [itensAdicionais]);
 
   const removeChecklistItem = useCallback((index: number) => {
     setItensAdicionais((prev) => {
@@ -233,13 +239,14 @@ export function useOrdemServico() {
   }, []);
 
   const updateTabelaPeca = useCallback((id: string, field: string, value: string) => {
+    const limpo = sanitizarCampoPeca(field, value); // regex + limite por coluna (campos_checklist.ts)
     setTabelaPecas((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+      prev.map((row) => (row.id === id ? { ...row, [field]: limpo } : row))
     );
   }, []);
 
   const addTabelaPecaManual = useCallback(() => {
-    setTabelaPecas((prev) => [
+    setTabelaPecas((prev) => prev.length >= LIM.maxPecas ? prev : [
       ...prev,
       { id: genId(), peca: '', modelo: '', marca: '', codigo: '', quantidade: '', isAuto: false },
     ]);
@@ -419,8 +426,7 @@ export function useOrdemServico() {
   // Validação do step de encerramento — genérica, só exige nome do técnico.
   // Cada fluxo pode ter esse step em posições diferentes (3, 4, 5...).
   const handleExport = useCallback((onExport: () => void) => {
-    const errs: ValidationErrors = {};
-    if (!tecnico.nome?.trim()) errs.tec_nome = 'Campo obrigatório';
+    const errs = validateStep5(tecnico, osHeader);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       setShowErrors(true);
@@ -430,7 +436,7 @@ export function useOrdemServico() {
     setShowErrors(false);
     saveOrder();
     onExport();
-  }, [tecnico, saveOrder]);
+  }, [tecnico, osHeader, saveOrder]);
 
   // ── Load / Reset ──────────────────────────────────────────────────────────
 

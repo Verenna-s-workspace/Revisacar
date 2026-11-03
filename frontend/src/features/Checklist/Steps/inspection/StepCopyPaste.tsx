@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useOrdemServico } from '../../../../hooks/useOrdemServico';
 import { tokens } from '../../../../constants';
+import { LIM } from '../../../../utils/campos_checklist';
 import {
   FormBlock, PanelFooter,
   btnGhost, btnSolid, btnAccent, pfNote,
@@ -386,6 +387,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
                   value={displayText}
                   readOnly={!editing}
                   onChange={(e) => setEditedText(e.target.value)}
+                  maxLength={LIM.relatorioCopia}
                   rows={Math.max(8, displayText.split('\n').length + 2)}
                   style={{
                     width: '100%',

@@ -23,6 +23,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Entrada — fotos obrigatórias | 🟡 SQL + API + front prontos (647 testes; smoke no navegador 390px com API simulada: 5 itens, "3 de 5", refazer, pular com motivo, bloqueio nas duas etapas, reenvio, modo sem script). Falta: rodar `ordens_fotos.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase/Storage reais |
 | Cadastro — etapa 2 (dados da oficina) | 🟡 Front pronto (tsc + build ok; smoke no navegador com API de cadastro simulada: desktop e 390px, validação, gravação em Configurações). Só frontend, grava no `localStorage` como a tela de Configurações. Etapa 3 (boas-vindas) não iniciada |
 | Veículos ↔ Clientes (vínculo, fotos, Nova OS) | 🟡 Backend + SQL + testes + front prontos (796 testes; tsc + build ok; smoke no navegador com API simulada, 35 verificações). Falta: rodar `0007_fotos_veiculos.sql` e validar contra o Supabase real |
+| Regras dos campos dos checklists | 🟡 Front + backend + testes prontos (853 testes; tsc + build ok; navegador com API simulada). Falta: validar contra o Supabase real (OS antigas com valor fora do padrão pedem correção ao salvar) |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -425,6 +426,18 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - O host precisa devolver o `index.html` para `/f/*`, como já precisa para `/o/*` (ver Fase 6A). O `vite preview` já faz isso.
 - **`main` com conflitos de merge commitados** (commit `96dfcf2`): `frontend/index.html` (linhas 17–21) e `frontend/src/components/Topbar.tsx` (linhas 199–234) têm `<<<<<<<`/`>>>>>>>`, então `npm run build` falha na `main` hoje. Não mexido nesta entrega (é escolher entre os dois lados); precisa resolver antes do próximo deploy.
 - Falha pré-existente na `main`: `tests/test_estoque_sql.py::test_item_que_esta_numa_receita_nao_pode_ser_apagado`. Não mexido.
+
+## Regras dos campos dos checklists (2026-11-03)
+
+**Problema:** os campos dos checklists (entrada, inspeção, encerramento e orçamento) aceitavam qualquer coisa — ano com letras, km livre, telefone/CPF/e-mail sem padrão, textareas sem limite.
+
+**Como ficou (duas camadas, uma fonte única em cada ponta):**
+- Front: `utils/campos_checklist.ts` (limites `LIM`, validadores, `sanitizarPrefill`) + `components/inputs/masks.ts` (`FILTRO` = regex dos caracteres removidos ao digitar). O `Input` ganhou os tipos `nome`, `ano`, `km`, `chassi` e as props `filter` (regex) e `validate` (formato conferido ao sair do campo). `validateStep1`/`validateStep5` somam formato + obrigatório e bloqueiam "Próximo"/"Gerar PDF".
+- Backend: `orders/campos_os.py` espelha as mesmas regras e é ligado nos serializers da OS (`serializers.py`). Telefone, CPF/CNPJ e km são gravados só com dígitos.
+- Regras: nome (letras, espaço, `'`, `.`, `-`; 2–100), CPF/CNPJ com dígito verificador, telefone BR (DDD + 8/9 dígitos), e-mail (≤120), placa antiga/Mercosul, ano 4 dígitos (1900 … ano+1), chassi VIN 17 (sem I/O/Q), km até 7 dígitos, datas reais (2000 até hoje; saída não anterior à entrada), textareas com limite e contador, tabela de peças (quantidade 1–999, código/marca/modelo com charset e tamanho), item livre do checklist (≤60, sem repetir, ≤50), orçamento (números só com dígito/ponto/vírgula, validade 2 dígitos).
+- Achados corrigidos junto: o backend **descartava** `obs_cliente` (Relato do cliente), `itens_adicionais`, `troca_set` e `tabela_pecas` ao salvar a OS (o front já os lia de volta); a data de saída padrão usava UTC (depois das 21h virava "amanhã"); o nome com hífen/apóstrofo era mutilado pelo `onlyText`.
+- O servidor continua aceitando o Nº da OS no formato antigo (`OS-1`); o formulário só deixa digitar números.
+- Prefill (veículo/agendamento) passa pelas mesmas regras antes de entrar no formulário.
 
 ## Veículos ↔ Clientes: vínculo, fotos e "Nova OS" (2026-10-31)
 **Arquivos:** backend `orders/carteira.py`, `orders/clientes_views.py`, `orders/veiculos_views.py`, `sql/migrations/0007_fotos_veiculos.sql`, `tests/test_carteira.py` (+21), `tests/conftest.py`. Frontend `features/Dashboard/Veiculos/OwnerPicker.tsx` (novo), `VehicleFormModal.tsx`, `ChangeOwnerModal.tsx`, `VeiculosPage.tsx`, `features/Dashboard/Clientes/ClientFormModal.tsx`, `ClientesPage.tsx`, `hooks/useVeiculos.ts`, `hooks/useClientes.ts`, `utils/veiculos_utils.ts`, `utils/clientes_utils.ts`, `pages/InitialChecklist.tsx`, `pages/Dashboard.tsx`, `types/*`.
