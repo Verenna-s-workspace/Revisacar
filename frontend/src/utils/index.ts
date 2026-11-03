@@ -1,5 +1,6 @@
 import { SECTIONS } from '../constants';
 import type { OSHeader, Cliente, Veiculo, Tecnico, ChecklistStats, CritItem, ValidationErrors } from '../types';
+import { validarFormatosEntrada, validarFormatosTecnico } from './campos_checklist';
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -40,24 +41,35 @@ export const initChecklist = (): Record<string, { status: string | null; obs: st
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
+/**
+ * Etapa 1 (identificação): "obrigatório" + formato de cada campo preenchido (campos_checklist.ts).
+ * A mensagem de formato só entra quando o campo NÃO está faltando — o "obrigatório" vem primeiro.
+ */
 export const validateStep1 = (
   osHeader: OSHeader,
   cliente: Cliente,
   veiculo: Veiculo
 ): ValidationErrors => {
   const errors: ValidationErrors = {};
-  if (!osHeader.os_num?.trim()) errors.os_num = 'Obrigatório';
-  if (!osHeader.os_date)        errors.os_date = 'Obrigatório';
-  if (!osHeader.os_time)        errors.os_time = 'Obrigatório';
-  if (!cliente.nome?.trim())    errors.cli_nome = 'Obrigatório';
-  if (!cliente.tel?.trim())     errors.cli_tel = 'Obrigatório';
-  if (!veiculo.modelo?.trim())  errors.vei_modelo = 'Obrigatório';
+  if (!osHeader.os_num?.trim()) errors.os_num = 'Campo obrigatório';
+  if (!osHeader.os_date)        errors.os_date = 'Campo obrigatório';
+  if (!osHeader.os_time)        errors.os_time = 'Campo obrigatório';
+  if (!cliente.nome?.trim())    errors.cli_nome = 'Campo obrigatório';
+  if (!cliente.tel?.trim())     errors.cli_tel = 'Campo obrigatório';
+  if (!veiculo.modelo?.trim())  errors.vei_modelo = 'Campo obrigatório';
+  for (const [chave, msg] of Object.entries(validarFormatosEntrada(osHeader, cliente, veiculo))) {
+    if (!errors[chave]) errors[chave] = msg; // "obrigatório" tem prioridade sobre o formato
+  }
   return errors;
 };
 
-export const validateStep5 = (tecnico: Tecnico): ValidationErrors => {
+/** Encerramento: nome do técnico obrigatório + formato dos campos do técnico. */
+export const validateStep5 = (tecnico: Tecnico, osHeader: OSHeader): ValidationErrors => {
   const errors: ValidationErrors = {};
-  if (!tecnico.nome?.trim()) errors.tec_nome = 'Obrigatório';
+  if (!tecnico.nome?.trim()) errors.tec_nome = 'Campo obrigatório';
+  for (const [chave, msg] of Object.entries(validarFormatosTecnico(osHeader, tecnico))) {
+    if (!errors[chave]) errors[chave] = msg;
+  }
   return errors;
 };
 

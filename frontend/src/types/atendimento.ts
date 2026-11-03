@@ -70,7 +70,7 @@ export interface OSPrefillInput {
   clienteNome: string;
   /** Só dígitos (o formato que o checklist guarda). */
   clienteDoc?: string;
-  /** Já formatado como no checklist: (11) 99999-0000. */
+  /** Qualquer formato; o checklist guarda só dígitos (ver `sanitizarPrefill`). */
   clienteTel?: string;
   clienteEmail?: string;
   veiculoModelo: string;

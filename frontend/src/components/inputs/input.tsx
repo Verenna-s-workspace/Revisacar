@@ -11,6 +11,11 @@ import {
   formatCurrencyBRL,
   parseCurrencyInput,
   isValidEmail,
+  formatKm,
+  formatChassi,
+  formatNome,
+  limparTexto,
+  KM_MAX_DIGITOS,
 } from "./masks";
 
 /**
@@ -28,6 +33,7 @@ import {
 export type InputType =
   | "text" | "number" | "email" | "password" | "search" | "date" | "time"
   | "currency" | "phone" | "cpf_cnpj" | "cep" | "placa" | "digits"
+  | "nome" | "ano" | "km" | "chassi"
   | (string & {});
 
 type InputProps = {
@@ -67,6 +73,12 @@ type InputProps = {
   /** Passthrough nativo — usado por type="date"/"number" para limitar intervalo. */
   min?: string | number;
   max?: string | number;
+  /** Regex dos caracteres a REMOVER enquanto digita/cola (ver `FILTRO` em masks.ts). Também colapsa
+   * espaços repetidos e respeita `maxLength`. Não vale para os tipos especiais (eles já têm regra própria). */
+  filter?: RegExp;
+  /** Validação de formato do valor pronto — roda só depois que a pessoa sai do campo (como as
+   * regras de CPF/e-mail) e nunca com o campo vazio. Devolve a mensagem de erro ou `undefined`. */
+  validate?: (value: string) => string | undefined;
 };
 
 const NATIVE_TYPE: Partial<Record<string, string>> = {
@@ -76,6 +88,10 @@ const NATIVE_TYPE: Partial<Record<string, string>> = {
   cep: "text",
   placa: "text",
   digits: "text",
+  nome: "text",
+  ano: "text",
+  km: "text",
+  chassi: "text",
   search: "search",
 };
 
@@ -85,6 +101,8 @@ const INPUT_MODE: Partial<Record<string, "text" | "numeric" | "decimal" | "tel" 
   cpf_cnpj: "numeric",
   cep: "numeric",
   digits: "numeric",
+  ano: "numeric",
+  km: "numeric",
   number: "numeric",
   email: "email",
   search: "search",
@@ -97,7 +115,7 @@ const AUTOCOMPLETE: Partial<Record<string, string>> = {
   password: "current-password",
 };
 
-const SPECIAL_TYPES = new Set(["currency", "phone", "cpf_cnpj", "cep", "placa", "digits"]);
+const SPECIAL_TYPES = new Set(["currency", "phone", "cpf_cnpj", "cep", "placa", "digits", "ano", "km", "chassi"]);
 
 function Spinner() {
   return (
@@ -156,6 +174,8 @@ export function Input({
   datalistOptions,
   min,
   max,
+  filter,
+  validate,
 }: InputProps) {
   const [pwVisible, setPwVisible] = useState(false);
   const [blurred, setBlurred] = useState(false);
@@ -173,11 +193,16 @@ export function Input({
     if (type === "cep")      { onChangeValue?.(onlyDigits(raw).slice(0, 8)); return; }
     if (type === "placa")    { onChangeValue?.(formatPlaca(raw)); return; }
     if (type === "digits")   { onChangeValue?.(onlyDigits(raw).slice(0, maxLength)); return; }
+    if (type === "ano")      { onChangeValue?.(onlyDigits(raw).slice(0, 4)); return; }
+    if (type === "km")       { onChangeValue?.(onlyDigits(raw).slice(0, KM_MAX_DIGITOS)); return; }
+    if (type === "chassi")   { onChangeValue?.(formatChassi(raw)); return; }
+    if (type === "nome")     { onChangeValue?.(formatNome(raw, maxLength)); return; }
 
     let v = raw;
     if (onlyNumbers) v = v.replace(/[^0-9.-]/g, "");
     if (onlyText) v = v.replace(/[^\p{L}\s]/gu, "");
     if (uppercase) v = v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (filter) v = limparTexto(v, filter, maxLength);
     if (mask) { onChangeValue?.(raw); return; }
     onChangeValue?.(v);
   }
@@ -193,6 +218,7 @@ export function Input({
       case "phone":    return formatPhoneBR(value);
       case "cpf_cnpj": return formatCpfCnpj(value);
       case "cep":      return formatCEP(value);
+      case "km":       return formatKm(value);
       default:         return value;
     }
   })();
@@ -207,6 +233,8 @@ export function Input({
     // depois que a pessoa realmente interagiu com o campo.
     if (type === "cpf_cnpj" && blurred && value.length >= 11 && !isValidCpfCnpj(value)) return "CPF/CNPJ inválido";
     if (type === "email" && blurred && value && !isValidEmail(value)) return "E-mail inválido";
+    // Regra de formato passada pela página (`validate`): mesma lógica de blur, sem acusar campo vazio.
+    if (validate && blurred && value) return validate(value);
     return undefined;
   })();
   const effectiveError = error ?? internalError;

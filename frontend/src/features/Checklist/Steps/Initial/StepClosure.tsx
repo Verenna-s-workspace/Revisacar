@@ -15,6 +15,11 @@ import {
   pfNote,
 } from "../../../../components/ui";
 import { textoFaltam } from "../../../../utils/fotos_obrigatorias";
+import { FILTRO } from "../../../../components/inputs/masks";
+import {
+  LIM, DATA_MIN, hojeISO,
+  validarNome, validarRegistro, validarKm, validarData,
+} from "../../../../utils/campos_checklist";
 
 interface StepProps {
   os: ReturnType<typeof useOrdemServico>;
@@ -42,6 +47,7 @@ function StepWrapper({
 export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
   const g4 = useGrid4();
   const {
+    osHeader,
     veiculo,
     cliente,
     photos,
@@ -63,7 +69,8 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
   const { resumo: fotosResumo, liberado: fotosLiberadas, fonte: fotosFonte } = fotosObrig;
 
   const hasErr = (k: string) => showErrors && !!errors[k];
-  const nowDate = () => new Date().toISOString().split("T")[0];
+  // Data local (toISOString dá a data em UTC: depois das 21h no Brasil já seria "amanhã").
+  const nowDate = hojeISO;
   const nowTime = () => new Date().toTimeString().slice(0, 5);
 
   const summaryRows: [string, string | number][] = [
@@ -192,8 +199,8 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
               name="tec_nome"
               placeholder="Nome completo"
               value={tecnico.nome}
-              onlyText
-              error={hasErr("tec_nome") ? "Campo obrigatório" : undefined}
+              type="nome" maxLength={LIM.nome} validate={validarNome}
+              error={hasErr("tec_nome") ? errors.tec_nome : undefined}
               onChangeValue={(v) => setTecnico((p) => ({ ...p, nome: v }))}
             />
           </Field>
@@ -202,15 +209,19 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
               name="tec_registro"
               placeholder="000000"
               value={tecnico.registro}
+              maxLength={LIM.registro} filter={FILTRO.registro} validate={validarRegistro}
+              error={hasErr("tec_registro") ? errors.tec_registro : undefined}
               onChangeValue={(v) => setTecnico((p) => ({ ...p, registro: v }))}
             />
           </Field>
           <Field label="Km saída">
             <Input
               name="tec_km_saida"
-              onlyNumbers
+              type="km"
               placeholder="97.550"
               value={tecnico.km_saida}
+              validate={validarKm}
+              error={hasErr("tec_km") ? errors.tec_km : undefined}
               onChangeValue={(v) => setTecnico((p) => ({ ...p, km_saida: v }))}
             />
           </Field>
@@ -219,6 +230,8 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
               name="tec_data_saida"
               type="date"
               value={tecnico.data_saida || nowDate()}
+              min={osHeader.os_date || DATA_MIN} max={hojeISO()} validate={validarData}
+              error={hasErr("tec_data") ? errors.tec_data : undefined}
               onChangeValue={(v) =>
                 setTecnico((p) => ({ ...p, data_saida: v }))
               }
@@ -238,6 +251,7 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
             <Textarea
               name="tec_parecer_geral"
               value={tecnico.parecer_geral}
+              maxLength={LIM.parecer}
               placeholder="Descreva o estado geral do veículo e recomendações..."
               onChangeValue={(v) =>
                 setTecnico((p) => ({ ...p, parecer_geral: v }))

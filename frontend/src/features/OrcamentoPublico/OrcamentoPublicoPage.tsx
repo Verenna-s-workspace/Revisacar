@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { tokens } from '../../constants';
 import { apiPublica, ErroPublico } from '../../utils/api_publico';
 import { formatBRL } from '../../utils/dashboard';
+import { formatNome } from '../../components/inputs/masks';
 import { dataBR } from '../../utils/orcamento_utils';
 import { mensagemPublica } from '../../utils/orcamento_link_utils';
 import type { OrcamentoPublico } from '../../types/orcamento_link';
@@ -227,7 +228,7 @@ export default function OrcamentoPublicoPage({ token }: { token: string }) {
             <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Confirmar aprovação</h2>
             <div>
               <label style={rotulo} htmlFor="pub-nome">SEU NOME COMPLETO</label>
-              <input id="pub-nome" value={nome} onChange={e => setNome(e.target.value)} maxLength={120} autoComplete="name" style={campo} />
+              <input id="pub-nome" value={nome} onChange={e => setNome(formatNome(e.target.value, 120))} maxLength={120} autoComplete="name" style={campo} />
             </div>
             <div>
               <label style={rotulo} htmlFor="pub-obs">OBSERVAÇÃO PARA A OFICINA (OPCIONAL)</label>

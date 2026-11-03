@@ -1,7 +1,7 @@
 // ── Veículos: utilitários e opções ────────────────────
 
 import { COMBUSTIVEL_OPTIONS } from '../constants';
-import { formatPhoneBR, onlyDigits } from '../components/inputs/masks';
+import { onlyDigits } from '../components/inputs/masks';
 import type { OSPrefillInput } from '../types/atendimento';
 import type {
   VeiculoCadastrado,
@@ -98,7 +98,7 @@ export function veiculoParaPrefill(v: VeiculoCadastrado): OSPrefillInput {
   return {
     clienteNome: dono?.nome.trim() ?? '',
     clienteDoc: dono?.docCpfCnpj ? onlyDigits(dono.docCpfCnpj) || undefined : undefined,
-    clienteTel: dono?.telefone ? formatPhoneBR(dono.telefone) || undefined : undefined,
+    clienteTel: dono?.telefone ? onlyDigits(dono.telefone) || undefined : undefined,
     clienteEmail: dono?.email || undefined,
     veiculoModelo: `${v.marca} ${v.modelo}`.trim(),
     veiculoPlaca: v.placa,

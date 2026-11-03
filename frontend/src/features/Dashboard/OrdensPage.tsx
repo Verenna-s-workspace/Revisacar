@@ -5,6 +5,7 @@ import { StatusBadge, Skeleton } from './Primitives';
 import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
+import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
 import type { OrdemRow, NavPage } from '../../types/dashboard';
 
 // ── Date formatter ────────────────────────────────────────────────────────────
@@ -196,12 +197,12 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
             <Field label="Nº OS" val={h.os_num || ordem.os_num} />
             <Field label="Data" val={h.os_date ? h.os_date.split('-').reverse().join('/') : ''} />
             <Field label="Hora" val={h.os_time} />
-            <Field label="KM" val={h.os_km} />
+            <Field label="KM" val={formatKm(h.os_km)} />
           </Section>
           <Section title="Cliente">
             <Field label="Nome" val={cli.nome || ordem.cliente} />
-            <Field label="Documento" val={cli.doc} />
-            <Field label="Telefone" val={cli.tel} />
+            <Field label="Documento" val={formatCpfCnpj(cli.doc)} />
+            <Field label="Telefone" val={formatPhoneBR(cli.tel)} />
             <Field label="E-mail" val={cli.email} />
           </Section>
           <Section title="Veículo">
@@ -216,7 +217,7 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
               <Field label="Nome" val={tec.nome} />
               <Field label="Registro" val={tec.registro} />
               <Field label="Data Saída" val={tec.data_saida ? tec.data_saida.split('-').reverse().join('/') : ''} />
-              <Field label="KM Saída" val={tec.km_saida} />
+              <Field label="KM Saída" val={formatKm(tec.km_saida)} />
               {tec.parecer_geral && (
                 <div className="dashboard-modal__remark" style={{ gridColumn: 'span 2' }}>
                   <div className="dashboard-modal__remark-label">Parecer Geral</div>

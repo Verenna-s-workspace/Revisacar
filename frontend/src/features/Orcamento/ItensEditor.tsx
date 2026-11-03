@@ -3,6 +3,7 @@ import {
   aplicarItemDoEstoque, aplicarServicoDoCatalogo, LIMITES, subtotalDoItem, type ErrosItens,
 } from '../../utils/orcamento_utils';
 import { formatBRL } from '../../utils/dashboard';
+import { FILTRO, limparTexto, soNumeroDecimal } from '../../components/inputs/masks';
 import type { EstoqueItem } from '../../types/estoque';
 import type { ServicoItem } from '../../types/servico';
 import type { ItemRascunho } from '../../types/orcamento';
@@ -118,24 +119,24 @@ export function ItensEditor({ itens, erros, mostrarErros, podeVerCusto, estoque,
                 <div>
                   <label style={legenda} htmlFor={`${id}-marca`}>Marca</label>
                   <input id={`${id}-marca`} value={item.marca} maxLength={LIMITES.marca} placeholder="Ex.: Bosch"
-                    onChange={e => onAtualizar(item.chave, { marca: e.target.value })} style={entrada} />
+                    onChange={e => onAtualizar(item.chave, { marca: limparTexto(e.target.value, FILTRO.modelo, LIMITES.marca) })} style={entrada} />
                 </div>
               )}
               <div>
                 <label style={legenda} htmlFor={`${id}-qtd`}>Quantidade</label>
                 <input id={`${id}-qtd`} value={item.quantidade} inputMode="decimal"
-                  onChange={e => onAtualizar(item.chave, { quantidade: e.target.value })} style={entrada} />
+                  onChange={e => onAtualizar(item.chave, { quantidade: soNumeroDecimal(e.target.value, 11) })} maxLength={11} style={entrada} />
               </div>
               <div>
                 <label style={legenda} htmlFor={`${id}-preco`}>Preço cobrado (un.)</label>
                 <input id={`${id}-preco`} value={item.precoUnitario} inputMode="decimal" placeholder="0,00"
-                  onChange={e => onAtualizar(item.chave, { precoUnitario: e.target.value })} style={entrada} />
+                  onChange={e => onAtualizar(item.chave, { precoUnitario: soNumeroDecimal(e.target.value, 12) })} maxLength={12} style={entrada} />
               </div>
               {podeVerCusto && (
                 <div>
                   <label style={legenda} htmlFor={`${id}-custo`}>Custo (un.)</label>
                   <input id={`${id}-custo`} value={item.custoUnitario} inputMode="decimal" placeholder="0,00"
-                    onChange={e => onAtualizar(item.chave, { custoUnitario: e.target.value })} style={entrada} />
+                    onChange={e => onAtualizar(item.chave, { custoUnitario: soNumeroDecimal(e.target.value, 12) })} maxLength={12} style={entrada} />
                 </div>
               )}
               <div>

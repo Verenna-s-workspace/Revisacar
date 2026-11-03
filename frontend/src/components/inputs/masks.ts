@@ -131,3 +131,71 @@ export function parseCurrencyInput(typedValue: string): string {
 export function isValidEmail(value: string): boolean {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.trim());
 }
+
+// ── Filtros de caracteres (regex) ───────────────────────────────────────────
+// Cada filtro casa o que deve ser REMOVIDO enquanto a pessoa digita/cola — o
+// campo simplesmente não aceita o caractere. Usados pelo <Input filter={...}>,
+// pelos tipos "nome"/"chassi" e pelos inputs crus dos checklists. O backend
+// repete as mesmas regras em orders/campos_os.py (manter em sincronia).
+export const FILTRO = {
+  /** Nome de pessoa: letras (com acento), espaço, apóstrofo, ponto e hífen — "D'Ávila", "Maria-Clara", "Jr." */
+  nome: /[^\p{L}\p{M} '’.\-]/gu,
+  /** Modelo/marca de veículo ou peça: "HB20S 1.6 Comfort", "Ford Ka+", "Mann-Filter", "3M". */
+  modelo: /[^\p{L}\p{M}\p{N} .,\-/+()'’&]/gu,
+  /** Cor: "Cinza Grafite", "Prata/Preto". */
+  cor: /[^\p{L}\p{M} /\-]/gu,
+  /** Registro profissional (CREA etc.): "123456/SP", "CREA-SP 12345". */
+  registro: /[^A-Za-z0-9 ./\-]/g,
+  /** Código de peça: "F49FH2", "0 986 452 044". */
+  codigo: /[^A-Za-z0-9 ./\-_]/g,
+  /** Nome de item livre do checklist: "Bateria 60Ah", "Palheta 24\"". */
+  item: /[^\p{L}\p{M}\p{N} .,\-/+()'’&%"]/gu,
+  /** Chassi (VIN): 17 caracteres, sem I, O e Q (confundem com 1 e 0). */
+  chassi: /[^A-HJ-NPR-Z0-9]/g,
+  /** Qualquer espaço em branco — e-mail não tem. */
+  espacos: /\s/g,
+} as const;
+
+/** Aplica um filtro de remoção, colapsa espaços repetidos, tira o espaço inicial e corta no limite. */
+export function limparTexto(value: string, filtro: RegExp, max?: number): string {
+  const v = (value || '')
+    .replace(filtro, '')
+    .replace(/ {2,}/g, ' ')
+    .replace(/^ /, '');
+  return max != null ? v.slice(0, max) : v;
+}
+
+// ── Nome de pessoa ──────────────────────────────────────────────────────────
+
+export const NOME_MAX = 100;
+
+export function formatNome(value: string, max: number = NOME_MAX): string {
+  return limparTexto(value, FILTRO.nome, max);
+}
+
+// ── Quilometragem ───────────────────────────────────────────────────────────
+// Valor "cru" = só dígitos (até 7: 9.999.999 km). A exibição ganha o ponto de milhar ("87.450").
+
+export const KM_MAX_DIGITOS = 7;
+
+export function formatKm(rawValue: string): string {
+  const d = onlyDigits(rawValue).slice(0, KM_MAX_DIGITOS);
+  return d.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// ── Chassi (VIN) ────────────────────────────────────────────────────────────
+
+export function formatChassi(rawValue: string): string {
+  return (rawValue || '').toUpperCase().replace(FILTRO.chassi, '').slice(0, 17);
+}
+
+// ── Número digitado à mão (orçamento) ───────────────────────────────────────
+// Aceita "1.234,56", "12,5", "3": só dígitos, ponto e UMA vírgula decimal. Quem lê o número
+// (`lerNumero`, em orcamento_utils) continua sendo a validação final.
+
+export function soNumeroDecimal(value: string, max?: number): string {
+  let v = (value || '').replace(/[^\d.,]/g, '');
+  const i = v.indexOf(',');
+  if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/,/g, '');
+  return max != null ? v.slice(0, max) : v;
+}

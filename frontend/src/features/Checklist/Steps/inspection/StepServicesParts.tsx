@@ -1,6 +1,7 @@
 import { useOrdemServico } from '../../../../hooks/useOrdemServico';
 import { tokens } from '../../../../constants';
 import type { TabelaPeca } from '../../../../types';
+import { LIM } from '../../../../utils/campos_checklist';
 import {
   FormBlock, PanelFooter,
   btnGhost, btnAccent, btnSolid, btnDisabled, pfNote,
@@ -50,11 +51,12 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
     transition: 'border-color 0.15s',
   };
 
-  const editableFields = [
-    { key: 'modelo',     placeholder: 'Ex: HB20' },
-    { key: 'marca',      placeholder: 'Ex: Bosch' },
-    { key: 'codigo',     placeholder: 'Ex: F49FH2' },
-    { key: 'quantidade', placeholder: '0', type: 'number' },
+  // `max` = limite de caracteres do campo (o hook também limpa o valor: sanitizarCampoPeca).
+  const editableFields: { key: string; placeholder: string; max: number; numeric?: boolean }[] = [
+    { key: 'modelo',     placeholder: 'Ex: HB20',    max: LIM.pecaModelo },
+    { key: 'marca',      placeholder: 'Ex: Bosch',   max: LIM.pecaMarca },
+    { key: 'codigo',     placeholder: 'Ex: F49FH2',  max: LIM.pecaCodigo },
+    { key: 'quantidade', placeholder: '1',           max: LIM.pecaQtdDigitos, numeric: true },
   ];
 
   const autoBadge = (
@@ -126,6 +128,7 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
             ) : (
               <input
                 value={row.peca}
+                maxLength={LIM.peca}
                 onChange={(e) => onUpdate(row.id, 'peca', e.target.value)}
                 placeholder="Nome da peça..."
                 style={{ ...inp, fontSize: '0.86rem', padding: '6px 10px', fontWeight: 500 }}
@@ -138,7 +141,7 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
 
         {/* Editable fields */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' }}>
-          {editableFields.map(({ key, placeholder, type }) => (
+          {editableFields.map(({ key, placeholder, max, numeric }) => (
             <div key={key}>
               <div style={{
                 fontFamily: tokens.fontMono,
@@ -151,11 +154,12 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
                 {key.charAt(0).toUpperCase() + key.slice(1)}
               </div>
               <input
-                type={type || 'text'}
+                type="text"
+                inputMode={numeric ? 'numeric' : undefined}
+                maxLength={max}
                 value={row[key as keyof TabelaPeca] as string}
                 onChange={(e) => onUpdate(row.id, key, e.target.value)}
                 placeholder={placeholder}
-                min={type === 'number' ? '0' : undefined}
                 style={{ ...inp, fontSize: '0.83rem', padding: '6px 10px' }}
               />
             </div>
@@ -182,6 +186,7 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
         ) : (
           <input
             value={row.peca}
+            maxLength={LIM.peca}
             onChange={(e) => onUpdate(row.id, 'peca', e.target.value)}
             placeholder="Nome da peça..."
             style={cellInput}
@@ -193,17 +198,18 @@ function PartRow({ row, isMobile, onUpdate, onRemove }: PartRowProps) {
       </div>
 
       {/* Modelo, Marca, Código, Quantidade */}
-      {editableFields.map(({ key, placeholder, type }, i) => (
+      {editableFields.map(({ key, placeholder, max, numeric }, i) => (
         <div key={key} style={{
           padding: '9px 14px',
           borderRight: i < editableFields.length - 1 ? `1px solid ${tokens.color.border}` : 'none',
         }}>
           <input
-            type={type || 'text'}
+            type="text"
+            inputMode={numeric ? 'numeric' : undefined}
+            maxLength={max}
             value={row[key as keyof TabelaPeca] as string}
             onChange={(e) => onUpdate(row.id, key, e.target.value)}
             placeholder={placeholder}
-            min={type === 'number' ? '0' : undefined}
             style={cellInput}
             onFocus={(e)  => e.currentTarget.style.borderBottomColor = tokens.color.ferrari}
             onBlur={(e)   => e.currentTarget.style.borderBottomColor = 'transparent'}

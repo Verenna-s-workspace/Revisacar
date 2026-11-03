@@ -3,6 +3,12 @@ import { Input } from '../../../../components/inputs/input';
 import { Textarea } from '../../../../components/inputs/textarea';
 import { Select } from '../../../../components/inputs/select';
 import { COMBUSTIVEL_OPTIONS, NIVEL_COMBUSTIVEL_OPTIONS, tokens } from '../../../../constants';
+import { FILTRO } from '../../../../components/inputs/masks';
+import {
+  LIM, hojeISO, DATA_MIN,
+  validarOsNum, validarData, validarKm, validarNome, validarDoc, validarTel,
+  validarEmail, validarPlaca, validarAno, validarChassi,
+} from '../../../../utils/campos_checklist';
 import {
   FormBlock, Field, PanelFooter, PhotoGrid,
   ValidationBanner, useGrid3, useGrid4, btnGhost, btnAccent, pfNote,
@@ -43,27 +49,9 @@ export function Step1({ os }: StepProps) {
 
   const hasErr = (k: string) => showErrors && !!errors[k];
 
-  function formatDoc(value: string) {
-    const raw = value.replace(/\D/g, '');
-    if (raw.length <= 11) {
-      return raw
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    }
-    return raw
-      .replace(/^(\d{2})(\d)/, '$1.$2')
-      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2');
-  }
-
-  function validatePlaca(placa: string) {
-    if (!placa || placa.trim() === '') return undefined;
-    if (/^[A-Za-z]{3}\d[A-Za-z]\d{2}$/.test(placa)) return undefined;
-    if (/^[A-Za-z]{3}-?\d{4}$/.test(placa)) return undefined;
-    return 'Placa inválida';
-  }
+  // Mensagem do campo: o erro da etapa (obrigatório ou formato) só aparece depois de tentar avançar;
+  // o formato também é conferido ao sair de cada campo (`validate`).
+  const erro = (k: string) => (hasErr(k) ? errors[k] : undefined);
 
   return (
     <StepWrapper direction={stepDir}>
@@ -75,30 +63,31 @@ export function Step1({ os }: StepProps) {
         <div style={g4}>
           <Field label="Nº da OS *">
             <Input
-              name="os_num" onlyNumbers placeholder="000001"
-              value={osHeader.os_num}
-              error={hasErr('os_num') ? 'Campo obrigatório' : undefined}
+              name="os_num" type="digits" placeholder="000001" maxLength={LIM.osNum}
+              value={osHeader.os_num} validate={validarOsNum}
+              error={erro('os_num')}
               onChangeValue={(v) => setOsHeader((p) => ({ ...p, os_num: v }))}
             />
           </Field>
           <Field label="Data de entrada *">
             <Input
               name="os_date" type="date" value={osHeader.os_date}
-              error={hasErr('os_date') ? 'Campo obrigatório' : undefined}
+              min={DATA_MIN} max={hojeISO()} validate={validarData}
+              error={erro('os_date')}
               onChangeValue={(v) => setOsHeader((p) => ({ ...p, os_date: v }))}
             />
           </Field>
           <Field label="Hora de entrada *">
             <Input
               name="os_time" type="time" value={osHeader.os_time}
-              error={hasErr('os_time') ? 'Campo obrigatório' : undefined}
+              error={erro('os_time')}
               onChangeValue={(v) => setOsHeader((p) => ({ ...p, os_time: v }))}
             />
           </Field>
           <Field label="Km atual" hint="ex: 87.450">
             <Input
-              name="os_km" onlyNumbers placeholder="87.450"
-              value={osHeader.os_km}
+              name="os_km" type="km" placeholder="87.450"
+              value={osHeader.os_km} validate={validarKm} error={erro('os_km')}
               onChangeValue={(v) => setOsHeader((p) => ({ ...p, os_km: v }))}
             />
           </Field>
@@ -109,31 +98,32 @@ export function Step1({ os }: StepProps) {
         <div style={g3}>
           <Field label="Nome completo *" span={2}>
             <Input
-              name="cliente_nome" placeholder="Ex: João da Silva" onlyText
-              value={cliente.nome}
-              error={hasErr('cli_nome') ? 'Campo obrigatório' : undefined}
+              name="cliente_nome" type="nome" placeholder="Ex: João da Silva" maxLength={LIM.nome}
+              value={cliente.nome} validate={validarNome}
+              error={erro('cli_nome')}
               onChangeValue={(v) => setCliente((p) => ({ ...p, nome: v }))}
             />
           </Field>
           <Field label="CPF / CNPJ">
             <Input
-              name="cliente_doc" placeholder="000.000.000-00"
-              value={formatDoc(cliente.doc)} maxLength={18}
-              onChangeValue={(v) => setCliente((p) => ({ ...p, doc: v.replace(/\D/g, '') }))}
+              name="cliente_doc" type="cpf_cnpj" placeholder="000.000.000-00"
+              value={cliente.doc} validate={validarDoc} error={erro('cli_doc')}
+              onChangeValue={(v) => setCliente((p) => ({ ...p, doc: v }))}
             />
           </Field>
           <Field label="Telefone *">
             <Input
-              name="cliente_tel" placeholder="(00) 00000-0000" mask="(99) 99999-9999"
-              value={cliente.tel}
-              error={hasErr('cli_tel') ? 'Campo obrigatório' : undefined}
+              name="cliente_tel" type="phone" placeholder="(00) 00000-0000"
+              value={cliente.tel} validate={validarTel}
+              error={erro('cli_tel')}
               onChangeValue={(v) => setCliente((p) => ({ ...p, tel: v }))}
             />
           </Field>
           <Field label="E-mail" span={2}>
             <Input
-              name="cliente_email" placeholder="cliente@email.com"
-              value={cliente.email}
+              name="cliente_email" type="email" placeholder="cliente@email.com"
+              maxLength={LIM.email} filter={FILTRO.espacos}
+              value={cliente.email} validate={validarEmail} error={erro('cli_email')}
               onChangeValue={(v) => setCliente((p) => ({ ...p, email: v }))}
             />
           </Field>
@@ -144,29 +134,31 @@ export function Step1({ os }: StepProps) {
         <div style={g4}>
           <Field label="Placa *">
             <Input
-              name="veiculo_placa" placeholder="ABC1C34 / ABC-1234"
-              value={veiculo.placa} maxLength={8} uppercase
+              name="veiculo_placa" type="placa" placeholder="ABC1D23 / ABC1234"
+              value={veiculo.placa} validate={validarPlaca} error={erro('vei_placa')}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, placa: v }))}
-              error={validatePlaca(veiculo.placa)}
             />
           </Field>
           <Field label="Modelo *" span={2}>
             <Input
               name="veiculo_modelo" placeholder="ex: Toyota Corolla"
+              maxLength={LIM.modelo} filter={FILTRO.modelo}
               value={veiculo.modelo}
-              error={hasErr('vei_modelo') ? 'Campo obrigatório' : undefined}
+              error={erro('vei_modelo')}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, modelo: v }))}
             />
           </Field>
           <Field label="Ano">
             <Input
-              name="veiculo_ano" placeholder="2014" value={veiculo.ano} maxLength={4}
+              name="veiculo_ano" type="ano" placeholder="2014" value={veiculo.ano}
+              validate={validarAno} error={erro('vei_ano')}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, ano: v }))}
             />
           </Field>
           <Field label="Cor">
             <Input
               name="veiculo_cor" placeholder="Prata" value={veiculo.cor}
+              maxLength={LIM.cor} filter={FILTRO.cor}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, cor: v }))}
             />
           </Field>
@@ -188,21 +180,21 @@ export function Step1({ os }: StepProps) {
           </Field>
           <Field label="Chassi" span={2} hint="17 caracteres">
             <Input
-              name="veiculo_chassi" placeholder="ex: 9BWZZZ377VT004251"
-              value={veiculo.chassi} uppercase maxLength={17}
+              name="veiculo_chassi" type="chassi" placeholder="ex: 9BWZZZ377VT004251"
+              value={veiculo.chassi} validate={validarChassi} error={erro('vei_chassi')}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, chassi: v }))}
             />
           </Field>
           <Field label="Observações de entrada" span={4}>
             <Textarea
-              name="veiculo_obs_entrada" value={veiculo.obs_entrada}
+              name="veiculo_obs_entrada" value={veiculo.obs_entrada} maxLength={LIM.obsLonga}
               placeholder="Riscos, amassados, itens faltantes..."
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, obs_entrada: v }))}
             />
           </Field>
           <Field label="Relato do cliente" span={4}>
             <Textarea
-              name="veiculo_obs_cliente" value={veiculo.obs_cliente}
+              name="veiculo_obs_cliente" value={veiculo.obs_cliente} maxLength={LIM.obsLonga}
               placeholder="Descreva o que o cliente relatou sobre o problema do veículo..."
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, obs_cliente: v }))}
             />
