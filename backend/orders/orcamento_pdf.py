@@ -18,6 +18,7 @@ dados = {
 import base64
 import binascii
 import io
+import os
 from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -36,6 +37,8 @@ COR_MARCA = colors.HexColor("#c8102e")
 COR_TEXTO = colors.HexColor("#1a1a1a")
 COR_SUAVE = colors.HexColor("#6b6b6b")
 COR_LINHA = colors.HexColor("#dcdcdc")
+LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo_revisacar.png")
+FINO = 0.5  # espessura (pt) das linhas vermelhas de detalhe
 
 STATUS_ROTULO = {
     "rascunho": "RASCUNHO — ainda não enviado ao cliente",
@@ -132,12 +135,14 @@ def _estilos(k: float = 1.0):
         "negrito": ParagraphStyle("negrito", parent=base, fontName="Helvetica-Bold"),
         "titulo": ParagraphStyle("titulo", parent=base, fontName="Helvetica-Bold", fontSize=16 * k, leading=19 * k),
         "secao": ParagraphStyle("secao", parent=base, fontName="Helvetica-Bold", fontSize=8 * k, leading=10 * k,
-                                textColor=COR_SUAVE, spaceBefore=7 * k, spaceAfter=3 * k),
+                                textColor=COR_MARCA, spaceBefore=7 * k, spaceAfter=3 * k),
+        "os": ParagraphStyle("os", parent=base, fontName="Helvetica-Bold", fontSize=14 * k, leading=17 * k,
+                             alignment=TA_RIGHT, textColor=COR_MARCA),
         "direita": ParagraphStyle("direita", parent=base, alignment=TA_RIGHT),
         "subtotal": ParagraphStyle("subtotal", parent=base, fontName="Helvetica-Bold", fontSize=10 * k,
                                    leading=13 * k, alignment=TA_RIGHT),
         "total": ParagraphStyle("total", parent=base, fontName="Helvetica-Bold", fontSize=14 * k, leading=17 * k,
-                                alignment=TA_RIGHT),
+                                alignment=TA_RIGHT, textColor=COR_MARCA),
         "cab": ParagraphStyle("cab", parent=base, fontName="Helvetica-Bold", fontSize=7.5 * k, leading=9.5 * k,
                               textColor=colors.white),
         "cab_dir": ParagraphStyle("cab_dir", parent=base, fontName="Helvetica-Bold", fontSize=7.5 * k,
@@ -171,7 +176,8 @@ def _secao_itens(titulo, rotulo_total, vazio, itens, e, largura, k):
         tabela.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), COR_TEXTO),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LINEBELOW", (0, 1), (-1, -1), 0.4, COR_LINHA),
+            ("LINEBELOW", (0, 0), (-1, 0), FINO, COR_MARCA, 0, None, 1),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.4, COR_LINHA, 0, None, 1),
             ("TOPPADDING", (0, 0), (-1, -1), 3 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * k),
         ]))
         flow.append(tabela)
@@ -184,7 +190,7 @@ def _construir(dados: dict, k: float):
     e = _estilos(k)
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=12 * mm * k + 2 * mm,
+        buf, pagesize=A4, leftMargin=16 * mm - 6, rightMargin=16 * mm - 6, topMargin=12 * mm * k + 2 * mm,
         bottomMargin=16 * mm,
         title=f"Orçamento {dados.get('os_num', '')} v{dados.get('versao', '')}",
         author=dados.get("oficina_nome") or "RevisaCar",
@@ -192,16 +198,24 @@ def _construir(dados: dict, k: float):
     largura = A4[0] - 32 * mm
     flow = []
 
-    # Cabeçalho
+    # Cabeçalho: nome da oficina à esquerda; OS/emissão e o logo (só o carrinho) à direita
+    logo = None
+    if os.path.exists(LOGO_PATH):
+        alt = 13 * mm * k
+        logo = Image(LOGO_PATH, width=alt * 600 / 496, height=alt)
+        logo.hAlign = "RIGHT"
+    w_logo = largura * 0.11 if logo else 0
     cab = Table([[
         [_p(dados.get("oficina_nome") or "Oficina", e["titulo"]), _p("Orçamento de serviços", e["suave"])],
-        [_p(rotulo_os(dados.get("os_num")), e["total"]),
+        [_p(rotulo_os(dados.get("os_num")), e["os"]),
          _p(f"Versão {dados.get('versao', 1)} · emitido em {data_hora_br(dados.get('emitido_em'))}",
             e["direita"])],
-    ]], colWidths=[largura * 0.5, largura * 0.5])
-    cab.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LINEBELOW", (0, 0), (-1, 0), 1.2, COR_MARCA),
+        logo or "",
+    ]], colWidths=[largura * 0.45, largura * 0.44, w_logo] if logo else [largura * 0.5, largura * 0.5, 0])
+    cab.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                             ("LINEBELOW", (0, 0), (-1, 0), FINO, COR_MARCA, 0, None, 1),
                              ("BOTTOMPADDING", (0, 0), (-1, 0), 6 * k), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                             ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+                             ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (1, 0), (1, 0), 10 * k)]))
     flow += [cab, Spacer(1, 4 * k)]
 
     status = dados.get("status") or ""
@@ -236,7 +250,7 @@ def _construir(dados: dict, k: float):
     total_geral = _soma(pecas) + _soma(servicos)
     linha_total = Table([[_p("TOTAL GERAL", e["negrito"]), _p(brl(total_geral), e["total"])]],
                         colWidths=[largura * 0.5, largura * 0.5])
-    linha_total.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, 0), 1.2, COR_MARCA), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    linha_total.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, 0), FINO, COR_MARCA, 0, None, 1), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                      ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
                                      ("TOPPADDING", (0, 0), (-1, -1), 4 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     flow += [Spacer(1, 6 * k), linha_total]
@@ -270,6 +284,9 @@ def _construir(dados: dict, k: float):
 
     def rodape(canvas, doc_):
         canvas.saveState()
+        canvas.setStrokeColor(COR_MARCA)
+        canvas.setLineWidth(FINO)
+        canvas.line(16 * mm, 12.5 * mm, A4[0] - 16 * mm, 12.5 * mm)
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(COR_SUAVE)
         canvas.drawString(16 * mm, 9 * mm, f"{dados.get('oficina_nome') or ''} · {rotulo_os(dados.get('os_num'))} · "
