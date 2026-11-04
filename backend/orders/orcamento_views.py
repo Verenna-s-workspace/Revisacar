@@ -337,6 +337,7 @@ def _dados_para_pdf(oficina_doc: str, row: dict, itens: list, assinatura_png) ->
     ordem = ordem[0] if ordem else {}
     payload = _payload_da_ordem(ordem)
     cliente, veiculo = payload.get("cliente") or {}, payload.get("veiculo") or {}
+    tecnico = payload.get("tecnico") or {}
     adm = supabase.table("admins").select("nome").eq("doc", oficina_doc).limit(1).execute().data
     aprovado = row["status"] == "aprovado" or (row["status"] == "substituido" and row.get("aprovado_em"))
     return {
@@ -347,7 +348,10 @@ def _dados_para_pdf(oficina_doc: str, row: dict, itens: list, assinatura_png) ->
         "emitido_em": row.get("enviado_em") or row.get("created_at"),
         "validade_ate": row.get("validade_ate"),
         "cliente": {k: cliente.get(k, "") for k in ("nome", "tel", "doc")},
-        "veiculo": {k: veiculo.get(k, "") for k in ("placa", "modelo", "ano", "cor")},
+        "veiculo": {
+            **{k: veiculo.get(k, "") for k in ("placa", "modelo", "ano", "cor")},
+            "km_saida": tecnico.get("km_saida", "") if isinstance(tecnico, dict) else "",
+        },
         "itens": [{
             "tipo": i["tipo"], "descricao": i["descricao"], "marca": i.get("marca") or "",
             "quantidade": i["quantidade"], "preco_unitario": i["preco_unitario"],

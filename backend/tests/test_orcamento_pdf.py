@@ -41,6 +41,54 @@ def test_brl_e_quantidade():
     assert orcamento_pdf.rotulo_os("OS-77") == "OS-77" and orcamento_pdf.rotulo_os("77") == "OS 77"
 
 
+def test_data_hora_e_km():
+    # 18:35 UTC = 15:35 em Brasília
+    assert orcamento_pdf.data_hora_br("2026-11-04T18:35:09+00:00") == "04/11/2026 às 15:35"
+    assert orcamento_pdf.data_hora_br("2026-11-04") == "04/11/2026"
+    assert orcamento_pdf.data_hora_br(None) == ""
+    assert orcamento_pdf.km_txt("87450") == "87.450 km" and orcamento_pdf.km_txt("") == ""
+
+
+def _dados_pdf(n_pecas=2, n_servicos=2, **extra):
+    itens = [{"tipo": "peca", "descricao": f"Peca{i}", "marca": "Bosch", "quantidade": 2,
+              "preco_unitario": "100.00", "subtotal": "200.00", "motivo": ""} for i in range(n_pecas)]
+    itens += [{"tipo": "servico", "descricao": f"Servico{i}", "marca": "", "quantidade": 1,
+               "preco_unitario": "80.00", "subtotal": "80.00", "motivo": ""} for i in range(n_servicos)]
+    base = {
+        "oficina_nome": "Oficina X", "os_num": "OS-77", "versao": 1, "status": "enviado",
+        "emitido_em": "2026-11-04T18:35:09+00:00", "validade_ate": None,
+        "cliente": {"nome": "Joao", "tel": "", "doc": ""},
+        "veiculo": {"placa": "ABC1D23", "modelo": "Gol", "ano": "2018", "cor": "Prata", "km_saida": "87450"},
+        "itens": itens, "total": "0", "observacoes": "", "aprovacao": None, "assinatura_png": None,
+    }
+    base.update(extra)
+    return base
+
+
+def test_pdf_layout_pecas_servicos_km_e_hora():
+    pytest.importorskip("pypdf")
+    texto = _texto_pdf(orcamento_pdf.gerar_pdf(_dados_pdf()))
+    assert "04/11/2026 às 15:35" in texto
+    assert "KM de saída: 87.450 km" in texto
+    assert texto.index("PEÇAS") < texto.index("Total de peças R$ 400,00") < texto.index("SERVIÇOS")
+    assert texto.index("SERVIÇOS") < texto.index("Total de mão de obra R$ 160,00") < texto.index("TOTAL GERAL")
+    assert "R$ 560,00" in texto  # total geral = peças + serviços
+
+
+def test_pdf_sempre_em_uma_pagina():
+    from pypdf import PdfReader
+    for n_pecas, n_servicos in ((1, 1), (12, 8), (25, 15)):
+        pdf = orcamento_pdf.gerar_pdf(_dados_pdf(n_pecas, n_servicos))
+        assert len(PdfReader(io.BytesIO(pdf)).pages) == 1, (n_pecas, n_servicos)
+
+
+def test_pdf_so_pecas_ou_so_servicos():
+    pytest.importorskip("pypdf")
+    texto = _texto_pdf(orcamento_pdf.gerar_pdf(_dados_pdf(n_pecas=0, n_servicos=1)))
+    assert "Nenhuma peça neste orçamento." in texto and "Total de peças R$ 0,00" in texto
+    assert "TOTAL GERAL" in texto and "R$ 80,00" in texto
+
+
 def test_assinatura_valida_e_em_branco():
     png = orcamento_pdf.decodificar_assinatura(_png())
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
