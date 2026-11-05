@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../utils/api';
+import { mensagemDoErro } from '../utils/api_erro';
 import { Input } from '../components/inputs/input';
+import { isValidCNPJ } from '../components/inputs/masks';
 import type { AuthResult } from '../types';
 import type { AuthFlow } from './auth/authFlows';
 import { IgnicaoBoasVindas, prepararAudioIgnicao } from './auth/Animations/ignicao';
+import { OficinaStep } from './auth/OficinaStep';
 
 interface AuthScreenProps {
   onAuthenticated: (result: AuthResult) => void;
@@ -18,6 +21,7 @@ interface AuthScreenProps {
 type AuthMode = 'login' | 'register' | 'forgot';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_SENHA = 6;
 
 const COPY: Record<AuthMode, { title: string; subtitle: string }> = {
   login: { title: 'Entrar', subtitle: 'Use o CNPJ da oficina e a sua senha.' },
@@ -40,8 +44,11 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  // Etapa 3 do cadastro: guarda o resultado da conta criada. A sessão só é
-  // entregue ao app (onAuthenticated) quando a animação termina.
+  // Etapa 2 do cadastro: a conta já foi criada (etapa 1), falta cadastrar os dados
+  // da oficina (OficinaStep). A sessão ainda NÃO é entregue ao app.
+  const [cadastro, setCadastro] = useState<{ result: AuthResult; cnpj: string; email: string } | null>(null);
+  // Etapa 3 do cadastro: etapa 2 concluída, a animação de boas-vindas está tocando.
+  // A sessão só é entregue ao app (onAuthenticated) quando a animação termina.
   const [cadastroConcluido, setCadastroConcluido] = useState<AuthResult | null>(null);
 
   // SÓ EM DESENVOLVIMENTO: abrir a tela com ?ignicao na URL arma a prévia da
@@ -62,12 +69,26 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
     return () => window.removeEventListener('pointerdown', disparar);
   }, [previaArmada, previaTocando]);
 
-  // Quadrados do painel: cadastro (3, só o 1º existe por enquanto) ou
+  // Quadrados do painel: cadastro (3: conta → oficina → boas-vindas) ou
   // login (2: "Entre na sua conta" / "Recupere sua senha").
   useEffect(() => {
-    if (cadastroConcluido) return; // etapa 3 já foi sinalizada; não volta ao 1º quadrado
+    if (cadastroConcluido) return; // etapa 3 já foi sinalizada; não volta ao quadrado anterior
+    if (cadastro) {
+      onProgress?.('cadastro', 1);
+      return;
+    }
     onProgress?.(mode === 'register' ? 'cadastro' : 'login', mode === 'forgot' ? 1 : 0);
-  }, [mode, onProgress, cadastroConcluido]);
+  }, [mode, onProgress, cadastro, cadastroConcluido]);
+
+  // Fim da etapa 2: só agora a animação começa. Roda de forma síncrona dentro do
+  // clique em "Continuar" (gesto do usuário), por isso é aqui que o áudio é destravado
+  // (política de autoplay dos navegadores).
+  const concluirEtapaOficina = () => {
+    if (!cadastro || cadastroConcluido) return; // evita disparar duas vezes (ex.: Enter repetido)
+    prepararAudioIgnicao();
+    setCadastroConcluido(cadastro.result);
+    onProgress?.('cadastro', 2);
+  };
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
@@ -76,33 +97,45 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
     setConfirmarSenha('');
   };
 
+  /** Confere o formulário ANTES de chamar o servidor. Devolve o aviso para a pessoa, ou null se está tudo certo. */
+  const validarFormulario = (): string | null => {
+    if (mode === 'forgot') {
+      if (!email.trim()) return 'Informe o e-mail cadastrado.';
+      if (!EMAIL_REGEX.test(email.trim())) return 'Esse e-mail não parece válido. Confira e tente de novo.';
+      return null;
+    }
+
+    if (mode === 'register' && !nome.trim()) return 'Informe o seu nome.';
+
+    const cnpj = doc.replace(/\D/g, '');
+    if (!cnpj) return 'Informe o CNPJ da oficina.';
+    if (!isValidCNPJ(cnpj)) return 'CNPJ inválido. Confira os 14 números e tente de novo.';
+
+    if (mode === 'register') {
+      if (!EMAIL_REGEX.test(email.trim())) return 'Informe um e-mail válido.';
+      if (senha.length < MIN_SENHA) return `A senha deve ter pelo menos ${MIN_SENHA} caracteres.`;
+      if (senha !== confirmarSenha) return 'As senhas não coincidem.';
+    } else if (!senha) {
+      return 'Informe a sua senha.';
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
 
-    if (mode === 'register') {
-      if (!EMAIL_REGEX.test(email.trim())) {
-        setError('Email inválido');
-        return;
-      }
-      if (senha !== confirmarSenha) {
-        setError('As senhas não coincidem');
-        return;
-      }
-      // Ainda dentro do gesto de clique (antes de qualquer await): cria/destrava
-      // o AudioContext para a animação poder tocar som (política de autoplay).
-      prepararAudioIgnicao();
+    const aviso = validarFormulario();
+    if (aviso) {
+      setError(aviso);
+      return;
     }
 
     setLoading(true);
 
     try {
       if (mode === 'forgot') {
-        if (!email.trim()) {
-          setError('Email obrigatório');
-          return;
-        }
         await api.forgotPassword({ email: email.trim().toLowerCase() });
         setMessage('Se o email existir, você receberá um link de redefinição em breve.');
         return;
@@ -115,24 +148,26 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
         senha,
       };
 
-      // TODO(cadastro): a etapa 2 ("Cadastre as informações da sua oficina") fica
-      // entre a conta e a animação. Quando for integrada (branch
-      // feat/cadastro-etapa-2-dados-oficina), o ramo de cadastro abaixo passa a
-      // avançar para ela (onProgress('cadastro', 1)), e é o onConcluir da
-      // etapa 2 que faz setCadastroConcluido + onProgress('cadastro', 2).
       if (mode === 'login') {
         const result = await api.loginAdmin({ doc: payload.doc, senha: payload.senha });
         onAuthenticated(result as AuthResult);
         return;
       }
 
-      // Cadastro novo: etapa 3 (animação de boas-vindas), depois o dashboard.
+      // Cadastro novo. Etapa 1 concluída: a conta existe, mas a pessoa ainda não
+      // entra no sistema. Segue para a etapa 2 (dados da oficina, OficinaStep) e só
+      // depois dela vem a etapa 3 (animação de boas-vindas) e o dashboard.
       const result = await api.criarAdmin(payload);
-      setCadastroConcluido(result as AuthResult);
-      onProgress?.('cadastro', 2);
+      setCadastro({ result: result as AuthResult, cnpj: payload.doc, email: payload.email });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro inesperado';
-      setError(msg.replace(/"/g, ''));
+      setError(mensagemDoErro(
+        err,
+        mode === 'login'
+          ? 'Não foi possível entrar agora. Tente de novo em instantes.'
+          : mode === 'register'
+            ? 'Não foi possível criar a conta agora. Tente de novo em instantes.'
+            : 'Não foi possível enviar o link agora. Tente de novo em instantes.',
+      ));
     } finally {
       setLoading(false);
     }
@@ -142,6 +177,9 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
 
   return (
     <>
+      {cadastro ? (
+        <OficinaStep cnpj={cadastro.cnpj} email={cadastro.email} onConcluir={concluirEtapaOficina} />
+      ) : (
       <form className="auth-view" key={mode} onSubmit={handleSubmit} noValidate>
         <h1 className="auth-title">{title}</h1>
         <p className="auth-subtitle">{subtitle}</p>
@@ -209,6 +247,7 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
           </p>
         )}
       </form>
+      )}
 
       {/* Portal no <body>: o painel de auth usa transform/will-change, que
           quebrariam o position: fixed do overlay de tela cheia. */}

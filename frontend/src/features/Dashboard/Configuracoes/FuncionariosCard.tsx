@@ -5,6 +5,7 @@ import { Card } from '../Primitives';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
 import { api } from '../../../utils/api';
+import { mensagemDoErro } from '../../../utils/api_erro';
 import { usePermissions } from '../../../hooks/usePermissions';
 import type { Funcionario } from '../../../types';
 
@@ -65,7 +66,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
       setNovo(FORM_INICIAL);
       carregar();
     } catch (err) {
-      setErroAcao(err instanceof Error ? err.message.replace(/"/g, '') : 'Erro ao cadastrar funcionário');
+      setErroAcao(mensagemDoErro(err, 'Não foi possível cadastrar o funcionário agora. Tente de novo.'));
     } finally {
       setSalvando(false);
     }
