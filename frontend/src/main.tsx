@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/Toast';
 import { tokenDoCaminho } from './utils/orcamento_link_utils';
 import { codigoDoCaminho } from './utils/acesso_equipe_utils';
 import { telaSobDemanda } from './utils/telaSobDemanda';
@@ -53,7 +54,9 @@ const codigoEquipe = codigoDoCaminho(window.location.pathname);
 
 const painel = (
   <AuthProvider>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </AuthProvider>
 );
 

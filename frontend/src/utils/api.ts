@@ -549,6 +549,9 @@ export const api = {
 
   baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
 
+  /** Relatório final da OS (PDF de uma página). Só existe para OS finalizada; antes disso o servidor responde 409. */
+  baixarPdfOsConcluida: (ordemId: string) => authFetchBlob(`${API_BASE}/ordens/${ordemId}/pdf-concluida`),
+
   recusarOrcamento: (id: string, payload: { motivo?: string }) =>
     authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),
 
