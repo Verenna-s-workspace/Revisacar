@@ -60,7 +60,7 @@ export function Textarea({
         cols={cols}
         onChange={handleChange}
         onBlur={onBlur}
-        value={value}
+        value={value ?? ''}
         disabled={disabled}
         required={required}
         maxLength={maxLength}
@@ -73,7 +73,7 @@ export function Textarea({
       {error && <span id={errorId} className="inp-error-text">{error}</span>}
       {!error && hint && <span id={hintId} className="inp-hint-text">{hint}</span>}
       {!error && maxLength && (
-        <span className="inp-count-text">{value.length}/{maxLength}</span>
+        <span className="inp-count-text">{(value ?? '').length}/{maxLength}</span>
       )}
     </div>
   );

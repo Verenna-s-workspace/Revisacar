@@ -451,7 +451,7 @@ export function useOrdemServico() {
     setOrdemStatus(typeof ordem.status === 'string' ? ordem.status : null);
     setOsHeader(payload.os_header || INITIAL_OS_HEADER());
     setCliente(payload.cliente    || INITIAL_CLIENTE);
-    setVeiculo(payload.veiculo    || INITIAL_VEICULO);
+    setVeiculo({ ...INITIAL_VEICULO, ...(payload.veiculo || {}) });
     setTecnico(payload.tecnico    || INITIAL_TECNICO);
 
     setSelected(new Set(payload.servicos_selecionados || []));

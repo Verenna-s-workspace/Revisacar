@@ -57,7 +57,7 @@ export function Topbar({
         width="70"
         height="70"
         loading="eager"
-        fetchPriority="high"
+        {...{ fetchpriority: 'high' }}
       />
       <div>
         <div className="topbar__title">
