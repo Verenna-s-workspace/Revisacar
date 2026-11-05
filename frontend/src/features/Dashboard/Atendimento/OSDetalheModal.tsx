@@ -7,6 +7,7 @@ import { api } from '../../../utils/api';
 import { parseOrdemPayload } from '../../../utils/atendimento_utils';
 import { Select } from '../../../components/inputs/select';
 import { Textarea } from '../../../components/inputs/textarea';
+import { BotaoPdfOsConcluida } from '../../Fechamento/BotaoPdfOsConcluida';
 import type { OSAtendimento, OverlayOS, PrioridadeAtendimento } from '../../../types/atendimento';
 
 const FIELD_LABEL: CSSProperties = {
@@ -347,8 +348,11 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
           </div>
         </div>
 
-        {!finalizada && (
-          <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          {/* Fica sempre visível: antes de a OS ser finalizada o botão avisa o motivo em vez de sumir. */}
+          <BotaoPdfOsConcluida ordemId={ordem.id} osNum={ordem.os_num} status={ordem.status} />
+          {!finalizada && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {bloqueada && (
               <button
                 onClick={handleDesbloquear}
@@ -390,7 +394,8 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
               <span style={{ display: 'flex' }}>{Icons.arrow}</span>
             </button>
           </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

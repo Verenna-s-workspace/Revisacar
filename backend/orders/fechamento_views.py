@@ -14,21 +14,34 @@ Rotas:
        (com o que falta), baixas já feitas e, pra quem tem `financeiro.ver`, os lançamentos
        da OS no Financeiro.
 
+  GET  /ordens/<id>/pdf-concluida                               (ordens.ver)
+       PDF (application/pdf) do relatório final da OS, em uma página. SÓ existe para OS finalizada:
+       qualquer outro status → 409 `os_nao_finalizada`. Gerado na hora (sempre com a hora de emissão
+       do momento e os dados atuais); nada é guardado. Mostra só o preço cobrado (nunca custo/margem).
+
 `PATCH /ordens/<id>/status` com 'finalizada' passa pelo mesmo caminho (sem observação, sem
 ignorar faltas), então não existe forma de concluir sem baixar o estoque.
 
 Concluir NÃO recebe pagamento: os lançamentos pendentes do Financeiro continuam pendentes.
 """
 import logging
+import re
+from decimal import Decimal
 
+from django.http import HttpResponse
 from postgrest.exceptions import APIError
 from rest_framework import status as http_status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from . import fotos_obrigatorias, os_concluida_pdf
 from . import ordem_status as os_status
 from .estoque_views import _corpo_valido, _jsonb, _negado, _nao_encontrado, _num
-from .orcamento_views import _tratar_erros_banco, orcamento_para_api, _itens_de, _ver_margem
+from .oficina_config_views import COLUNA_AUSENTE, config_para_api
+from .orcamento_views import (
+    _assinatura_guardada, _centavos, _itens_de, _payload_da_ordem, _tratar_erros_banco, _ver_margem,
+    orcamento_para_api,
+)
 from .serializers import ConclusaoOrdemSerializer
 from .views import supabase, require_auth, _oficina_doc_do_token, _now
 
@@ -186,6 +199,81 @@ def _ordem(oficina_doc: str, ordem_id: str):
     return res.data[0] if res.data else None
 
 
+# ── Relatório final (PDF) ─────────────────────────────────────────────────────
+
+def _dados_oficina(oficina_doc: str) -> dict:
+    try:
+        linhas = supabase.table("admins").select("nome,doc,config_oficina").eq("doc", oficina_doc).limit(1).execute().data
+    except APIError as e:
+        if getattr(e, "code", None) not in COLUNA_AUSENTE:
+            raise
+        linhas = supabase.table("admins").select("nome,doc").eq("doc", oficina_doc).limit(1).execute().data
+    return config_para_api(linhas[0] if linhas else {})
+
+
+def _fotos_do_relatorio(oficina_doc: str, ordem_id: str) -> list:
+    """Os 5 itens obrigatórios, na ordem fixa, com a situação de cada um (foto / pulada com motivo / pendente)."""
+    try:
+        linhas = fotos_obrigatorias._linhas(supabase, oficina_doc, ordem_id)
+    except APIError as e:
+        if getattr(e, "code", None) not in fotos_obrigatorias.TABELA_AUSENTE:
+            raise
+        linhas = {}
+    return [{"rotulo": i["rotulo"], "situacao": i["situacao"], "motivo": i.get("motivo") or ""}
+            for i in fotos_obrigatorias.resumo(linhas)["itens"]]
+
+
+def dados_do_relatorio_final(oficina_doc: str, ordem: dict) -> dict:
+    """Monta SÓ o que o cliente pode ver. Custo, margem e vínculos internos não entram."""
+    ordem_id = ordem["id"]
+    payload = _payload_da_ordem(ordem)
+    cabecalho = payload.get("os_header") or {}
+    cliente, veiculo = payload.get("cliente") or {}, payload.get("veiculo") or {}
+    tecnico = payload.get("tecnico") if isinstance(payload.get("tecnico"), dict) else {}
+
+    aprovado = supabase.table("orcamentos").select("*").eq("oficina_doc", oficina_doc) \
+        .eq("ordem_id", ordem_id).eq("status", "aprovado").order("versao", desc=True).limit(1).execute().data
+    itens, aprovacao, assinatura = [], None, None
+    if aprovado:
+        orc = aprovado[0]
+        brutos = _itens_de([str(orc["id"])]).get(str(orc["id"]), [])
+        itens = [{
+            "tipo": i["tipo"], "descricao": i["descricao"], "marca": i.get("marca") or "",
+            "quantidade": i["quantidade"], "preco_unitario": i["preco_unitario"],
+            "subtotal": _centavos(Decimal(str(i["quantidade"])) * Decimal(str(i["preco_unitario"]))),
+            "motivo": i.get("motivo") or "",
+        } for i in brutos]
+        if orc.get("aprovado_em"):
+            aprovacao = {"em": orc["aprovado_em"], "canal": orc.get("aprovacao_canal"),
+                         "obs": orc.get("aprovacao_obs") or "", "versao": orc.get("versao")}
+        assinatura = _assinatura_guardada(orc)
+
+    extras = ordem.get("fotos_paths") or payload.get("fotos_paths") or []
+    return {
+        "oficina": _dados_oficina(oficina_doc),
+        "os_num": ordem.get("os_num") or ordem_id,
+        "emitido_em": _now(),
+        "concluida_em": ordem.get("concluida_em"),
+        "concluida_por": ordem.get("concluida_por_nome") or "",
+        "obs_conclusao": ordem.get("obs_conclusao") or "",
+        "cliente": {k: cliente.get(k, "") for k in ("nome", "doc", "tel", "email")},
+        "veiculo": {
+            **{k: veiculo.get(k, "") for k in ("placa", "modelo", "ano", "cor", "chassi", "combustivel",
+                                               "nivel_combustivel")},
+            "km_entrada": cabecalho.get("os_km", ""), "km_saida": tecnico.get("km_saida", ""),
+        },
+        "tecnico": {"nome": tecnico.get("nome", ""), "registro": tecnico.get("registro", "")},
+        "entrada": {"data": cabecalho.get("os_date", ""), "hora": cabecalho.get("os_time", "")},
+        "saida": {"data": tecnico.get("data_saida", ""), "hora": tecnico.get("hora_saida", "")},
+        "fotos": _fotos_do_relatorio(oficina_doc, ordem_id),
+        "fotos_extras": len(extras) if isinstance(extras, list) else 0,
+        "parecer": tecnico.get("parecer_geral", ""),
+        "itens": itens,
+        "aprovacao": aprovacao,
+        "assinatura_png": assinatura,
+    }
+
+
 # ── Rotas ─────────────────────────────────────────────────────────────────────
 
 @api_view(["POST"])
@@ -229,3 +317,29 @@ def fechamento(request, ordem_id):
     if ordem is None:
         return _nao_encontrado("OS não encontrada.")
     return Response(resumo_do_fechamento(request, oficina_doc, ordem))
+
+
+@api_view(["GET"])
+@require_auth
+@_tratar_erros_banco
+def ordem_pdf_concluida(request, ordem_id):
+    """GET /ordens/<id>/pdf-concluida — relatório final da OS (application/pdf), só para OS finalizada."""
+    negado = _negado(request, "ordens.ver")
+    if negado:
+        return negado
+    oficina_doc = _oficina_doc_do_token(request.admin)
+    ordem = _ordem(oficina_doc, ordem_id)
+    if ordem is None:
+        return _nao_encontrado("OS não encontrada.")
+    if ordem.get("status") != os_status.FINALIZADA:
+        return Response(
+            {"detail": "A OS precisa estar finalizada para gerar este documento.",
+             "codigo": "os_nao_finalizada", "osStatus": ordem.get("status")},
+            status=http_status.HTTP_409_CONFLICT,
+        )
+    conteudo = os_concluida_pdf.gerar_pdf(dados_do_relatorio_final(oficina_doc, ordem))
+    resposta = HttpResponse(conteudo, content_type="application/pdf")
+    nome = re.sub(r"[^\w-]+", "_", str(ordem.get("os_num") or ordem_id))
+    resposta["Content-Disposition"] = f'inline; filename="os-concluida-{nome}.pdf"'
+    resposta["Cache-Control"] = "private, no-store"
+    return resposta

@@ -20,6 +20,7 @@ urlpatterns = [
     path("ordens/<str:ordem_id>/cliente-avisado", alertas_views.ordem_cliente_avisado),
     path("ordens/<str:ordem_id>/concluir", fechamento_views.ordem_concluir),
     path("ordens/<str:ordem_id>/fechamento", fechamento_views.fechamento),
+    path("ordens/<str:ordem_id>/pdf-concluida", fechamento_views.ordem_pdf_concluida),
 
     # Orçamento da OS (versões + itens) — ordens.ver / ordens.editar; custo e margem: financeiro.ver_margem
     path("ordens/<str:ordem_id>/orcamentos", orcamento_views.orcamentos_da_ordem),

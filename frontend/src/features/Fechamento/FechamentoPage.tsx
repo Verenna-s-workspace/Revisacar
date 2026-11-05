@@ -10,6 +10,7 @@ import { ROTULO_STATUS } from '../../utils/ordem_status';
 import type { StatusOrdem } from '../../utils/ordem_status';
 import { dataBR } from '../../utils/orcamento_utils';
 import { ItensLeitura } from '../Orcamento/ItensLeitura';
+import { BotaoPdfOsConcluida } from './BotaoPdfOsConcluida';
 import type { FaltaAoConcluir, Fechamento } from '../../types/fechamento';
 
 interface Props {
@@ -235,6 +236,18 @@ export default function FechamentoPage({ os, onBackToStart, onGoOrcamento }: Pro
           </div>
         </div>
       )}
+
+      <div style={cartao}>
+        <h2 style={tituloBloco}>Relatório final</h2>
+        <div style={{ fontSize: '0.88rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
+          {concluida
+            ? 'Documento de encerramento em uma página: ficha de entrada e saída, fotos, parecer, peças, serviços e aprovação do cliente.'
+            : 'O relatório final fica disponível quando o serviço for concluído.'}
+        </div>
+        <div>
+          <BotaoPdfOsConcluida ordemId={ordemId} osNum={dados.osNum} status={status} />
+        </div>
+      </div>
 
       {(dados.reservas.length > 0 || dados.baixas.length > 0) && (
         <div style={cartao}>
