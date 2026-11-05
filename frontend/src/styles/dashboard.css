@@ -52,7 +52,7 @@ input, textarea, select, [contenteditable="true"] {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   box-shadow: 0 0 24px rgba(0,0,0,0.04);
 }
 
@@ -98,11 +98,12 @@ input, textarea, select, [contenteditable="true"] {
 }
 
 .dashboard-sidebar__brand-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--color-muted);
   line-height: 1.25;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  
   
 }
 

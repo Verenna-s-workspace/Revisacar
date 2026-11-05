@@ -130,7 +130,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
               Sair
             </button>
             <div className="dashboard-sidebar__identity-dropdown-hint">
-              Troca entre funcionários da oficina chega numa próxima versão.
+              Mantenha seus dados seguros. Não compartilhe suas credenciais.
             </div>
           </div>
         )}
@@ -196,7 +196,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
             // Era 56px de padding vertical: sozinho ocupava ~190px e empurrava a
             // sidebar pra além de 768px de altura.
             margin: '0 16px 18px',
-            padding: '18px 10px',
+            padding: '44px 10px',
             borderRadius: 16,
             border: `2px dashed rgba(204, 20, 0, 0.64)`,
             background: 'var(--color-bg-alt)',
