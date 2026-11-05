@@ -324,7 +324,7 @@ def _construir(dados: dict, k: float):
     ]))
     esquerda = []
     if os.path.exists(LOGO_PATH):
-        alt = 7 * mm * k
+        alt = 4.3 * mm * k  # ≈ logo da sidebar do app (carrinho visível ~22 px), um pouco menor
         logo = Image(LOGO_PATH, width=alt * 600 / 496, height=alt)
         logo.hAlign = "LEFT"
         esquerda += [logo, Spacer(1, 2.5 * k)]
