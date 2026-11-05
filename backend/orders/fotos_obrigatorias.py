@@ -266,7 +266,7 @@ def foto_obrigatoria(request, ordem_id, slot):
 
     arquivo = request.FILES.get("file")
     if not arquivo:
-        return Response({"detail": "Nenhum arquivo enviado (campo 'file')"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Nenhuma foto foi enviada."}, status=http_status.HTTP_400_BAD_REQUEST)
     conteudo = arquivo.read()
     if len(conteudo) > MAX_FOTO_SIZE_BYTES:
         return Response(

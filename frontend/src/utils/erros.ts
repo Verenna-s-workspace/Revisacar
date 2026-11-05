@@ -1,14 +1,5 @@
 /**
- * Extrai uma mensagem legível de um erro vindo de `api` (o corpo da resposta chega como texto JSON).
- * O backend responde `{"detail": "..."}` ou `{"campo": "mensagem"}` (validação) — mostra a primeira.
+ * Mensagem legível de um erro vindo de `api`. Mantido por compatibilidade: a lógica vive em
+ * `api_erro.ts` (mensagemDoErro), para as telas e os hooks falarem todos do mesmo jeito.
  */
-export function mensagemDeErro(e: unknown, padrao: string): string {
-  const bruto = e instanceof Error ? e.message : '';
-  try {
-    const j = JSON.parse(bruto);
-    if (typeof j?.detail === 'string') return j.detail;
-    const primeiro = Object.values(j ?? {}).find((v): v is string => typeof v === 'string');
-    if (primeiro) return primeiro;
-  } catch { /* corpo não era JSON */ }
-  return padrao;
-}
+export { mensagemDoErro as mensagemDeErro } from './api_erro';

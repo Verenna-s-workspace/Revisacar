@@ -369,15 +369,39 @@ def admin_signup(request):
 
     dados = serializer.validated_data
     if _get_admin_by_doc(dados["doc"]):
-        return Response({"detail": "CNPJ já cadastrado"}, status=status.HTTP_409_CONFLICT)
+        return Response(
+            {"detail": "Este CNPJ já está cadastrado. Entre na sua conta ou use \"Esqueci minha senha\"."},
+            status=status.HTTP_409_CONFLICT,
+        )
+    if _get_admin_by_email(dados["email"]):
+        return Response(
+            {"detail": "Este e-mail já está cadastrado. Use outro e-mail ou entre na sua conta."},
+            status=status.HTTP_409_CONFLICT,
+        )
 
-    supabase.table("admins").insert({
-        "nome": dados["nome"],
-        "doc": dados["doc"],
-        "email": dados["email"],
-        "pwhash": pwhash(dados["senha"]),
-        "created_at": _now(),
-    }).execute()
+    try:
+        supabase.table("admins").insert({
+            "nome": dados["nome"],
+            "doc": dados["doc"],
+            "email": dados["email"],
+            "pwhash": pwhash(dados["senha"]),
+            "created_at": _now(),
+        }).execute()
+    except APIError as e:
+        # Duas pessoas cadastrando o mesmo CNPJ/e-mail ao mesmo tempo: a checagem acima
+        # passou para as duas e o banco barrou a segunda. Mesma resposta de antes, em vez de um 500.
+        logger.warning("Cadastro de admin barrado pelo banco (%s): %s", getattr(e, "code", None), getattr(e, "message", e))
+        if getattr(e, "code", None) == "23505":
+            campo_email = "email" in str(getattr(e, "message", "")).lower()
+            return Response(
+                {"detail": "Este e-mail já está cadastrado. Use outro e-mail ou entre na sua conta." if campo_email
+                           else "Este CNPJ já está cadastrado. Entre na sua conta ou use \"Esqueci minha senha\"."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(
+            {"detail": "Não foi possível criar a conta agora. Tente de novo em instantes."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     admin = _get_admin_by_doc(dados["doc"])
     tokens = _issue_tokens(admin)
@@ -393,7 +417,7 @@ def admin_login(request):
     dados = serializer.validated_data
     admin = _get_admin_by_doc(dados["doc"])
     if not admin or not valhash(dados["senha"], admin.get("pwhash", "")):
-        return Response({"detail": "Doc ou senha incorretos"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"detail": "CNPJ ou senha incorretos"}, status=status.HTTP_401_UNAUTHORIZED)
 
     tokens = _issue_tokens(admin)
     return Response(tokens)
@@ -437,7 +461,7 @@ def admin_logout(request):
 def admin_forgot_password(request):
     email = request.data.get("email", "").strip().lower()
     if not email:
-        return Response({"detail": "Email obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Informe o e-mail cadastrado."}, status=status.HTTP_400_BAD_REQUEST)
 
     if not _can_request_password_reset(email):
         return Response({"detail": "Aguarde alguns minutos antes de tentar novamente."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
@@ -463,23 +487,29 @@ def admin_reset_password(request):
     token = request.data.get("token", "")
     senha = request.data.get("senha", "")
 
+    link_invalido = {"detail": "Este link de redefinição expirou ou já foi usado. Peça um novo em \"Esqueci minha senha\"."}
+
     if not token or not senha:
-        return Response({"detail": "Token e senha obrigatórios"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Este link de redefinição não é válido. Peça um novo em \"Esqueci minha senha\"."}
+            if not token else {"detail": "Informe a nova senha."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     if len(senha) < 6:
-        return Response({"detail": "Senha deve ter pelo menos 6 caracteres"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        return Response({"detail": "A senha deve ter pelo menos 6 caracteres."}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     record = auth_store.get_valid_reset_token(token)
     if not record:
-        return Response({"detail": "Token inválido ou expirado"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(link_invalido, status=status.HTTP_401_UNAUTHORIZED)
 
     admin = _get_admin_by_doc(record["doc"])
     if not admin:
-        return Response({"detail": "Admin não encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "Conta não encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
     # Consome o token ANTES de trocar a senha: se dois pedidos chegarem juntos
     # com o mesmo token, só um consegue consumi-lo.
     if not auth_store.mark_reset_token_used(token):
-        return Response({"detail": "Token inválido ou expirado"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(link_invalido, status=status.HTTP_401_UNAUTHORIZED)
 
     supabase.table("admins").update({"pwhash": pwhash(senha)}).eq("doc", admin["doc"]).execute()
     _invalidate_refresh_tokens_for_doc(admin["doc"])
@@ -506,7 +536,7 @@ def funcionario_signup(request):
     oficina_doc = _oficina_doc_do_token(request.admin)
 
     if _get_funcionario_by_email(dados["email"]):
-        return Response({"detail": "Email já cadastrado"}, status=status.HTTP_409_CONFLICT)
+        return Response({"detail": "Este e-mail já está cadastrado em outro funcionário."}, status=status.HTTP_409_CONFLICT)
 
     try:
         supabase.table("funcionarios").insert({
@@ -536,7 +566,7 @@ def funcionarios_publicos(request):
     pela UX de quiosque. O que importa (o PIN) continua protegido."""
     oficina_doc = request.query_params.get("oficina_doc", "").strip()
     if not re.match(r"^\d{14}$", oficina_doc):
-        return Response({"detail": "oficina_doc inválido"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "CNPJ da oficina inválido."}, status=status.HTTP_400_BAD_REQUEST)
 
     res = supabase.table("funcionarios").select("id, nome, cargo").eq(
         "oficina_doc", oficina_doc
@@ -575,7 +605,7 @@ def funcionario_forgot_pin(request):
     PIN antigo', só substituir por um novo, igual reset de senha."""
     email = request.data.get("email", "").strip().lower()
     if not email:
-        return Response({"detail": "Email obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Informe o e-mail cadastrado."}, status=status.HTTP_400_BAD_REQUEST)
 
     if not _can_request_password_reset(email):
         return Response({"detail": "Aguarde alguns minutos antes de tentar novamente."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
@@ -843,7 +873,7 @@ def ordem_status(request, ordem_id):
         request.data.get("status") if isinstance(request.data, dict) else None
     )
     if not novo:
-        return Response({"detail": "Parâmetro 'status' obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Informe o novo status da OS."}, status=status.HTTP_400_BAD_REQUEST)
     if novo not in os_status.TODOS:
         return Response({"status": [f"Status inválido: '{novo}'."], "validos": list(os_status.TODOS)},
                         status=status.HTTP_422_UNPROCESSABLE_ENTITY)
@@ -904,7 +934,7 @@ def upload_fotos(request, ordem_id):
     files = request.FILES.getlist("files")
 
     if not files:
-        return Response({"detail": "Nenhum arquivo enviado"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Nenhuma foto foi enviada."}, status=status.HTTP_400_BAD_REQUEST)
 
     # Magic bytes para tipos permitidos (JPEG, PNG, WebP, GIF, HEIC/HEIF)
     ALLOWED_MAGIC: list[tuple[bytes, str]] = [
@@ -997,8 +1027,11 @@ def get_foto(request, path):
             return Response({"detail": "Foto não encontrada"}, status=status.HTTP_404_NOT_FOUND)
         encoded = base64.b64encode(file_data).decode("utf-8")
         return Response({"data": encoded, "filename": path})
-    except Exception as e:
-        return Response({"detail": f"Erro ao baixar foto: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        # O detalhe técnico vai só para o log; quem usa o sistema recebe uma frase simples.
+        logger.exception("Falha ao baixar a foto %s", path)
+        return Response({"detail": "Não foi possível carregar a foto agora. Tente de novo."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ── Upload avulso / listagem ──────────────────────────────────────────────────
@@ -1009,7 +1042,7 @@ def upload_avulso(request):
     """POST /upload  — upload simples sem associar a uma ordem"""
     file = request.FILES.get("file")
     if not file:
-        return Response({"detail": "Arquivo não enviado"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Nenhum arquivo foi enviado."}, status=status.HTTP_400_BAD_REQUEST)
 
     extension = file.name.split(".")[-1]
     unique_name = f"{uuid.uuid4()}.{extension}"
