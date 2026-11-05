@@ -31,6 +31,7 @@
   --z-drawer-backdrop: 2000;
   --z-drawer: 2001;
   --z-modal: 9999;
+  --z-toast: 10000;   /* acima de modais e gavetas: o aviso nunca fica escondido */
 
   /* Altura da bottom-nav mobile (fixed) + a área segura real do aparelho —
    * páginas usam isso como padding-bottom pra garantir que o conteúdo nunca

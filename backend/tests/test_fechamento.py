@@ -252,3 +252,46 @@ def test_servico_de_orcamento_nao_aprovado_nao_conta(dono, db):
     r = dono.get("/relatorios", {"de": "2026-10-01", "ate": "2026-10-31"})
     assert "Cortesia fantasma" not in {s["nome"] for s in r.json()["servicos"]}
     assert {s["nome"] for s in r.json()["servicos"]} == {"Motor"}
+
+
+# ── relatório final em PDF ───────────────────────────────────────────────────
+
+def _texto_pdf(conteudo: bytes) -> str:
+    import io
+    from pypdf import PdfReader  # só pra testar; ver requirements-dev
+    return " ".join("\n".join(p.extract_text() for p in PdfReader(io.BytesIO(conteudo)).pages).split())
+
+
+def test_pdf_concluida_so_depois_de_finalizar(dono, db):
+    oid = _executando(dono, db, [_peca("Pastilha", 2, 100), _servico("Alinhamento", 1, 80)])
+    r = dono.get(f"/ordens/{oid}/pdf-concluida")
+    assert r.status_code == 409, r.content
+    assert r.json()["codigo"] == "os_nao_finalizada" and r.json()["osStatus"] == "em_execucao"
+    assert "finalizada" in r.json()["detail"]
+
+    assert _concluir(dono, oid).status_code == 200
+    r = dono.get(f"/ordens/{oid}/pdf-concluida")
+    assert r.status_code == 200, r.content
+    assert r["Content-Type"] == "application/pdf" and r.content[:5] == b"%PDF-"
+    assert r["Cache-Control"] == "private, no-store" and "os-concluida-" in r["Content-Disposition"]
+
+
+def test_pdf_concluida_conteudo_e_so_preco_cobrado(dono, db):
+    pytest.importorskip("pypdf")
+    oid = _executando(dono, db, [_peca("Pastilha", 2, 100), _servico("Alinhamento", 1, 80)])
+    assert _concluir(dono, oid, {"observacao": "Cliente retirou às 17h"}).status_code == 200
+    texto = _texto_pdf(dono.get(f"/ordens/{oid}/pdf-concluida").content)
+    assert "RELATÓRIO FINAL DA OS" in texto and "OS CONCLUÍDA" in texto
+    assert "Total de peças R$ 200,00" in texto and "Total de mão de obra R$ 80,00" in texto
+    assert "TOTAL GERAL R$ 280,00" in texto
+    assert "Pastilha" in texto and "Alinhamento" in texto
+    assert "Aprovado" in texto and "Cliente retirou às 17h" in texto
+    assert "0/5" in texto  # a OS de teste não tem fotos obrigatórias
+    assert "custo" not in texto.lower() and "margem" not in texto.lower()
+
+
+def test_pdf_concluida_de_outra_oficina_ou_inexistente_404(dono, db):
+    oid = _executando(dono, db, [_peca(), _servico()])
+    assert _concluir(dono, oid).status_code == 200
+    assert _cliente("dono", OFICINA_B).get(f"/ordens/{oid}/pdf-concluida").status_code == 404
+    assert dono.get("/ordens/nao-existe/pdf-concluida").status_code == 404

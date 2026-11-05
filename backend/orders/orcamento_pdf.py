@@ -125,8 +125,9 @@ def data_br(iso) -> str:
 FUSO_PADRAO = ZoneInfo("America/Sao_Paulo")
 
 
-def data_hora_br(iso) -> str:
-    """'2026-10-12T16:05:09+00:00' → '12/10/2026 às 13:05' (hora de Brasília, fuso padrão do app).
+def data_hora_br(iso, segundos: bool = False) -> str:
+    """'2026-10-12T16:05:09+00:00' → '12/10/2026 às 13:05' (hora de Brasília, fuso padrão do app;
+    com `segundos=True`, '… às 13:05:09').
     Sem hora no valor (só a data), devolve só a data; valor ilegível volta como veio."""
     if not iso:
         return ""
@@ -139,7 +140,7 @@ def data_hora_br(iso) -> str:
         return dt.strftime("%d/%m/%Y")
     if dt.tzinfo is None:  # sem fuso no valor: já está no horário local
         dt = dt.replace(tzinfo=FUSO_PADRAO)
-    return dt.astimezone(FUSO_PADRAO).strftime("%d/%m/%Y às %H:%M")
+    return dt.astimezone(FUSO_PADRAO).strftime("%d/%m/%Y às %H:%M:%S" if segundos else "%d/%m/%Y às %H:%M")
 
 
 def km_txt(valor) -> str:
@@ -267,8 +268,14 @@ def _bloco_campos(linhas, largura, e, k):
     return tabela
 
 
-def _secao_itens(titulo, rotulo_total, vazio, itens, e, largura, k):
-    """Uma seção da listagem (Peças ou Serviços): tabela de itens + total logo abaixo."""
+def _secao_itens(titulo, rotulo_total, vazio, itens, e, largura, k, limite=None):
+    """Uma seção da listagem (Peças ou Serviços): tabela de itens + total logo abaixo.
+    `limite`: só mostra os N primeiros itens (e avisa quantos ficaram de fora); o total é sempre
+    o de TODOS os itens. Usado só quando nem a menor escala cabe em uma página."""
+    todos = itens
+    ocultos = max(0, len(itens) - limite) if limite else 0
+    if ocultos:
+        itens = itens[:limite]
     flow = [Spacer(1, 10 * k), TituloSecao(titulo, k), Spacer(1, 3 * k)]
     if not itens:
         flow.append(_p(vazio, e["suave"]))
@@ -294,9 +301,60 @@ def _secao_itens(titulo, rotulo_total, vazio, itens, e, largura, k):
             ("TOPPADDING", (0, 0), (-1, -1), 2.6 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.6 * k),
         ]))
         flow.append(tabela)
+        if ocultos:
+            flow.append(_p(f"+ {ocultos} item(ns) não listado(s) por falta de espaço — veja o orçamento aprovado.",
+                           e["suave"]))
     rot = f"<font name='{F_MONO}' size='{6.4 * k:.2f}' color='#9a958c'>{escape(rotulo_total)}</font>"
-    flow += [Spacer(1, 3 * k), Paragraph(f"{rot}&nbsp;&nbsp;{escape(brl(_soma(itens)))}", e["subtotal"])]
+    flow += [Spacer(1, 3 * k), Paragraph(f"{rot}&nbsp;&nbsp;{escape(brl(_soma(todos)))}", e["subtotal"])]
     return flow
+
+
+def cabecalho_pdf(nome_oficina, subtitulo, linhas_direita, largura, e, k):
+    """Cabeçalho padrão dos PDFs da RevisaCar (orçamento e relatório final da OS): logo pequeno,
+    barrinha vermelha + nome da oficina à esquerda, `linhas_direita` à direita, fio escuro embaixo."""
+    nome = [_p(nome_oficina, e["marca"]), _p(subtitulo, e["marca_sub"])]
+    barra_nome = Table([["", "", nome]], colWidths=[2.2 * k + 0.3, 6 * k, largura * 0.55 - 8.5 * k])
+    barra_nome.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), COR_MARCA), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    esquerda = []
+    if os.path.exists(LOGO_PATH):
+        alt = 4.3 * mm * k  # ≈ logo da sidebar do app (carrinho visível ~22 px), um pouco menor
+        logo = Image(LOGO_PATH, width=alt * 600 / 496, height=alt)
+        logo.hAlign = "LEFT"
+        esquerda += [logo, Spacer(1, 2.5 * k)]
+    esquerda.append(barra_nome)
+    cab = Table([[esquerda, linhas_direita]], colWidths=[largura * 0.55, largura * 0.45])
+    cab.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (0, 0), "BOTTOM"), ("VALIGN", (1, 0), (1, 0), "BOTTOM"),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.8, COR_TEXTO),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 7 * k), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    return cab
+
+
+def rodape_pdf(texto_esquerda, marca_dagua=None):
+    """Rodapé padrão (fio, texto à esquerda, nº da página à direita; marca d'água opcional)."""
+    def rodape(canvas, doc_):
+        canvas.saveState()
+        canvas.setStrokeColor(COR_FIO_RODAPE)
+        canvas.setLineWidth(0.5)
+        canvas.line(16 * mm, 12.5 * mm, A4[0] - 16 * mm, 12.5 * mm)
+        canvas.setFont(F_MONO, 6.4)
+        canvas.setFillColor(COR_ROTULO_SECAO)
+        canvas.drawString(16 * mm, 9 * mm, texto_esquerda)
+        canvas.drawRightString(A4[0] - 16 * mm, 9 * mm, f"Página {doc_.page}")
+        if marca_dagua:
+            canvas.setFont("Helvetica-Bold", 60)
+            canvas.setFillColor(colors.Color(0.8, 0.8, 0.8, alpha=0.35))
+            canvas.translate(A4[0] / 2, A4[1] / 2)
+            canvas.rotate(35)
+            canvas.drawCentredString(0, 0, marca_dagua)
+        canvas.restoreState()
+    return rodape
 
 
 def _construir(dados: dict, k: float):
@@ -315,33 +373,11 @@ def _construir(dados: dict, k: float):
 
     # Cabeçalho (igual ao do checklist): logo pequeno + barrinha vermelha e nome à esquerda,
     # dados da OS à direita, fio escuro embaixo.
-    nome = [_p(dados.get("oficina_nome") or "Oficina", e["marca"]), _p("ORÇAMENTO DE SERVIÇOS", e["marca_sub"])]
-    barra_nome = Table([["", "", nome]], colWidths=[2.2 * k + 0.3, 6 * k, largura * 0.55 - 8.5 * k])
-    barra_nome.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, 0), COR_MARCA), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    esquerda = []
-    if os.path.exists(LOGO_PATH):
-        alt = 4.3 * mm * k  # ≈ logo da sidebar do app (carrinho visível ~22 px), um pouco menor
-        logo = Image(LOGO_PATH, width=alt * 600 / 496, height=alt)
-        logo.hAlign = "LEFT"
-        esquerda += [logo, Spacer(1, 2.5 * k)]
-    esquerda.append(barra_nome)
-    direita = [
+    flow += [cabecalho_pdf(dados.get("oficina_nome") or "Oficina", "ORÇAMENTO DE SERVIÇOS", [
         _p(f"OS Nº {_numero_os(dados.get('os_num'))}", e["os"]),
         _p(f"Versão {dados.get('versao', 1)}", e["meta"]),
         _p(f"Emitido em {data_hora_br(dados.get('emitido_em'))}", e["meta"]),
-    ]
-    cab = Table([[esquerda, direita]], colWidths=[largura * 0.55, largura * 0.45])
-    cab.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (0, 0), "BOTTOM"), ("VALIGN", (1, 0), (1, 0), "BOTTOM"),
-        ("LINEBELOW", (0, 0), (-1, 0), 0.8, COR_TEXTO),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 7 * k), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    flow += [cab, Spacer(1, 6 * k)]
+    ], largura, e, k), Spacer(1, 6 * k)]
 
     status = dados.get("status") or ""
     validade = (f"Válido até {data_br(dados['validade_ate'])}"
@@ -422,23 +458,8 @@ def _construir(dados: dict, k: float):
     if bloco:
         flow.append(KeepTogether(bloco))
 
-    def rodape(canvas, doc_):
-        canvas.saveState()
-        canvas.setStrokeColor(COR_FIO_RODAPE)
-        canvas.setLineWidth(0.5)
-        canvas.line(16 * mm, 12.5 * mm, A4[0] - 16 * mm, 12.5 * mm)
-        canvas.setFont(F_MONO, 6.4)
-        canvas.setFillColor(COR_ROTULO_SECAO)
-        canvas.drawString(16 * mm, 9 * mm, f"{dados.get('oficina_nome') or ''} · {rotulo_os(dados.get('os_num'))} · "
-                                           f"orçamento v{dados.get('versao', 1)}")
-        canvas.drawRightString(A4[0] - 16 * mm, 9 * mm, f"Página {doc_.page}")
-        if status == "rascunho":
-            canvas.setFont("Helvetica-Bold", 60)
-            canvas.setFillColor(colors.Color(0.8, 0.8, 0.8, alpha=0.35))
-            canvas.translate(A4[0] / 2, A4[1] / 2)
-            canvas.rotate(35)
-            canvas.drawCentredString(0, 0, "RASCUNHO")
-        canvas.restoreState()
+    rodape = rodape_pdf(f"{dados.get('oficina_nome') or ''} · {rotulo_os(dados.get('os_num'))} · "
+                        f"orçamento v{dados.get('versao', 1)}", "RASCUNHO" if status == "rascunho" else None)
 
     doc.build(flow, onFirstPage=rodape, onLaterPages=rodape)
     return buf.getvalue(), doc.page
