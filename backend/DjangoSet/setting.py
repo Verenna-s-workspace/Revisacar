@@ -127,4 +127,26 @@ REFRESH_TOKEN_LIFETIME_SECONDS = int(os.getenv("REFRESH_TOKEN_LIFETIME_SECONDS",
 RESET_TOKEN_LIFETIME_SECONDS = int(os.getenv("RESET_TOKEN_LIFETIME_SECONDS", "900"))  # 15 minutes
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
+# ── Email / links de redefinição ──────────────────────────────────────────────
+# O Django NÃO lê estas variáveis sozinho: precisam estar declaradas aqui.
+# Em desenvolvimento (DEBUG=True) o e-mail é impresso no terminal; em produção
+# usa SMTP (configure EMAIL_HOST, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD...).
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend",
+)
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_TIMEOUT = 10  # o pedido não trava se o servidor SMTP não responder
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Revisacar <no-reply@revisacar.local>")
+
+# Endereço público do frontend, usado para montar o link do e-mail
+# (ex.: https://app.seudominio.com.br). Em produção é obrigatório: se faltar,
+# o envio é recusado e o erro vai para o log (ver _send_reset_email).
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173" if DEBUG else "").strip().rstrip("/")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

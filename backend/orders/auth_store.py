@@ -111,8 +111,10 @@ class SupabaseAuthStore:
         }
         try:
             self.sb.table(RESET_TABLE).insert(row).execute()
+            return True
         except Exception as exc:
             logger.error("[auth_store] falha ao salvar reset token: %s", exc)
+            return False
 
     def get_valid_reset_token(self, token):
         """Retorna {doc, email} se o token existe, não foi usado e não expirou."""
@@ -130,10 +132,21 @@ class SupabaseAuthStore:
         return {"doc": row.get("doc"), "email": row.get("email")}
 
     def mark_reset_token_used(self, token):
+        """Consome o token. Retorna True só para quem de fato o consumiu: o
+        filtro `used = false` faz o banco decidir a corrida entre dois pedidos
+        simultâneos com o mesmo token (só um deles atualiza uma linha)."""
         try:
-            self.sb.table(RESET_TABLE).update({"used": True}).eq("token_hash", hash_token(token)).execute()
+            res = (
+                self.sb.table(RESET_TABLE)
+                .update({"used": True})
+                .eq("token_hash", hash_token(token))
+                .eq("used", False)
+                .execute()
+            )
+            return bool(res.data)
         except Exception as exc:
             logger.error("[auth_store] falha ao marcar reset token usado: %s", exc)
+            return False
 
     # ── Rate limiting (PIN e pedidos de reset) ────────────────────────────────
 

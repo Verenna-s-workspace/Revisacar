@@ -51,7 +51,13 @@ export default function App() {
   // orçamento: sem isso cada tela começava uma OS em branco e salvar criava OS duplicada.
   const os = useOrdemServico();
   const [prefillOS, setPrefillOS]       = useState<OSPrefillInput | null>(null);
-  const [authMode, setAuthMode]         = useState<'login' | 'reset-password'>('login');
+  // Link do e-mail de "esqueci a senha": /reset-password?token=...  Abre direto a tela de nova
+  // senha. O token fica só em memória (a tela tira ele da barra de endereço ao abrir).
+  const abriuLinkDeRedefinicao = window.location.pathname === '/reset-password';
+  const [resetToken]                   = useState<string | null>(() =>
+    abriuLinkDeRedefinicao ? new URLSearchParams(window.location.search).get('token') : null);
+  const [authMode, setAuthMode]         = useState<'login' | 'reset-password'>(
+    abriuLinkDeRedefinicao ? 'reset-password' : 'login');
   // Central de Aprendizado — vive aqui (acima de Dashboard) porque o botão
   // "Dicas" está disponível em qualquer página do painel, e Dashboard só
   // renderiza uma página por vez internamente.
@@ -131,11 +137,9 @@ export default function App() {
     }
   };
 
-  const handleShowResetPassword = () => {
-    setAuthMode('reset-password');
-  };
-
   const handleBackToLogin = () => {
+    // Sai de /reset-password: sem isso, recarregar a página reabriria a tela de redefinição.
+    if (window.location.pathname !== '/') window.history.replaceState(null, '', '/');
     setAuthMode('login');
   };
 
@@ -153,15 +157,7 @@ export default function App() {
   function telaDeEntrada() {
     if (authMode === 'reset-password') {
       return (
-        <ResetPasswordScreen
-          onVoltar={handleBackToLogin}
-          onAuthenticated={(result) => {
-            login(result);
-            // dash pos login com senha resetada
-            setView('dashboard');
-            setAuthMode('login');
-          }}
-        />
+        <ResetPasswordScreen token={resetToken} onVoltar={handleBackToLogin} />
       );
     }
 

@@ -210,26 +210,40 @@ def _invalidate_refresh_tokens_for_doc(doc: str):
     auth_store.delete_refresh_tokens_for_doc(doc)
 
 
-def _send_reset_email(email: str, token: str):
-    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
-    reset_link = f"{frontend_url}/reset-password?token={token}"
+def _send_reset_email(email: str, token: str) -> bool:
+    """Envia o link de redefinição. Retorna True se o e-mail saiu.
+
+    O link leva o token na query string (`/reset-password?token=...`); o
+    frontend lê o token e o tira da barra de endereço (ver ResetPasswordScreen).
+    O token só vai para o log em DEBUG — em produção, quem lê o log não pode
+    conseguir redefinir a senha de ninguém."""
+    frontend_url = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
+    if not frontend_url:
+        logger.error("[PASSWORD RESET] FRONTEND_URL não configurada — e-mail NÃO enviado.")
+        return False
+
+    reset_link = f"{frontend_url}/reset-password?token={urllib.parse.quote(token, safe='')}"
     subject = 'Redefinição de senha Revisacar'
+    minutos = RESET_TOKEN_LIFETIME_SECONDS // 60
     message = (
         'Olá,\n\n'
         'Recebemos uma solicitação para redefinir a senha da sua conta Revisacar.\n\n'
-        f'Use o link abaixo para continuar:\n\n{reset_link}\n\n'
-        'Se você não solicitou esta alteração, ignore esta mensagem.\n\n'
+        f'Use o link abaixo para escolher uma nova senha (válido por {minutos} minutos):\n\n'
+        f'{reset_link}\n\n'
+        'Se você não solicitou esta alteração, ignore esta mensagem — sua senha continua a mesma.\n\n'
         'Atenciosamente,\nRevisacar'
     )
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@revisacar.local')
-    logger.info("[PASSWORD RESET] backend=%s host=%s from=%s", settings.EMAIL_BACKEND, settings.EMAIL_HOST, from_email)
 
     try:
         send_mail(subject, message, from_email, [email], fail_silently=False)
-        logger.info("[PASSWORD RESET] email enviado para %s", email)
+        logger.info("[PASSWORD RESET] email enviado")
+        return True
     except Exception as exc:
-        logger.error("[PASSWORD RESET] Falha ao enviar email para %s: %s", email, exc)
-        logger.info("[PASSWORD RESET] Link de redefinição: %s", reset_link)
+        logger.error("[PASSWORD RESET] falha ao enviar email (%s): %s", settings.EMAIL_BACKEND, exc)
+        if settings.DEBUG:
+            logger.info("[PASSWORD RESET] link (só em desenvolvimento): %s", reset_link)
+        return False
 
 
 def _send_pin_email(email: str, nome: str, pin: str):
@@ -431,13 +445,15 @@ def admin_forgot_password(request):
     admin = _get_admin_by_email(email)
     if admin:
         reset_token = secrets.token_urlsafe(32)
-        auth_store.save_reset_token(
+        salvo = auth_store.save_reset_token(
             reset_token,
             doc=admin["doc"],
             email=email,
             expires_at=time.time() + RESET_TOKEN_LIFETIME_SECONDS,
         )
-        _send_reset_email(email, reset_token)
+        # Só manda o e-mail se o token foi gravado: senão o link nunca funcionaria.
+        if salvo:
+            _send_reset_email(email, reset_token)
 
     return Response({"message": "Se o email existir, você receberá um link de redefinição em breve."})
 
@@ -460,8 +476,12 @@ def admin_reset_password(request):
     if not admin:
         return Response({"detail": "Admin não encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
+    # Consome o token ANTES de trocar a senha: se dois pedidos chegarem juntos
+    # com o mesmo token, só um consegue consumi-lo.
+    if not auth_store.mark_reset_token_used(token):
+        return Response({"detail": "Token inválido ou expirado"}, status=status.HTTP_401_UNAUTHORIZED)
+
     supabase.table("admins").update({"pwhash": pwhash(senha)}).eq("doc", admin["doc"]).execute()
-    auth_store.mark_reset_token_used(token)
     _invalidate_refresh_tokens_for_doc(admin["doc"])
     return Response({"message": "Senha redefinida com sucesso"})
 
