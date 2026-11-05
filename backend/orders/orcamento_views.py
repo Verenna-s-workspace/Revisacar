@@ -347,7 +347,7 @@ def _dados_para_pdf(oficina_doc: str, row: dict, itens: list, assinatura_png) ->
         "status": row["status"],
         "emitido_em": row.get("enviado_em") or row.get("created_at"),
         "validade_ate": row.get("validade_ate"),
-        "cliente": {k: cliente.get(k, "") for k in ("nome", "tel", "doc")},
+        "cliente": {k: cliente.get(k, "") for k in ("nome", "tel", "doc", "email")},
         "veiculo": {
             **{k: veiculo.get(k, "") for k in ("placa", "modelo", "ano", "cor")},
             "km_saida": tecnico.get("km_saida", "") if isinstance(tecnico, dict) else "",

@@ -67,12 +67,21 @@ def _dados_pdf(n_pecas=2, n_servicos=2, **extra):
 
 def test_pdf_layout_pecas_servicos_km_e_hora():
     pytest.importorskip("pypdf")
-    texto = _texto_pdf(orcamento_pdf.gerar_pdf(_dados_pdf()))
-    assert "04/11/2026 às 15:35" in texto
-    assert "KM de saída: 87.450 km" in texto
-    assert texto.index("PEÇAS") < texto.index("Total de peças R$ 400,00") < texto.index("SERVIÇOS")
-    assert texto.index("SERVIÇOS") < texto.index("Total de mão de obra R$ 160,00") < texto.index("TOTAL GERAL")
-    assert "R$ 560,00" in texto  # total geral = peças + serviços
+    texto = " ".join(_texto_pdf(orcamento_pdf.gerar_pdf(_dados_pdf())).split())
+    assert "Emitido em 04/11/2026 às 15:35" in texto
+    assert "KM DE SAÍDA 87.450 km" in texto
+    t_pecas = texto.index("Total de peças R$ 400,00")
+    t_serv = texto.index("Total de mão de obra R$ 160,00")
+    assert texto.index("PEÇAS") < t_pecas < texto.index("SERVIÇOS", t_pecas) < t_serv < texto.index("TOTAL GERAL")
+    assert "TOTAL GERAL R$ 560,00" in texto  # total geral = peças + serviços
+
+
+def test_pdf_cliente_e_veiculo_em_blocos_separados():
+    pytest.importorskip("pypdf")
+    dados = _dados_pdf(cliente={"nome": "Ana", "tel": "11987654321", "doc": "12345678901", "email": "a@b.com"})
+    texto = " ".join(_texto_pdf(orcamento_pdf.gerar_pdf(dados)).split())
+    assert "CLIENTE NOME Ana CPF / CNPJ 123.456.789-01 TELEFONE (11) 98765-4321 E-MAIL a@b.com" in texto
+    assert texto.index("CLIENTE") < texto.index("VEÍCULO") < texto.index("PEÇAS")
 
 
 def test_pdf_sempre_em_uma_pagina():
@@ -85,6 +94,7 @@ def test_pdf_sempre_em_uma_pagina():
 def test_pdf_so_pecas_ou_so_servicos():
     pytest.importorskip("pypdf")
     texto = _texto_pdf(orcamento_pdf.gerar_pdf(_dados_pdf(n_pecas=0, n_servicos=1)))
+    texto = " ".join(texto.split())
     assert "Nenhuma peça neste orçamento." in texto and "Total de peças R$ 0,00" in texto
     assert "TOTAL GERAL" in texto and "R$ 80,00" in texto
 

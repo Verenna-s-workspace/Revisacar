@@ -29,16 +29,47 @@ from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+    Flowable, Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 
-COR_MARCA = colors.HexColor("#c8102e")
+# Cores e fontes do site / do PDF do checklist (RevisaCar: vermelho #CC1400, DM Sans + DM Mono).
+COR_MARCA = colors.HexColor("#CC1400")
 COR_TEXTO = colors.HexColor("#1a1a1a")
 COR_SUAVE = colors.HexColor("#6b6b6b")
 COR_LINHA = colors.HexColor("#dcdcdc")
+COR_ROTULO = colors.HexColor("#a09c95")          # rótulo dos campos
+COR_ROTULO_SECAO = colors.HexColor("#9a958c")    # título de seção, cabeçalho de tabela, textos de apoio
+COR_META = colors.HexColor("#6b6760")            # dados da OS no cabeçalho
+COR_FIO = colors.HexColor("#f0eeea")             # fio entre campos / linhas
+COR_FIO_RODAPE = colors.HexColor("#e5e3de")
 LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo_revisacar.png")
-FINO = 0.5  # espessura (pt) das linhas vermelhas de detalhe
+PASTA_FONTES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "fonts")
+
+
+def _registrar_fontes():
+    """Usa DM Sans / DM Mono (as do site) se os .ttf estiverem em assets/fonts; senão cai em
+    Helvetica / Courier, que vêm com o reportlab. Devolve os nomes das fontes a usar."""
+    arquivos = {
+        "DMSans": "DMSans-Regular.ttf", "DMSans-Medium": "DMSans-Medium.ttf", "DMSans-Bold": "DMSans-Bold.ttf",
+        "DMMono": "DMMono-Regular.ttf", "DMMono-Medium": "DMMono-Medium.ttf",
+    }
+    caminhos = {nome: os.path.join(PASTA_FONTES, arq) for nome, arq in arquivos.items()}
+    if all(os.path.exists(c) for c in caminhos.values()):
+        try:
+            for nome, caminho in caminhos.items():
+                pdfmetrics.registerFont(TTFont(nome, caminho))
+            pdfmetrics.registerFontFamily("DMSans", normal="DMSans", bold="DMSans-Bold",
+                                          italic="DMSans", boldItalic="DMSans-Bold")
+            return "DMSans", "DMSans-Medium", "DMSans-Bold", "DMMono", "DMMono-Medium"
+        except Exception:  # noqa: BLE001 — fonte corrompida não pode impedir o PDF
+            pass
+    return "Helvetica", "Helvetica", "Helvetica-Bold", "Courier", "Courier-Bold"
+
+
+F_TXT, F_TXT_M, F_TXT_B, F_MONO, F_MONO_M = _registrar_fontes()
 
 STATUS_ROTULO = {
     "rascunho": "RASCUNHO — ainda não enviado ao cliente",
@@ -123,30 +154,89 @@ def _p(texto, estilo):
     return Paragraph(escape(str(texto or "")).replace("\n", "<br/>"), estilo)
 
 
+def so_digitos(valor) -> str:
+    return "".join(ch for ch in str(valor or "") if ch.isdigit())
+
+
+def _numero_os(os_num) -> str:
+    """'OS-77' / 'OS 77' / '77' → '77'."""
+    n = str(os_num or "").strip()
+    if n.upper().startswith("OS"):
+        n = n[2:].lstrip(" -·")
+    return n
+
+
+def doc_txt(valor) -> str:
+    """CPF/CNPJ só com dígitos → com máscara. Formato desconhecido volta como veio."""
+    d = so_digitos(valor)
+    if len(d) == 11:
+        return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
+    if len(d) == 14:
+        return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}"
+    return str(valor or "")
+
+
+def tel_txt(valor) -> str:
+    d = so_digitos(valor)
+    if len(d) == 11:
+        return f"({d[:2]}) {d[2:7]}-{d[7:]}"
+    if len(d) == 10:
+        return f"({d[:2]}) {d[2:6]}-{d[6:]}"
+    return str(valor or "")
+
+
+class TituloSecao(Flowable):
+    """Título de seção no estilo do PDF do checklist: tracinho vermelho + rótulo em mono, caixa alta."""
+
+    def __init__(self, texto, k=1.0):
+        super().__init__()
+        self.texto, self.k = str(texto).upper(), k
+
+    def wrap(self, largura, altura):
+        self.largura = largura
+        return largura, 9 * self.k
+
+    def draw(self):
+        c, k = self.canv, self.k
+        c.setFillColor(COR_MARCA)
+        c.rect(0, 3.2 * k, 7 * k, 1.1 * k, stroke=0, fill=1)
+        c.setFillColor(COR_ROTULO_SECAO)
+        c.setFont(F_MONO_M, 6.2 * k)
+        c.drawString(11 * k, 2.6 * k, self.texto, charSpace=0.9 * k)
+
+
 def _estilos(k: float = 1.0):
-    """Estilos do PDF. `k` (≤ 1) encolhe fontes e espaçamentos — usado quando o conteúdo
-    não cabe em uma página (ver gerar_pdf)."""
+    """Estilos do PDF (fontes e cores do PDF do checklist). `k` (≤ 1) encolhe fontes e espaçamentos —
+    usado quando o conteúdo não cabe em uma página (ver gerar_pdf)."""
     base = getSampleStyleSheet()["Normal"]
-    base = ParagraphStyle("base", parent=base, fontName="Helvetica", fontSize=9 * k, leading=11.5 * k,
+    base = ParagraphStyle("base", parent=base, fontName=F_TXT, fontSize=8.6 * k, leading=11 * k,
                           textColor=COR_TEXTO)
     return {
         "base": base,
-        "suave": ParagraphStyle("suave", parent=base, textColor=COR_SUAVE, fontSize=8 * k, leading=10 * k),
-        "negrito": ParagraphStyle("negrito", parent=base, fontName="Helvetica-Bold"),
-        "titulo": ParagraphStyle("titulo", parent=base, fontName="Helvetica-Bold", fontSize=16 * k, leading=19 * k),
-        "secao": ParagraphStyle("secao", parent=base, fontName="Helvetica-Bold", fontSize=8 * k, leading=10 * k,
-                                textColor=COR_MARCA, spaceBefore=7 * k, spaceAfter=3 * k),
-        "os": ParagraphStyle("os", parent=base, fontName="Helvetica-Bold", fontSize=14 * k, leading=17 * k,
-                             alignment=TA_RIGHT, textColor=COR_MARCA),
+        "suave": ParagraphStyle("suave", parent=base, textColor=COR_ROTULO_SECAO, fontSize=7.4 * k, leading=9.5 * k),
+        "negrito": ParagraphStyle("negrito", parent=base, fontName=F_TXT_B),
+        "marca": ParagraphStyle("marca", parent=base, fontName=F_TXT_B, fontSize=13 * k, leading=15 * k),
+        "marca_sub": ParagraphStyle("marca_sub", parent=base, fontName=F_MONO, fontSize=5.6 * k, leading=7.5 * k,
+                                    textColor=COR_ROTULO),
+        "meta": ParagraphStyle("meta", parent=base, fontName=F_MONO, fontSize=6.8 * k, leading=10 * k,
+                               textColor=COR_META, alignment=TA_RIGHT),
+        "os": ParagraphStyle("os", parent=base, fontName=F_TXT_B, fontSize=11 * k, leading=14 * k,
+                             alignment=TA_RIGHT),
+        "rotulo": ParagraphStyle("rotulo", parent=base, fontName=F_MONO, fontSize=5.4 * k, leading=7 * k,
+                                 textColor=COR_ROTULO),
+        "valor": ParagraphStyle("valor", parent=base, fontName=F_TXT_M, fontSize=8.8 * k, leading=10.6 * k),
         "direita": ParagraphStyle("direita", parent=base, alignment=TA_RIGHT),
-        "subtotal": ParagraphStyle("subtotal", parent=base, fontName="Helvetica-Bold", fontSize=10 * k,
-                                   leading=13 * k, alignment=TA_RIGHT),
-        "total": ParagraphStyle("total", parent=base, fontName="Helvetica-Bold", fontSize=14 * k, leading=17 * k,
+        "texto_livre": ParagraphStyle("texto_livre", parent=base, fontSize=8.8 * k, leading=13 * k),
+        "subtotal": ParagraphStyle("subtotal", parent=base, fontName=F_TXT_B, fontSize=9.6 * k, leading=12.5 * k,
+                                   alignment=TA_RIGHT),
+        "total_rot": ParagraphStyle("total_rot", parent=base, fontName=F_MONO_M, fontSize=7 * k, leading=9 * k,
+                                    textColor=COR_TEXTO),
+        "total": ParagraphStyle("total", parent=base, fontName=F_TXT_B, fontSize=15 * k, leading=18 * k,
                                 alignment=TA_RIGHT, textColor=COR_MARCA),
-        "cab": ParagraphStyle("cab", parent=base, fontName="Helvetica-Bold", fontSize=7.5 * k, leading=9.5 * k,
-                              textColor=colors.white),
-        "cab_dir": ParagraphStyle("cab_dir", parent=base, fontName="Helvetica-Bold", fontSize=7.5 * k,
-                                  leading=9.5 * k, textColor=colors.white, alignment=TA_RIGHT),
+        "cab": ParagraphStyle("cab", parent=base, fontName=F_MONO_M, fontSize=5.8 * k, leading=7.5 * k,
+                              textColor=COR_ROTULO_SECAO),
+        "cab_dir": ParagraphStyle("cab_dir", parent=base, fontName=F_MONO_M, fontSize=5.8 * k, leading=7.5 * k,
+                                  textColor=COR_ROTULO_SECAO, alignment=TA_RIGHT),
     }
 
 
@@ -154,17 +244,40 @@ def _soma(itens) -> Decimal:
     return sum((Decimal(str(i.get("subtotal") or 0)) for i in itens), Decimal("0"))
 
 
+def _bloco_campos(linhas, largura, e, k):
+    """Campos "rótulo em cima, valor embaixo" com fio fino entre eles, como no checklist.
+    `linhas`: lista de linhas; cada linha tem 1 campo (largura toda) ou 2 (lado a lado)."""
+    meia = largura / 2
+    dados, estilo = [], [
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.2 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.2 * k),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, COR_FIO),
+    ]
+    for r, linha in enumerate(linhas):
+        celulas = [[_p(rot.upper(), e["rotulo"]), _p(val or "—", e["valor"])] for rot, val in linha]
+        if len(celulas) == 1:
+            dados.append([celulas[0], ""])
+            estilo.append(("SPAN", (0, r), (1, r)))
+        else:
+            dados.append(celulas)
+            estilo.append(("RIGHTPADDING", (0, r), (0, r), 6 * k))
+    tabela = Table(dados, colWidths=[meia, meia])
+    tabela.setStyle(TableStyle(estilo))
+    return tabela
+
+
 def _secao_itens(titulo, rotulo_total, vazio, itens, e, largura, k):
     """Uma seção da listagem (Peças ou Serviços): tabela de itens + total logo abaixo."""
-    flow = [_p(titulo, e["secao"])]
+    flow = [Spacer(1, 10 * k), TituloSecao(titulo, k), Spacer(1, 3 * k)]
     if not itens:
         flow.append(_p(vazio, e["suave"]))
     else:
         linhas = [[_p("Descrição", e["cab"]), _p("Qtd", e["cab_dir"]), _p("Valor un.", e["cab_dir"]),
                    _p("Subtotal", e["cab_dir"])]]
         for item in itens:
-            celula = [Paragraph(f"<b>{escape(item.get('descricao') or '')}</b>"
-                                + (f" <font color='#6b6b6b'>· {escape(item['marca'])}</font>"
+            celula = [Paragraph(f"<font name='{F_TXT_M}'>{escape(item.get('descricao') or '')}</font>"
+                                + (f" <font color='#9a958c'>· {escape(item['marca'])}</font>"
                                    if item.get("marca") else ""), e["base"])]
             if item.get("motivo"):
                 celula.append(_p(item["motivo"], e["suave"]))
@@ -174,14 +287,15 @@ def _secao_itens(titulo, rotulo_total, vazio, itens, e, largura, k):
         tabela = Table(linhas, colWidths=[largura * 0.52, largura * 0.1, largura * 0.19, largura * 0.19],
                        repeatRows=1)
         tabela.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), COR_TEXTO),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LINEBELOW", (0, 0), (-1, 0), FINO, COR_MARCA, 0, None, 1),
-            ("LINEBELOW", (0, 1), (-1, -1), 0.4, COR_LINHA, 0, None, 1),
-            ("TOPPADDING", (0, 0), (-1, -1), 3 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * k),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.7, COR_TEXTO),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.5, COR_FIO),
+            ("TOPPADDING", (0, 0), (-1, -1), 2.6 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.6 * k),
         ]))
         flow.append(tabela)
-    flow += [Spacer(1, 3 * k), _p(f"{rotulo_total}  {brl(_soma(itens))}", e["subtotal"])]
+    rot = f"<font name='{F_MONO}' size='{6.4 * k:.2f}' color='#9a958c'>{escape(rotulo_total)}</font>"
+    flow += [Spacer(1, 3 * k), Paragraph(f"{rot}&nbsp;&nbsp;{escape(brl(_soma(itens)))}", e["subtotal"])]
     return flow
 
 
@@ -190,6 +304,7 @@ def _construir(dados: dict, k: float):
     e = _estilos(k)
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
+        # o Frame do reportlab tem 6 pt de padding: compensa para texto e tabelas alinharem em 16 mm
         buf, pagesize=A4, leftMargin=16 * mm - 6, rightMargin=16 * mm - 6, topMargin=12 * mm * k + 2 * mm,
         bottomMargin=16 * mm,
         title=f"Orçamento {dados.get('os_num', '')} v{dados.get('versao', '')}",
@@ -198,72 +313,94 @@ def _construir(dados: dict, k: float):
     largura = A4[0] - 32 * mm
     flow = []
 
-    # Cabeçalho: nome da oficina à esquerda; OS/emissão e o logo (só o carrinho) à direita
-    logo = None
+    # Cabeçalho (igual ao do checklist): logo pequeno + barrinha vermelha e nome à esquerda,
+    # dados da OS à direita, fio escuro embaixo.
+    nome = [_p(dados.get("oficina_nome") or "Oficina", e["marca"]), _p("ORÇAMENTO DE SERVIÇOS", e["marca_sub"])]
+    barra_nome = Table([["", "", nome]], colWidths=[2.2 * k + 0.3, 6 * k, largura * 0.55 - 8.5 * k])
+    barra_nome.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), COR_MARCA), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    esquerda = []
     if os.path.exists(LOGO_PATH):
-        alt = 13 * mm * k
+        alt = 7 * mm * k
         logo = Image(LOGO_PATH, width=alt * 600 / 496, height=alt)
-        logo.hAlign = "RIGHT"
-    w_logo = largura * 0.11 if logo else 0
-    cab = Table([[
-        [_p(dados.get("oficina_nome") or "Oficina", e["titulo"]), _p("Orçamento de serviços", e["suave"])],
-        [_p(rotulo_os(dados.get("os_num")), e["os"]),
-         _p(f"Versão {dados.get('versao', 1)} · emitido em {data_hora_br(dados.get('emitido_em'))}",
-            e["direita"])],
-        logo or "",
-    ]], colWidths=[largura * 0.45, largura * 0.44, w_logo] if logo else [largura * 0.5, largura * 0.5, 0])
-    cab.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                             ("LINEBELOW", (0, 0), (-1, 0), FINO, COR_MARCA, 0, None, 1),
-                             ("BOTTOMPADDING", (0, 0), (-1, 0), 6 * k), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                             ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (1, 0), (1, 0), 10 * k)]))
-    flow += [cab, Spacer(1, 4 * k)]
+        logo.hAlign = "LEFT"
+        esquerda += [logo, Spacer(1, 2.5 * k)]
+    esquerda.append(barra_nome)
+    direita = [
+        _p(f"OS Nº {_numero_os(dados.get('os_num'))}", e["os"]),
+        _p(f"Versão {dados.get('versao', 1)}", e["meta"]),
+        _p(f"Emitido em {data_hora_br(dados.get('emitido_em'))}", e["meta"]),
+    ]
+    cab = Table([[esquerda, direita]], colWidths=[largura * 0.55, largura * 0.45])
+    cab.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (0, 0), "BOTTOM"), ("VALIGN", (1, 0), (1, 0), "BOTTOM"),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.8, COR_TEXTO),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 7 * k), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    flow += [cab, Spacer(1, 6 * k)]
 
     status = dados.get("status") or ""
-    flow.append(_p(STATUS_ROTULO.get(status, status), e["negrito"]))
-    if dados.get("validade_ate") and status in ("enviado", "aprovado"):
-        flow.append(_p(f"Válido até {data_br(dados['validade_ate'])}", e["suave"]))
+    validade = (f"Válido até {data_br(dados['validade_ate'])}"
+                if dados.get("validade_ate") and status in ("enviado", "aprovado") else "")
+    faixa = Table([[_p(STATUS_ROTULO.get(status, status), e["negrito"]), _p(validade, e["direita"])]],
+                  colWidths=[largura * 0.65, largura * 0.35])
+    faixa.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                               ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    flow += [faixa, Spacer(1, 7 * k)]
 
-    # Cliente e veículo
+    # Cliente e veículo: duas colunas separadas, cada uma com seu título e seus campos
     c, v = dados.get("cliente") or {}, dados.get("veiculo") or {}
-    linhas_cli = [_p(c.get("nome", ""), e["negrito"])]
-    for rot, chave in (("Telefone", "tel"), ("CPF/CNPJ", "doc")):
-        if c.get(chave):
-            linhas_cli.append(_p(f"{rot}: {c[chave]}", e["base"]))
-    detalhe_v = " · ".join(x for x in (v.get("modelo"), v.get("ano"), v.get("cor")) if x)
-    linhas_vei = [_p(v.get("placa", ""), e["negrito"]), _p(detalhe_v, e["base"])]
-    if v.get("km_saida"):
-        linhas_vei.append(_p(f"KM de saída: {km_txt(v['km_saida'])}", e["base"]))
-    flow.append(_p("CLIENTE E VEÍCULO", e["secao"]))
-    dados_t = Table([[linhas_cli, linhas_vei]], colWidths=[largura / 2, largura / 2])
-    dados_t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+    folga = 20 * k
+    col = (largura - folga) / 2
+    col_cli = [TituloSecao("Cliente", k), Spacer(1, 3 * k), _bloco_campos([
+        [("Nome", c.get("nome"))],
+        [("CPF / CNPJ", doc_txt(c.get("doc")))],
+        [("Telefone", tel_txt(c.get("tel")))],
+        [("E-mail", c.get("email"))],
+    ], col, e, k)]
+    col_vei = [TituloSecao("Veículo", k), Spacer(1, 3 * k), _bloco_campos([
+        [("Placa", v.get("placa")), ("Ano", v.get("ano"))],
+        [("Modelo", v.get("modelo"))],
+        [("Cor", v.get("cor")), ("KM de saída", km_txt(v.get("km_saida")))],
+    ], col, e, k)]
+    dados_t = Table([[col_cli, "", col_vei]], colWidths=[col, folga, col])
+    dados_t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                 ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                                 ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     flow.append(dados_t)
 
     # Itens: Peças e Serviços em seções separadas, cada uma com o seu total
     itens = dados.get("itens") or []
     pecas = [i for i in itens if i.get("tipo") == "peca"]
     servicos = [i for i in itens if i.get("tipo") != "peca"]
-    flow += _secao_itens("PEÇAS", "Total de peças", "Nenhuma peça neste orçamento.", pecas, e, largura, k)
-    flow += _secao_itens("SERVIÇOS", "Total de mão de obra", "Nenhum serviço neste orçamento.",
+    flow += _secao_itens("Peças", "Total de peças", "Nenhuma peça neste orçamento.", pecas, e, largura, k)
+    flow += _secao_itens("Serviços", "Total de mão de obra", "Nenhum serviço neste orçamento.",
                          servicos, e, largura, k)
 
     # Total geral = peças + serviços
     total_geral = _soma(pecas) + _soma(servicos)
-    linha_total = Table([[_p("TOTAL GERAL", e["negrito"]), _p(brl(total_geral), e["total"])]],
+    linha_total = Table([[_p("TOTAL GERAL", e["total_rot"]), _p(brl(total_geral), e["total"])]],
                         colWidths=[largura * 0.5, largura * 0.5])
-    linha_total.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, 0), FINO, COR_MARCA, 0, None, 1), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                                     ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                                     ("TOPPADDING", (0, 0), (-1, -1), 4 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
-    flow += [Spacer(1, 6 * k), linha_total]
+    linha_total.setStyle(TableStyle([
+        ("LINEABOVE", (0, 0), (-1, 0), 0.8, COR_TEXTO), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 5 * k), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    flow += [Spacer(1, 9 * k), linha_total]
 
     if dados.get("observacoes"):
-        flow += [_p("OBSERVAÇÕES", e["secao"]), _p(dados["observacoes"], e["base"])]
+        flow += [Spacer(1, 7 * k), TituloSecao("Observações", k), Spacer(1, 3 * k),
+                 _p(dados["observacoes"], e["texto_livre"])]
 
     # Aprovação / assinatura
     apr = dados.get("aprovacao")
     assinatura = dados.get("assinatura_png")
     bloco = []
     if apr or assinatura:
-        bloco.append(_p("APROVAÇÃO", e["secao"]))
+        bloco += [Spacer(1, 7 * k), TituloSecao("Aprovação", k), Spacer(1, 3 * k)]
     if apr:
         txt = f"Aprovado em {data_br(apr.get('em'))}"
         if apr.get("canal"):
@@ -274,21 +411,24 @@ def _construir(dados: dict, k: float):
     if assinatura:
         img = Image(io.BytesIO(assinatura))
         proporcao = img.imageHeight / float(img.imageWidth or 1)
-        w = min(55 * mm * k, img.imageWidth)
-        img.drawWidth, img.drawHeight = w, min(w * proporcao, 22 * mm * k)
-        img.hAlign = "LEFT"
-        bloco += [Spacer(1, 3 * k), img, _p("______________________________", e["base"]),
-                  _p("Assinatura do cliente", e["suave"])]
+        w = min(50 * mm * k, img.imageWidth)
+        img.drawWidth, img.drawHeight = w, min(w * proporcao, 18 * mm * k)
+        img.hAlign = "RIGHT"
+        legenda = Table([[_p("Assinatura do cliente", e["marca_sub"])]], colWidths=[52 * mm * k], hAlign="RIGHT")
+        legenda.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.7, COR_TEXTO), ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                     ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                     ("TOPPADDING", (0, 0), (-1, -1), 2 * k)]))
+        bloco += [Spacer(1, 3 * k), img, legenda]
     if bloco:
         flow.append(KeepTogether(bloco))
 
     def rodape(canvas, doc_):
         canvas.saveState()
-        canvas.setStrokeColor(COR_MARCA)
-        canvas.setLineWidth(FINO)
+        canvas.setStrokeColor(COR_FIO_RODAPE)
+        canvas.setLineWidth(0.5)
         canvas.line(16 * mm, 12.5 * mm, A4[0] - 16 * mm, 12.5 * mm)
-        canvas.setFont("Helvetica", 7.5)
-        canvas.setFillColor(COR_SUAVE)
+        canvas.setFont(F_MONO, 6.4)
+        canvas.setFillColor(COR_ROTULO_SECAO)
         canvas.drawString(16 * mm, 9 * mm, f"{dados.get('oficina_nome') or ''} · {rotulo_os(dados.get('os_num'))} · "
                                            f"orçamento v{dados.get('versao', 1)}")
         canvas.drawRightString(A4[0] - 16 * mm, 9 * mm, f"Página {doc_.page}")
