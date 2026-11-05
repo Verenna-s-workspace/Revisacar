@@ -1,4 +1,10 @@
 import { API_BASE } from '../constants';
+import { criarErroDaResposta, erroDeRede } from './api_erro';
+
+// Toda chamada deste módulo usa este `fetch` (ele sombreia o global de propósito): se a rede
+// falhar, em vez do "Failed to fetch" do navegador sobe um erro com texto para o usuário.
+const fetch: typeof globalThis.fetch = (input, init) =>
+  globalThis.fetch(input, init).catch((erro: unknown) => { throw erroDeRede(erro); });
 
 let accessToken = '';
 let refreshToken = '';
@@ -39,7 +45,7 @@ const renovarTokens = (): Promise<void> => {
           aoExpirarSessao?.();
           throw new Error('Sua sessão expirou. Entre de novo.');
         }
-        throw new Error(`Não foi possível renovar a sessão agora (HTTP ${res.status}). Tente de novo.`);
+        throw new Error('Não foi possível renovar a sua sessão agora. Tente de novo em instantes.');
       }
       accessToken = nova.accessToken;
       refreshToken = nova.refreshToken;
@@ -55,8 +61,9 @@ const baseHeaders: Record<string, string> = {
 
 const handleResponse = async (res: Response) => {
   if (!res.ok) {
-    const msg = await res.text().catch(() => `HTTP ${res.status}`);
-    throw new Error(msg || `HTTP ${res.status}`);
+    // O corpo vira texto legível em português (ver api_erro.ts); o JSON original fica em `corpo`.
+    const texto = await res.text().catch(() => '');
+    throw criarErroDaResposta(res.status, texto);
   }
   // 204 (DELETE) e outras respostas sem corpo não são JSON válido — tentar
   // res.json() nelas quebra mesmo quando a chamada deu certo.
@@ -167,8 +174,8 @@ const authFetchBlob = async (url: string): Promise<Blob> => {
     res = await buscar();
   }
   if (!res.ok) {
-    const msg = await res.text().catch(() => `HTTP ${res.status}`);
-    throw new Error(msg || `HTTP ${res.status}`);
+    const texto = await res.text().catch(() => '');
+    throw criarErroDaResposta(res.status, texto);
   }
   return res.blob();
 };

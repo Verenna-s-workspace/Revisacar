@@ -7,7 +7,8 @@ import type { FuncionarioPublico } from './FuncionarioPicker';
 import { PinEntry } from './PinEntry';
 import type { AuthResult } from '../../types';
 import type { AuthFlow } from '../auth/authFlows';
-import { corpoDoErro } from '../../utils/api_erro';
+import { mensagemDoErro } from '../../utils/api_erro';
+import { isValidCNPJ } from '../../components/inputs/masks';
 import { DEVICE_OFICINA_KEY, codigoValido, normalizarCodigo } from '../../utils/acesso_equipe_utils';
 
 type Step = 'pareamento' | 'login' | 'esqueci-solicitar' | 'esqueci-enviado';
@@ -78,7 +79,11 @@ export function FuncionarioLoginScreen({ onAuthenticated, onProgress }: Props) {
 
     if (modoPareamento === 'cnpj') {
       if (docInput.length !== 14) {
-        setErro('CNPJ deve ter 14 dígitos');
+        setErro('O CNPJ deve ter 14 números.');
+        return;
+      }
+      if (!isValidCNPJ(docInput)) {
+        setErro('CNPJ inválido. Confira os 14 números e tente de novo.');
         return;
       }
       parearCom(docInput);
@@ -96,8 +101,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onProgress }: Props) {
       if (!oficina?.oficinaDoc) throw new Error('resposta sem oficina');
       parearCom(oficina.oficinaDoc);
     } catch (err) {
-      const detalhe = corpoDoErro<{ detail?: string }>(err)?.detail;
-      setErro(detalhe ?? 'Não foi possível validar o código agora. Tente de novo.');
+      setErro(mensagemDoErro(err, 'Não foi possível validar o código agora. Tente de novo.'));
     } finally {
       setVerificando(false);
     }
@@ -138,8 +142,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onProgress }: Props) {
       const result = await api.loginFuncionarioPin({ funcionario_id: selecionado.id, pin });
       onAuthenticated(result as AuthResult);
     } catch (err) {
-      const msg = err instanceof Error ? err.message.replace(/"/g, '') : 'Não foi possível entrar';
-      setErro(msg);
+      setErro(mensagemDoErro(err, 'Não foi possível entrar agora. Tente de novo.'));
       setPin('');
     } finally {
       setEnviando(false);
@@ -153,7 +156,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onProgress }: Props) {
       await api.esqueciPin(emailRecuperacao.trim().toLowerCase());
       setStep('esqueci-enviado');
     } catch (err) {
-      setErro(err instanceof Error ? err.message.replace(/"/g, '') : 'Erro ao solicitar PIN');
+      setErro(mensagemDoErro(err, 'Não foi possível solicitar o novo PIN agora. Tente de novo.'));
     } finally {
       setEnviando(false);
     }

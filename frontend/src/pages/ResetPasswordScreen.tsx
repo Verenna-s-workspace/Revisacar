@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../utils/api';
+import { mensagemDoErro } from '../utils/api_erro';
 import { Input } from '../components/inputs/input';
 import { AuthShell } from './auth/AuthShell';
 
@@ -53,8 +54,7 @@ export function ResetPasswordScreen({ token, onVoltar }: ResetPasswordScreenProp
       setConfirmacao('');
       setConcluido(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro inesperado';
-      setError(message.replace(/"/g, ''));
+      setError(mensagemDoErro(err, 'Não foi possível redefinir a senha agora. Tente de novo em instantes.'));
     } finally {
       setLoading(false);
     }
