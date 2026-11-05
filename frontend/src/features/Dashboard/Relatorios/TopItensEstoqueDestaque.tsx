@@ -1,6 +1,7 @@
 import { tokens } from '../../../constants';
 import { Icons, CATEGORIA_ICON } from '../Icons';
 import { formatBRL } from '../../../utils/dashboard';
+import { Valor } from '../../../components/Privacidade';
 import { formatarNumero } from '../../../utils/relatorios';
 import type { ItemEstoqueMovimentado } from '../../../types/estoque';
 
@@ -103,7 +104,7 @@ export function TopItensEstoqueDestaque({ itens, isMobile, onVerItem }: TopItens
 
           {destaque.preco !== undefined && (
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: tokens.color.ferrari, marginBottom: 10 }}>
-              {formatBRL(destaque.preco)}
+              <Valor texto={formatBRL(destaque.preco)} />
             </div>
           )}
 

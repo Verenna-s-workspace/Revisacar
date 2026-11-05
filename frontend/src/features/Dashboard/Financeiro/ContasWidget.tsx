@@ -1,6 +1,7 @@
 import { tokens } from '../../../constants';
 import { Card } from '../Primitives';
 import { formatBRL } from '../../../utils/dashboard';
+import { Valor } from '../../../components/Privacidade';
 import { labelCategoria } from './categoriaLabels';
 import type { Transacao } from './types';
 
@@ -37,7 +38,7 @@ function Lista({ titulo, itens, corValor, onMarcarPago, podeEditar }: {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: corValor }}>{formatBRL(t.valor)}</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: corValor }}><Valor texto={formatBRL(t.valor)} /></span>
                 {podeEditar && onMarcarPago && (
                   <button
                     onClick={() => onMarcarPago(t.id)}

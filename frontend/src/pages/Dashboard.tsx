@@ -15,6 +15,10 @@ import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 import { useAuth } from '../context/AuthContext';
 import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/oficina_config';
 import { preCarregarQuandoOcioso, telaSobDemanda } from '../utils/telaSobDemanda';
+import { PrivacidadeProvider } from '../context/PrivacidadeContext';
+import { Valor, GraficoPrivado, MASCARA_NUMERO, MASCARA_PERCENTUAL } from '../components/Privacidade';
+import { DESTINOS_VISAO_GERAL } from '../utils/destaque';
+import type { Destaque, DestinoCard } from '../utils/destaque';
 
 // Components
 import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../features/Dashboard/Navigation';
@@ -87,7 +91,7 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader onNav={onNav} />
+        <DesktopHeader onNav={onNav} active={page} />
         <div style={{ padding: '18px 28px 32px' }}>{children}</div>
       </main>
     </div>
@@ -96,7 +100,15 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void; onOpenLearningCenter?: () => void }) {
+interface DashboardProps { onNewOS: () => void; onLoadOS?: (id: string) => void; onNewOSComPrefill?: (prefill: OSPrefillInput) => void; onOpenLearningCenter?: () => void }
+
+// O Modo Privacidade vale pro painel todo (Visão Geral, Financeiro e Relatórios),
+// por isso o Provider fica aqui, acima das telas.
+export function Dashboard(props: DashboardProps) {
+  return <PrivacidadeProvider><DashboardConteudo {...props} /></PrivacidadeProvider>;
+}
+
+function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: DashboardProps) {
   const { user } = useAuth();
   // isCompact (< 980px): celular, celular deitado, tablet e dobrável usam o
   // layout mobile. Antes só < 640px — o resto ganhava a sidebar de 240px.
@@ -138,6 +150,10 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // Mesmo mecanismo, agora para o Estoque — usado pelo card "Destaque do Período"
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
+  // Destaque de chegada: elemento(s) da tela de destino que pulsam ~4s depois de
+  // clicar num card da Visão Geral. Limpo por qualquer navegação "normal".
+  const [destaque, setDestaque] = useState<Destaque | null>(null);
+  const concluirDestaque = () => setDestaque(null);
 
   // Hooks SEMPRE antes dos `return` antecipados das outras páginas (senão trocar
   // de página muda a quantidade de hooks → React error #300).
@@ -157,7 +173,13 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   const handleNav = (p: NavPage) => {
     if (p === 'dicas') { onOpenLearningCenter?.(); return; }
-    setAgendaFocus(null); setEstoqueFocus(null); setPage(p);
+    setAgendaFocus(null); setEstoqueFocus(null); setDestaque(null); setPage(p);
+  };
+  // Clique num card da Visão Geral: vai pra tela certa e marca o que deve pulsar lá.
+  const irParaDestino = (d: DestinoCard) => {
+    setAgendaFocus(null); setEstoqueFocus(null);
+    setDestaque({ alvos: [...d.alvos], nonce: Date.now() });
+    setPage(d.page);
   };
   const handleGoToAgendamentos = (focus: { search?: string; highlightId?: string }) => {
     setAgendaFocus(focus);
@@ -239,13 +261,15 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         isMobile={isMobile}
         onNewOS={onNewOS}
         onGoToEstoque={handleGoToEstoque}
+        destaque={destaque}
+        onDestaqueConcluido={concluirDestaque}
       />
     );
   }
   if (page === 'financeiro') {
     return (
       <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
-        <FinanceiroPage isMobile={isMobile} />
+        <FinanceiroPage isMobile={isMobile} destaque={destaque} onDestaqueConcluido={concluirDestaque} />
       </ShellPage>
     );
   }
@@ -297,6 +321,9 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         pct={fat ? calcularVariacao(fat.atual, fat.anterior) : null}
         spark={spark7Fat}
         loading={loading}
+        monetario
+        onNavegar={loading ? undefined : () => irParaDestino(DESTINOS_VISAO_GERAL.faturamentoMes)}
+        rotulo="Faturamento do mês — abrir o Financeiro"
       />
     ),
     <KpiCard
@@ -307,6 +334,8 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       pct={vg ? calcularVariacao(vg.ordens.atual, vg.ordens.anterior) : null}
       spark={spark7Os}
       loading={loading}
+      onNavegar={loading ? undefined : () => irParaDestino(DESTINOS_VISAO_GERAL.ordensServico)}
+      rotulo="Ordens de serviço — abrir os Relatórios"
     />,
     (loading || vg?.meta) && (
       <MetaCard
@@ -341,7 +370,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
 
   // ── Chart Section ──────────────────────────────────────────────────────────
   const chartSection = semDados ? null : (
-    <Card style={{ padding: isMobile ? '16px' : '20px 24px', minWidth: 0 }}>
+    <Card
+      style={{ padding: isMobile ? '16px' : '20px 24px', minWidth: 0 }}
+      onNavegar={loading ? undefined : () => irParaDestino(comDinheiro ? DESTINOS_VISAO_GERAL.analiseFaturamento : DESTINOS_VISAO_GERAL.analiseOrdens)}
+      rotulo={comDinheiro ? 'Análise de faturamento — abrir os Relatórios' : 'Ordens por dia — abrir os Relatórios'}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px 12px', flexWrap: 'wrap', marginBottom: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
@@ -404,7 +437,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
       )}
       {loading
         ? <Skeleton h={isMobile ? 160 : 220} r={8} />
-        : <FaturamentoChart data={serieGrafico} height={isMobile ? 160 : 220} formato={comDinheiro ? 'moeda' : 'numero'} />
+        : (
+          <GraficoPrivado ativo={comDinheiro}>
+            <FaturamentoChart data={serieGrafico} height={isMobile ? 160 : 220} formato={comDinheiro ? 'moeda' : 'numero'} />
+          </GraficoPrivado>
+        )
       }
     </Card>
   );
@@ -413,7 +450,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   // OS finalizadas dos últimos 30 dias. O valor é ESTIMADO (preço por tipo de
   // serviço × quantidade), não faturamento real — por isso "est." no cabeçalho.
   const topServicosSection = semDados ? null : (
-    <Card style={{ padding: isMobile ? '16px' : '20px 22px', minWidth: 0 }}>
+    <Card
+      style={{ padding: isMobile ? '16px' : '20px 22px', minWidth: 0 }}
+      onNavegar={loading ? undefined : () => irParaDestino(DESTINOS_VISAO_GERAL.topServicos)}
+      rotulo="Top serviços — abrir os Relatórios"
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px 12px', flexWrap: 'wrap', marginBottom: 14 }}>
         <div>
           <div className="dashboard-card__header-title">Top serviços</div>
@@ -475,7 +516,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
                 </div>
                 <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: isMobile ? 96 : 72, textAlign: 'right', flexShrink: 0, fontWeight: 500 }}>
                   {comDinheiro
-                    ? (s.valorEstimado ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                    ? <Valor texto={(s.valorEstimado ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} mascara={MASCARA_NUMERO} />
                     : s.quantidade.toLocaleString('pt-BR')}
                 </div>
                 {!isMobile && <HeatmapRow heatmap={s.semana} />}
@@ -516,7 +557,11 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
   }));
 
   const resumoFinanceiro = !loading && !fin ? null : (
-    <Card style={{ padding: '20px 22px' }}>
+    <Card
+      style={{ padding: '20px 22px' }}
+      onNavegar={loading ? undefined : () => irParaDestino(DESTINOS_VISAO_GERAL.resumoFinanceiro)}
+      rotulo="Resumo financeiro — abrir o Financeiro"
+    >
       <div className="dashboard-card__header">
         <div className="dashboard-card__header-title">RESUMO FINANCEIRO</div>
       </div>
@@ -539,7 +584,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
         </div>
       ) : (
         <>
-          <div style={{ width: '100%', height: 190, marginBottom: 18 }}>
+          <GraficoPrivado style={{ width: '100%', height: 190, marginBottom: 18 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={financeChartData} margin={{ top: 24, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={tokens.color.border} vertical={false} />
@@ -563,14 +608,14 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </GraficoPrivado>
 
           {financeRows.map(row => (
             <div key={row.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 96, flexShrink: 0 }}>{row.name}</span>
-              <ProgressBar pct={limitarPct(row.pct)} color={row.color} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text, width: 90, textAlign: 'right', flexShrink: 0 }}>{formatBRL(row.value)}</span>
-              <span style={{ fontSize: '0.75rem', color: tokens.color.muted, width: 36, flexShrink: 0 }}>{row.pct}%</span>
+              <ProgressBar pct={limitarPct(row.pct)} color={row.color} monetario />
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text, width: 90, textAlign: 'right', flexShrink: 0 }}><Valor texto={formatBRL(row.value)} /></span>
+              <span style={{ fontSize: '0.75rem', color: tokens.color.muted, width: 36, flexShrink: 0 }}><Valor texto={`${row.pct}%`} mascara={MASCARA_PERCENTUAL} /></span>
             </div>
           ))}
 
@@ -579,7 +624,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
               <span style={{ color: '#1565C0', flexShrink: 0, marginTop: 1, display: 'flex' }}>{Icons.info}</span>
               <span style={{ fontSize: '0.77rem', color: '#1565C0', lineHeight: 1.5 }}>
                 Seu lucro líquido {fin.lucroVariacaoPercentual >= 0 ? 'aumentou' : 'diminuiu'}{' '}
-                {Math.abs(fin.lucroVariacaoPercentual).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% em relação ao mesmo trecho do mês anterior.
+                <Valor texto={`${Math.abs(fin.lucroVariacaoPercentual).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`} mascara={MASCARA_PERCENTUAL} /> em relação ao mesmo trecho do mês anterior.
               </span>
             </div>
           )}
@@ -737,7 +782,7 @@ export function Dashboard({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearning
     <div style={{ display: 'flex', minHeight: '100dvh', background: tokens.color.bg }}>
       <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader onNav={handleNav} />
+        <DesktopHeader onNav={handleNav} active={page} />
         <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {erroCard}
           {kpiRow}

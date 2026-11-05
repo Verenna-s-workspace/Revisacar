@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { tokens } from '../../constants';
 import { ROTULO_STATUS } from '../../utils/ordem_status';
+import { usePrivacidade } from '../../context/PrivacidadeContext';
+import { Valor, MASCARA_PERCENTUAL } from '../../components/Privacidade';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -18,10 +20,54 @@ export function Skeleton({ w = '100%', h = 16, r = 6 }: SkelProps) {
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
-interface CardProps { children: ReactNode; style?: React.CSSProperties; className?: string; onClick?: React.MouseEventHandler<HTMLDivElement>; }
-export function Card({ children, style, className = '', onClick }: CardProps) {
+/** Cliques que nascem nestes elementos NÃO disparam a navegação do card (selects, chips, links internos). */
+const SELETOR_INTERATIVO = 'button, a, input, select, textarea, label, [role="radio"], [role="option"], [data-nao-navegar]';
+
+interface CardProps {
+  children: ReactNode;
+  style?: React.CSSProperties;
+  className?: string;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
+  /** Torna o card inteiro clicável (hover/toque, foco e Enter/Espaço) e leva à tela de destino. */
+  onNavegar?: () => void;
+  /** Nome acessível do card clicável (ex.: "Ver faturamento no Financeiro"). */
+  rotulo?: string;
+  /** Marca o card como alvo do destaque de chegada (ver utils/destaque.ts). */
+  destaqueId?: string;
+}
+
+export function Card({ children, style, className = '', onClick, onNavegar, rotulo, destaqueId }: CardProps) {
+  if (!onNavegar) {
+    return (
+      <div className={`dashboard-card ${className}`} style={style} onClick={onClick} data-destaque-id={destaqueId}>
+        {children}
+      </div>
+    );
+  }
+
+  const ativar = (e: React.MouseEvent<HTMLDivElement>) => {
+    const interno = (e.target as HTMLElement).closest(SELETOR_INTERATIVO);
+    if (interno && e.currentTarget.contains(interno)) return;       // controle interno cuida do próprio clique
+    if (window.getSelection()?.toString()) return;                  // selecionando texto ≠ clicar
+    // Toque: vibração curtinha onde o aparelho suporta (Android); iOS ignora.
+    try { if (window.matchMedia('(pointer: coarse)').matches) navigator.vibrate?.(8); } catch { /* sem suporte */ }
+    onNavegar();
+  };
+
   return (
-    <div className={`dashboard-card ${className}`} style={style} onClick={onClick}>
+    <div
+      className={`dashboard-card dashboard-card--clicavel ${className}`}
+      style={style}
+      role="link"
+      tabIndex={0}
+      aria-label={rotulo}
+      data-destaque-id={destaqueId}
+      onClick={ativar}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavegar(); }
+      }}
+    >
       {children}
     </div>
   );
@@ -47,12 +93,12 @@ export function StatusBadge({ status }: { status: string }) {
 
 // ── Donut ─────────────────────────────────────────────────────────────────────
 
-function Donut({ pct }: { pct: number }) {
+function Donut({ pct, oculto = false }: { pct: number; oculto?: boolean }) {
   const r = 38;
   const c = 2 * Math.PI * r;
   const d = Math.min(pct / 100, 1) * c;
   return (
-    <svg width="96" height="96" viewBox="0 0 96 96">
+    <svg width="96" height="96" viewBox="0 0 96 96" className={`privacidade-blur-suave${oculto ? ' privacidade-blur' : ''}`} aria-hidden={oculto || undefined}>
       <circle cx="48" cy="48" r={r} fill="none" stroke="var(--color-surface-high)" strokeWidth="9" />
       <circle
         cx="48" cy="48" r={r} fill="none"
@@ -75,12 +121,15 @@ function Donut({ pct }: { pct: number }) {
 
 // ── ProgressBar ───────────────────────────────────────────────────────────────
 
-export function ProgressBar({ pct, color = '#CC1400' }: { pct: number; color?: string }) {
+export function ProgressBar({ pct, color = '#CC1400', monetario = false }: { pct: number; color?: string; monetario?: boolean }) {
+  const { oculto } = usePrivacidade();
+  // Barra de valor financeiro: com a máscara ligada a trilha fica e o preenchimento zera (a largura entregaria o %).
+  const largura = monetario && oculto ? 0 : Math.min(100, pct);
   return (
     <div className="dashboard-progress-bar">
       <div
         className="dashboard-progress-bar__fill"
-        style={{ width: `${Math.min(100, pct)}%`, background: color }}
+        style={{ width: `${largura}%`, background: color }}
       />
     </div>
   );
@@ -88,13 +137,17 @@ export function ProgressBar({ pct, color = '#CC1400' }: { pct: number; color?: s
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 
-function Sparkline({ data }: { data: number[] }) {
+function Sparkline({ data, oculto = false }: { data: number[]; oculto?: boolean }) {
   const chartData = data.map((value, index) => ({ index, value }));
   const maxValue = Math.max(...data, 1);
 
   return (
     // Encolhe antes do valor: num cartão estreito o "R$" quebrava de linha.
-    <div style={{ flex: '0 1 96px', height: 40, minWidth: 56 }}>
+    <div
+      className={`privacidade-blur-suave${oculto ? ' privacidade-blur' : ''}`}
+      style={{ flex: '0 1 96px', height: 40, minWidth: 56 }}
+      aria-hidden={oculto || undefined}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
           <XAxis dataKey="index" hide />
@@ -147,12 +200,21 @@ interface KpiCardProps {
   loading: boolean;
   /** Texto ao lado do %. Default mantém o comportamento atual (Visão Geral = mensal). */
   comparisonLabel?: string;
+  /** É valor em R$: some no Modo Privacidade (valor, variação % e mini-gráfico). */
+  monetario?: boolean;
+  /** Card inteiro leva a outra tela (hover, foco, toque). */
+  onNavegar?: () => void;
+  rotulo?: string;
+  /** Alvo do destaque de chegada (ver utils/destaque.ts). */
+  destaqueId?: string;
 }
 
-export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLabel = 'vs. mês anterior' }: KpiCardProps) {
+export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLabel = 'vs. mês anterior', monetario = false, onNavegar, rotulo, destaqueId }: KpiCardProps) {
+  const { oculto } = usePrivacidade();
+  const mascarar = monetario && oculto;
   const pos = pct !== null && pct >= 0;
   return (
-    <Card style={{ padding: '18px 20px', flex: 1, minWidth: 0 }}>
+    <Card style={{ padding: '18px 20px', flex: 1, minWidth: 0 }} onNavegar={onNavegar} rotulo={rotulo} destaqueId={destaqueId}>
       {/* Mini-gráfico alinhado embaixo, ao lado do valor: no topo ele passava por
           cima do título quando o cartão estreitava (notebook de 1024px). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 8 }}>
@@ -173,15 +235,18 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
           ) : (
             <>
               <div style={{ fontSize: 'clamp(1.35rem, 6.2vw, 1.65rem)', fontWeight: 800, color: tokens.color.text, letterSpacing: '-0.02em', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                {value}
+                {monetario ? <Valor texto={value} /> : value}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, minHeight: 17 }}>
                 {pct === null ? (
                   <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>sem comparação disponível</span>
                 ) : (
                   <>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: pos ? tokens.color.ok : tokens.color.crit }}>
-                      {pos ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
+                    {/* Cor e seta também denunciam subiu/caiu: com a máscara ligada ficam neutras. */}
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: mascarar ? tokens.color.muted : pos ? tokens.color.ok : tokens.color.crit }}>
+                      {monetario
+                        ? <Valor texto={`${pos ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}%`} mascara={MASCARA_PERCENTUAL} />
+                        : `${pos ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}%`}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{comparisonLabel}</span>
                   </>
@@ -190,7 +255,7 @@ export function KpiCard({ icon, title, value, pct, spark, loading, comparisonLab
             </>
           )}
         </div>
-        <Sparkline data={spark} />
+        <Sparkline data={spark} oculto={mascarar} />
       </div>
     </Card>
   );
@@ -214,6 +279,7 @@ interface MetaCardProps {
 }
 
 export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaCardProps) {
+  const { oculto } = usePrivacidade();
   const [editando, setEditando] = useState(false);
   const [texto, setTexto] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -290,7 +356,7 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: '0.84rem', fontWeight: 600, color: tokens.color.text }}>Meta não definida</div>
           <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
-            Faturado no mês: <strong style={{ color: tokens.color.text }}>{formatBRL(alcancado)}</strong>
+            Faturado no mês: <strong style={{ color: tokens.color.text }}><Valor texto={formatBRL(alcancado)} /></strong>
           </div>
           {editavel
             ? <button style={{ ...botao, textAlign: 'left' }} onClick={abrirEdicao}>Definir meta</button>
@@ -302,11 +368,11 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
             <div style={{ fontSize: '0.75rem', color: tokens.color.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
               Meta {editavel && <button className="visao-geral__link" style={botao} onClick={abrirEdicao} aria-label="Editar meta mensal">Editar</button>}
             </div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(meta)}</div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}><Valor texto={formatBRL(meta)} /></div>
             <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 8 }}>Alcançado</div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}>{formatBRL(alcancado)}</div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: tokens.color.text }}><Valor texto={formatBRL(alcancado)} /></div>
           </div>
-          <Donut pct={pct} />
+          <Donut pct={pct} oculto={oculto} />
         </div>
       )}
     </Card>

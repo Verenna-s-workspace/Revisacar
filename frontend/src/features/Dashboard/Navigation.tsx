@@ -8,6 +8,10 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { rotuloDoCargo } from '../../utils/cargo';
+import { BotaoPrivacidade } from '../../components/Privacidade';
+
+/** Telas que mostram valores financeiros — só nelas aparece o botão do Modo Privacidade. */
+export const TELAS_COM_PRIVACIDADE: readonly NavPage[] = ['dashboard', 'financeiro', 'relatorios'];
 // ── Acessibilidade de diálogos (drawer) ──────────────────────────────────────
 // Foco entra no painel, Tab fica preso dentro dele, Esc fecha, o fundo não rola
 // e o foco volta pro botão que abriu. Antes o drawer tinha role="dialog" mas
@@ -232,7 +236,7 @@ export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p
 
 // ── Desktop Header ─────────────────────────────────────────────────────────────
 
-export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) {
+export function DesktopHeader({ onNav, active }: { onNav?: (p: NavPage) => void; active?: NavPage } = {}) {
   const { user, logout } = useAuth();
   const { total: totalAlertas } = useAlertasResumo();
   const [open, setOpen] = useState(false);
@@ -245,6 +249,7 @@ export function DesktopHeader({ onNav }: { onNav?: (p: NavPage) => void } = {}) 
       </div>
       <div className="dashboard-header__actions" style={{ position: 'relative' }}>
 
+        {active && TELAS_COM_PRIVACIDADE.includes(active) && <BotaoPrivacidade variante="desktop" />}
         <div className="dashboard-header__indicator">
           <button className="dashboard-button" onClick={() => onNav?.('alertas')} title="Alertas" aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}>{Icons.bell}</button>
           {totalAlertas > 0 && <span className="dashboard-header__badge">{totalAlertas}</span>}
@@ -317,6 +322,7 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
           menu lateral; o avatar parecia botão e não era. Cada ícone agora tem
           alvo de 44px — com 4 ícones + hambúrguer + logo não cabia em 360px. */}
       <div className="dashboard-mobile-topbar__actions">
+        {active && TELAS_COM_PRIVACIDADE.includes(active) && <BotaoPrivacidade variante="mobile" />}
         <button
           type="button"
           className="dashboard-mobile-topbar__button dashboard-mobile-topbar__button--end"

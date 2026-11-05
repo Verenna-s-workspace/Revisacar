@@ -15,6 +15,9 @@ import { TransacaoModal } from './Financeiro/TransacaoModal';
 import { labelCategoria, LABEL_STATUS } from './Financeiro/categoriaLabels';
 import type { Transacao } from './Financeiro/types';
 import { isoLocal } from '../../utils/financeiro_utils';
+import { Valor, GraficoPrivado } from '../../components/Privacidade';
+import { useDestaqueAoChegar } from '../../hooks/useDestaqueAoChegar';
+import type { Destaque } from '../../utils/destaque';
 
 type Preset = 'este-mes' | 'mes-passado' | '3-meses';
 
@@ -38,7 +41,7 @@ function formatDataCurta(iso: string): string {
   return `${dia}/${mes}`;
 }
 
-export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
+export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { isMobile: boolean; destaque?: Destaque | null; onDestaqueConcluido?: () => void }) {
   const { can } = usePermissions();
   const podeVer = can('financeiro.ver');
   const podeEditar = can('financeiro.editar');
@@ -54,6 +57,9 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
     resumo, transacoes, pendentesReceber, pendentesPagar, categorias,
     carregando, erro, criar, atualizar, cancelar,
   } = useFinanceiro({ de, ate, podeVer, podeVerMargem });
+
+  // Chegou aqui clicando num card da Visão Geral: pulsa o(s) KPI(s) correspondente(s) assim que os números aparecem.
+  useDestaqueAoChegar(destaque, !!resumo && podeVer, onDestaqueConcluido);
 
   const fluxoDiario = useMemo<FluxoDia[]>(() => {
     const porDia = new Map<string, { entradas: number; saidas: number }>();
@@ -159,7 +165,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
               {fluxoDiario.length === 0 ? (
                 <div style={{ padding: 40, textAlign: 'center', color: tokens.color.muted, fontSize: '0.82rem' }}>Sem lançamentos nesse período.</div>
               ) : (
-                <FluxoCaixaChart data={fluxoDiario} height={isMobile ? 200 : 240} />
+                <GraficoPrivado><FluxoCaixaChart data={fluxoDiario} height={isMobile ? 200 : 240} /></GraficoPrivado>
               )}
             </Card>
 
@@ -195,7 +201,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
                         {t.descricao || labelCategoria(t.tipo, t.categoria)}{t.cliente_nome ? ` — ${t.cliente_nome}` : ''}
                       </div>
                       <div style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.95rem', color: t.tipo === 'entrada' ? tokens.color.ok : tokens.color.text }}>
-                        {t.tipo === 'entrada' ? '+ ' : '- '}{formatBRL(t.valor)}
+                        {t.tipo === 'entrada' ? '+ ' : '- '}<Valor texto={formatBRL(t.valor)} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: '0.8125rem', color: tokens.color.muted }}>
@@ -251,7 +257,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
                           </span>
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: t.tipo === 'entrada' ? tokens.color.ok : tokens.color.text }}>
-                          {t.tipo === 'entrada' ? '+ ' : '- '}{formatBRL(t.valor)}
+                          {t.tipo === 'entrada' ? '+ ' : '- '}<Valor texto={formatBRL(t.valor)} />
                         </td>
                         {podeEditar && (
                           <td style={{ ...tdStyle, textAlign: 'right' }}>

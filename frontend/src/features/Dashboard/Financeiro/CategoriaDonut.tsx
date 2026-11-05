@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { tokens } from '../../../constants';
 import { formatBRL } from '../../../utils/dashboard';
+import { Valor, GraficoPrivado } from '../../../components/Privacidade';
 import { labelCategoria, PALETA_DONUT } from './categoriaLabels';
 
 export interface FatiaCategoria {
@@ -22,7 +23,7 @@ export function CategoriaDonut({ dados }: { dados: FatiaCategoria[] }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-      <div style={{ width: 150, height: 150, flexShrink: 0 }}>
+      <GraficoPrivado selo={false} style={{ width: 150, height: 150, flexShrink: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -41,7 +42,7 @@ export function CategoriaDonut({ dados }: { dados: FatiaCategoria[] }) {
             <Tooltip formatter={(v: number) => formatBRL(v)} />
           </PieChart>
         </ResponsiveContainer>
-      </div>
+      </GraficoPrivado>
 
       <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {ordenado.slice(0, 6).map((d, i) => (
@@ -52,7 +53,7 @@ export function CategoriaDonut({ dados }: { dados: FatiaCategoria[] }) {
                 {labelCategoria('saida', d.categoria)}
               </span>
             </div>
-            <span style={{ color: tokens.color.muted, fontWeight: 700, flexShrink: 0 }}>{formatBRL(d.valor)}</span>
+            <span style={{ color: tokens.color.muted, fontWeight: 700, flexShrink: 0 }}><Valor texto={formatBRL(d.valor)} /></span>
           </div>
         ))}
       </div>

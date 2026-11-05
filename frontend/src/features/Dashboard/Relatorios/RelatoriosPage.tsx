@@ -1,7 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { BotaoPrivacidade, GraficoPrivado } from '../../../components/Privacidade';
+import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
+import { ALVO } from '../../../utils/destaque';
+import type { Destaque } from '../../../utils/destaque';
 import { Card, KpiCard, Skeleton } from '../Primitives';
 import { useRelatorios } from '../../../hooks/useRelatorios';
 import { useEstoque } from '../../../hooks/useEstoque';
@@ -23,9 +27,12 @@ interface RelatoriosPageProps {
   isMobile: boolean;
   onNewOS?: () => void;
   onGoToEstoque?: (focus: { search?: string }) => void;
+  /** Veio de um card da Visão Geral: pulsa o(s) elemento(s) correspondente(s) ao chegar. */
+  destaque?: Destaque | null;
+  onDestaqueConcluido?: () => void;
 }
 
-export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque }: RelatoriosPageProps) {
+export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque, destaque, onDestaqueConcluido }: RelatoriosPageProps) {
   const {
     carregando,
     erro,
@@ -60,6 +67,15 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
   });
 
   const chartHeight = mobile ? 220 : 260;
+
+  // Destaque de chegada: espera os dados aparecerem. Se a tela terminou de carregar mas não
+  // vai mostrar os blocos (erro / sem dados no período), cancela em vez de pulsar tarde demais.
+  const conteudoPronto = !carregando && !erro && temDadosNoPeriodo;
+  useDestaqueAoChegar(destaque, conteudoPronto, onDestaqueConcluido);
+  useEffect(() => {
+    if (destaque && !carregando && !conteudoPronto) onDestaqueConcluido?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destaque, carregando, conteudoPronto]);
 
   // ── conteúdo ────────────────────────────────────────────────────────────────
 
@@ -98,6 +114,8 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
             </p>
           </div>
         </div>
+        {/* Desktop: esta tela não usa o cabeçalho com o sino, então o botão fica aqui. No celular ele está na topbar. */}
+        {!mobile && <BotaoPrivacidade variante="desktop" />}
       </div>
 
       {/* período */}
@@ -154,6 +172,8 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                 spark={sparkFaturamento}
                 loading={carregando}
                 comparisonLabel="vs. período anterior"
+                monetario
+                destaqueId={ALVO.relKpiFaturamento}
               />
               <KpiCard
                 icon={Icons.orders}
@@ -163,6 +183,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                 spark={sparkOrdens}
                 loading={carregando}
                 comparisonLabel="vs. período anterior"
+                destaqueId={ALVO.relKpiOs}
               />
               <KpiCard
                 icon={Icons.chart}
@@ -172,6 +193,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                 spark={sparkTicket}
                 loading={carregando}
                 comparisonLabel="vs. período anterior"
+                monetario
               />
             </div>
 
@@ -179,7 +201,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
 
             {/* gráficos principais */}
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-              <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+              <Card style={{ padding: mobile ? '16px' : '20px 24px' }} destaqueId={ALVO.relGraficoFaturamento}>
                 <div className="dashboard-card__header">
                   <div>
                     <div className="dashboard-card__header-title">FATURAMENTO</div>
@@ -190,10 +212,10 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
                     </div>
                   </div>
                 </div>
-                {carregando ? <Skeleton h={chartHeight} r={8} /> : <FaturamentoComparativoChart dados={serieFaturamento} height={chartHeight} />}
+                {carregando ? <Skeleton h={chartHeight} r={8} /> : <GraficoPrivado><FaturamentoComparativoChart dados={serieFaturamento} height={chartHeight} /></GraficoPrivado>}
               </Card>
 
-              <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+              <Card style={{ padding: mobile ? '16px' : '20px 24px' }} destaqueId={ALVO.relGraficoOs}>
                 <div className="dashboard-card__header">
                   <div>
                     <div className="dashboard-card__header-title">ORDENS DE SERVIÇO</div>
@@ -207,7 +229,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
             </div>
 
             {/* serviços mais realizados */}
-            <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+            <Card style={{ padding: mobile ? '16px' : '20px 24px' }} destaqueId={ALVO.relServicosMaisRealizados}>
               <div className="dashboard-card__header">
                 <div>
                   <div className="dashboard-card__header-title">SERVIÇOS MAIS REALIZADOS</div>
