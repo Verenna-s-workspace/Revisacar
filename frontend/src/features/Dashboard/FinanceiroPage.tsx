@@ -4,6 +4,7 @@ import { Icons } from './Icons';
 import { Card } from './Primitives';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useFinanceiro } from '../../hooks/useFinanceiro';
+import { useReserva } from '../../hooks/useReserva';
 import { mensagemDoErro } from '../../utils/api_erro';
 import { formatBRL } from '../../utils/dashboard';
 import { KpiCards } from './Financeiro/KpiCards';
@@ -12,6 +13,7 @@ import type { FluxoDia } from './Financeiro/FluxoCaixaChart';
 import { CategoriaDonut } from './Financeiro/CategoriaDonut';
 import { ContasWidget } from './Financeiro/ContasWidget';
 import { TransacaoModal } from './Financeiro/TransacaoModal';
+import { ReservaCard } from './Financeiro/ReservaCard';
 import { labelCategoria, LABEL_STATUS } from './Financeiro/categoriaLabels';
 import type { Transacao } from './Financeiro/types';
 import { isoLocal } from '../../utils/financeiro_utils';
@@ -43,6 +45,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
   const podeVer = can('financeiro.ver');
   const podeEditar = can('financeiro.editar');
   const podeVerMargem = can('financeiro.ver_margem');
+  const podeRetirarReserva = can('financeiro.reserva');
 
   const [preset, setPreset] = useState<Preset>('este-mes');
   // Modal: undefined = fechado, null = novo lançamento, Transacao = edição.
@@ -54,6 +57,8 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
     resumo, transacoes, pendentesReceber, pendentesPagar, categorias,
     carregando, erro, criar, atualizar, cancelar,
   } = useFinanceiro({ de, ate, podeVer, podeVerMargem });
+  // A reserva é um extra: se não carregar, o restante do Financeiro segue normal.
+  const { reserva, erro: erroReserva, recarregar: recarregarReserva, retirar, desfazerRetirada } = useReserva({ podeVer });
 
   const fluxoDiario = useMemo<FluxoDia[]>(() => {
     const porDia = new Map<string, { entradas: number; saidas: number }>();
@@ -80,12 +85,14 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
     if (modal) await atualizar(modal.id, payload);
     else await criar(payload);
     setModal(undefined);
+    recarregarReserva();
   };
 
   const handleMarcarPago = async (id: string) => {
     setErroAcao('');
     try {
       await atualizar(id, { status: 'pago' });
+      recarregarReserva();
     } catch (e) {
       setErroAcao(mensagemDoErro(e, 'Não foi possível atualizar. Tente de novo.'));
     }
@@ -96,6 +103,7 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
     setErroAcao('');
     try {
       await cancelar(id);
+      recarregarReserva();
     } catch (e) {
       setErroAcao(mensagemDoErro(e, 'Não foi possível cancelar. Tente de novo.'));
     }
@@ -152,6 +160,17 @@ export function FinanceiroPage({ isMobile }: { isMobile: boolean }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, opacity: carregando ? 0.6 : 1, transition: 'opacity .15s' }}>
           <KpiCards resumo={resumo} verMargem={podeVerMargem} isMobile={isMobile} />
+
+          {reserva && (reserva.ativa || reserva.movimentos.length > 0) && (
+            <ReservaCard
+              reserva={reserva}
+              erro={erroReserva}
+              podeRetirar={podeRetirarReserva}
+              isMobile={isMobile}
+              onRetirar={retirar}
+              onDesfazer={desfazerRetirada}
+            />
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 16 }}>
             <Card style={{ padding: 20 }}>

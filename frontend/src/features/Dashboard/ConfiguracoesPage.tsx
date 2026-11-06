@@ -5,6 +5,7 @@ import { Card } from './Primitives';
 import { useTheme } from '../../hooks/useTheme';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { AcessoEquipeCard } from './Configuracoes/AcessoEquipeCard';
+import { ReservaCaixaCard } from './Configuracoes/ReservaCaixaCard';
 import { Input } from '../../components/inputs/input';
 import { DEFAULT_HORA_ABERTURA, DEFAULT_HORA_FECHAMENTO } from '../../utils/agenda';
 import { useAuth } from '../../context/AuthContext';
@@ -408,6 +409,8 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
       <FuncionariosCard isMobile={isMobile} />
 
       <AcessoEquipeCard isMobile={isMobile} nomeOficina={workshop.nome} />
+
+      <ReservaCaixaCard isMobile={isMobile} />
     </div>
   );
 }

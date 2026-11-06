@@ -155,7 +155,7 @@ def pg_dsn():
     # Migrations versionadas (db): controle, limpeza, tabelas do app do cliente, integração.
     for nome in ("0000_controle.sql", "0001_limpeza_segura.sql", "0002_tabelas_app_cliente.sql",
                  "0003_integracao_cliente_oficina.sql", "0005_config_oficina.sql", "0006_codigo_acesso_equipe.sql",
-                 "0007_fotos_veiculos.sql"):
+                 "0007_fotos_veiculos.sql", "0008_reserva_caixa.sql"):
         sql = (BACKEND_DIR / "sql" / "migrations" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência
@@ -179,10 +179,10 @@ def db(pg_dsn):
     cur.execute(
         "truncate public.estoque_movimentos, public.estoque_kit_itens, "
         "public.estoque_kits, public.estoque_itens, public.servicos, "
-        "public.ordens, public.financeiro_transacoes, public.orcamentos, public.orcamento_itens, public.alertas_dispensados, "
+        "public.ordens, public.financeiro_transacoes, public.financeiro_reservas, public.orcamentos, public.orcamento_itens, public.alertas_dispensados, "
         "public.appointments, public.customer_vehicles, public.oficina_convites, public.oficina_clientes, "
         "public.customers, public.notifications, public.funcionarios cascade"
     )
-    cur.execute("update public.admins set meta_mensal = null, config_oficina = null, config_oficina_em = null, codigo_acesso = null")
+    cur.execute("update public.admins set meta_mensal = null, config_oficina = null, config_oficina_em = null, codigo_acesso = null, reserva_config = null, reserva_config_em = null")
     yield conn
     conn.close()

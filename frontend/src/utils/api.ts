@@ -510,6 +510,21 @@ export const api = {
     return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
   },
 
+  // ── Reserva de caixa ─────────────────────────────────────────────────────────
+  // Ler config/saldo: financeiro.ver. Configurar e retirar: financeiro.reserva (só o dono).
+  obterReservaConfig: () => authFetch(`${API_BASE}/financeiro/reserva/config`),
+
+  salvarReservaConfig: (payload: { ativa: boolean; percentual: number; escopo: string }) =>
+    authFetch(`${API_BASE}/financeiro/reserva/config`, { method: 'PUT', body: JSON.stringify(payload) }),
+
+  obterReserva: () => authFetch(`${API_BASE}/financeiro/reserva`),
+
+  retirarDaReserva: (payload: { valor: number; descricao: string }) =>
+    authFetch(`${API_BASE}/financeiro/reserva/retiradas`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  desfazerRetiradaDaReserva: (id: string) =>
+    authFetch(`${API_BASE}/financeiro/reserva/retiradas/${id}`, { method: 'DELETE' }),
+
   // ── Orçamento da OS ──────────────────────────────────────────────────────────
   // Ler: ordens.ver. Criar versão/editar/enviar/aprovar/recusar: ordens.editar.
   // Custo e margem só vêm pra quem tem financeiro.ver_margem. `tz` = fuso do usuário
