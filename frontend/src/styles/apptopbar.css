@@ -1,0 +1,106 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * AppTopBar — barra superior global (compacto/mobile)
+ * Cores e medidas vêm dos tokens de index.css (acompanha o modo escuro).
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+.app-topbar {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Linha de 3 áreas: [esquerda] [logo absoluta no centro] [direita] */
+.app-topbar__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+}
+
+/* Os lados nunca invadem a metade da logo (44px de alvo de toque + folga). */
+.app-topbar__side {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: calc(50% - 30px);
+}
+.app-topbar__side--end { justify-content: flex-end; }
+
+/* Logo: estritamente centralizada, independente do que há nas pontas. */
+.app-topbar__logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--tap-min);
+  height: var(--tap-min);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.app-topbar__logo--static { cursor: default; }
+.app-topbar__logo { overflow: visible; }
+/* O símbolo do carro ocupa só ~39% da largura do SVG (2000×2000), e está centrado
+ * nele; por isso a imagem é renderizada maior e centralizada no botão. A margem
+ * transparente não captura toque (pointer-events: none). */
+.app-topbar__logo img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  max-width: none;
+  display: block;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform 0.12s ease-out;
+}
+.app-topbar__logo:not(.app-topbar__logo--static):active img { transform: translate(-50%, -50%) scale(0.92); }
+.app-topbar__logo:focus-visible {
+  outline: 2px solid var(--color-ferrari);
+  outline-offset: 2px;
+}
+
+/* Botão voltar (uma etapa) */
+.app-topbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min);
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-high);
+  color: var(--color-text-second);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.12s ease-out, transform 0.12s ease-out;
+}
+.app-topbar__back:active { background: var(--color-border); transform: scale(0.97); }
+.app-topbar__back:focus-visible {
+  outline: 2px solid var(--color-ferrari);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .app-topbar__back:hover { background: var(--color-border); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-topbar__logo img,
+  .app-topbar__back { transition: none; }
+}

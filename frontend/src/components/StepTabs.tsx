@@ -34,14 +34,28 @@ export function StepTabs({ step, onGoStep, steps }: StepTabsProps) {
   if (isMobile) {
     const atual = steps.find(s => s.id === step) ?? steps[0];
     if (!atual) return null;
+    const posicao = Math.max(1, steps.findIndex(s => s.id === atual.id) + 1);
     return (
-      <div className="step-tabs step-tabs--mobile" role="status" aria-live="polite">
-        <span className="step-tab step-tab--active step-tab--static" aria-current="step">
-          <span className="step-badge step-badge--active"><span>{atual.id}</span></span>
-          <span className="step-tab__label">{atual.label}</span>
-          {atual.icon && <span className="step-tab__icon">{atual.icon}</span>}
-        </span>
-      </div>
+      <>
+        <div className="step-tabs step-tabs--mobile" role="status" aria-live="polite">
+          <span className="step-tab step-tab--active step-tab--static" aria-current="step">
+            <span className="step-badge step-badge--active"><span>{atual.id}</span></span>
+            <span className="step-tab__label">{atual.label}</span>
+            {atual.icon && <span className="step-tab__icon">{atual.icon}</span>}
+          </span>
+        </div>
+        {/* Barra de progresso da etapa (transform: não força layout a cada troca). */}
+        <div
+          className="step-progress"
+          role="progressbar"
+          aria-label="Progresso das etapas"
+          aria-valuemin={1}
+          aria-valuemax={steps.length}
+          aria-valuenow={posicao}
+        >
+          <div className="step-progress__fill" style={{ transform: `scaleX(${posicao / steps.length})` }} />
+        </div>
+      </>
     );
   }
 

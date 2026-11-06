@@ -1,0 +1,300 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Etapa 3 · Encerramento (checklist de entrada) — layout mobile
+ * Usa os tokens de index.css (marca = --color-ferrari; acompanha o modo escuro).
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+.clm-root {
+  overflow-x: clip;
+  /* A página reserva espaço p/ a barra inferior do app (--mobile-bottom-nav-h), que não
+   * existe nos checklists: sem isso sobra uma faixa em branco sob o rodapé fixo no fim
+   * da rolagem. A margem negativa devolve esse espaço ao rodapé. */
+  margin-bottom: calc(var(--mobile-bottom-nav-h, 0px) * -1);
+}
+
+.clm-section {
+  padding: 18px max(16px, env(safe-area-inset-left)) 6px max(16px, env(safe-area-inset-right));
+}
+
+/* Título de seção: traço vermelho + rótulo em caixa alta */
+.clm-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-second);
+}
+.clm-heading::before {
+  content: "";
+  width: 6px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--color-ferrari);
+  flex-shrink: 0;
+}
+
+/* ── Resumo da OS (card) ───────────────────────────────────────────────── */
+.clm-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.clm-card__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.clm-card__cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+
+.clm-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.clm-value {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;   /* nome longo quebra em vez de estourar o card */
+}
+.clm-sub {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.clm-plate {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-high);
+  border: 1px solid var(--color-border-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+.clm-client { display: flex; align-items: flex-start; gap: 6px; min-width: 0; color: var(--color-subtle); }
+.clm-client svg { flex-shrink: 0; margin-top: 2px; }
+
+.clm-card__photos { display: flex; flex-direction: column; gap: 6px; }
+.clm-card__photos-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.clm-card__photos-body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.clm-card__photos-body strong { font-weight: 700; }
+
+.clm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.clm-badge--ok   { background: var(--color-ok-bg);   border-color: var(--color-ok-border);   color: var(--color-ok); }
+.clm-badge--warn { background: var(--color-warn-bg); border-color: var(--color-warn-border); color: var(--color-warn); }
+
+/* ── Formulário: coluna única, campos em largura total ─────────────────── */
+.clm-form { display: flex; flex-direction: column; gap: 16px; }
+.clm-form .inp-wrap, .clm-form .inp-shell, .clm-form .inp, .clm-form textarea { width: 100%; box-sizing: border-box; }
+
+/* Data: ícone de calendário; o seletor nativo fica invisível mas cobre o campo todo
+ * (tocar em qualquer ponto abre o calendário) */
+.clm-date { position: relative; }
+.clm-date .inp { padding-right: 46px; }
+.clm-date input[type="date"] { position: relative; }
+.clm-date input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.clm-date__icon {
+  position: absolute;
+  right: 14px;
+  top: calc(var(--tap-min) / 2);
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.clm-error {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-crit-bg);
+  border: 1px solid var(--color-crit-border);
+  border-left: 3px solid var(--color-crit);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-crit);
+}
+
+/* Aviso de fotos pendentes */
+.clm-alert {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin: 12px max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right));
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-warn-bg);
+  border: 1px solid var(--color-warn-border);
+  border-left: 3px solid var(--color-warn);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.clm-alert__btn {
+  min-height: var(--tap-min);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-ferrari);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.clm-alert__btn:active { background: var(--color-ferrari-dark); }
+
+/* ── Assinatura ────────────────────────────────────────────────────────── */
+.clm-sig { display: block; width: 100%; height: 140px; border-radius: var(--radius-lg); touch-action: none; }
+.clm-sig__bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.clm-sig__clear {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-high);
+  color: var(--color-text-second);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.clm-sig__clear:active { background: var(--color-border); }
+
+/* ── Rodapé fixo ───────────────────────────────────────────────────────── */
+.clm-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--color-surface);          /* fundo sólido: nada transparece por trás */
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+}
+.clm-footer__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+.clm-footer__status svg { color: var(--color-ok); flex-shrink: 0; }
+.clm-footer__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+
+.clm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.12s ease-out, transform 0.12s ease-out;
+}
+.clm-btn svg { flex-shrink: 0; }
+.clm-btn span { min-width: 0; }               /* texto quebra de linha; nunca é cortado */
+.clm-btn:active { transform: scale(0.98); }
+.clm-btn:focus-visible { outline: 2px solid var(--color-ferrari); outline-offset: 2px; }
+
+.clm-btn--primary {
+  width: 100%;
+  min-height: 52px;
+  font-size: var(--text-sm);
+  letter-spacing: 0.01em;
+  background: var(--color-ferrari);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(204, 20, 0, 0.25);
+}
+.clm-btn--primary:active { background: var(--color-ferrari-dark); }
+/* Fotos pendentes: continua tocável (leva às fotos), mas parece bloqueado */
+.clm-btn--primary.is-blocked {
+  background: var(--color-surface-high);
+  color: var(--color-subtle);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.clm-btn--secondary,
+.clm-btn--soft { font-size: var(--text-xs); }
+.clm-btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-text-second);
+  border-color: var(--color-border-md);
+}
+.clm-btn--secondary svg { color: var(--color-muted); }
+.clm-btn--secondary:active { background: var(--color-surface-high); }
+.clm-btn--soft {
+  background: var(--color-accent-light);
+  color: var(--color-ferrari);
+  border-color: var(--color-crit-border);
+}
+.clm-btn--soft:active { background: var(--color-accent-dim); }
+
+@media (hover: hover) and (pointer: fine) {
+  .clm-btn--primary:not(.is-blocked):hover { background: var(--color-accent-hover); }
+  .clm-btn--secondary:hover { background: var(--color-surface-high); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clm-btn { transition: none; }
+}

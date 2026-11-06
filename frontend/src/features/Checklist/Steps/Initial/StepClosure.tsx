@@ -8,12 +8,14 @@ import {
   PanelFooter,
   SectionTitle,
   useGrid4,
+  useResponsive,
   btnSolid,
   btnGhost,
   btnAccent,
   btnDisabled,
   pfNote,
 } from "../../../../components/ui";
+import { StepClosureMobile } from "./StepClosureMobile";
 import { textoFaltam } from "../../../../utils/fotos_obrigatorias";
 import { FILTRO } from "../../../../components/inputs/masks";
 import {
@@ -46,6 +48,7 @@ function StepWrapper({
 
 export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
   const g4 = useGrid4();
+  const { isMobile } = useResponsive();
   const {
     osHeader,
     veiculo,
@@ -67,6 +70,12 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
     fotosObrig,
   } = os;
   const { resumo: fotosResumo, liberado: fotosLiberadas, fonte: fotosFonte } = fotosObrig;
+
+  // Celular: layout próprio (card de resumo, formulário em coluna e rodapé fixo).
+  // Desktop/tablet seguem exatamente como estavam.
+  if (isMobile) {
+    return <StepClosureMobile os={os} onExportPDF={onExportPDF} onNextChecklist={onNextChecklist} />;
+  }
 
   const hasErr = (k: string) => showErrors && !!errors[k];
   // Data local (toISOString dá a data em UTC: depois das 21h no Brasil já seria "amanhã").

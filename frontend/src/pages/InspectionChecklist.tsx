@@ -13,9 +13,11 @@ interface Check2Props {
   onBackToStart?: () => void;
   /** Vai para a etapa 3 (orçamento). */
   onNextChecklist?: () => void;
+  /** Volta para o checklist anterior (Entrada) — usado pelo "Voltar" na primeira etapa. */
+  onPrevChecklist?: () => void;
 }
 
-export default function Check2({ os, onBackToStart, onNextChecklist }: Check2Props) {
+export default function Check2({ os, onBackToStart, onNextChecklist, onPrevChecklist }: Check2Props) {
 
   // Auto-scroll active tab into view when step changes
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -39,6 +41,13 @@ export default function Check2({ os, onBackToStart, onNextChecklist }: Check2Pro
 
   const CurrentComponent = currentStep?.component;
 
+  // "Voltar" da barra superior: uma etapa para trás; na primeira, volta ao checklist
+  // anterior (Entrada) ou, sem ele, à visão geral.
+  const handleBackStep = () => {
+    if (os.step > 1) os.goStep(os.step - 1, os.step);
+    else (onPrevChecklist ?? onBackToStart)?.();
+  };
+
   return (
     <div style={{
       fontFamily: tokens.fontSans,
@@ -52,6 +61,10 @@ export default function Check2({ os, onBackToStart, onNextChecklist }: Check2Pro
         onReset={os.resetAll}
         onExportPDF={handleExportPDF}
         onBackToStart={onBackToStart}
+        onBackStep={handleBackStep}
+        backAriaLabel={
+          os.step > 1 ? 'Voltar uma etapa' : onPrevChecklist ? 'Voltar para a Entrada' : 'Voltar para a visão geral'
+        }
       />
       <div ref={tabsRef}>
         <StepTabs

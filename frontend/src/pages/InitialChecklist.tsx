@@ -108,6 +108,12 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
 
   const CurrentComponent = currentStep?.component;
 
+  // "Voltar" da barra superior: uma etapa para trás; na primeira, sai para a visão geral.
+  const handleBackStep = () => {
+    if (os.step > 1) os.goStep(os.step - 1, os.step);
+    else onBackToStart?.();
+  };
+
   return (
     <div style={{
       fontFamily: tokens.fontSans,
@@ -121,6 +127,8 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
         onReset={os.resetAll}
         onExportPDF={handleExportPDF}
         onBackToStart={onBackToStart}
+        onBackStep={handleBackStep}
+        backAriaLabel={os.step > 1 ? 'Voltar uma etapa' : 'Voltar para a visão geral'}
       />
      
 <StepTabs

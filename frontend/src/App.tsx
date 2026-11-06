@@ -118,6 +118,12 @@ export default function App() {
     setView('os');
   };
 
+  // "Voltar" na primeira etapa do diagnóstico: cai na última etapa da Entrada (Encerramento).
+  const handleBackToEntradaFim = () => {
+    os.goStep(3, 4);
+    setView('os');
+  };
+
   const handleGoToOrcamento = () => {
     setView('orcamento');
     window.scrollTo({ top: 0 });
@@ -212,6 +218,7 @@ export default function App() {
               os={os}
               onBackToStart={handleBackToDashboard}
               onNextChecklist={handleGoToOrcamento}
+              onPrevChecklist={handleBackToEntradaFim}
             />
           ) : view === 'os' ? (
             <Check

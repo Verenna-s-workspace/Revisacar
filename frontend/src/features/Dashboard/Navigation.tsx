@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { rotuloDoCargo } from '../../utils/cargo';
 import { BotaoPrivacidade } from '../../components/Privacidade';
+import { AppTopBar } from '../../components/AppTopBar';
 
 /** Telas que mostram valores financeiros — só nelas aparece o botão do Modo Privacidade. */
 export const TELAS_COM_PRIVACIDADE: readonly NavPage[] = ['dashboard', 'financeiro', 'relatorios'];
@@ -301,43 +302,48 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
   }
 
   return (
-    <div className="dashboard-mobile-topbar">
-      <button
-        className="dashboard-mobile-topbar__button"
-        type="button"
-        onClick={() => setMenuOpen(true)}
-        aria-label="Abrir menu"
-        aria-haspopup="dialog"
-        aria-expanded={menuOpen}
-      >
-        {Icons.menu}
-      </button>
-      <div className="dashboard-mobile-topbar__logo">
-        <img src="/Logorevisavermelha.svg" alt="" width={30} height={30} />
-        <span style={{ fontFamily: "var(--font-sans)", fontSize: '1rem', color: tokens.color.text }}>
-          Revisa<span style={{ color: '#CC1400' }}>car</span>
-        </span>
-      </div>
-      {/* Só o sino fica no topo (com badge). Dicas e Configurações já estão no
-          menu lateral; o avatar parecia botão e não era. Cada ícone agora tem
-          alvo de 44px — com 4 ícones + hambúrguer + logo não cabia em 360px. */}
-      <div className="dashboard-mobile-topbar__actions">
-        {active && TELAS_COM_PRIVACIDADE.includes(active) && <BotaoPrivacidade variante="mobile" />}
-        <button
-          type="button"
-          className="dashboard-mobile-topbar__button dashboard-mobile-topbar__button--end"
-          onClick={() => onNav?.('alertas')}
-          style={{ position: 'relative' }}
-          aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}
-        >
-          <span style={{ display: 'flex' }}>{Icons.bell}</span>
-          {totalAlertas > 0 && (
-            <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 4px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {totalAlertas > 99 ? '99+' : totalAlertas}
-            </span>
-          )}
-        </button>
-      </div>
+    <>
+      {/* Barra global (mesmo componente dos checklists): logo só com o símbolo,
+          estritamente centralizada, levando à Visão Geral. Aqui não há etapas, então
+          o slot esquerdo é o menu (em vez de "Voltar"). */}
+      <AppTopBar
+        className="dashboard-mobile-topbar"
+        onLogoClick={() => onNav?.('dashboard')}
+        logoLabel="Ir para a Visão Geral"
+        start={
+          <button
+            className="dashboard-mobile-topbar__button"
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menu"
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+          >
+            {Icons.menu}
+          </button>
+        }
+        end={
+          /* Só o sino fica no topo (com badge). Dicas e Configurações já estão no
+             menu lateral. Cada ícone tem alvo de 44px. */
+          <>
+            {active && TELAS_COM_PRIVACIDADE.includes(active) && <BotaoPrivacidade variante="mobile" />}
+            <button
+              type="button"
+              className="dashboard-mobile-topbar__button dashboard-mobile-topbar__button--end"
+              onClick={() => onNav?.('alertas')}
+              style={{ position: 'relative' }}
+              aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}
+            >
+              <span style={{ display: 'flex' }}>{Icons.bell}</span>
+              {totalAlertas > 0 && (
+                <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 4px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {totalAlertas > 99 ? '99+' : totalAlertas}
+                </span>
+              )}
+            </button>
+          </>
+        }
+      />
 
       {menuOpen && createPortal(
         <>
@@ -409,7 +415,7 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
         </>,
         document.body
       )}
-    </div>
+    </>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useResponsive } from "./ui";
+import { AppTopBar } from "./AppTopBar";
 import type { SaveStatus } from "../types";
 import "../styles/topbar.css";
 
@@ -8,7 +9,12 @@ interface TopbarProps {
   savedAt: string | null;
   onReset: () => void;
   onExportPDF: () => void;
+  /** Logo → visão geral (sai do checklist). */
   onBackToStart?: () => void;
+  /** Botão "Voltar" da barra mobile: volta UMA etapa do checklist atual. */
+  onBackStep?: () => void;
+  /** Para onde o "Voltar" leva (leitor de tela) — muda na primeira etapa. */
+  backAriaLabel?: string;
 }
 
 export function Topbar({
@@ -17,6 +23,8 @@ export function Topbar({
   onReset,
   onExportPDF,
   onBackToStart,
+  onBackStep,
+  backAriaLabel,
 }: TopbarProps) {
   const { isDesktop, isMobile } = useResponsive();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -191,21 +199,17 @@ export function Topbar({
     </svg>
   );
 
-  // Mobile: a ação principal (PDF) fica visível e com texto; a ação destrutiva
-  // (Limpar tudo) vai para o menu "⋯", longe do dedo e fora do caminho do PDF.
+  // Compacto (celular/tablet): barra global — logo só com o símbolo, centralizada,
+  // levando à visão geral; "Voltar" à esquerda volta uma etapa. A ação principal
+  // (PDF) fica visível; a destrutiva (Limpar tudo) vai para o menu "⋯".
   return (
-    <nav className="topbar topbar--mobile topbar-glass">
-      <div className="topbar-mobile-row">
-        {/* O logo também volta, mas ninguém adivinha isso no celular: botão explícito. */}
-        <div className="topbar-mobile-slot">
-          {onBackToStart && (
-            <button type="button" className="topbar-button topbar-button--smaller" onClick={onBackToStart} aria-label="Voltar para o painel">
-              ← Painel
-            </button>
-          )}
-        </div>
-        <div className="topbar-mobile-logo">{Logo}</div>
-        <div className="topbar-mobile-end">
+    <AppTopBar
+      className="topbar topbar--mobile topbar-glass"
+      onLogoClick={onBackToStart}
+      onBack={onBackStep ?? onBackToStart}
+      backAriaLabel={backAriaLabel}
+      end={
+        <>
           <button
             type="button"
             className={buttonClass(true)}
@@ -214,8 +218,10 @@ export function Topbar({
           >
             {pdfIcon}
             {isMobile ? "PDF" : "Gerar PDF"}
+           
           </button>
           <div className="topbar-menu" ref={menuRef}>
+            
             <button
               type="button"
               className="topbar-icon-btn"
@@ -238,14 +244,13 @@ export function Topbar({
                 >
                   Limpar tudo
                 </button>
+                
               </div>
             )}
           </div>
-        </div>
-      </div>
-      <div className="topbar-row-separator">
-        {SaveIndicator}
-      </div>
-    </nav>
+        </>
+      }
+   
+    />
   );
 }
