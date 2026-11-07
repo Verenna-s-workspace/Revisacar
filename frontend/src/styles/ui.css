@@ -116,6 +116,33 @@
   .panel-footer__right > button:last-child:not(:only-child) { flex-grow: 1.5; }
 }
 
+/* Rodapé em duas linhas (celular/tablet): ação principal em cima, secundárias lado a
+ * lado embaixo. O texto quebra de linha em vez de vazar do botão (os botões base usam
+ * white-space: nowrap inline, por isso o !important). */
+.pf-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.pf-actions__row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.pf-actions button {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px !important;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  padding: 10px 12px !important;
+  white-space: normal !important;
+}
+.pf-actions > button { min-height: 52px !important; }
+
 .validation-banner {
   background: var(--color-crit-bg);
   border-bottom: 1px solid var(--color-crit-border);

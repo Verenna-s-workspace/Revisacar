@@ -184,7 +184,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
     goStep, step, stepDir,
   } = os;
 
-  const { isMobile } = useResponsive();
+  const { isMobile, isCompact } = useResponsive();
   const [copied, setCopied]   = useState(false);
   const [editing, setEditing] = useState(false);
   const textAreaRef           = useRef<HTMLTextAreaElement>(null);
@@ -422,62 +422,82 @@ export function Step4({ os, onNextChecklist }: StepProps) {
         )}
       </div>
 
-      {/* ── Footer ── */}
+      {/* ── Footer ──
+          Desktop: tudo numa linha, com "Voltar".
+          Celular/tablet: "Voltar" fica só na barra superior e as ações se organizam
+          em duas linhas — destaque em cima, "Salvar" e "Copiar texto" lado a lado
+          embaixo; o texto quebra de linha em vez de vazar do botão. */}
       <PanelFooter
         left={
           <span style={pfNote}>
             {savedAt ? `Salvo às ${savedAt}` : 'Rascunho não salvo'}
           </span>
         }
-        right={
-          <>
+        right={(() => {
+          const voltarBtn = (
             <button onClick={() => goStep(step - 1, step)} style={btnGhost}>
               <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M8 5H2M4.5 2l-3 3 3 3" />
               </svg>
               Voltar
             </button>
+          );
+          const salvarBtn = (
             <button onClick={saveOrder} style={btnSolid}>
               Salvar
             </button>
-            {onNextChecklist && (
-              <button
-                onClick={async () => { if (await saveOrder()) onNextChecklist(); }}
-                style={btnAccent}
-              >
-                Ir para o orçamento
-              </button>
-            )}
-            {!isEmpty && (
-              <button onClick={copyToClipboard} style={{
-                fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 500,
-                letterSpacing: '0.05em', textTransform: 'uppercase', padding: '9px 20px',
-                borderRadius: tokens.radius.md, border: 'none', cursor: 'pointer',
-                transition: tokens.transition.base, whiteSpace: 'nowrap',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: copied ? tokens.color.ok : tokens.color.ferrari,
-                color: '#fff',
-                boxShadow: `0 1px 4px ${copied ? 'rgba(26,127,75,0.3)' : 'rgba(204,20,0,0.3)'}`,
-              }}>
-                {copied ? (
-                  <>
-                    <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="1.5,5 4,7.5 8.5,2.5" />
-                    </svg>
-                    Copiado!
-                  </>
-                ) : (
-                  <>
-                    <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
-                      <rect x={3} y={3} width={6} height={7} rx={1} /><path d="M1 7V1h6" />
-                    </svg>
-                    Copiar texto
-                  </>
-                )}
-              </button>
-            )}
-          </>
-        }
+          );
+          const orcamentoBtn = onNextChecklist ? (
+            <button
+              onClick={async () => { if (await saveOrder()) onNextChecklist(); }}
+              style={btnAccent}
+            >
+              Ir para o orçamento
+            </button>
+          ) : null;
+          const copiarBtn = !isEmpty ? (
+            <button onClick={copyToClipboard} style={{
+              fontFamily: isCompact ? tokens.fontSans : tokens.fontMono,
+              fontSize: isCompact ? '0.875rem' : '0.75rem',
+              fontWeight: isCompact ? 600 : 500,
+              letterSpacing: isCompact ? '0.01em' : '0.05em',
+              textTransform: isCompact ? 'none' : 'uppercase',
+              padding: '9px 20px',
+              borderRadius: tokens.radius.md, border: 'none', cursor: 'pointer',
+              transition: tokens.transition.base, whiteSpace: 'nowrap',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: copied ? tokens.color.ok : tokens.color.ferrari,
+              color: '#fff',
+              boxShadow: `0 1px 4px ${copied ? 'rgba(26,127,75,0.3)' : 'rgba(204,20,0,0.3)'}`,
+            }}>
+              {copied ? (
+                <>
+                  <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1.5,5 4,7.5 8.5,2.5" />
+                  </svg>
+                  Copiado!
+                </>
+              ) : (
+                <>
+                  <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="#fff" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x={3} y={3} width={6} height={7} rx={1} /><path d="M1 7V1h6" />
+                  </svg>
+                  Copiar texto
+                </>
+              )}
+            </button>
+          ) : null;
+
+          if (!isCompact) {
+            return <>{voltarBtn}{salvarBtn}{orcamentoBtn}{copiarBtn}</>;
+          }
+          return (
+            <div className="pf-actions">
+              {orcamentoBtn}
+              <div className="pf-actions__row">{salvarBtn}{copiarBtn}</div>
+            </div>
+          );
+        })()}
       />
     </StepWrapper>
   );

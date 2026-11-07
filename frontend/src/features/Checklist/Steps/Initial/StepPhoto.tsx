@@ -4,7 +4,7 @@ import { useOrdemServico } from '../../../../hooks/useOrdemServico';
 import { CameraCapture } from '../../../../components/Camera/CameraCapture';
 import { tokens } from '../../../../constants';
 import {
-  FormBlock, PanelFooter, PhotoGrid, btnGhost, btnAccent, btnDisabled,
+  FormBlock, PanelFooter, PhotoGrid, btnGhost, btnAccent, btnDisabled, useResponsive,
 } from '../../../../components/ui';
 import {
   SLOTS_FOTO, textoFaltam, type SlotFoto,
@@ -52,6 +52,7 @@ export function Step2({ os }: StepProps) {
     orderId, saveOrder, fotosObrig,
   } = os;
   const { resumo, fonte, exigida, somenteLeitura, liberado } = fotosObrig;
+  const { isCompact } = useResponsive();
 
   const [cameraSlot, setCameraSlot] = useState<SlotFoto | null>(null);
   const [cameraExtra, setCameraExtra] = useState(false);
@@ -230,12 +231,15 @@ export function Step2({ os }: StepProps) {
         }
         right={
           <>
-            <button onClick={() => goStep(1, step)} style={{ ...btnGhost, minHeight: 48, justifyContent: 'center' }}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 5H2M4.5 2l-3 3 3 3" />
-              </svg>
-              Voltar
-            </button>
+            {/* Celular/tablet: o "Voltar" fica só na barra superior (AppTopBar). */}
+            {!isCompact && (
+              <button onClick={() => goStep(1, step)} style={{ ...btnGhost, minHeight: 48, justifyContent: 'center' }}>
+                <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 5H2M4.5 2l-3 3 3 3" />
+                </svg>
+                Voltar
+              </button>
+            )}
             <button
               onClick={irParaEncerramento}
               aria-disabled={bloqueado}

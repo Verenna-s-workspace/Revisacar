@@ -278,7 +278,7 @@ export function Step3({ os }: StepProps) {
     goStep, step, stepDir,
   } = os;
 
-  const { isMobile } = useResponsive();
+  const { isMobile, isCompact } = useResponsive();
   const autoCount   = tabelaPecas.filter((r) => r.isAuto).length;
   const manualCount = tabelaPecas.filter((r) => !r.isAuto).length;
   const px = isMobile ? 16 : 40;
@@ -446,12 +446,15 @@ export function Step3({ os }: StepProps) {
         }
         right={
           <>
-            <button onClick={() => goStep(step - 1, step)} style={btnGhost}>
-              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 5H2M4.5 2l-3 3 3 3" />
-              </svg>
-              Voltar
-            </button>
+            {/* Celular/tablet: o "Voltar" fica só na barra superior (AppTopBar). */}
+            {!isCompact && (
+              <button onClick={() => goStep(step - 1, step)} style={btnGhost}>
+                <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 5H2M4.5 2l-3 3 3 3" />
+                </svg>
+                Voltar
+              </button>
+            )}
             <button onClick={saveOrder} style={btnSolid}>
               Salvar
             </button>
