@@ -117,8 +117,10 @@ def _bloco_fotos(fotos, extras, largura, e, k):
     larg_chip = (largura * 0.8) / max(total, 1)
     for i, f in enumerate(fotos, start=1):
         ok = f.get("situacao") == "foto"
-        chips.append([_p(f["rotulo"].upper(), estilo_chip), _p("ANEXADA" if ok else "AUSENTE",
-                                                              estilo_ok if ok else estilo_falta)])
+        chips.append([
+            _p(f["rotulo"].upper(), estilo_chip),
+            _p("ANEXADA" if ok else "AUSENTE", estilo_ok if ok else estilo_falta),
+        ])
         estilo_tabela += [("LINEABOVE", (i, 0), (i, 0), 1.6, COR_TEXTO if ok else COR_MARCA),
                           ("LEFTPADDING", (i, 0), (i, 0), 0), ("RIGHTPADDING", (i, 0), (i, 0), 5 * k),
                           ("TOPPADDING", (i, 0), (i, 0), 2.5 * k)]
