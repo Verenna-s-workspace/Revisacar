@@ -377,6 +377,32 @@ class FinanceiroTransacaoSerializer(serializers.Serializer):
         return data
 
 
+# ── Reserva de caixa ──────────────────────────────────────────────────────────
+# Manter em sincronia com ESCOPOS_RESERVA em frontend/src/utils/reserva_utils.ts e com
+# reserva_categorias() em sql/migrations/0008_reserva_caixa.sql.
+ESCOPOS_RESERVA = ("servicos", "pecas", "ambos")
+
+
+class ReservaConfigSerializer(serializers.Serializer):
+    """Configuração da reserva de caixa da oficina. PUT manda tudo; o que vier substitui o que havia."""
+    ativa = serializers.BooleanField()
+    percentual = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=Decimal("0"), max_value=Decimal("100"))
+    escopo = serializers.ChoiceField(choices=list(ESCOPOS_RESERVA))
+
+    def validate(self, attrs):
+        if attrs["ativa"] and attrs["percentual"] <= 0:
+            raise serializers.ValidationError({"percentual": ["Informe um percentual maior que zero."]})
+        return attrs
+
+
+class ReservaRetiradaSerializer(serializers.Serializer):
+    valor = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    descricao = serializers.CharField(required=False, allow_blank=True, default="", max_length=200)
+
+    def validate_descricao(self, value):
+        return value.strip()
+
+
 # ── Estoque ───────────────────────────────────────────────────────────────────
 #
 # O frontend de Estoque usa camelCase (`fotoDataUrl`, `servicoId`) e um objeto

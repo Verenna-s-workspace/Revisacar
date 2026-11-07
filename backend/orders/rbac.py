@@ -19,6 +19,7 @@ PERMISSOES = {
     "financeiro.ver",
     "financeiro.editar",          # lançar entrada/saída manual
     "financeiro.ver_margem",      # ver lucro/margem (dado mais sensível)
+    "financeiro.reserva",         # configurar a reserva de caixa e retirar dela (ver o saldo: financeiro.ver)
     # Configurações
     "configuracoes.ver",
     "configuracoes.editar",       # dados da oficina, horários, ticket
@@ -52,6 +53,7 @@ CARGO_PERMISSOES: dict[str, frozenset[str]] = {
         # Gerente faz o dia a dia todo, mas não vê margem de lucro nem
         # mexe em quem tem acesso a quê — ajuste se quiser diferente.
         "financeiro.ver_margem",
+        "financeiro.reserva",
         "funcionarios.gerenciar",
     }),
     "mecanico": frozenset({

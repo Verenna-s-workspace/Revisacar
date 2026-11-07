@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import financeiro_views
+from . import reserva_views
 from . import estoque_views
 from . import servicos_views
 from . import relatorios_views
@@ -74,6 +75,11 @@ urlpatterns = [
     path("financeiro/resumo", financeiro_views.resumo),
     path("financeiro/transacoes", financeiro_views.transacoes),
     path("financeiro/transacoes/<str:transacao_id>", financeiro_views.transacao_detail),
+    # Reserva de caixa — config/saldo: financeiro.ver; configurar e retirar: financeiro.reserva (desligada por padrão)
+    path("financeiro/reserva/config", reserva_views.reserva_config),
+    path("financeiro/reserva/retiradas", reserva_views.reserva_retiradas),
+    path("financeiro/reserva/retiradas/<str:retirada_id>", reserva_views.reserva_retirada_detail),
+    path("financeiro/reserva", reserva_views.reserva),
 
     # Estoque — protegido por estoque.ver / estoque.editar.
     # "estoque/movimentos" ANTES de "estoque/<item_id>", senão "movimentos"

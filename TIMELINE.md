@@ -24,6 +24,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Cadastro — etapa 2 (dados da oficina) | 🟡 Front pronto (tsc + build ok; smoke no navegador com API de cadastro simulada: desktop e 390px, validação, gravação em Configurações). Só frontend, grava no `localStorage` como a tela de Configurações. Etapa 3 (boas-vindas) não iniciada |
 | Veículos ↔ Clientes (vínculo, fotos, Nova OS) | 🟡 Backend + SQL + testes + front prontos (796 testes; tsc + build ok; smoke no navegador com API simulada, 35 verificações). Falta: rodar `0007_fotos_veiculos.sql` e validar contra o Supabase real |
 | Regras dos campos dos checklists | 🟡 Front + backend + testes prontos (853 testes; tsc + build ok; navegador com API simulada). Falta: validar contra o Supabase real (OS antigas com valor fora do padrão pedem correção ao salvar) |
+| Financeiro — reserva de caixa | 🟡 SQL + API + front + testes prontos (931 testes; tsc + build ok; smoke no navegador com API simulada: 25 verificações, desktop, 390px, dono/gerente, migration ausente). Desligada por padrão. Falta: rodar `0008_reserva_caixa.sql` (depois de `financeiro.sql`) e validar contra o Supabase real |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -529,3 +530,32 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 - Se a pessoa fechar a aba entre a etapa 1 e a 2, a conta existe sem os dados da oficina (já era assim na entrega original da etapa 2).
 - Mensagens de "tabela/coluna ainda não existe no banco" continuam no backend (e no log) para quem opera o deploy; na tela viram "O servidor está indisponível…".
 - Não criei um handler global de exceção do DRF: mexeria em todas as rotas. O front já trata qualquer 500 sem JSON com uma frase simples.
+
+## Reserva de caixa — percentual de cada pagamento guardado à parte (2026-11-05, branch `feat/reserva-caixa`, parte de `main`)
+**Pedido.** Um cliente da oficina guarda 20% do valor de cada serviço num "caixa de emergência" (só fica guardado). Outras oficinas não fazem isso, ou usam outro percentual: tem que ser opcional por oficina, sem mudar nada para quem não liga. A oficina escolhe também **onde** a reserva incide: só serviços, só peças ou os dois.
+
+**Conceito.** Não é desconto: o cliente paga o mesmo valor e a receita continua inteira (Resumo, Relatórios, Alertas e Visão Geral não mudam). A reserva é uma separação interna, com saldo e histórico próprios, que continua dentro do Saldo do caixa.
+
+**Arquivos:** `backend/sql/migrations/0008_reserva_caixa.sql`, `orders/reserva_views.py`, `ReservaConfigSerializer`/`ReservaRetiradaSerializer` em `serializers.py`, rotas em `urls.py`, permissão `financeiro.reserva` em `rbac.py`, `tests/test_reserva.py`; frontend: `Configuracoes/ReservaCaixaCard.tsx`, `Financeiro/ReservaCard.tsx`, `Financeiro/RetiradaReservaModal.tsx`, `hooks/useReserva.ts`, `utils/reserva_utils.ts`, tipos em `Financeiro/types.ts`, métodos em `api.ts`.
+
+**Rotas:** `GET/PUT /financeiro/reserva/config`, `GET /financeiro/reserva`, `POST /financeiro/reserva/retiradas`, `DELETE /financeiro/reserva/retiradas/<id>`.
+
+**Decisões**
+- **Desligada por padrão.** `admins.reserva_config` (jsonb `{ativa, percentual, escopo}`) nasce vazia: nenhuma oficina muda de comportamento até o dono ligar em Configurações. Escopo: `servicos` | `pecas` | `ambos` (as categorias de entrada `servicos` e `pecas`, as mesmas que o orçamento aprovado já gera separadas por OS). Percentual de 1 a 100 na tela (o servidor aceita casas decimais).
+- **Tabela própria** `financeiro_reservas` (depósitos e retiradas), em vez de um tipo novo em `financeiro_transacoes`: assim nenhuma consulta existente enxerga a reserva e não há risco para quem não usa.
+- **Gatilho no banco** (`reserva_sincronizar`) em vez de código nas rotas: cobre qualquer caminho que marque uma entrada como paga (e o que vier no futuro), na mesma transação do pagamento. Quem não usa a reserva sai nas primeiras linhas do gatilho.
+- **Quando nasce:** a entrada passa a `pago`. Pendente não reserva. Voltou a pendente / cancelada / saiu do escopo → o depósito é cancelado; valor editado → recalculado. Pagamento antigo nunca ganha reserva retroativa (ligar a reserva vale só para os próximos pagamentos).
+- **Snapshot:** o depósito guarda o percentual e o escopo da época; mudar a configuração depois não reescreve o histórico.
+- **Retirada** confere o saldo sob trava por oficina (duas retiradas ao mesmo tempo não estouram; testado com threads). Desfazer marca como cancelada (nunca apaga). A retirada só abate o saldo da reserva — se pagou uma despesa, o dono lança a saída em Novo Lançamento.
+- **RBAC:** ver saldo/config = `financeiro.ver` (dono e gerente); configurar e retirar = `financeiro.reserva` (só dono; ajustável em `rbac.py`).
+- **Sem a migration 0008** o sistema segue normal: as rotas da reserva respondem 503, o Financeiro não mostra o card nem erro, e Configurações avisa que ainda não está disponível.
+- Configuração corrompida no jsonb (percentual inválido, escopo desconhecido) nunca derruba um lançamento financeiro: o gatilho lê de forma defensiva e simplesmente não reserva.
+
+**Validado:** pytest 931 (53 novos em `test_reserva.py`; conferi que os testes falham de verdade quando o gatilho é removido ou vira retroativo), flake8, `tsc`, `vite build`, e navegador (Playwright) com API simulada: oficina sem reserva não vê nada, dono liga/salva/vê no Financeiro, retirar/desfazer, recusa por saldo, gerente só vê, migration ausente, 390px sem rolagem horizontal. **NÃO validado:** nada contra o Supabase/PostgREST reais (gatilho e funções rodaram em Postgres real descartável); a ordem de aplicação (`financeiro.sql` antes da 0008).
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0008_reserva_caixa.sql` no SQL Editor do Supabase (idempotente).
+2. Saldo livre no Resumo (Saldo do caixa − reserva) e a reserva no resumo da OS (`/ordens/<id>/fechamento`): não incluídos para não mexer em rotas que todo mundo usa.
+3. Reserva só sobre mão de obra (sem peças dentro de "serviços") depende de separar mão de obra de serviço no orçamento; hoje o escopo segue as categorias do Financeiro.
+4. Retirada que vira saída automática no caixa (hoje o dono lança a saída à parte).
+5. Se um pagamento já reservado for estornado depois de a reserva ser gasta, o saldo fica negativo e a tela avisa (decisão: não bloquear o estorno).
