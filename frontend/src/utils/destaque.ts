@@ -30,6 +30,7 @@ export const ALVO = {
   relGraficoFaturamento: 'rel-grafico-faturamento',
   relGraficoOs: 'rel-grafico-os',
   relServicosMaisRealizados: 'rel-servicos-mais-realizados',
+  alertasClientesParaAvisar: 'alertas-clientes-para-avisar',
 } as const;
 
 export const DESTINOS_VISAO_GERAL = {
@@ -45,4 +46,10 @@ export const DESTINOS_VISAO_GERAL = {
   topServicos: { page: 'relatorios', alvos: [ALVO.relServicosMaisRealizados] },
   /** Resumo financeiro (receitas / custos / lucro) → Financeiro: os 3 KPIs equivalentes. */
   resumoFinanceiro: { page: 'financeiro', alvos: [ALVO.finKpiFaturamento, ALVO.finKpiDespesas, ALVO.finKpiLucro] },
+} as const satisfies Record<string, DestinoCard>;
+
+/** Destinos que partem de outras telas (não da Visão Geral) e também chegam destacando algo. */
+export const DESTINOS_ALERTAS = {
+  /** Atendimento → "Ver mais" nos clientes não avisados → Alertas, no grupo "Clientes para avisar". */
+  clientesParaAvisar: { page: 'alertas', alvos: [ALVO.alertasClientesParaAvisar] },
 } as const satisfies Record<string, DestinoCard>;

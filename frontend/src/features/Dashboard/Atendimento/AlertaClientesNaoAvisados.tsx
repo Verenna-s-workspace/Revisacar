@@ -6,11 +6,13 @@ import type { OSAtendimento } from '../../../types/atendimento';
 interface AlertaClientesNaoAvisadosProps {
   clientes: OSAtendimento[];
   onAbrirOS: (ordem: OSAtendimento) => void;
+  /** Leva à tela de Alertas, direto no grupo de clientes para avisar (lista completa). */
+  onVerMais?: () => void;
 }
 
 const MAX_VISIVEL = 4;
 
-export function AlertaClientesNaoAvisados({ clientes, onAbrirOS }: AlertaClientesNaoAvisadosProps) {
+export function AlertaClientesNaoAvisados({ clientes, onAbrirOS, onVerMais }: AlertaClientesNaoAvisadosProps) {
   // Só renderiza se houver pelo menos 1 — ver Seção 5, item 4 do prompt.
   if (clientes.length === 0) return null;
 
@@ -75,9 +77,39 @@ export function AlertaClientesNaoAvisados({ clientes, onAbrirOS }: AlertaCliente
           </button>
         ))}
         {restantes > 0 && (
-          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.78)', textAlign: 'center', padding: '4px 0 0' }}>
-            +{restantes} outro{restantes > 1 ? 's' : ''}
-          </div>
+          // Os demais não cabem aqui: o botão abre a lista completa em Alertas.
+          onVerMais ? (
+            <button
+              type="button"
+              onClick={onVerMais}
+              aria-label={`Ver mais: ${restantes} outro${restantes > 1 ? 's' : ''} cliente${restantes > 1 ? 's' : ''} não avisado${restantes > 1 ? 's' : ''}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                width: '100%',
+                minHeight: 40,
+                marginTop: 4,
+                padding: '8px 10px',
+                background: 'white',
+                color: tokens.color.ferrari,
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                fontFamily: tokens.fontSans,
+              }}
+            >
+              Ver mais (+{restantes})
+              <span style={{ display: 'flex' }}>{Icons.arrow}</span>
+            </button>
+          ) : (
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.78)', textAlign: 'center', padding: '4px 0 0' }}>
+              +{restantes} outro{restantes > 1 ? 's' : ''}
+            </div>
+          )
         )}
       </div>
     </Card>

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { Card } from './Primitives';
-import { useTheme } from '../../hooks/useTheme';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { AcessoEquipeCard } from './Configuracoes/AcessoEquipeCard';
 import { ReservaCaixaCard } from './Configuracoes/ReservaCaixaCard';
@@ -29,7 +28,6 @@ const WORKSHOP_DEFAULTS = {
 };
 
 export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
-  const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
   
   // Connection state
@@ -153,7 +151,7 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
       {/* Header Area */}
       <div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Configurações do Sistema</h2>
-        <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '2px 0 0' }}>Personalize sua oficina, altere o tema visual e gerencie o app PWA.</p>
+        <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '2px 0 0' }}>Personalize sua oficina e gerencie o app PWA.</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
@@ -296,59 +294,8 @@ export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
           </form>
         </Card>
 
-        {/* Sidebar Controls (Theme & Network) */}
+        {/* Sidebar Controls (Network & PWA) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Theme card */}
-          <Card style={{ padding: 20 }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-              Aparência do Sistema
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={theme === 'dark' ? toggleTheme : undefined}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  background: theme === 'light' ? 'var(--color-ferrari-glow)' : 'transparent',
-                  color: theme === 'light' ? 'var(--color-ferrari)' : tokens.color.textSecond,
-                  border: `1px solid ${theme === 'light' ? 'var(--color-ferrari)' : tokens.color.border}`,
-                  borderRadius: 8,
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                Claro
-              </button>
-              {/*
-              <button
-                onClick={theme === 'light' ? toggleTheme : undefined}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  background: theme === 'dark' ? 'var(--color-ferrari-glow)' : 'transparent',
-                  color: theme === 'dark' ? 'var(--color-ferrari)' : tokens.color.textSecond,
-                  border: `1px solid ${theme === 'dark' ? 'var(--color-ferrari)' : tokens.color.border}`,
-                  borderRadius: 8,
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                Carbono
-              </button>
-              */}
-            </div>
-          </Card>
-
           {/* Network & PWA Card */}
           <Card style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>

@@ -86,7 +86,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
                       cursor: 'pointer', whiteSpace: 'nowrap',
                     }}
                   >
-                    <span style={{ display: 'flex', color: tokens.color.ferrari }}>{m.icon}</span>
+                    <span className="lc-icon" style={{ color: tokens.color.ferrari }}>{m.icon}</span>
                     {m.label}
                   </button>
                 );
@@ -113,7 +113,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
                       cursor: 'pointer', transition: 'background 0.12s',
                     }}
                   >
-                    <span style={{ display: 'flex', flexShrink: 0, color: tokens.color.ferrari }}>{m.icon}</span>
+                    <span className="lc-icon" style={{ color: tokens.color.ferrari }}>{m.icon}</span>
                     <span style={{ flex: 1 }}>{m.label}</span>
                   </button>
                 );
@@ -124,7 +124,7 @@ export function LearningCenterModal({ onClose }: LearningCenterModalProps) {
           {/* Conteúdo do módulo atual */}
           <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: isMobile ? '20px 16px' : '28px 36px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: tokens.color.ferrari, marginBottom: 10 }}>
-              <span style={{ display: 'flex' }}>{mod.icon}</span>
+              <span className="lc-icon">{mod.icon}</span>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Módulo {index + 1}
               </span>

@@ -5,7 +5,7 @@ import { useResponsive } from '../components/ui';
 import { useOrdens } from '../hooks/useOrdens';
 import { useVisaoGeral } from '../hooks/useVisaoGeral';
 import { useAlertas } from '../hooks/useAlertas';
-import { formatBRL, HEAT_DAYS } from '../utils/dashboard';
+import { formatBRL, formatBRLCompacto, HEAT_DAYS_INICIAIS, HEAT_DAYS_COMPLETO } from '../utils/dashboard';
 import { calcularVariacao } from '../utils/relatorios';
 import {
   ORDEM_TOP_SERVICOS, PERIODOS_GRAFICO, limitarPct, serieDoPeriodo, topServicos as ordenarTopServicos,
@@ -17,7 +17,7 @@ import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/ofic
 import { preCarregarQuandoOcioso, telaSobDemanda } from '../utils/telaSobDemanda';
 import { PrivacidadeProvider } from '../context/PrivacidadeContext';
 import { Valor, GraficoPrivado, MASCARA_NUMERO, MASCARA_PERCENTUAL } from '../components/Privacidade';
-import { DESTINOS_VISAO_GERAL } from '../utils/destaque';
+import { DESTINOS_VISAO_GERAL, DESTINOS_ALERTAS } from '../utils/destaque';
 import type { Destaque, DestinoCard } from '../utils/destaque';
 
 // Components
@@ -48,6 +48,11 @@ import type { NavPage, OrdemRow } from '../types/dashboard';
 import type { Alerta } from '../types/dashboard';
 import type { OSPrefillInput } from '../types/atendimento';
 import type { AcaoAlerta } from '../utils/alertas';
+
+// Medidas das colunas do Top Serviços — compartilhadas entre o cabeçalho e as
+// linhas para que os títulos fiquem alinhados com os valores e o mapa de calor.
+const TOP_SERV_COL_VALOR = 96;   // largura da coluna "Fat. est. (R$)" / "Qtd."
+const TOP_SERV_GAP_HEAT = 8;     // respiro extra entre o valor e o mapa de calor
 
 // ── PlaceholderPage ───────────────────────────────────────────────────────────
 
@@ -199,7 +204,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   };
 
   if (page === 'alertas') {
-    return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} />;
+    return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} destaque={destaque} onDestaqueConcluido={concluirDestaque} />;
   }
   if (page === 'ordens') {
     return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
@@ -212,6 +217,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
         onNewOS={onNewOS}
         onLoadOS={onLoadOS}
         onNewOSComPrefill={onNewOSComPrefill}
+        onVerClientesNaoAvisados={() => irParaDestino(DESTINOS_ALERTAS.clientesParaAvisar)}
       />
     );
   }
@@ -483,22 +489,30 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${tokens.color.border}` }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted }}>Serviço</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, width: 96, textAlign: 'right' }}>
-            {comDinheiro ? 'Fat. est. (R$)' : 'Qtd.'}
-          </span>
-          {/* O mapa de calor da semana (7 quadradinhos) não cabe em telas
-              estreitas: no celular fica só nome + valor. */}
-          {!isMobile && (
-            <div style={{ display: 'flex', gap: 4 }}>
-              {HEAT_DAYS.map(d => (
-                <div key={d} style={{ width: 18, fontSize: '0.75rem', textAlign: 'center', color: tokens.color.muted, fontWeight: 600 }}>{d}</div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Cabeçalho e linhas usam as MESMAS medidas de coluna (largura do valor,
+          espaço até o mapa de calor e as 7 colunas de 18px + 4px), então os
+          títulos ficam exatamente em cima do que descrevem. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${tokens.color.border}` }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted }}>Serviço</span>
+        <span style={{ width: TOP_SERV_COL_VALOR, flexShrink: 0, fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textAlign: 'right', whiteSpace: 'nowrap' }}>
+          {comDinheiro ? 'Fat. est. (R$)' : 'Qtd.'}
+        </span>
+        {/* O mapa de calor da semana (7 quadradinhos) não cabe em telas
+            estreitas: no celular fica só nome + valor. */}
+        {!isMobile && (
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: TOP_SERV_GAP_HEAT }}>
+            {HEAT_DAYS_INICIAIS.map((inicial, i) => (
+              <div
+                key={i}
+                title={HEAT_DAYS_COMPLETO[i]}
+                aria-label={HEAT_DAYS_COMPLETO[i]}
+                style={{ width: 18, fontSize: '0.75rem', textAlign: 'center', color: tokens.color.muted, fontWeight: 600 }}
+              >
+                {inicial}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -514,12 +528,16 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '0.84rem', fontWeight: 500, color: tokens.color.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</div>
                 </div>
-                <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: isMobile ? 96 : 72, textAlign: 'right', flexShrink: 0, fontWeight: 500 }}>
+                <div style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: TOP_SERV_COL_VALOR, textAlign: 'right', flexShrink: 0, fontWeight: 500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                   {comDinheiro
                     ? <Valor texto={(s.valorEstimado ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} mascara={MASCARA_NUMERO} />
                     : s.quantidade.toLocaleString('pt-BR')}
                 </div>
-                {!isMobile && <HeatmapRow heatmap={s.semana} />}
+                {!isMobile && (
+                  <div style={{ flexShrink: 0, marginLeft: TOP_SERV_GAP_HEAT }}>
+                    <HeatmapRow heatmap={s.semana} />
+                  </div>
+                )}
               </div>
             ))
         }
@@ -558,7 +576,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
 
   const resumoFinanceiro = !loading && !fin ? null : (
     <Card
-      style={{ padding: '20px 22px' }}
+      style={{ padding: '20px 22px', minWidth: 0 }}
       onNavegar={loading ? undefined : () => irParaDestino(DESTINOS_VISAO_GERAL.resumoFinanceiro)}
       rotulo="Resumo financeiro — abrir o Financeiro"
     >
@@ -586,7 +604,9 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
         <>
           <GraficoPrivado style={{ width: '100%', height: 190, marginBottom: 18 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={financeChartData} margin={{ top: 24, right: 0, left: 0, bottom: 0 }}>
+              {/* Margens laterais: o rótulo da primeira/última barra é mais largo que a
+                  própria barra e, sem folga, era cortado pela borda do gráfico. */}
+              <BarChart data={financeChartData} margin={{ top: 24, right: 16, left: 16, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={tokens.color.border} vertical={false} />
                 <XAxis
                   dataKey="name"
@@ -604,7 +624,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
                   {financeChartData.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
-                  <LabelList dataKey="value" position="top" formatter={(value: number) => formatBRL(value)} />
+                  <LabelList dataKey="value" position="top" fontSize={12} fill={tokens.color.text} formatter={(value: number) => formatBRLCompacto(value)} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -614,8 +634,10 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
             <div key={row.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond, width: 96, flexShrink: 0 }}>{row.name}</span>
               <ProgressBar pct={limitarPct(row.pct)} color={row.color} monetario />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text, width: 90, textAlign: 'right', flexShrink: 0 }}><Valor texto={formatBRL(row.value)} /></span>
-              <span style={{ fontSize: '0.75rem', color: tokens.color.muted, width: 36, flexShrink: 0 }}><Valor texto={`${row.pct}%`} mascara={MASCARA_PERCENTUAL} /></span>
+              {/* minWidth (não width): valores grandes crescem em vez de quebrar/cortar;
+                  a barra de progresso, que é flexível, cede o espaço. */}
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tokens.color.text, minWidth: 90, textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}><Valor texto={formatBRL(row.value)} /></span>
+              <span style={{ fontSize: '0.75rem', color: tokens.color.muted, minWidth: 36, flexShrink: 0, whiteSpace: 'nowrap' }}><Valor texto={`${row.pct}%`} mascara={MASCARA_PERCENTUAL} /></span>
             </div>
           ))}
 
