@@ -29,9 +29,11 @@ interface AtendimentoPageProps {
   onLoadOS?: (id: string) => void;
   /** Cria uma OS pré-preenchida e navega pro checklist — ver Seção 8 do prompt. */
   onNewOSComPrefill?: (prefill: OSPrefillInput) => void;
+  /** "Ver mais" nos clientes não avisados: abre Alertas já no grupo "Clientes para avisar". */
+  onVerClientesNaoAvisados?: () => void;
 }
 
-export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill }: AtendimentoPageProps) {
+export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill, onVerClientesNaoAvisados }: AtendimentoPageProps) {
   const { loading, erro, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear, marcarClienteAvisado } =
     useAtendimento();
   const { kits, itens } = useEstoque();
@@ -137,7 +139,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
           <ProximoAgendamento agendamento={proximoAgendamento} loading={loading} onIniciarAtendimento={handleIniciarAtendimento} />
         </div>
 
-        <AlertaClientesNaoAvisados clientes={clientesNaoAvisados} onAbrirOS={setSelected} />
+        <AlertaClientesNaoAvisados clientes={clientesNaoAvisados} onAbrirOS={setSelected} onVerMais={onVerClientesNaoAvisados} />
 
         {/* Kanban — ocupa a largura toda, é o conteúdo principal (Seção 9) */}
         <KanbanBoard

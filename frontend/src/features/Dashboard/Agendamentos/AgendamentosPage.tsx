@@ -402,6 +402,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
       )}
       {newModalOpen && (
         <NewAppointmentModal
+          reagendando={rescheduleId ? agendamentos.find(a => a.id === rescheduleId) : undefined}
           initialDate={newModalDate}
           getOcupados={getOcupados}
           onConfirm={handleNewConfirm}

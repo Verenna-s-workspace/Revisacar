@@ -4,9 +4,12 @@ import { Icons } from '../Icons';
 import { Skeleton } from '../Primitives';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useAlertas } from '../../../hooks/useAlertas';
+import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import { OPCOES_ADIAR, formatarAte, maisGrave } from '../../../utils/alertas';
 import type { AcaoAlerta, AlertaEscondido, AlertaItem, SeveridadeAlerta } from '../../../utils/alertas';
 import type { NavPage } from '../../../types/dashboard';
+import type { Destaque } from '../../../utils/destaque';
+import { ALVO } from '../../../utils/destaque';
 
 interface AlertasPageProps {
   onNav: (p: NavPage) => void;
@@ -14,6 +17,9 @@ interface AlertasPageProps {
   onNewOS?: () => void;
   /** Executa o destino de um alerta (abrir tela, já com busca, ou abrir uma OS). */
   onAcao: (acao: AcaoAlerta) => void;
+  /** Vindo de outra tela (ex.: "Ver mais" no Atendimento): rola até o grupo e o faz pulsar. */
+  destaque?: Destaque | null;
+  onDestaqueConcluido?: () => void;
 }
 
 type Filtro = 'todos' | SeveridadeAlerta;
@@ -115,9 +121,11 @@ function LinhaEscondida({ alerta, onRestaurar }: { alerta: AlertaEscondido; onRe
   );
 }
 
-export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPageProps) {
+export function AlertasPage({ onNav, isMobile, onNewOS, onAcao, destaque, onDestaqueConcluido }: AlertasPageProps) {
   const { grupos, alertas, escondidos, loading, erro, avisos, recarregar, adiar, dispensar, restaurar, erroAcao, limparErroAcao } = useAlertas();
   const [filtro, setFiltro] = useState<Filtro>('todos');
+  // Só procura o alvo depois que os alertas carregaram (antes o grupo ainda não existe no DOM).
+  useDestaqueAoChegar(destaque, !loading, onDestaqueConcluido);
   const [mostrarEscondidos, setMostrarEscondidos] = useState(false);
   // "Desfazer" logo depois de esconder (some sozinho).
   const [desfazer, setDesfazer] = useState<{ id: string; texto: string } | null>(null);
@@ -256,7 +264,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao }: AlertasPagePro
         {gruposVisiveis.map(g => {
           const c = CORES[maisGrave(g.itens)];
           return (
-            <section key={g.fonte.id} aria-label={g.fonte.titulo} style={{
+            <section key={g.fonte.id} aria-label={g.fonte.titulo} data-destaque-id={g.fonte.id === 'cliente_nao_avisado' ? ALVO.alertasClientesParaAvisar : undefined} style={{
               background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`, borderRadius: 14, padding: isMobile ? '14px 12px' : '16px 18px',
               display: 'flex', flexDirection: 'column', gap: 10,
             }}>

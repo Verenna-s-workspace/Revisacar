@@ -24,6 +24,9 @@ type SelectProps = {
   style?: React.CSSProperties;
 };
 
+/** Espaço (px) reservado à direita do texto para a seta; igual ao `padding-right` de `.inp-select-shell .inp`. */
+const SELECT_CHEVRON_GUTTER = 30;
+
 function isGroup(o: SelectEntry): o is SelectOptionGroup {
   return typeof o === "object" && o !== null && "group" in o;
 }
@@ -76,7 +79,10 @@ export function Select({
           disabled={isDisabled}
           required={required}
           autoFocus={autoFocus}
-          style={style}
+          // `paddingRight` vem DEPOIS do style de quem usa: um `padding` inline
+          // (ex.: '7px 8px') ganha do `.inp-select-shell .inp` do CSS e fazia o
+          // texto correr por baixo da seta. Reservamos sempre o espaço dela.
+          style={{ ...style, paddingRight: SELECT_CHEVRON_GUTTER }}
           aria-invalid={!!error}
           aria-describedby={errorId ?? hintId}
         >

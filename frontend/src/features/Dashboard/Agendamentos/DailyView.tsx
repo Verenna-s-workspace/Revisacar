@@ -38,9 +38,14 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
     return now.getHours() * 60 + now.getMinutes();
   }, []);
 
-  const nowTop = isToday
-    ? Math.max(0, ((nowMinutes - DAY_START_HOUR * 60) / 60) * HOUR_H)
-    : -1;
+  const totalH = AGENDA_HOURS.length * HOUR_H;
+
+  // Posição bruta da linha do horário atual. Só é exibida enquanto estiver
+  // DENTRO da grade (horário de funcionamento): antes da abertura ou depois do
+  // fechamento a linha some, em vez de ser forçada para dentro/fora da agenda
+  // e esticar a área rolável com um espaço vazio.
+  const nowTopRaw = ((nowMinutes - DAY_START_HOUR * 60) / 60) * HOUR_H;
+  const nowTop = isToday && nowTopRaw >= 0 && nowTopRaw < totalH ? nowTopRaw : -1;
 
   const timeToTop = (hhmm: string) => {
     const [h, m] = hhmm.split(':').map(Number);
@@ -53,8 +58,6 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
     const dur = (eh * 60 + em) - (sh * 60 + sm);
     return Math.max(dur / 60, 0.75) * HOUR_H - 6;
   };
-
-  const totalH = AGENDA_HOURS.length * HOUR_H;
 
   return (
     // ── Container principal (seção de agendamentos diários) ──────────────────

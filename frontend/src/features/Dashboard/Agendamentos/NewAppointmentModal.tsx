@@ -20,11 +20,17 @@ import {
   parseISODate,
   formatDayMonth,
 } from '../../../utils/agenda';
-import type { NovoAgendamentoInput } from '../../../types/agendamento';
+import type { Agendamento, NovoAgendamentoInput } from '../../../types/agendamento';
 
 interface OcupadoSlot { horaInicio: string; horaFim: string; id: string; }
 
 interface NewAppointmentModalProps {
+  /**
+   * Agendamento sendo REAGENDADO. Quando presente o modal vira "Reagendar":
+   * os dados (cliente, veículo, placa, serviço) vêm do agendamento original e
+   * só se escolhe a nova data/horário — nada precisa ser digitado de novo.
+   */
+  reagendando?: Agendamento;
   /** Pre-selected date (e.g. when clicking a day in monthly/weekly view). */
   initialDate?: string;
   /** Slots already taken on the selected date (to show as occupied). */
@@ -47,29 +53,40 @@ function isSlotOccupied(slot: string, ocupados: OcupadoSlot[]): boolean {
   });
 }
 
-export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos }: NewAppointmentModalProps) {
+export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos, reagendando }: NewAppointmentModalProps) {
   const { timeSlots, horaAbertura, horaFechamento } = useHorarioFuncionamento();
   const { isMobile } = useResponsive();
   const [step, setStep] = useState<1 | 2>(1);
+  const todayISO = toISODate(new Date());
+  // Ao reagendar, o calendário abre na data atual do agendamento (ou em hoje,
+  // se ela já passou — datas passadas não podem ser escolhidas).
+  const dataInicial = reagendando
+    ? (reagendando.data >= todayISO ? reagendando.data : todayISO)
+    : initialDate;
   const [calDate, setCalDate] = useState(() => {
-    if (initialDate) return parseISODate(initialDate);
+    if (dataInicial) return parseISODate(dataInicial);
     return new Date();
   });
-  const [selectedDate, setSelectedDate] = useState<string>(initialDate ?? toISODate(new Date()));
+  const [selectedDate, setSelectedDate] = useState<string>(dataInicial ?? toISODate(new Date()));
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    cliente: initialCliente ?? '',
-    veiculo: initialVeiculos?.[0]?.veiculo ?? '',
-    placa: initialVeiculos?.[0]?.placa ?? '',
-    titulo: '', descricao: '',
+    cliente: reagendando?.cliente ?? initialCliente ?? '',
+    veiculo: reagendando?.veiculo ?? initialVeiculos?.[0]?.veiculo ?? '',
+    placa: reagendando?.placa ?? initialVeiculos?.[0]?.placa ?? '',
+    titulo: reagendando?.titulo ?? '',
+    descricao: reagendando?.descricao ?? '',
   });
 
   const year = calDate.getFullYear();
   const month = calDate.getMonth();
   const matrix = useMemo(() => getMonthMatrix(year, month), [year, month]);
-  const ocupados = useMemo(() => getOcupados(selectedDate), [getOcupados, selectedDate]);
-  const todayISO = toISODate(new Date());
+  // Ao reagendar, o horário que o próprio agendamento ocupa hoje não conta como
+  // "ocupado" (senão não dá para remarcar para um horário que se sobrepõe a ele).
+  const ocupados = useMemo(
+    () => getOcupados(selectedDate).filter(o => !reagendando || o.id !== reagendando.id),
+    [getOcupados, selectedDate, reagendando],
+  );
 
   const setField = (k: keyof typeof form) => (v: string) =>
     setForm(prev => ({ ...prev, [k]: v }));
@@ -102,9 +119,9 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
         {/* Header */}
         <div className="dashboard-modal__header">
           <div>
-            <div className="dashboard-modal__title">Novo Agendamento</div>
+            <div className="dashboard-modal__title">{reagendando ? 'Reagendar Agendamento' : 'Novo Agendamento'}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-              {[1, 2].map(n => (
+              {(reagendando ? [1] : [1, 2]).map(n => (
                 <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{
                     width: 60, height: 5, borderRadius: 99,
@@ -124,6 +141,17 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
         {/* ── Step 1: Date + Slot picker ── */}
         {step === 1 && (
           <div className="dashboard-modal__body" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 20 : 24 }}>
+            {/* Reagendamento: resumo do que será mantido (nada a digitar de novo) */}
+            {reagendando && (
+              <div style={{ gridColumn: '1 / -1', padding: '10px 14px', borderRadius: 10, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}`, display: 'flex', flexWrap: 'wrap', gap: '4px 14px', alignItems: 'center' }}>
+                <span style={{ display: 'flex', color: tokens.color.ferrari }}>{Icons.user}</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: tokens.color.text }}>{reagendando.cliente}</span>
+                <span style={{ fontSize: '0.78rem', color: tokens.color.textSecond }}>{reagendando.veiculo} · {reagendando.placa}</span>
+                <span style={{ fontSize: '0.75rem', color: tokens.color.muted, marginLeft: 'auto' }}>
+                  Atual: {formatDateBR(reagendando.data)} · {reagendando.horaInicio}
+                </span>
+              </div>
+            )}
             {/* Calendar */}
             <div>
               {/* Month nav */}
@@ -323,7 +351,8 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
           )}
           {step === 1 ? (
             <button
-              onClick={handleContinue}
+              // Reagendando, não há etapa 2: confirma direto com os dados originais.
+              onClick={reagendando ? handleSubmit : handleContinue}
               disabled={!selectedDate || !selectedSlot}
               style={{
                 padding: '9px 22px', borderRadius: 10, border: 'none',
@@ -333,7 +362,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
                 fontSize: '0.84rem', fontWeight: 700, transition: 'background 0.15s',
               }}
             >
-              Continuar →
+              {reagendando ? 'Confirmar Reagendamento' : 'Continuar →'}
             </button>
           ) : (
             <button
