@@ -155,7 +155,7 @@ def pg_dsn():
     # Migrations versionadas (db): controle, limpeza, tabelas do app do cliente, integração.
     for nome in ("0000_controle.sql", "0001_limpeza_segura.sql", "0002_tabelas_app_cliente.sql",
                  "0003_integracao_cliente_oficina.sql", "0005_config_oficina.sql", "0006_codigo_acesso_equipe.sql",
-                 "0007_fotos_veiculos.sql", "0008_reserva_caixa.sql"):
+                 "0007_fotos_veiculos.sql", "0008_reserva_caixa.sql", "0009_taxa_maquininha.sql"):
         sql = (BACKEND_DIR / "sql" / "migrations" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência

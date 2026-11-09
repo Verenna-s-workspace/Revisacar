@@ -352,6 +352,10 @@ class FinanceiroTransacaoSerializer(serializers.Serializer):
     categoria = serializers.CharField()
     descricao = serializers.CharField(required=False, allow_blank=True, default="", max_length=200)
     valor = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    # Taxa (R$) que a maquininha descontou de uma ENTRADA. `valor` é o que o cliente pagou (bruto);
+    # o líquido é valor - taxa. Quem informa é o dono: cada oficina tem a sua maquininha e a sua tabela.
+    taxa = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"),
+                                    required=False, default=Decimal("0"))
     forma_pagamento = serializers.ChoiceField(choices=list(FORMAS_PAGAMENTO), required=False, allow_null=True, default=None)
     # 'vencido' nunca é gravado — é calculado na leitura (status='pendente' + venceu).
     status = serializers.ChoiceField(choices=["pendente", "pago", "cancelado"], default="pendente")
@@ -371,6 +375,12 @@ class FinanceiroTransacaoSerializer(serializers.Serializer):
         return v
 
     def validate(self, data):
+        taxa = data.get("taxa") or Decimal("0")
+        if taxa > 0:
+            if data.get("tipo") != "entrada":
+                raise serializers.ValidationError({"taxa": ["Só as entradas têm taxa de maquininha."]})
+            if taxa >= data["valor"]:
+                raise serializers.ValidationError({"taxa": ["A taxa precisa ser menor que o valor do lançamento."]})
         if data.get("status") == "pago" and not data.get("data_pagamento"):
             from django.utils import timezone
             data["data_pagamento"] = timezone.now()
