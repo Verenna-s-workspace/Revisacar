@@ -3,7 +3,12 @@ export interface Transacao {
   tipo: 'entrada' | 'saida';
   categoria: string;
   descricao: string;
+  /** O que o cliente pagou (bruto). */
   valor: number;
+  /** Taxa que a maquininha descontou (R$). 0 = sem taxa. Só entradas têm. */
+  taxa: number;
+  /** O que caiu na conta: valor - taxa. Calculado pelo backend. */
+  valor_liquido: number;
   forma_pagamento: string | null;
   status: 'pendente' | 'pago' | 'cancelado';
   data_competencia: string;

@@ -30,6 +30,7 @@ from .serializers import (
     FinanceiroTransacaoSerializer, CATEGORIAS_ENTRADA, CATEGORIAS_SAIDA, FORMAS_PAGAMENTO,
 )
 from .estoque_views import _listar_todos
+from .taxa import com_taxa, soma_liquido, soma_taxas
 from . import visao_geral_views as vg
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ TABELA = "financeiro_transacoes"
 MAX_DIAS_PERIODO = 800
 
 CAMPOS_EDITAVEIS = {
-    "categoria", "descricao", "valor", "forma_pagamento", "status",
+    "categoria", "descricao", "valor", "taxa", "forma_pagamento", "status",
     "data_competencia", "data_vencimento", "data_pagamento", "cliente_nome",
 }
 
@@ -57,7 +58,8 @@ def _tratar_erros_banco(view_func):
                 logger.error("Financeiro: tabela/coluna ausente (%s): %s", codigo, mensagem)
                 return Response(
                     {"detail": "A tabela do Financeiro não está completa no banco. "
-                               "Rode backend/sql/financeiro.sql no SQL Editor do Supabase."},
+                               "Rode backend/sql/financeiro.sql e as migrations pendentes "
+                               "(ex.: 0009_taxa_maquininha.sql) no SQL Editor do Supabase."},
                     status=http_status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
             if codigo == "42501":
@@ -135,6 +137,10 @@ def _para_api(linha: dict, hoje: date) -> dict:
     valor sempre número e `vencido` calculado (nunca é gravado)."""
     out = {k: v for k, v in linha.items() if k != "oficina_doc"}
     out["valor"] = float(out["valor"])
+    # Entradas pagas em maquininha: `valor` é o bruto (o que o cliente pagou), `valor_liquido` é o que caiu na conta.
+    # Antes da migration 0009 a coluna não existe: taxa 0 e líquido = bruto.
+    out["taxa"] = float(out.get("taxa") or 0)
+    out["valor_liquido"] = float(round(Decimal(str(out["valor"])) - Decimal(str(out["taxa"])), 2))
     out["descricao"] = out.get("descricao") or ""
     out["cliente_nome"] = out.get("cliente_nome") or ""
     out["vencido"] = _is_vencido(out, hoje)
@@ -145,8 +151,9 @@ def _serializavel(dados: dict) -> dict:
     """DecimalField/DateField/DateTimeField não viram JSON sozinhos —
     convertidos aqui antes de mandar pro Supabase."""
     out = dict(dados)
-    if "valor" in out and out["valor"] is not None:
-        out["valor"] = float(out["valor"])
+    for campo in ("valor", "taxa"):
+        if out.get(campo) is not None:
+            out[campo] = float(out[campo])
     for campo in ("data_competencia", "data_vencimento", "data_pagamento"):
         if out.get(campo) is not None:
             out[campo] = out[campo].isoformat()
@@ -204,6 +211,8 @@ def transacoes(request):
             dados["data_pagamento"] = None  # pendente não tem data de pagamento
 
         row = _serializavel(dados)
+        if not row.get("taxa"):
+            row.pop("taxa", None)  # sem taxa nada muda no banco (e não exige a migration 0009)
         row.update({
             "oficina_doc": oficina_doc,
             "criado_por_nome": request.admin.get("nome", ""),
@@ -322,22 +331,24 @@ def resumo(request):
         return _erro_422(str(e))
     ve_margem = "financeiro.ver_margem" in request.admin.get("permissoes", [])
 
-    do_periodo = _listar_todos(lambda: (
-        supabase.table(TABELA).select("id,tipo,valor,status")
+    do_periodo = com_taxa(lambda campos: _listar_todos(lambda: (
+        supabase.table(TABELA).select(campos)
         .eq("oficina_doc", oficina_doc).neq("status", "cancelado")
         .gte("data_competencia", de.isoformat()).lte("data_competencia", ate.isoformat())
         .order("id")
-    ))
-    faturamento = _soma(r for r in do_periodo if r["tipo"] == "entrada")
+    )), "id,tipo,valor,status")
+    entradas = [r for r in do_periodo if r["tipo"] == "entrada"]
+    faturamento = _soma(entradas)  # bruto: o que os clientes pagaram
+    taxas = soma_taxas(entradas)  # o que as maquininhas descontaram
     despesas = _soma(r for r in do_periodo if r["tipo"] == "saida")
-    recebido = _soma(r for r in do_periodo if r["tipo"] == "entrada" and r["status"] == "pago")
+    recebido = soma_liquido(r for r in entradas if r["status"] == "pago")  # líquido: o que caiu na conta
     saidas_pagas = _soma(r for r in do_periodo if r["tipo"] == "saida" and r["status"] == "pago")
 
     # a_receber/a_pagar são a dívida em aberto AGORA — não um corte do período.
-    pendentes = _listar_todos(lambda: (
-        supabase.table(TABELA).select("id,tipo,valor,data_vencimento")
+    pendentes = com_taxa(lambda campos: _listar_todos(lambda: (
+        supabase.table(TABELA).select(campos)
         .eq("oficina_doc", oficina_doc).eq("status", "pendente").order("id")
-    ))
+    )), "id,tipo,valor,data_vencimento")
     hoje_iso = hoje.isoformat()
 
     def vencida(r):
@@ -349,16 +360,17 @@ def resumo(request):
     resposta = {
         "periodo": {"de": de.isoformat(), "ate": ate.isoformat()},
         "faturamento": float(round(faturamento, 2)),
+        "taxas": float(round(taxas, 2)),
         "despesas": float(round(despesas, 2)),
         "recebido": float(round(recebido, 2)),
         "saldo": float(round(recebido - saidas_pagas, 2)),
-        "a_receber": float(round(_soma(entradas_pend), 2)),
+        "a_receber": float(round(soma_liquido(entradas_pend), 2)),
         "a_pagar": float(round(_soma(saidas_pend), 2)),
-        "vencido_receber": float(round(_soma(r for r in entradas_pend if vencida(r)), 2)),
+        "vencido_receber": float(round(soma_liquido(r for r in entradas_pend if vencida(r)), 2)),
         "vencido_pagar": float(round(_soma(r for r in saidas_pend if vencida(r)), 2)),
     }
     if ve_margem:
-        lucro = faturamento - despesas
+        lucro = faturamento - taxas - despesas  # a taxa da maquininha é custo: não é lucro
         resposta["lucro"] = float(round(lucro, 2))
         resposta["margem_percentual"] = float(round(lucro / faturamento * 100, 1)) if faturamento > 0 else 0.0
 

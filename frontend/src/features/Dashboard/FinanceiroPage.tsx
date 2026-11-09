@@ -70,7 +70,8 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
     const porDia = new Map<string, { entradas: number; saidas: number }>();
     for (const t of transacoes) {
       const atual = porDia.get(t.data_competencia) ?? { entradas: 0, saidas: 0 };
-      if (t.tipo === 'entrada') atual.entradas += t.valor; else atual.saidas += t.valor;
+      // Entrada conta pelo líquido (o que caiu na conta, sem a taxa da maquininha).
+      if (t.tipo === 'entrada') atual.entradas += t.valor_liquido ?? t.valor; else atual.saidas += t.valor;
       porDia.set(t.data_competencia, atual);
     }
     return Array.from(porDia.entries())
@@ -221,6 +222,11 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
                       </div>
                       <div style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.95rem', color: t.tipo === 'entrada' ? tokens.color.ok : tokens.color.text }}>
                         {t.tipo === 'entrada' ? '+ ' : '- '}<Valor texto={formatBRL(t.valor)} />
+                        {t.tipo === 'entrada' && t.taxa > 0 && (
+                          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: tokens.color.muted, textAlign: 'right' }}>
+                            líquido <Valor texto={formatBRL(t.valor_liquido)} />
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: '0.8125rem', color: tokens.color.muted }}>
@@ -277,6 +283,11 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: t.tipo === 'entrada' ? tokens.color.ok : tokens.color.text }}>
                           {t.tipo === 'entrada' ? '+ ' : '- '}<Valor texto={formatBRL(t.valor)} />
+                          {t.tipo === 'entrada' && t.taxa > 0 && (
+                            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: tokens.color.muted }}>
+                              líquido <Valor texto={formatBRL(t.valor_liquido)} />
+                            </div>
+                          )}
                         </td>
                         {podeEditar && (
                           <td style={{ ...tdStyle, textAlign: 'right' }}>

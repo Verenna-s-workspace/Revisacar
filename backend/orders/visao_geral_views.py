@@ -38,6 +38,7 @@ from rest_framework.response import Response
 from . import relatorios_views as rel
 from .paralelo import em_paralelo_cada
 from .serializers import MetaMensalSerializer
+from .taxa import soma_taxas
 from .views import supabase, require_auth, require_permission, _oficina_doc_do_token
 
 logger = logging.getLogger(__name__)
@@ -250,7 +251,12 @@ def visao_geral(request):
             "temLancamentos": bool(receitas or despesas or receitas_ant or despesas_ant),
         }
         if ve_margem:
-            lucro, lucro_ant = round(receitas - despesas, 2), round(receitas_ant - despesas_ant, 2)
+            def taxas(periodo):  # taxa da maquininha é custo: sai do lucro (receitas seguem brutas)
+                return float(soma_taxas(
+                    l for l in entradas
+                    if (d := _dia_lancamento(l)) is not None and _dentro(d, periodo)))
+            lucro = round(receitas - taxas(mes) - despesas, 2)
+            lucro_ant = round(receitas_ant - taxas(anterior) - despesas_ant, 2)
             bloco["lucro"] = lucro
             if receitas_ant or despesas_ant:
                 bloco["lucroAnterior"] = lucro_ant

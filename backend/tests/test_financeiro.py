@@ -414,7 +414,7 @@ def test_resumo_totais_do_periodo(api, db):
     assert r.status_code == 200
     assert r.json() == {
         "periodo": {"de": "2026-10-01", "ate": "2026-10-31"},
-        "faturamento": 1500, "despesas": 500, "recebido": 1000, "saldo": 700,
+        "faturamento": 1500, "taxas": 0, "despesas": 500, "recebido": 1000, "saldo": 700,
         "a_receber": 500, "a_pagar": 200, "vencido_receber": 0, "vencido_pagar": 0,
         "lucro": 1000, "margem_percentual": 66.7,
     }
