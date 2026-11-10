@@ -124,6 +124,41 @@ export const formatTimeRange = (inicio: string, fim: string): string =>
 /** Duração padrão (min) de um novo agendamento ao escolher um horário. */
 export const DEFAULT_DURATION_MINUTES = 60;
 
+/** Passo (min) entre os horários de início oferecidos ao agendar. */
+export const SLOT_STEP_MINUTES = 30;
+/** Menor duração (min): abaixo disso o bloco nem cabe legível na grade Diária/Semanal. */
+export const MIN_DURATION_MINUTES = 30;
+/** Maior duração (min) aceita num agendamento. */
+export const MAX_DURATION_MINUTES = 12 * 60;
+/** Durações de escolha rápida; qualquer outra vai em "Outro". */
+export const DURACOES_RAPIDAS = [30, 60, 90, 120] as const;
+
+/** Duração (min) entre dois horários 'HH:MM'; nunca negativa. */
+export const duracaoEmMinutos = (inicio: string, fim: string): number =>
+  Math.max(timeToMinutes(fim) - timeToMinutes(inicio), 0);
+
+/** 30 → '30 min', 60 → '1 h', 90 → '1 h 30', 150 → '2 h 30'. */
+export function formatDuracao(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${pad2(m)}`;
+}
+
+/** Dois intervalos se sobrepõem? Encostar (um termina quando o outro começa) não conta. */
+export function intervalosSobrepostos(aIni: string, aFim: string, bIni: string, bFim: string): boolean {
+  return timeToMinutes(aIni) < timeToMinutes(bFim) && timeToMinutes(aFim) > timeToMinutes(bIni);
+}
+
+/** Primeiro agendamento ocupado que bate com o intervalo [inicio, fim), se houver. */
+export function acharConflito<T extends { horaInicio: string; horaFim: string }>(
+  inicio: string,
+  fim: string,
+  ocupados: readonly T[],
+): T | undefined {
+  return ocupados.find(o => intervalosSobrepostos(inicio, fim, o.horaInicio, o.horaFim));
+}
+
 /** Horário de funcionamento padrão usado antes de qualquer configuração
  * explícita nas Configurações (mantém o comportamento atual: 08:00–19:00). */
 export const DEFAULT_HORA_ABERTURA = '08:00';
@@ -148,11 +183,14 @@ export function getTimeSlots(
   horaAbertura: string,
   horaFechamento: string,
   intervalMinutes: number = DEFAULT_DURATION_MINUTES,
+  duracaoMinutes: number = intervalMinutes,
 ): string[] {
   const start = timeToMinutes(horaAbertura);
   const end = timeToMinutes(horaFechamento);
   const slots: string[] = [];
-  for (let t = start; t + intervalMinutes <= end; t += intervalMinutes) {
+  // `intervalMinutes` é o passo entre inícios; `duracaoMinutes` é o quanto o serviço ocupa
+  // (o último início precisa terminar até o fechamento).
+  for (let t = start; t + duracaoMinutes <= end; t += intervalMinutes) {
     slots.push(minutesToTime(t));
   }
   return slots;

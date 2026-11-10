@@ -62,7 +62,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
     const [sh, sm] = inicio.split(':').map(Number);
     const [eh, em] = fim.split(':').map(Number);
     const dur = eh * 60 + em - sh * 60 - sm;
-    return Math.max(dur / 60, 0.75) * HOUR_H - 4;
+    return Math.max(dur / 60, 0.5) * HOUR_H - 4;
   };
 
   return (
@@ -189,6 +189,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                   const height = timeToHeight(ag.horaInicio, ag.horaFim);
                   const cfg = APPOINTMENT_STATUS_CONFIG[ag.status];
                   if (top < 0) return null;
+                  const compacto = height < 40;
 
                   return (
                     <div
@@ -204,7 +205,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                         borderLeft: `3px solid ${cfg.color}`,
                         border: `1px solid ${cfg.border}`,
                         borderLeftWidth: 3,
-                        padding: '4px 7px',
+                        padding: compacto ? '2px 7px' : '4px 7px',
                         cursor: 'pointer',
                         overflow: 'hidden',
                         zIndex: 2,
@@ -216,6 +217,11 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.filter = 'brightness(0.96)'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.filter = ''; }}
                     >
+                      {compacto ? (
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ color: cfg.color, fontFamily: tokens.fontMono, fontWeight: 800 }}>{ag.horaInicio}</span> {ag.cliente}
+                        </div>
+                      ) : (<>
                       <div style={{ fontSize: '0.75rem', fontWeight: 800, color: cfg.color, fontFamily: tokens.fontMono }}>
                         {ag.horaInicio}
                       </div>
@@ -227,6 +233,7 @@ export function WeeklyView({ date, agendamentos, onDateChange, onCardClick, onDa
                           {ag.veiculo}
                         </div>
                       )}
+                      </>)}
                     </div>
                   );
                 })}

@@ -12,6 +12,7 @@ import {
   addDays,
   timeToMinutes,
   minutesToTime,
+  duracaoEmMinutos,
   DEFAULT_DURATION_MINUTES,
 } from '../utils/agenda';
 import { lerHorarioFuncionamento } from '../utils/horario_funcionamento';
@@ -126,12 +127,15 @@ export function useAgendamentos() {
   );
 
   const rescheduleAgendamento = useCallback(
-    (id: string, novaData: string, novaHora: string) => {
+    (id: string, novaData: string, novaHora: string, novaDuracao?: number) => {
       setAgendamentos(prev =>
         sortAgendamentos(
           prev.map(a => {
             if (a.id !== id) return a;
-            const duracao = Math.max(timeToMinutes(a.horaFim) - timeToMinutes(a.horaInicio), DEFAULT_DURATION_MINUTES);
+            // Mantém a duração que o agendamento já tinha (30 min continua 30 min); só cai no padrão
+            // se o fim guardado for inválido. `novaDuracao` permite o mecânico mudar na remarcação.
+            const atual = duracaoEmMinutos(a.horaInicio, a.horaFim);
+            const duracao = novaDuracao ?? (atual > 0 ? atual : DEFAULT_DURATION_MINUTES);
             const novoFim = minutesToTime(timeToMinutes(novaHora) + duracao);
             if (!dentroDoHorarioFuncionamento(novaHora, novoFim)) {
               // Não deveria acontecer pelo seletor de horário (só oferece

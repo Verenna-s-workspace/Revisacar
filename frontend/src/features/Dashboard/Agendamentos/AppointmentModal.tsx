@@ -9,14 +9,17 @@ import type { Agendamento, AppointmentStatus } from '../../../types/agendamento'
 interface AppointmentModalProps {
   agendamento: Agendamento;
   onClose: () => void;
+  /** Abre o ajuste de data, início e duração. */
   onEdit: (ag: Agendamento) => void;
+  /** Pedido pendente: define a duração e confirma. */
+  onConfirmar: (ag: Agendamento) => void;
   onReschedule: (id: string) => void;
   onCancel: (id: string) => void;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
 }
 
 export function AppointmentModal({
-  agendamento: ag, onClose, onEdit, onReschedule, onCancel, onStatusChange,
+  agendamento: ag, onClose, onEdit, onConfirmar, onReschedule, onCancel, onStatusChange,
 }: AppointmentModalProps) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
 
@@ -128,11 +131,19 @@ export function AppointmentModal({
         {/* Footer actions */}
         <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {ag.status === 'pendente' && (
+              <button
+                onClick={() => onConfirmar(ag)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, border: 'none', background: tokens.color.ferrari, color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+              >
+                {AgendaIcons.checkCircle} Confirmar pedido
+              </button>
+            )}
             <button
               onClick={() => onEdit(ag)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, border: `1px solid ${tokens.color.border}`, background: 'transparent', color: tokens.color.text, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
             >
-              {Icons.edit} Editar
+              {Icons.edit} Ajustar horário
             </button>
             <button
               onClick={() => onReschedule(ag.id)}
@@ -166,7 +177,11 @@ export function AppointmentModal({
                   return (
                     <button
                       key={st}
-                      onClick={() => { onStatusChange(ag.id, st); setShowStatusPicker(false); onClose(); }}
+                      onClick={() => {
+                        setShowStatusPicker(false);
+                        if (ag.status === 'pendente' && st === 'agendado') { onConfirmar(ag); return; }
+                        onStatusChange(ag.id, st); onClose();
+                      }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                         padding: '8px 12px', borderRadius: 8, border: 'none',

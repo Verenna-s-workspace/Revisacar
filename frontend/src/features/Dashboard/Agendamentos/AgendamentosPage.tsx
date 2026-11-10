@@ -14,7 +14,7 @@ import type {
   AgendaFiltros,
   NovoAgendamentoInput,
 } from '../../../types/agendamento';
-import { toISODate, isSameMonth, parseISODate, addDays } from '../../../utils/agenda';
+import { toISODate, isSameMonth, parseISODate, addDays, duracaoEmMinutos } from '../../../utils/agenda';
 
 // Sub-components
 import { AppointmentStats } from './AppointmentStats';
@@ -25,6 +25,7 @@ import { MonthlyView } from './MonthlyView';
 import { AppointmentCard } from './AppointmentCard';
 import { AppointmentModal } from './AppointmentModal';
 import { NewAppointmentModal } from './NewAppointmentModal';
+import { AjustarHorarioModal } from './AjustarHorarioModal';
 import { AgendaMobile } from './mobile/AgendaMobile';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ function ViewSwitcher({ active, onChange }: { active: AgendaViewMode; onChange: 
 export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, initialHighlightId }: AgendamentosPageProps) {
   const {
     agendamentos, loading, usingApi, erro, stats,
-    addAgendamento, updateStatus, cancelAgendamento,
+    addAgendamento, updateAgendamento, updateStatus, cancelAgendamento,
     rescheduleAgendamento, getOcupados,
   } = useAgendamentos();
 
@@ -131,6 +132,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [newModalDate,  setNewModalDate] = useState<string | undefined>(undefined);
   const [rescheduleId,  setRescheduleId] = useState<string | null>(null);
+  const [ajuste, setAjuste] = useState<{ ag: Agendamento; modo: 'ajustar' | 'confirmar' } | null>(null);
 
   // Vindo do perfil de um cliente (badge "Agendado" ou item da aba Agendamentos):
   // assim que a lista carregar, abre direto o detalhe daquele agendamento.
@@ -171,7 +173,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   const handleNewConfirm = useCallback(async (input: NovoAgendamentoInput) => {
     try {
       if (rescheduleId) {
-        rescheduleAgendamento(rescheduleId, input.data, input.horaInicio);
+        rescheduleAgendamento(rescheduleId, input.data, input.horaInicio, duracaoEmMinutos(input.horaInicio, input.horaFim));
         setRescheduleId(null);
       } else {
         await addAgendamento(input);
@@ -394,10 +396,20 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
         <AppointmentModal
           agendamento={selectedAg}
           onClose={() => setSelectedAg(null)}
-          onEdit={ag => { setSelectedAg(null); openNewModal(ag.data); }}
+          onEdit={ag => { setSelectedAg(null); setAjuste({ ag, modo: 'ajustar' }); }}
+          onConfirmar={ag => { setSelectedAg(null); setAjuste({ ag, modo: 'confirmar' }); }}
           onReschedule={handleReschedule}
           onCancel={id => { cancelAgendamento(id).catch(avisarErro); setSelectedAg(null); }}
           onStatusChange={(id, status) => { updateStatus(id, status).catch(avisarErro); setSelectedAg(null); }}
+        />
+      )}
+      {ajuste && (
+        <AjustarHorarioModal
+          agendamento={ajuste.ag}
+          modo={ajuste.modo}
+          getOcupados={getOcupados}
+          onSave={changes => updateAgendamento(ajuste.ag.id, changes)}
+          onClose={() => setAjuste(null)}
         />
       )}
       {newModalOpen && (
