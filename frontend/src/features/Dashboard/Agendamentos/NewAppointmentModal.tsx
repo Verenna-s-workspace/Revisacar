@@ -111,7 +111,8 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
     onClose();
   };
 
-  const formValid = form.cliente.trim() && form.veiculo.trim() && form.placa.trim();
+  // Placa é opcional: só cliente e veículo travam o botão de confirmar.
+  const formValid = form.cliente.trim() && form.veiculo.trim();
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
@@ -316,7 +317,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 20px' }}>
               <Input name="ag_cliente" label="Nome do Cliente" required placeholder="Carlos Eduardo Oliveira" value={form.cliente} onChangeValue={setField('cliente')} />
               <Input name="ag_veiculo" label="Veículo" required placeholder="BMW 320i M-Sport" value={form.veiculo} onChangeValue={setField('veiculo')} />
-              <Input name="ag_placa" type="placa" label="Placa" required placeholder="BRA2E19" value={form.placa} onChangeValue={setField('placa')} />
+              <Input name="ag_placa" type="placa" label="Placa" placeholder="BRA2E19" value={form.placa} onChangeValue={setField('placa')} />
               <Input name="ag_titulo" label="Título do Serviço" placeholder="Revisão de 40.000km" value={form.titulo} onChangeValue={setField('titulo')} />
               <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}>
                 <Textarea

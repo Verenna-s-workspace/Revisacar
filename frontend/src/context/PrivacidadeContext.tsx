@@ -1,17 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useValoresOcultos } from '../hooks/useValoresOcultos';
 
 // ── Modo Privacidade ─────────────────────────────────────────────────────────
 // Liga/desliga a máscara dos valores financeiros da Visão Geral, do Financeiro
-// e dos Relatórios. O estado fica salvo neste aparelho (localStorage) pra não
-// "desligar sozinho" a cada recarga — quem usa o sistema com cliente por perto
-// quer isso sempre ligado. Se o storage estiver bloqueado, só vale na sessão.
-
-const CHAVE = 'revisacar:privacidade-financeira';
-
-function lerInicial(): boolean {
-  try { return window.localStorage.getItem(CHAVE) === '1'; } catch { return false; }
-}
+// e dos Relatórios. O estado vive no hook useValoresOcultos (sessionStorage,
+// chave 'valores_ocultos'): começa SEMPRE oculto, mantém ao navegar entre telas
+// e volta a ocultar ao recarregar (F5) ou fechar/reabrir a aba.
 
 interface PrivacidadeCtx {
   /** true = valores financeiros mascarados. */
@@ -26,15 +21,14 @@ const PADRAO: PrivacidadeCtx = { oculto: false, alternar: () => {}, interagiu: f
 const Contexto = createContext<PrivacidadeCtx>(PADRAO);
 
 export function PrivacidadeProvider({ children }: { children: ReactNode }) {
-  const [oculto, setOculto] = useState<boolean>(lerInicial);
+  const { valoresOcultos, alternarValores } = useValoresOcultos();
   const [interagiu, setInteragiu] = useState(false);
 
-  useEffect(() => {
-    try { window.localStorage.setItem(CHAVE, oculto ? '1' : '0'); } catch { /* storage bloqueado: segue só em memória */ }
-  }, [oculto]);
-
-  const alternar = useCallback(() => { setInteragiu(true); setOculto(v => !v); }, []);
-  const valor = useMemo(() => ({ oculto, alternar, interagiu }), [oculto, alternar, interagiu]);
+  const alternar = useCallback(() => { setInteragiu(true); alternarValores(); }, [alternarValores]);
+  const valor = useMemo(
+    () => ({ oculto: valoresOcultos, alternar, interagiu }),
+    [valoresOcultos, alternar, interagiu],
+  );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
