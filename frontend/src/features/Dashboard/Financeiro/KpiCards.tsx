@@ -6,6 +6,8 @@ import { Valor, MASCARA_PERCENTUAL } from '../../../components/Privacidade';
 
 export interface ResumoFinanceiro {
   faturamento: number;
+  /** Soma das taxas de maquininha das entradas do período (já descontada do lucro). */
+  taxas?: number;
   despesas: number;
   recebido: number;
   saldo: number;
@@ -35,7 +37,15 @@ export function KpiCards({ resumo, verMargem, isMobile }: { resumo: ResumoFinanc
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 14 }}>
-      <KpiCard label="Faturamento" valor={formatBRL(resumo.faturamento)} corBorda="#CC1400" destaqueId="fin-kpi-faturamento" />
+      <KpiCard
+        label="Faturamento"
+        valor={formatBRL(resumo.faturamento)}
+        corBorda="#CC1400"
+        destaqueId="fin-kpi-faturamento"
+        extra={resumo.taxas && resumo.taxas > 0 ? (
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted }}><Valor texto={formatBRL(resumo.taxas)} /> em taxas de maquininha</span>
+        ) : undefined}
+      />
       <KpiCard label="Despesas" valor={formatBRL(resumo.despesas)} corBorda="#B35C00" destaqueId="fin-kpi-despesas" />
       <KpiCard label="Saldo" valor={formatBRL(resumo.saldo)} corBorda={tokens.color.ok} />
       {verMargem && resumo.lucro !== undefined && (

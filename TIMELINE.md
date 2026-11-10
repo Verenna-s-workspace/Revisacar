@@ -25,6 +25,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Veículos ↔ Clientes (vínculo, fotos, Nova OS) | 🟡 Backend + SQL + testes + front prontos (796 testes; tsc + build ok; smoke no navegador com API simulada, 35 verificações). Falta: rodar `0007_fotos_veiculos.sql` e validar contra o Supabase real |
 | Regras dos campos dos checklists | 🟡 Front + backend + testes prontos (853 testes; tsc + build ok; navegador com API simulada). Falta: validar contra o Supabase real (OS antigas com valor fora do padrão pedem correção ao salvar) |
 | Financeiro — reserva de caixa | 🟡 SQL + API + front + testes prontos (931 testes; tsc + build ok; smoke no navegador com API simulada: 25 verificações, desktop, 390px, dono/gerente, migration ausente). Desligada por padrão. Falta: rodar `0008_reserva_caixa.sql` (depois de `financeiro.sql`) e validar contra o Supabase real |
+| Financeiro — taxa da maquininha | 🟡 SQL + API + front + testes prontos (976 testes; tsc + build ok). Falta: rodar `0009_taxa_maquininha.sql` (depois da 0008) e validar contra o Supabase real; ainda não testado no navegador |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -559,3 +560,25 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 3. Reserva só sobre mão de obra (sem peças dentro de "serviços") depende de separar mão de obra de serviço no orçamento; hoje o escopo segue as categorias do Financeiro.
 4. Retirada que vira saída automática no caixa (hoje o dono lança a saída à parte).
 5. Se um pagamento já reservado for estornado depois de a reserva ser gasta, o saldo fica negativo e a tela avisa (decisão: não bloquear o estorno).
+
+## Taxa da maquininha nas entradas + reserva de caixa sobre o líquido (2026-11-09, branch `feat/taxa-maquininha`, parte de `main`)
+
+**Problema.** Entrada paga em maquininha (Mercado Pago etc.) sofre uma taxa que o sistema ignorava: saldo, lucro e reserva contavam o valor cheio. A taxa varia por maquininha, por forma de pagamento e por oficina, então não dá para estimar: **o dono informa** (o valor está no extrato da maquininha).
+
+**Arquivos:** `backend/sql/migrations/0009_taxa_maquininha.sql`, `orders/taxa.py` (novo), `serializers.py`, `financeiro_views.py`, `relatorios_views.py`, `visao_geral_views.py`, `tests/test_taxa_maquininha.py`; frontend: `Financeiro/TransacaoModal.tsx`, `Financeiro/KpiCards.tsx`, `Financeiro/types.ts`, `FinanceiroPage.tsx`.
+
+**Decisões**
+- **`valor` continua sendo o bruto** (o que o cliente pagou); nova coluna `taxa` (R$, padrão 0). **Líquido = `valor - taxa`, sempre calculado**, nunca gravado (dois números gravados podem divergir).
+- **Onde cada número aparece:** Faturamento, Relatórios, Visão Geral (receitas) e preço da OS seguem **brutos**. `recebido`, `saldo`, `a_receber` e o fluxo de caixa usam o **líquido**. **Lucro = faturamento − taxas − despesas** (a taxa é custo), no Resumo e na Visão Geral (os dois batem). O Resumo ganhou `taxas`; cada lançamento volta com `taxa` e `valor_liquido`.
+- **Travas:** `taxa >= 0`, `taxa < valor` e só entrada pode ter taxa — na API (422) e no banco (`financeiro_taxa_check`).
+- **Reserva sobre o líquido:** `reserva = (valor − taxa) × percentual`; `financeiro_reservas.base_valor` passa a guardar o líquido. O gatilho também escuta `taxa`, então corrigir a taxa depois recalcula o depósito. Depósitos **já existentes não são reescritos** pela migration: seguem sobre o bruto até a entrada ser editada.
+- **Tela:** no lançamento de entrada com débito, crédito ou pix aparece "Taxa da maquininha (opcional)" com a prévia "Cai na conta". Dá para deixar vazio e preencher depois editando. A lista mostra "líquido" abaixo do valor quando há taxa; o card Faturamento mostra o total de taxas.
+- **Quem não usa nada muda:** o backend só grava `taxa` quando é maior que zero; sem a migration 0009 o Resumo, a Visão Geral e os Relatórios repetem a consulta sem a coluna (`com_taxa`) e seguem como antes. Só salvar uma taxa maior que zero exige a migration (503 explicando).
+
+**Validado:** pytest 976 (25 novos; conferi que os de reserva falham se o gatilho voltar a usar o bruto), flake8, `tsc`, `vite build`. **NÃO validado:** nada contra o Supabase/PostgREST reais, nem a tela no navegador.
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0009_taxa_maquininha.sql` no SQL Editor do Supabase (idempotente; depois da 0008).
+2. Preencher a taxa em **%** (hoje só em R$), tabela de taxas por oficina que sugira o valor, e parcelamento (recebimento em datas diferentes) — ficaram de fora de propósito.
+3. Pendentes e entradas geradas pela OS (orçamento aprovado) nascem sem taxa; o dono edita ao receber.
+4. Resumo da OS (`/ordens/<id>/fechamento`) ainda lista só o bruto de cada lançamento.

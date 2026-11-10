@@ -4,6 +4,7 @@ import { labelCategoria, LABEL_FORMA_PAGAMENTO } from './categoriaLabels';
 import type { Categorias, Transacao } from './types';
 import { mensagemDoErro } from '../../../utils/api_erro';
 import { hojeLocal } from '../../../utils/financeiro_utils';
+import { formatBRL } from '../../../utils/dashboard';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
 
@@ -11,6 +12,9 @@ const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: '0.78rem', fontWeight: 700,
   color: tokens.color.textSecond, marginBottom: 5,
 };
+
+/** Meios em que a maquininha (ou o app de pagamento) costuma descontar taxa. */
+const MEIOS_COM_TAXA = new Set(['debito', 'credito', 'pix']);
 
 interface Props {
   categorias: Categorias;
@@ -26,6 +30,8 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
   const [categoria, setCategoria] = useState(transacao?.categoria ?? categorias.entrada[0] ?? '');
   const [descricao, setDescricao] = useState(transacao?.descricao ?? '');
   const [valor, setValor] = useState(transacao ? String(transacao.valor) : '');
+  // Taxa que a maquininha descontou (R$). Vazio = sem taxa.
+  const [taxa, setTaxa] = useState(transacao && transacao.taxa > 0 ? transacao.taxa.toFixed(2) : '');
   const [formaPagamento, setFormaPagamento] = useState(transacao?.forma_pagamento ?? 'pix');
   const [statusPago, setStatusPago] = useState(transacao ? transacao.status === 'pago' : true);
   const [dataCompetencia, setDataCompetencia] = useState(transacao?.data_competencia ?? hojeLocal());
@@ -50,6 +56,11 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
       setErro('Informe um valor válido');
       return;
     }
+    const taxaNum = tipo === 'entrada' && MEIOS_COM_TAXA.has(formaPagamento) ? Number(taxa) || 0 : 0;
+    if (taxaNum >= valorNum) {
+      setErro('A taxa precisa ser menor que o valor do lançamento');
+      return;
+    }
     setSalvando(true);
     setErro('');
     try {
@@ -59,6 +70,8 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
         categoria,
         descricao,
         valor: valorNum,
+        // Só manda a taxa quando ela existe (ou existia e agora foi zerada): quem não usa nem a envia.
+        ...(taxaNum > 0 || (editando && (transacao?.taxa ?? 0) > 0) ? { taxa: taxaNum } : {}),
         forma_pagamento: formaPagamento,
         status: statusPago ? 'pago' : 'pendente',
         data_competencia: dataCompetencia,
@@ -138,6 +151,25 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
               options={categorias.formas_pagamento.map(f => ({ value: f, label: LABEL_FORMA_PAGAMENTO[f] ?? f }))}
             />
           </div>
+
+          {tipo === 'entrada' && MEIOS_COM_TAXA.has(formaPagamento) && (
+            <div>
+              <Input
+                name="transacao_taxa"
+                type="currency"
+                label="Taxa da maquininha (opcional)"
+                placeholder="R$ 0,00"
+                hint="Quanto a maquininha descontou. Está no extrato dela; dá para preencher depois, editando o lançamento."
+                value={taxa}
+                onChangeValue={setTaxa}
+              />
+              {Number(taxa) > 0 && Number(valor) > Number(taxa) && (
+                <p style={{ margin: '6px 0 0', fontSize: '0.8rem', fontWeight: 700, color: tokens.color.textSecond }}>
+                  Cai na conta: {formatBRL(Number(valor) - Number(taxa))}
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <label style={labelStyle}>STATUS</label>

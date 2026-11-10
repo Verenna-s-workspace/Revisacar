@@ -58,6 +58,7 @@ from rest_framework.response import Response
 
 from .estoque_views import _listar_todos
 from .paralelo import em_paralelo, em_paralelo_cada
+from .taxa import com_taxa
 from .views import supabase, require_permission, _oficina_doc_do_token
 
 logger = logging.getLogger(__name__)
@@ -289,12 +290,17 @@ def _usa_financeiro(oficina_doc) -> bool:
 def _buscar_lancamentos(oficina_doc, tipo: str, janela_ini: date, janela_fim: date):
     """Lançamentos do Financeiro (tipo 'entrada' ou 'saida'), sem os cancelados,
     por data de competência — a mesma regra de /financeiro/resumo."""
-    return _listar_todos(lambda: (
-        supabase.table("financeiro_transacoes").select("id,valor,data_competencia,ordem_servico_id")
-        .eq("oficina_doc", oficina_doc).eq("tipo", tipo).neq("status", "cancelado")
-        .gte("data_competencia", janela_ini.isoformat()).lte("data_competencia", janela_fim.isoformat())
-        .order("data_competencia").order("id")
-    ))
+    def consultar(campos):
+        return _listar_todos(lambda: (
+            supabase.table("financeiro_transacoes").select(campos)
+            .eq("oficina_doc", oficina_doc).eq("tipo", tipo).neq("status", "cancelado")
+            .gte("data_competencia", janela_ini.isoformat()).lte("data_competencia", janela_fim.isoformat())
+            .order("data_competencia").order("id")
+        ))
+    campos = "id,valor,data_competencia,ordem_servico_id"
+    # Só a entrada tem taxa de maquininha. Faturamento segue bruto (o que o cliente pagou); a taxa
+    # vem junto para a Visão Geral descontar no lucro, igual ao Financeiro.
+    return com_taxa(consultar, campos) if tipo == "entrada" else consultar(campos)
 
 
 def _buscar_entradas(oficina_doc, janela_ini: date, janela_fim: date):
