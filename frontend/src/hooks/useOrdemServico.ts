@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { SECTIONS } from '../constants';
 import {
   nowDate, nowTime, randomOsNum,
@@ -438,6 +438,26 @@ export function useOrdemServico() {
     onExport();
   }, [tecnico, osHeader, saveOrder]);
 
+  // Sem o nome do técnico responsável a OS nunca sai de rascunho (o salvamento só promove para
+  // "em orçamento" com ele preenchido) — por isso o diagnóstico fica bloqueado até preencher.
+  // Devolve true quando pode seguir; senão mostra o erro no campo e devolve false.
+  const exigirTecnico = useCallback((): boolean => {
+    if (tecnico.nome?.trim()) return true;
+    setErrors((prev) => ({ ...prev, tec_nome: 'Campo obrigatório' }));
+    setShowErrors(true);
+    return false;
+  }, [tecnico.nome]);
+
+  // Preencheu o nome: o aviso de campo obrigatório some sozinho.
+  useEffect(() => {
+    if (!tecnico.nome?.trim()) return;
+    setErrors((prev) => {
+      if (!prev.tec_nome) return prev;
+      const { tec_nome: _ok, ...resto } = prev;
+      return resto;
+    });
+  }, [tecnico.nome]);
+
   // ── Load / Reset ──────────────────────────────────────────────────────────
 
   const loadOrder = useCallback(async (ordem: any) => {
@@ -600,6 +620,7 @@ export function useOrdemServico() {
     saveOrder,
     handleNextStep1,
     handleExport,
+    exigirTecnico,
     loadOrder,
     novaOrdem,
     resetAll,
