@@ -26,6 +26,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Regras dos campos dos checklists | 🟡 Front + backend + testes prontos (853 testes; tsc + build ok; navegador com API simulada). Falta: validar contra o Supabase real (OS antigas com valor fora do padrão pedem correção ao salvar) |
 | Financeiro — reserva de caixa | 🟡 SQL + API + front + testes prontos (931 testes; tsc + build ok; smoke no navegador com API simulada: 25 verificações, desktop, 390px, dono/gerente, migration ausente). Desligada por padrão. Falta: rodar `0008_reserva_caixa.sql` (depois de `financeiro.sql`) e validar contra o Supabase real |
 | Financeiro — taxa da maquininha | 🟡 SQL + API + front + testes prontos (976 testes; tsc + build ok). Falta: rodar `0009_taxa_maquininha.sql` (depois da 0008) e validar contra o Supabase real; ainda não testado no navegador |
+| Agenda — duração variável | 🟡 Front + testes prontos (980 testes backend; tsc + build ok). Sem migration nem mudança de API: o backend já aceitava `horaFim` livre. A oficina define a duração (30 min–12 h) ao agendar, remarcar, ajustar ("Ajustar horário") e confirmar pedido pendente ("Confirmar pedido"). Início a cada 30 min; conflito checado só no front. Ainda não testado no navegador |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 

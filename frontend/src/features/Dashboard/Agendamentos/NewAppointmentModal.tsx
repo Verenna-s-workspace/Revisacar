@@ -6,6 +6,7 @@ import { Input } from '../../../components/inputs/input';
 import { Textarea } from '../../../components/inputs/textarea';
 import { useHorarioFuncionamento } from '../../../hooks/useHorarioFuncionamento';
 import { useResponsive } from '../../../components/ui';
+import { DuracaoSelector } from './DuracaoSelector';
 import {
   getMonthMatrix,
   toISODate,
@@ -13,7 +14,14 @@ import {
   addDays,
   minutesToTime,
   timeToMinutes,
+  getTimeSlots,
+  acharConflito,
+  duracaoEmMinutos,
+  formatDuracao,
   DEFAULT_DURATION_MINUTES,
+  SLOT_STEP_MINUTES,
+  MIN_DURATION_MINUTES,
+  MAX_DURATION_MINUTES,
   MONTHS,
   WEEKDAYS_SHORT,
   formatDateBR,
@@ -43,18 +51,8 @@ interface NewAppointmentModalProps {
   initialVeiculos?: { veiculo: string; placa: string }[];
 }
 
-function isSlotOccupied(slot: string, ocupados: OcupadoSlot[]): boolean {
-  const slotStart = timeToMinutes(slot);
-  const slotEnd = slotStart + DEFAULT_DURATION_MINUTES;
-  return ocupados.some(o => {
-    const oStart = timeToMinutes(o.horaInicio);
-    const oEnd = timeToMinutes(o.horaFim);
-    return slotStart < oEnd && slotEnd > oStart;
-  });
-}
-
 export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos, reagendando }: NewAppointmentModalProps) {
-  const { timeSlots, horaAbertura, horaFechamento } = useHorarioFuncionamento();
+  const { horaAbertura, horaFechamento } = useHorarioFuncionamento();
   const { isMobile } = useResponsive();
   const [step, setStep] = useState<1 | 2>(1);
   const todayISO = toISODate(new Date());
@@ -69,6 +67,22 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
   });
   const [selectedDate, setSelectedDate] = useState<string>(dataInicial ?? toISODate(new Date()));
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  // Duração definida pela oficina; ao reagendar, parte da duração que o agendamento já tem.
+  const [duracao, setDuracao] = useState<number>(() => {
+    if (reagendando) {
+      const d = duracaoEmMinutos(reagendando.horaInicio, reagendando.horaFim);
+      if (d > 0) return d;
+    }
+    return DEFAULT_DURATION_MINUTES;
+  });
+  const duracaoValida = duracao >= MIN_DURATION_MINUTES && duracao <= MAX_DURATION_MINUTES;
+  const slots = useMemo(
+    () => (duracaoValida ? getTimeSlots(horaAbertura, horaFechamento, SLOT_STEP_MINUTES, duracao) : []),
+    [horaAbertura, horaFechamento, duracao, duracaoValida],
+  );
+  const fimDoSlot = (slot: string) => minutesToTime(timeToMinutes(slot) + duracao);
+  // O horário escolhido deixa de valer se a nova duração não cabe mais (expediente ou conflito).
+  const slotEscolhidoValido = !!selectedSlot && slots.includes(selectedSlot);
 
   const [form, setForm] = useState({
     cliente: reagendando?.cliente ?? initialCliente ?? '',
@@ -92,16 +106,16 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
     setForm(prev => ({ ...prev, [k]: v }));
 
   const handleContinue = () => {
-    if (!selectedDate || !selectedSlot) return;
+    if (!selectedDate || !selectedSlot || !slotEscolhidoValido) return;
     setStep(2);
   };
 
   const handleSubmit = () => {
-    if (!selectedDate || !selectedSlot) return;
+    if (!selectedDate || !selectedSlot || !slotEscolhidoValido) return;
     onConfirm({
       data: selectedDate,
       horaInicio: selectedSlot,
-      horaFim: minutesToTime(timeToMinutes(selectedSlot) + DEFAULT_DURATION_MINUTES),
+      horaFim: fimDoSlot(selectedSlot),
       cliente: form.cliente.trim(),
       veiculo: form.veiculo.trim(),
       placa: form.placa.trim().toUpperCase(),
@@ -228,14 +242,20 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
               <div style={{ fontSize: '0.75rem', color: tokens.color.subtle, marginBottom: 8 }}>
                 Funcionamento: {horaAbertura} – {horaFechamento}
               </div>
-              {timeSlots.length === 0 ? (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 6 }}>
+                  Duração do serviço
+                </div>
+                <DuracaoSelector value={duracao} onChange={setDuracao} />
+              </div>
+              {slots.length === 0 ? (
                 <div style={{ fontSize: '0.78rem', color: tokens.color.muted, padding: '10px 0' }}>
-                  Nenhum horário disponível — confira o horário de funcionamento em Configurações.
+                  Nenhum horário disponível — confira a duração e o horário de funcionamento em Configurações.
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
-                  {timeSlots.map(slot => {
-                    const occupied = isSlotOccupied(slot, ocupados);
+                  {slots.map(slot => {
+                    const occupied = !!acharConflito(slot, fimDoSlot(slot), ocupados);
                     const isSel = selectedSlot === slot;
                     return (
                       <button
@@ -274,7 +294,7 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
             <div style={{ padding: '10px 14px', borderRadius: 10, background: tokens.color.ferrariMid, border: `1px solid ${tokens.color.ferrariGlow}`, display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
               <span style={{ display: 'flex', color: tokens.color.ferrari }}>{Icons.cal}</span>
               <span style={{ fontSize: '0.84rem', fontWeight: 600, color: tokens.color.ferrari }}>
-                {formatDateBR(selectedDate)} · {selectedSlot} – {minutesToTime(timeToMinutes(selectedSlot!) + DEFAULT_DURATION_MINUTES)}
+                {formatDateBR(selectedDate)} · {selectedSlot} – {fimDoSlot(selectedSlot!)} ({formatDuracao(duracao)})
               </span>
               <button
                 onClick={() => setStep(1)}
@@ -354,12 +374,12 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
             <button
               // Reagendando, não há etapa 2: confirma direto com os dados originais.
               onClick={reagendando ? handleSubmit : handleContinue}
-              disabled={!selectedDate || !selectedSlot}
+              disabled={!selectedDate || !slotEscolhidoValido}
               style={{
                 padding: '9px 22px', borderRadius: 10, border: 'none',
-                background: (!selectedDate || !selectedSlot) ? tokens.color.border : tokens.color.ferrari,
-                color: (!selectedDate || !selectedSlot) ? tokens.color.muted : 'white',
-                cursor: (!selectedDate || !selectedSlot) ? 'not-allowed' : 'pointer',
+                background: (!selectedDate || !slotEscolhidoValido) ? tokens.color.border : tokens.color.ferrari,
+                color: (!selectedDate || !slotEscolhidoValido) ? tokens.color.muted : 'white',
+                cursor: (!selectedDate || !slotEscolhidoValido) ? 'not-allowed' : 'pointer',
                 fontSize: '0.84rem', fontWeight: 700, transition: 'background 0.15s',
               }}
             >

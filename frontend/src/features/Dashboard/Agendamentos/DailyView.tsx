@@ -56,7 +56,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
     const [sh, sm] = inicio.split(':').map(Number);
     const [eh, em] = fim.split(':').map(Number);
     const dur = (eh * 60 + em) - (sh * 60 + sm);
-    return Math.max(dur / 60, 0.75) * HOUR_H - 6;
+    return Math.max(dur / 60, 0.5) * HOUR_H - 6;
   };
 
   return (
@@ -176,6 +176,8 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
               const cfg = APPOINTMENT_STATUS_CONFIG[ag.status];
 
               if (top < 0) return null;
+              // Bloco curto (ex.: 30 min): uma linha só, pra caber sem cortar o texto.
+              const compacto = height < 56;
 
               return (
                 <div
@@ -191,7 +193,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                     border: `1px solid ${tokens.color.border}`,
                     borderLeft: `4px solid ${cfg.color}`,
                     boxShadow: tokens.shadow.sm,
-                    padding: '10px 14px',
+                    padding: compacto ? '4px 12px' : '10px 14px',
                     cursor: 'pointer',
                     overflow: 'hidden',
                     display: 'flex',
@@ -211,6 +213,19 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                     (e.currentTarget as HTMLDivElement).style.transform = '';
                   }}
                 >
+                  {compacto ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <span style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', fontWeight: 700, color: cfg.color, flexShrink: 0 }}>
+                        {ag.horaInicio} - {ag.horaFim}
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: tokens.color.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {ag.cliente}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: tokens.color.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {ag.veiculo}
+                      </span>
+                    </div>
+                  ) : (<>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontWeight: 700, fontSize: '0.9rem', color: tokens.color.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ag.cliente}
@@ -256,6 +271,7 @@ export function DailyView({ date, agendamentos, onDateChange, onCardClick }: Dai
                       )}
                     </div>
                   )}
+                  </>)}
                 </div>
               );
             })}

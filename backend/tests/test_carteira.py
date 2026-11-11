@@ -835,3 +835,40 @@ def test_salvar_veiculo_sem_foto_nao_depende_da_migration_0007(api, db):
         assert r.status_code == 503 and "0007" in r.json()["detail"]
     finally:
         cur.execute((BACKEND_DIR / "sql/migrations/0007_fotos_veiculos.sql").read_text(encoding="utf-8"))
+
+
+# ── Duração variável (a oficina define; o cliente só pede o horário) ──────────
+
+def test_agendamento_aceita_duracao_curta_e_longa(api):
+    curto = _agendamento(api, horaInicio="08:00", horaFim="08:30")
+    longo = _agendamento(api, horaInicio="13:00", horaFim="17:30")
+    assert (curto["horaInicio"], curto["horaFim"]) == ("08:00", "08:30")
+    assert (longo["horaInicio"], longo["horaFim"]) == ("13:00", "17:30")
+
+
+def test_patch_ajusta_so_a_duracao_sem_marcar_remarcacao(api):
+    a = _agendamento(api)  # 09:00–10:30
+    r = api.patch(f"/agendamentos/{a['id']}", {"horaFim": "09:30"}, format="json")
+    assert r.status_code == 200, r.content
+    corpo = r.json()
+    assert (corpo["horaInicio"], corpo["horaFim"]) == ("09:00", "09:30")
+    assert not corpo.get("reagendamento")  # início e data iguais: não é remarcação
+
+
+def test_patch_fim_nao_pode_ser_antes_ou_igual_ao_inicio(api):
+    a = _agendamento(api)
+    for fim in ("09:00", "08:00"):
+        r = api.patch(f"/agendamentos/{a['id']}", {"horaFim": fim}, format="json")
+        assert r.status_code in (400, 422), r.content
+    ok = api.get(f"/agendamentos/{a['id']}").json()
+    assert ok["horaFim"] == "10:30"  # nada foi gravado
+
+
+def test_confirmar_pedido_pendente_define_a_duracao(api, db):
+    a = _agendamento(api)
+    cur = db.cursor()
+    cur.execute("update appointments set status='pendente', hora_fim=null where id=%s", (a["id"],))
+    r = api.patch(f"/agendamentos/{a['id']}", {"status": "agendado", "horaFim": "10:15"}, format="json")
+    assert r.status_code == 200, r.content
+    corpo = r.json()
+    assert corpo["status"] == "agendado" and corpo["horaFim"] == "10:15"
