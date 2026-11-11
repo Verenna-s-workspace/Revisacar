@@ -31,7 +31,7 @@ export function StepClosureMobile({ os, onExportPDF, onNextChecklist }: StepClos
   const {
     osHeader, veiculo, cliente, photos, tecnico, setTecnico,
     showErrors, errors, sigRef, sigHandlers, clearSig,
-    savedAt, saveOrder, handleExport, goStep, step, stepDir, fotosObrig,
+    savedAt, saveOrder, handleExport, exigirTecnico, goStep, step, stepDir, fotosObrig,
   } = os;
   const { resumo: fotosResumo, liberado: fotosLiberadas, fonte: fotosFonte } = fotosObrig;
   const hasErr = (k: string) => showErrors && !!errors[k];
@@ -39,7 +39,19 @@ export function StepClosureMobile({ os, onExportPDF, onNextChecklist }: StepClos
   const fotosConferidas = fotosFonte !== "indisponivel";
   const modeloAno = [veiculo.modelo, veiculo.ano].filter(Boolean).join(" • ");
 
-  const avancar = () => (fotosLiberadas ? onNextChecklist?.() : goStep(2, step));
+  // Diagnóstico só com o técnico responsável preenchido e as fotos obrigatórias resolvidas.
+  const podeAvancar = fotosLiberadas && !!tecnico.nome?.trim();
+  const avancar = () => {
+    if (!exigirTecnico()) {
+      document.getElementsByName("tec_nome")[0]?.focus();
+      return;
+    }
+    if (!fotosLiberadas) {
+      goStep(2, step);
+      return;
+    }
+    onNextChecklist?.();
+  };
 
   // O wrapper externo contém o deslocamento lateral da animação de entrada
   // (overflow-x: clip não cria área de rolagem, então o rodapé sticky segue
@@ -108,7 +120,7 @@ export function StepClosureMobile({ os, onExportPDF, onNextChecklist }: StepClos
         <h2 className="clm-heading" id="clm-tecnico">Dados do Técnico</h2>
 
         {showErrors && errors.tec_nome && (
-          <div className="clm-error" role="alert">Preencha o nome do técnico para gerar o PDF.</div>
+          <div className="clm-error" role="alert">Preencha o nome do técnico responsável para seguir ao diagnóstico ou gerar o PDF.</div>
         )}
 
         <div className="clm-form">
@@ -201,8 +213,8 @@ export function StepClosureMobile({ os, onExportPDF, onNextChecklist }: StepClos
 
         <button
           type="button"
-          className={`clm-btn clm-btn--primary${fotosLiberadas ? "" : " is-blocked"}`}
-          aria-disabled={!fotosLiberadas}
+          className={`clm-btn clm-btn--primary${podeAvancar ? "" : " is-blocked"}`}
+          aria-disabled={!podeAvancar}
           onClick={avancar}
         >
           Próxima etapa

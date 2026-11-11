@@ -64,6 +64,7 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
     savedAt,
     saveOrder,
     handleExport,
+    exigirTecnico,
     goStep,
     step,
     stepDir,
@@ -78,6 +79,20 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
   }
 
   const hasErr = (k: string) => showErrors && !!errors[k];
+
+  // Diagnóstico só com o técnico responsável preenchido e as fotos obrigatórias resolvidas.
+  const podeAvancar = fotosLiberadas && !!tecnico.nome?.trim();
+  const avancar = () => {
+    if (!exigirTecnico()) {
+      document.getElementsByName("tec_nome")[0]?.focus();
+      return;
+    }
+    if (!fotosLiberadas) {
+      goStep(2, step);
+      return;
+    }
+    onNextChecklist?.();
+  };
   // Data local (toISOString dá a data em UTC: depois das 21h no Brasil já seria "amanhã").
   const nowDate = hojeISO;
   const nowTime = () => new Date().toTimeString().slice(0, 5);
@@ -199,7 +214,7 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
               fontFamily: tokens.fontMono,
             }}
           >
-            Preencha o nome do técnico para gerar o PDF.
+            Preencha o nome do técnico responsável para seguir ao diagnóstico ou gerar o PDF.
           </div>
         )}
         <div style={g4}>
@@ -349,9 +364,9 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
               Enviar para o banco de dados
             </button>
              <button
-              onClick={() => (fotosLiberadas ? onNextChecklist?.() : goStep(2, step))}
-              aria-disabled={!fotosLiberadas}
-              style={fotosLiberadas ? btnAccent : { ...btnDisabled, cursor: "pointer" }}
+              onClick={avancar}
+              aria-disabled={!podeAvancar}
+              style={podeAvancar ? btnAccent : { ...btnDisabled, cursor: "pointer" }}
             >
               <svg
                 width={11}
