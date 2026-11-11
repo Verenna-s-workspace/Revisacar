@@ -12,6 +12,8 @@ import { FluxoCaixaChart } from './Financeiro/FluxoCaixaChart';
 import type { FluxoDia } from './Financeiro/FluxoCaixaChart';
 import { CategoriaDonut } from './Financeiro/CategoriaDonut';
 import { ContasWidget } from './Financeiro/ContasWidget';
+import type { TipoContas } from './Financeiro/ContasWidget';
+import { ContasListaCompleta } from './Financeiro/ContasListaCompleta';
 import { TransacaoModal } from './Financeiro/TransacaoModal';
 import { ReservaCard } from './Financeiro/ReservaCard';
 import { labelCategoria, LABEL_STATUS } from './Financeiro/categoriaLabels';
@@ -54,6 +56,8 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
   // Modal: undefined = fechado, null = novo lançamento, Transacao = edição.
   const [modal, setModal] = useState<Transacao | null | undefined>(undefined);
   const [erroAcao, setErroAcao] = useState('');
+  // Tela com TODAS as contas a pagar/receber (o widget só mostra as 6 mais urgentes). null = Financeiro normal.
+  const [visaoContas, setVisaoContas] = useState<TipoContas | null>(null);
 
   const { de, ate } = periodoDoPreset(preset);
   const {
@@ -127,7 +131,7 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
+      <div style={{ display: visaoContas ? 'none' : 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Financeiro</h2>
@@ -164,6 +168,19 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
 
       {!resumo ? (
         !erro && <div style={{ padding: 60, textAlign: 'center', color: tokens.color.muted }}>Carregando…</div>
+      ) : visaoContas ? (
+        <div style={{ opacity: carregando ? 0.6 : 1, transition: 'opacity .15s' }}>
+          <ContasListaCompleta
+            key={visaoContas}
+            tipo={visaoContas}
+            itens={visaoContas === 'pagar' ? pendentesPagar : pendentesReceber}
+            isMobile={isMobile}
+            podeEditar={podeEditar}
+            onVoltar={() => setVisaoContas(null)}
+            onMarcarPago={handleMarcarPago}
+            onEditar={t => setModal(t)}
+          />
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, opacity: carregando ? 0.6 : 1, transition: 'opacity .15s' }}>
           <KpiCards resumo={resumo} verMargem={podeVerMargem} isMobile={isMobile} />
@@ -200,6 +217,7 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
             aPagar={pendentesPagar}
             onMarcarPago={handleMarcarPago}
             podeEditar={podeEditar}
+            onVerTodas={setVisaoContas}
           />
 
           {/* Transações do período */}
