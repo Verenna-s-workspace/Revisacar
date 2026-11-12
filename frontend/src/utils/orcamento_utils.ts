@@ -167,9 +167,9 @@ export function validarItens(itens: ItemRascunho[]): ErrosItens {
     else if (i.descricao.trim().length > LIMITES.descricao) erros[i.chave] = `Descrição com mais de ${LIMITES.descricao} caracteres.`;
     else if (q == null || q <= 0) erros[i.chave] = 'A quantidade precisa ser maior que zero.';
     else if (q > LIMITES.quantidadeMax) erros[i.chave] = 'Quantidade grande demais.';
-    else if (i.precoUnitario.trim() !== '' && (p == null || p < 0)) erros[i.chave] = 'Preço inválido.';
+    else if (i.precoUnitario.trim() !== '' && (p == null || p < 0)) erros[i.chave] = 'Preço inválido: informe um valor de 0 ou mais (ex.: 150,00).';
     else if (p != null && p > LIMITES.valorMax) erros[i.chave] = 'Preço grande demais.';
-    else if (i.custoUnitario.trim() !== '' && (c == null || c < 0)) erros[i.chave] = 'Custo inválido.';
+    else if (i.custoUnitario.trim() !== '' && (c == null || c < 0)) erros[i.chave] = 'Custo inválido: informe um valor de 0 ou mais (ex.: 80,00).';
     else if (i.marca.trim().length > LIMITES.marca) erros[i.chave] = `Marca com mais de ${LIMITES.marca} caracteres.`;
     else if (i.motivo.trim().length > LIMITES.motivo) erros[i.chave] = `Motivo com mais de ${LIMITES.motivo} caracteres.`;
   }

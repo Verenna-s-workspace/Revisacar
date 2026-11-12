@@ -92,7 +92,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
       setModalProdutoAberto(false);
       setEditandoItem(undefined);
     } catch (e) {
-      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o item.');
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o item. Confira nome, quantidade e valores e tente de novo.');
     } finally {
       setSalvando(false);
     }
@@ -117,7 +117,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
       setModalKitAberto(false);
       setEditandoKit(undefined);
     } catch (e) {
-      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o kit.');
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o kit. Confira o nome e os itens do kit e tente de novo.');
     } finally {
       setSalvando(false);
     }
@@ -128,7 +128,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
     try {
       await acao();
     } catch (e) {
-      setErroExcluir(e instanceof Error ? e.message : 'Não foi possível excluir.');
+      setErroExcluir(e instanceof Error ? e.message : 'Não foi possível excluir. O item pode estar em uso (kit ou OS): confira e tente de novo.');
     }
   }
 

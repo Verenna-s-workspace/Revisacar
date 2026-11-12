@@ -62,7 +62,7 @@ export function ClientFormModal({ cliente, onSave, onClose }: ClientFormModalPro
     try {
       setFotoPrincipal(await comprimirImagem(file));
     } catch {
-      setErroFoto('Não foi possível processar essa imagem. Tente outra foto.');
+      setErroFoto('Não foi possível processar essa imagem. Ela pode estar corrompida ou em formato não aceito (use JPEG, PNG ou WebP). Tente outra foto.');
     } finally {
       setComprimindo(false);
     }

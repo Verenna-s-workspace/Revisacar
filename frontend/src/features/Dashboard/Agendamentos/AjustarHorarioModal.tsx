@@ -72,7 +72,7 @@ export function AjustarHorarioModal({ agendamento: ag, modo, getOcupados, onSave
       await onSave(changes);
       onClose();
     } catch (e) {
-      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar.');
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o novo horário. Escolha um horário disponível dentro do funcionamento da oficina e tente de novo.');
       setSalvando(false);
     }
   };

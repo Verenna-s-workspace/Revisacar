@@ -117,7 +117,7 @@ export default function OrcamentoPublicoPage({ token }: { token: string }) {
       setErro(null);
       setNome(n => n || d.ordem.clienteNome);
     } catch (e) {
-      setErro(e instanceof ErroPublico ? e : new ErroPublico(0, undefined, 'erro'));
+      setErro(e instanceof ErroPublico ? e : new ErroPublico(0, undefined, 'Não foi possível carregar o orçamento. Confira a internet e tente de novo.'));
     } finally {
       setCarregando(false);
     }
@@ -127,7 +127,7 @@ export default function OrcamentoPublicoPage({ token }: { token: string }) {
 
   const falhou = (e: unknown) => {
     const err = e instanceof ErroPublico ? e : null;
-    setErroAcao(err ? mensagemPublica(err.status, err.codigo) : 'Não foi possível concluir agora.');
+    setErroAcao(err ? mensagemPublica(err.status, err.codigo) : 'Não foi possível enviar sua resposta agora. Confira a internet e tente de novo.');
     // 409/410: o estado mudou (já respondido, link trocado…) — recarrega pra mostrar a situação real.
     if (err && (err.status === 409 || err.status === 410)) { setModo('ver'); void carregar(); }
   };
@@ -135,7 +135,7 @@ export default function OrcamentoPublicoPage({ token }: { token: string }) {
   const aprovar = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (enviando) return;
-    if (nome.trim().length < 2) { setErroAcao('Informe seu nome completo.'); return; }
+    if (nome.trim().length < 2) { setErroAcao('Informe seu nome completo (pelo menos 2 letras) para aprovar o orçamento.'); return; }
     if (!aceito) { setErroAcao('Marque a caixa para confirmar que aceita o orçamento.'); return; }
     setEnviando(true); setErroAcao(null);
     try {
@@ -159,7 +159,7 @@ export default function OrcamentoPublicoPage({ token }: { token: string }) {
   }
 
   if (!dados) {
-    const msg = erro && erro.status !== 0 ? mensagemPublica(erro.status, erro.codigo) : (erro?.message || 'Não foi possível carregar o orçamento.');
+    const msg = erro && erro.status !== 0 ? mensagemPublica(erro.status, erro.codigo) : (erro?.message || 'Não foi possível carregar o orçamento. Confira a internet e tente de novo.');
     return (
       <div style={pagina}>
         <div style={coluna}>

@@ -30,10 +30,10 @@ export function useServicos() {
       const lista: ServicoItem[] = Array.isArray(data) ? data : data?.servicos ?? [];
       setServicos(lista);
       setUsingApi(true);
-    } catch {
+    } catch (e) {
       setServicos([]);
       setUsingApi(false);
-      setErro('Não foi possível carregar o catálogo de serviços.');
+      setErro(mensagemDoErro(e, 'Não foi possível carregar o catálogo de serviços.'));
     } finally {
       setLoading(false);
     }

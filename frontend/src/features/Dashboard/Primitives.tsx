@@ -300,7 +300,7 @@ export function MetaCard({ meta, alcancado, editavel, onSalvar, loading }: MetaC
       await onSalvar(valor);
       setEditando(false);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não foi possível salvar a meta.');
+      setErro(e instanceof Error ? e.message : 'Não foi possível salvar a meta mensal. Confira o valor informado e tente de novo.');
     } finally {
       setSalvando(false);
     }

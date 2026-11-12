@@ -168,7 +168,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     openNewModal();
   }, [openNewModal]);
 
-  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
+  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação. Atualize a página e tente de novo.');
 
   const handleNewConfirm = useCallback(async (input: NovoAgendamentoInput) => {
     try {
@@ -183,7 +183,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     } catch (err) {
       // Não deveria acontecer pelo seletor de horário (só oferece slots
       // válidos), mas evita um erro não tratado se chegar aqui mesmo assim.
-      window.alert(err instanceof Error ? err.message : 'Não foi possível salvar o agendamento.');
+      window.alert(err instanceof Error ? err.message : 'Não foi possível salvar o agendamento. Confira cliente, data e horário e tente de novo.');
     }
   }, [addAgendamento, rescheduleAgendamento, rescheduleId, viewMode]);
 

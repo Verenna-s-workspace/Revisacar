@@ -53,12 +53,12 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
     e.preventDefault();
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) {
-      setErro('Informe um valor válido');
+      setErro('Informe um valor maior que zero (ex.: 150,00).');
       return;
     }
     const taxaNum = tipo === 'entrada' && MEIOS_COM_TAXA.has(formaPagamento) ? Number(taxa) || 0 : 0;
     if (taxaNum >= valorNum) {
-      setErro('A taxa precisa ser menor que o valor do lançamento');
+      setErro('A taxa não pode ser igual ou maior que o valor do lançamento. Reduza a taxa ou corrija o valor.');
       return;
     }
     setSalvando(true);
@@ -79,7 +79,7 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
         cliente_nome: tipo === 'entrada' ? clienteNome : '',
       });
     } catch (err) {
-      setErro(mensagemDoErro(err, 'Erro ao salvar lançamento'));
+      setErro(mensagemDoErro(err, 'Não foi possível salvar o lançamento. Confira valor, data e categoria e tente de novo.'));
     } finally {
       setSalvando(false);
     }

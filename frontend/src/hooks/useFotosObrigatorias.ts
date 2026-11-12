@@ -124,7 +124,7 @@ export function useFotosObrigatorias(orderId: string | null, ordemStatus: string
       const { blob, dataUrl } = await comprimirImagem(foto.src);
       return await enviarBlob(slot, blob, dataUrl);
     } catch (e) {
-      marcar(setErros, slot, mensagemDoErro(e, 'Não foi possível preparar a foto. Tire de novo.'));
+      marcar(setErros, slot, mensagemDoErro(e, 'Não foi possível preparar a foto. Ela pode estar corrompida ou em formato não aceito: tire a foto de novo ou escolha outra.'));
       return false;
     } finally {
       marcar(setOcupados, slot, undefined);

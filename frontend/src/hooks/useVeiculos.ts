@@ -35,10 +35,10 @@ export function useVeiculos() {
       const lista: VeiculoCadastrado[] = Array.isArray(data) ? data : data?.veiculos ?? [];
       setVeiculos(lista);
       setUsingApi(true);
-    } catch {
+    } catch (e) {
       setVeiculos([]);
       setUsingApi(false);
-      setErro('Não foi possível carregar os veículos.');
+      setErro(mensagemDeErro(e, 'Não foi possível carregar os veículos.'));
     } finally {
       setLoading(false);
     }

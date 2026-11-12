@@ -140,7 +140,7 @@ export function Topbar({
             <line x1="5.5" y1="3.5" x2="5.5" y2="5.8" />
             <circle cx="5.5" cy="7.5" r="0.5" fill="var(--color-crit)" stroke="none" />
           </svg>
-          <span>Não foi possível salvar.</span>
+          <span>Não foi possível salvar. Verifique a internet e tente de novo.</span>
         </>
       )}
     </div>

@@ -84,7 +84,7 @@ export function ProdutoModal({ item, categoriaInicial, onSave, erro, salvando, o
       const dataUrl = await comprimirImagem(file);
       setForm(f => ({ ...f, fotoDataUrl: dataUrl }));
     } catch {
-      setErroFoto('Não foi possível processar essa imagem. Tente outra foto.');
+      setErroFoto('Não foi possível processar essa imagem. Ela pode estar corrompida ou em formato não aceito (use JPEG, PNG ou WebP). Tente outra foto.');
     } finally {
       setComprimindo(false);
       e.target.value = '';

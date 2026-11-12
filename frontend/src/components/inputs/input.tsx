@@ -231,8 +231,8 @@ export function Input({
     // Gated por blur em ambos: um valor pré-preenchido (dado existente,
     // vindo de props) não deve acusar erro assim que a tela abre — só
     // depois que a pessoa realmente interagiu com o campo.
-    if (type === "cpf_cnpj" && blurred && value.length >= 11 && !isValidCpfCnpj(value)) return "CPF/CNPJ inválido";
-    if (type === "email" && blurred && value && !isValidEmail(value)) return "E-mail inválido";
+    if (type === "cpf_cnpj" && blurred && value.length >= 11 && !isValidCpfCnpj(value)) return "CPF/CNPJ inválido: confira os números digitados";
+    if (type === "email" && blurred && value && !isValidEmail(value)) return "E-mail inválido: use o formato nome@exemplo.com";
     // Regra de formato passada pela página (`validate`): mesma lógica de blur, sem acusar campo vazio.
     if (validate && blurred && value) return validate(value);
     return undefined;

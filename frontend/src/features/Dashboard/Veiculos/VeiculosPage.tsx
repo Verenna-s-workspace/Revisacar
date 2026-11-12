@@ -79,7 +79,7 @@ export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: Ve
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit   = (v: VeiculoCadastrado) => { setSelected(null); setEditing(v); setFormOpen(true); };
 
-  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
+  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação. Atualize a página e tente de novo.');
 
   const handleSaveForm = async (input: NovoVeiculoInput) => {
     try {

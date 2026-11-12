@@ -24,27 +24,48 @@ export class ApiError extends Error {
 
 // ── Mensagem pelo status, quando o servidor não explicou nada legível ──
 
-const MSG_REDE = 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
+const MSG_REDE = 'Sem conexão com a internet. Confira o Wi-Fi ou os dados móveis do aparelho e tente de novo.';
 
 export function mensagemPorStatus(status: number): string {
   if (status === 0) return MSG_REDE;
-  if (status === 400) return 'Não foi possível processar o pedido. Confira os dados e tente de novo.';
-  if (status === 401) return 'Sua sessão expirou. Entre de novo.';
-  if (status === 403) return 'Você não tem permissão para fazer isso.';
-  if (status === 404) return 'Não encontramos o que você procurou.';
-  if (status === 409) return 'Esses dados já estão cadastrados.';
-  if (status === 413) return 'O arquivo enviado é grande demais. Escolha um menor.';
-  if (status === 422) return 'Confira os dados informados e tente de novo.';
-  if (status === 429) return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
+  if (status === 400) return 'Alguma informação enviada não pôde ser lida. Revise os campos preenchidos e tente de novo; se continuar, atualize a página.';
+  if (status === 401) return 'Sua sessão expirou por segurança. Entre de novo para continuar.';
+  if (status === 403) return 'Seu acesso não tem permissão para esta ação. Peça ao responsável pela oficina para liberar essa permissão no seu cadastro.';
+  if (status === 404) return 'Não encontramos esse registro. Ele pode ter sido excluído ou movido: volte à lista e atualize a página.';
+  if (status === 409) return 'Já existe um registro com esses dados ou ele está em uso em outro lugar. Procure o cadastro existente na lista ou corrija o dado repetido.';
+  if (status === 413) return 'O arquivo é grande demais. Escolha uma foto menor ou tire-a de novo com resolução mais baixa.';
+  if (status === 415) return 'Esse tipo de arquivo não é aceito. Envie uma imagem nos formatos JPEG, PNG, WebP, GIF ou HEIC.';
+  if (status === 422) return 'Alguns campos estão incompletos ou incorretos. Revise o formulário e tente de novo.';
+  if (status === 429) return 'Muitas tentativas seguidas. Por segurança, aguarde alguns minutos antes de tentar de novo.';
   if (status === 502 || status === 503 || status === 504) {
-    return 'O servidor está indisponível ou iniciando. Aguarde alguns segundos e tente de novo.';
+    return 'O sistema está iniciando ou em manutenção. Aguarde cerca de 30 segundos e tente de novo.';
   }
-  if (status >= 500) return 'Tivemos um problema do nosso lado. Tente de novo em instantes.';
-  return 'Algo deu errado. Tente de novo.';
+  if (status >= 500) return 'Ocorreu um erro inesperado do nosso lado. Aguarde um pouco e tente de novo; se continuar, avise quem cuida do sistema informando o que você estava fazendo.';
+  return 'Não foi possível concluir a ação. Atualize a página e tente de novo.';
+}
+
+/**
+ * Orientação curta (o que fazer em seguida) por status, usada junto da mensagem da própria tela
+ * ("Não foi possível salvar o cliente.") quando o servidor não explicou o motivo de forma legível.
+ */
+function orientacaoPorStatus(status: number): string {
+  if (status === 400 || status === 422) return 'Confira se os campos estão preenchidos corretamente e tente de novo.';
+  if (status === 404) return 'Esse registro pode ter sido excluído por outra pessoa. Atualize a página e confira.';
+  if (status === 409) return 'Já existe um registro com esses dados ou ele está em uso em outro lugar. Confira a lista antes de tentar de novo.';
+  if (status === 415) return 'Esse tipo de arquivo não é aceito. Use JPEG, PNG, WebP, GIF ou HEIC.';
+  if (status === 502 || status === 503 || status === 504) return 'O sistema está iniciando ou em manutenção. Aguarde cerca de 30 segundos e tente de novo.';
+  if (status >= 500) return 'Foi um problema do nosso lado. Aguarde um pouco e tente de novo.';
+  return 'Atualize a página e tente de novo.';
+}
+
+/** Tira o "Tente de novo." do fim do texto da tela: a orientação por status já diz o que fazer. */
+function semPedidoDeRetentar(texto: string): string {
+  const base = texto.replace(/([.!?])\s*Tente\s+(de\s+novo|novamente)(\s+em\s+instantes)?\.?\s*$/i, '$1').trim();
+  return /[.!?]$/.test(base) ? base : `${base}.`;
 }
 
 /** Status em que a mensagem genérica já diz mais do que o "não foi possível salvar…" de cada tela. */
-const STATUS_INFORMATIVOS = new Set([0, 401, 403, 413, 429]);
+const STATUS_INFORMATIVOS = new Set([0, 401, 403, 413, 415, 429]);
 
 // ── Texto vindo do corpo da resposta ──
 
@@ -94,11 +115,11 @@ function traduzir(texto: string, chave?: string): string | null {
   if (!t || t.length > 280 || PARECE_TECNICO.test(t)) return null;
   const rotulo = chave && chave !== 'detail' && chave !== 'non_field_errors' ? rotuloDe(chave) : undefined;
 
-  if (CORPO_INVALIDO.test(t)) return 'Os dados enviados não são válidos. Recarregue a página e tente de novo.';
-  if (SESSAO_INVALIDA.test(t)) return 'Sua sessão expirou. Entre de novo.';
-  if (INGLES_EMAIL.test(t)) return 'Informe um e-mail válido.';
-  if (INGLES_OBRIGATORIO.test(t)) return rotulo ? `Preencha o campo ${rotulo}.` : 'Preencha todos os campos obrigatórios.';
-  if (INGLES_INVALIDO.test(t) && /^[\x00-\x7F]+$/.test(t)) return rotulo ? `${rotulo} inválido.` : 'Há dados inválidos. Confira e tente de novo.';
+  if (CORPO_INVALIDO.test(t)) return 'Alguns dados enviados estão em formato inválido. Atualize a página (F5) e refaça a ação.';
+  if (SESSAO_INVALIDA.test(t)) return 'Sua sessão expirou por segurança. Entre de novo para continuar.';
+  if (INGLES_EMAIL.test(t)) return 'Informe um e-mail válido, como nome@exemplo.com.';
+  if (INGLES_OBRIGATORIO.test(t)) return rotulo ? `Preencha o campo ${rotulo} para continuar.` : 'Há campos obrigatórios em branco. Preencha todos os campos obrigatórios e tente de novo.';
+  if (INGLES_INVALIDO.test(t) && /^[\x00-\x7F]+$/.test(t)) return rotulo ? `O campo ${rotulo} está inválido. Corrija e tente de novo.` : 'Há campos com dados inválidos. Revise o formulário e tente de novo.';
   if (GENERICA_PT.test(t) && rotulo) return `${rotulo}: ${t.charAt(0).toLowerCase()}${t.slice(1)}`;
   return t;
 }
@@ -156,11 +177,14 @@ export function erroDeRede(erro: unknown): unknown {
 
 /**
  * Mensagem para mostrar à pessoa. `padrao` é o texto da própria tela ("Não foi possível salvar o
- * cliente…") e só entra quando o servidor não disse nada legível e o status não explica melhor.
+ * cliente…") e só entra quando o servidor não disse nada legível e o status não explica melhor —
+ * nesse caso recebe, logo depois, a orientação do que fazer em seguida conforme o status.
  */
 export function mensagemDoErro(e: unknown, padrao: string): string {
   if (e instanceof ApiError) {
-    return e.textoDoServidor ?? (STATUS_INFORMATIVOS.has(e.status) ? e.message : padrao);
+    if (e.textoDoServidor) return e.textoDoServidor;
+    if (STATUS_INFORMATIVOS.has(e.status)) return e.message;
+    return `${semPedidoDeRetentar(padrao)} ${orientacaoPorStatus(e.status)}`;
   }
   if (e instanceof Error) {
     if (ERROS_DE_REDE.test(e.message)) return MSG_REDE;

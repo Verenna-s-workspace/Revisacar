@@ -179,7 +179,7 @@ body{font-family:'DM Sans',sans-serif;font-size:9.5px;color:#1a1a1a;background:#
 
   const win = window.open("", "_blank");
   if (!win) {
-    alert("Bloqueador de pop-ups ativo. Permita pop-ups para gerar o PDF.");
+    alert("O navegador bloqueou a janela do PDF. Permita pop-ups para este site (ícone na barra de endereço) e clique em gerar o PDF de novo.");
     return;
   }
   win.document.write(html);

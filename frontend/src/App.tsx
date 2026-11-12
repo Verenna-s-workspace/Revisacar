@@ -1,3 +1,4 @@
+import { mensagemDoErro } from './utils/api_erro';
 import { startTransition, Suspense, useEffect, useState } from 'react';
 import { useOrdemServico } from './hooks/useOrdemServico';
 import { api } from './utils/api';
@@ -140,6 +141,7 @@ export default function App() {
       await handleLoadRascunho(ordem);
     } catch (e) {
       console.error('Erro ao carregar OS:', e);
+      window.alert(mensagemDoErro(e, 'Não foi possível abrir essa OS. Verifique a internet e tente de novo.'));
     }
   };
 

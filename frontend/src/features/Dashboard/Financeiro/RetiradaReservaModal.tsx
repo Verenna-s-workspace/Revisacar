@@ -22,8 +22,8 @@ export function RetiradaReservaModal({ saldo, onFechar, onRetirar }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(valorNum > 0)) { setErro('Informe um valor válido.'); return; }
-    if (valorNum > saldo) { setErro(`O valor passa do saldo da reserva (${formatBRL(saldo)}).`); return; }
+    if (!(valorNum > 0)) { setErro('Informe um valor maior que zero para a retirada.'); return; }
+    if (valorNum > saldo) { setErro(`O valor passa do saldo da reserva (${formatBRL(saldo)}). Informe um valor igual ou menor que o saldo.`); return; }
     setSalvando(true);
     setErro('');
     try {

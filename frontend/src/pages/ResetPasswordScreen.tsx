@@ -39,11 +39,11 @@ export function ResetPasswordScreen({ token, onVoltar }: ResetPasswordScreenProp
 
     // Validação ANTES de ligar o loading, para o botão nunca ficar preso em "Redefinindo...".
     if (senha.length < MIN_SENHA) {
-      setError(`A senha deve ter pelo menos ${MIN_SENHA} caracteres`);
+      setError(`A senha é curta demais: use pelo menos ${MIN_SENHA} caracteres.`);
       return;
     }
     if (senha !== confirmacao) {
-      setError('As senhas não coincidem');
+      setError('As senhas digitadas são diferentes. Digite a mesma senha nos dois campos.');
       return;
     }
 

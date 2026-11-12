@@ -60,10 +60,10 @@ export function useAgendamentos() {
       const lista: Agendamento[] = Array.isArray(data) ? data : [];
       setAgendamentos(sortAgendamentos(lista));
       setUsingApi(true);
-    } catch {
+    } catch (e) {
       setAgendamentos([]);
       setUsingApi(false);
-      setErro('Não foi possível carregar os agendamentos.');
+      setErro(mensagemDeErro(e, 'Não foi possível carregar os agendamentos.'));
     } finally {
       setLoading(false);
     }

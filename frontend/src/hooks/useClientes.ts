@@ -35,10 +35,10 @@ export function useClientes() {
       const lista: Cliente[] = Array.isArray(data) ? data : data?.clientes ?? [];
       setClientes(lista);
       setUsingApi(true);
-    } catch {
+    } catch (e) {
       setClientes([]);
       setUsingApi(false);
-      setErro('Não foi possível carregar os clientes.');
+      setErro(mensagemDeErro(e, 'Não foi possível carregar os clientes.'));
     } finally {
       setLoading(false);
     }
@@ -107,9 +107,9 @@ export function useClientes() {
     if (usingApi) {
       try {
         await api.deletarCliente(id);
-      } catch {
+      } catch (e) {
         if (anterior) setClientes(prev => [anterior, ...prev]);
-        throw new Error('Não foi possível excluir o cliente. Tente novamente.');
+        throw new Error(mensagemDeErro(e, 'Não foi possível excluir o cliente. Tente novamente.'));
       }
     }
   }, [usingApi, clientes]);

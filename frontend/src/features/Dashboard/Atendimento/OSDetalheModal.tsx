@@ -1,3 +1,4 @@
+import { mensagemDoErro } from '../../../utils/api_erro';
 import { useRef, useState } from 'react';
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import { tokens } from '../../../constants';
@@ -166,8 +167,8 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
       formData.append('files', file, file.name);
       await api.uploadFotos(ordem.id, formData);
       setFotoMsg('Foto enviada.');
-    } catch {
-      setFotoMsg('Não foi possível enviar a foto agora.');
+    } catch (e) {
+      setFotoMsg(mensagemDoErro(e, 'Não foi possível enviar a foto agora. Verifique a internet e tente de novo; se a foto for muito grande, tire outra em resolução menor.'));
     } finally {
       setEnviandoFoto(false);
     }

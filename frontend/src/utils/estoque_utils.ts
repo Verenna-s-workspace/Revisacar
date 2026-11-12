@@ -183,10 +183,10 @@ export function itensMaisMovimentados(
 export function comprimirImagem(file: File, maxWidth = 480, qualidade = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
     const leitor = new FileReader();
-    leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo de imagem.'));
+    leitor.onerror = () => reject(new Error('Não foi possível ler esse arquivo. Ele pode estar corrompido: escolha outra imagem.'));
     leitor.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error('Não foi possível carregar a imagem.'));
+      img.onerror = () => reject(new Error('Não foi possível abrir essa imagem. Use uma foto nos formatos JPEG, PNG ou WebP.'));
       img.onload = () => {
         const escala = Math.min(1, maxWidth / img.width);
         const largura = Math.round(img.width * escala);

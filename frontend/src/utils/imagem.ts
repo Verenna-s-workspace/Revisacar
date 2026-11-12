@@ -43,7 +43,7 @@ function carregarImagem(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
+    img.onerror = () => reject(new Error('Não foi possível ler a imagem. O arquivo pode estar corrompido ou em formato não aceito: tente outra foto.'));
     img.src = src;
   });
 }
@@ -52,7 +52,7 @@ function blobParaDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const leitor = new FileReader();
     leitor.onload = () => resolve(String(leitor.result));
-    leitor.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
+    leitor.onerror = () => reject(new Error('Não foi possível ler a imagem. O arquivo pode estar corrompido ou em formato não aceito: tente outra foto.'));
     leitor.readAsDataURL(blob);
   });
 }
@@ -72,13 +72,13 @@ export async function comprimirImagem(
     canvas.width = largura;
     canvas.height = altura;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Não foi possível preparar a imagem.');
+    if (!ctx) throw new Error('Não foi possível preparar a imagem para envio. Feche outras abas ou aplicativos para liberar memória e tente de novo.');
     ctx.fillStyle = '#fff';                       // PNG com transparência não vira preto no JPEG
     ctx.fillRect(0, 0, largura, altura);
     ctx.drawImage(img, 0, 0, largura, altura);    // os navegadores atuais já respeitam a rotação EXIF
 
     const blob = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Não foi possível comprimir a imagem.'))), 'image/jpeg', qualidade),
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Não foi possível reduzir o tamanho da imagem. Tente outra foto ou tire-a de novo.'))), 'image/jpeg', qualidade),
     );
     return { blob, dataUrl: await blobParaDataUrl(blob), largura, altura, bytesAntes, bytesDepois: blob.size };
   } finally {

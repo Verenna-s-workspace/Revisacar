@@ -100,7 +100,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
 
-  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a operação.');
+  const avisarErro = (e: unknown) => window.alert(e instanceof Error ? e.message : 'Não foi possível concluir a ação no cadastro de cliente. Verifique sua conexão e tente novamente.');
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit   = (c: ClienteComDados) => { setSelected(null); setEditing(c); setFormOpen(true); };

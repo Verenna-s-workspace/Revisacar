@@ -1,3 +1,4 @@
+import { mensagemDoErro } from '../utils/api_erro';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../utils/api';
 import {
@@ -49,9 +50,9 @@ export function useAtendimento() {
           setOverlayVersion(v => v + 1);
         }
       });
-    } catch {
+    } catch (e) {
       setOrdensRaw([]);
-      setErroOrdens('Não foi possível carregar as ordens de serviço.');
+      setErroOrdens(mensagemDoErro(e, 'Não foi possível carregar as ordens de serviço.'));
     } finally {
       setLoadingOrdens(false);
     }
@@ -156,7 +157,7 @@ export function useAtendimento() {
           atualizarOverlay(ordemId, { clienteAvisado: avisado });
         } else {
           carregarOrdens();
-          setErroOrdens('Não foi possível salvar "cliente avisado". Tente de novo.');
+          setErroOrdens(mensagemDoErro(e, 'Não foi possível marcar o cliente como avisado. Tente de novo.'));
         }
       }
     },

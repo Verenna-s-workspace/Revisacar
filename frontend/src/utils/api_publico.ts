@@ -21,14 +21,14 @@ async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
       referrerPolicy: 'no-referrer',
     });
   } catch {
-    throw new ErroPublico(0, 'rede', 'Sem conexão. Verifique a internet e tente de novo.');
+    throw new ErroPublico(0, 'rede', 'Sem conexão com a internet. Confira o Wi-Fi ou os dados móveis e tente de novo.');
   }
   const texto = await res.text().catch(() => '');
   let corpo: Record<string, unknown> | undefined;
   try { corpo = texto ? JSON.parse(texto) : undefined; } catch { corpo = undefined; }
   if (!res.ok) {
     throw new ErroPublico(res.status, typeof corpo?.codigo === 'string' ? corpo.codigo : undefined,
-      typeof corpo?.detail === 'string' ? corpo.detail : `HTTP ${res.status}`, corpo);
+      typeof corpo?.detail === 'string' ? corpo.detail : 'Não foi possível concluir a solicitação. Tente de novo em instantes.', corpo);
   }
   return corpo as T;
 }

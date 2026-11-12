@@ -59,11 +59,11 @@ type LinkResumo = { acessos: number; primeiroAcessoEm?: string };
 
 /** Mensagem amigável pro erro de uma chamada pública, por status HTTP / código. */
 export function mensagemPublica(status: number, codigo?: string): string {
-  if (status === 404) return 'Link não encontrado. Confira se copiou o endereço inteiro ou peça um novo à oficina.';
-  if (status === 410) return codigo === 'link_expirado' ? 'Este link expirou. Peça um novo à oficina.' : 'Este link foi substituído. Peça um novo à oficina.';
-  if (status === 429) return 'Muitas tentativas. Aguarde um minuto e tente de novo.';
-  if (status === 409) return 'Este orçamento já foi respondido ou não pode mais ser respondido.';
-  if (status === 422) return 'Confira os dados informados.';
-  if (status >= 500) return 'Não foi possível concluir agora. Tente de novo em instantes.';
-  return 'Não foi possível carregar o orçamento.';
+  if (status === 404) return 'Não encontramos este orçamento. O endereço pode ter sido copiado incompleto: confira se o link está inteiro ou peça um link novo à oficina.';
+  if (status === 410) return codigo === 'link_expirado' ? 'Este link expirou e não abre mais. Peça à oficina que envie um link novo.' : 'Este link foi substituído por um mais recente. Procure a mensagem mais nova da oficina ou peça que reenviem o link.';
+  if (status === 429) return 'Muitas tentativas seguidas. Aguarde um minuto e tente de novo.';
+  if (status === 409) return 'Este orçamento já foi respondido ou não aceita mais respostas. Se precisar mudar algo, fale com a oficina.';
+  if (status === 422) return 'Alguma informação não foi aceita. Confira o que você preencheu e tente de novo.';
+  if (status >= 500) return 'O sistema está com instabilidade agora. Aguarde um minuto e tente de novo; se continuar, fale com a oficina.';
+  return 'Não foi possível carregar o orçamento. Atualize a página; se continuar, peça um link novo à oficina.';
 }

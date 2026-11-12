@@ -79,7 +79,7 @@ export function FuncionarioLoginScreen({ onAuthenticated, onProgress }: Props) {
 
     if (modoPareamento === 'cnpj') {
       if (docInput.length !== 14) {
-        setErro('O CNPJ deve ter 14 números.');
+        setErro('O CNPJ está incompleto: digite os 14 números, sem letras.');
         return;
       }
       if (!isValidCNPJ(docInput)) {

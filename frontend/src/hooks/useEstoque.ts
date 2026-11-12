@@ -44,8 +44,8 @@ export function useEstoque() {
       setItens(itensResp);
       setKits(kitsResp);
       setMovimentos(movResp);
-    } catch {
-      setErro('Não foi possível carregar o estoque.');
+    } catch (e) {
+      setErro(mensagemDoErro(e, 'Não foi possível carregar o estoque.'));
     } finally {
       setCarregando(false);
     }

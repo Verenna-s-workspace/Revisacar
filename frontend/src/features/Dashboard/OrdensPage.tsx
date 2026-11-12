@@ -1,3 +1,4 @@
+import { mensagemDoErro } from '../../utils/api_erro';
 import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
@@ -284,7 +285,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
   const handleDel = async (id: string) => {
     if (!window.confirm('Excluir esta OS permanentemente?')) return;
     setDel(id);
-    try { await api.deletarOrdem(id); window.location.reload(); } catch { setDel(null); }
+    try { await api.deletarOrdem(id); window.location.reload(); } catch (e) { setDel(null); window.alert(mensagemDoErro(e, 'Não foi possível excluir a OS. Tente de novo.')); }
   };
 
   const content = (

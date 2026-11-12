@@ -43,9 +43,9 @@ const renovarTokens = (): Promise<void> => {
           accessToken = '';
           refreshToken = '';
           aoExpirarSessao?.();
-          throw new Error('Sua sessão expirou. Entre de novo.');
+          throw new Error('Sua sessão expirou por segurança. Entre de novo para continuar.');
         }
-        throw new Error('Não foi possível renovar a sua sessão agora. Tente de novo em instantes.');
+        throw new Error('Não conseguimos manter você conectado agora (falha de conexão ou sistema iniciando). Aguarde alguns instantes e tente de novo; se continuar, saia e entre de novo.');
       }
       accessToken = nova.accessToken;
       refreshToken = nova.refreshToken;

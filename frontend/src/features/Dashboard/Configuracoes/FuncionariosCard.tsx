@@ -44,7 +44,7 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
     setErroAcao('');
     api.listarFuncionarios()
       .then((data: Funcionario[]) => setFuncionarios(Array.isArray(data) ? data : []))
-      .catch(() => setErro('Não foi possível carregar os funcionários.'))
+      .catch((e: unknown) => setErro(mensagemDoErro(e, 'Não foi possível carregar os funcionários.')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -77,9 +77,9 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
     setFuncionarios(fs => fs.map(f => (f.id === id ? { ...f, cargo: cargo as Funcionario['cargo'] } : f)));
     try {
       await api.atualizarFuncionario(id, { cargo });
-    } catch {
+    } catch (e) {
       setFuncionarios(anterior);
-      setErroAcao('Não foi possível atualizar o cargo. Tente de novo.');
+      setErroAcao(mensagemDoErro(e, 'Não foi possível atualizar o cargo. Tente de novo.'));
     }
   };
 
@@ -88,9 +88,9 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
     setFuncionarios(fs => fs.map(x => (x.id === f.id ? { ...x, ativo: !x.ativo } : x)));
     try {
       await api.atualizarFuncionario(f.id, { ativo: !f.ativo });
-    } catch {
+    } catch (e) {
       setFuncionarios(anterior);
-      setErroAcao('Não foi possível atualizar o acesso. Tente de novo.');
+      setErroAcao(mensagemDoErro(e, 'Não foi possível atualizar o acesso. Tente de novo.'));
     }
   };
 
@@ -100,9 +100,9 @@ export function FuncionariosCard({ isMobile }: { isMobile: boolean }) {
     setFuncionarios(fs => fs.filter(f => f.id !== id));
     try {
       await api.removerFuncionario(id);
-    } catch {
+    } catch (e) {
       setFuncionarios(anterior);
-      setErroAcao('Não foi possível remover o funcionário. Tente de novo.');
+      setErroAcao(mensagemDoErro(e, 'Não foi possível remover o funcionário. Tente de novo.'));
     }
   };
 

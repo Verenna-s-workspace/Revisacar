@@ -154,7 +154,7 @@ export function CameraCapture({ onCapture, onClose, titulo, dica }: CameraCaptur
             screenshotQuality={0.92}
             videoConstraints={{ facingMode, aspectRatio: 4 / 3 }}
             onUserMediaError={() =>
-              setCamError('Não foi possível acessar a câmera.\nVerifique as permissões do navegador.')
+              setCamError('Não foi possível acessar a câmera.\nPermita o uso da câmera para este site (ícone de cadeado na barra de endereço) e confirme que nenhum outro aplicativo está usando a câmera.')
             }
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />

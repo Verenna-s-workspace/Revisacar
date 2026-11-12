@@ -63,7 +63,7 @@ export function validarOsNum(v: string): string | undefined {
 export function validarKm(v: string): string | undefined {
   const d = onlyDigits(v);
   if (!d) return undefined;
-  return d.length <= KM_MAX_DIGITOS ? undefined : 'Quilometragem inválida';
+  return d.length <= KM_MAX_DIGITOS ? undefined : 'Quilometragem alta demais: confira os números digitados';
 }
 
 export function validarNome(v: string): string | undefined {
@@ -77,7 +77,7 @@ export function validarDoc(v: string): string | undefined {
   const d = onlyDigits(v);
   if (!d) return undefined;
   if (d.length !== 11 && d.length !== 14) return 'CPF tem 11 dígitos e CNPJ tem 14';
-  return isValidCpfCnpj(d) ? undefined : 'CPF/CNPJ inválido';
+  return isValidCpfCnpj(d) ? undefined : 'CPF/CNPJ inválido: confira os números digitados';
 }
 
 export function validarTel(v: string): string | undefined {
@@ -90,7 +90,7 @@ export function validarEmail(v: string): string | undefined {
   const t = (v ?? '').trim();
   if (!t) return undefined;
   if (t.length > LIM.email) return `E-mail com no máximo ${LIM.email} caracteres`;
-  return isValidEmail(t) ? undefined : 'E-mail inválido';
+  return isValidEmail(t) ? undefined : 'E-mail inválido: use o formato nome@exemplo.com';
 }
 
 export function validarPlaca(v: string): string | undefined {
@@ -118,10 +118,10 @@ export function validarChassi(v: string): string | undefined {
 export function validarData(v: string, hoje: string = hojeISO()): string | undefined {
   const t = (v ?? '').trim();
   if (!t) return undefined;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return 'Data inválida';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return 'Data inválida: confira dia, mês e ano';
   const [y, m, d] = t.split('-').map(Number);
   const real = new Date(Date.UTC(y, m - 1, d));
-  if (real.getUTCFullYear() !== y || real.getUTCMonth() !== m - 1 || real.getUTCDate() !== d) return 'Data inválida';
+  if (real.getUTCFullYear() !== y || real.getUTCMonth() !== m - 1 || real.getUTCDate() !== d) return 'Data inválida: confira dia, mês e ano';
   if (t < DATA_MIN) return 'Data muito antiga';
   if (t > hoje) return 'Data no futuro';
   return undefined;
@@ -131,7 +131,7 @@ export function validarData(v: string, hoje: string = hojeISO()): string | undef
 export function validarRegistro(v: string): string | undefined {
   const t = (v ?? '').trim();
   if (!t) return undefined;
-  return !/[^A-Za-z0-9 ./\-]/.test(t) && t.length <= LIM.registro ? undefined : 'Registro inválido';
+  return !/[^A-Za-z0-9 ./\-]/.test(t) && t.length <= LIM.registro ? undefined : 'Registro inválido: use só letras, números, espaço, ponto, barra e hífen';
 }
 
 // ── Validação por bloco do formulário ─────────────────────────────────────────

@@ -81,7 +81,7 @@ export function VehicleFormModal({ veiculo, clientes = [], onSave, onClose }: Ve
     try {
       setFotoPrincipal(await comprimirImagem(file, LARGURA_FOTO_PRINCIPAL, QUALIDADE_FOTO));
     } catch {
-      setErroFoto('Não foi possível processar essa imagem. Tente outra foto.');
+      setErroFoto('Não foi possível processar essa imagem. Ela pode estar corrompida ou em formato não aceito (use JPEG, PNG ou WebP). Tente outra foto.');
     } finally {
       setComprimindo(false);
     }
@@ -94,7 +94,7 @@ export function VehicleFormModal({ veiculo, clientes = [], onSave, onClose }: Ve
     setErroFoto(null);
     const vagas = MAX_FOTOS_ADICIONAIS - fotos.length;
     if (arquivos.length > vagas) {
-      setErroFoto(`No máximo ${MAX_FOTOS_ADICIONAIS} fotos adicionais por veículo.`);
+      setErroFoto(`Limite de ${MAX_FOTOS_ADICIONAIS} fotos adicionais por veículo atingido. Remova uma foto para adicionar outra.`);
     }
     setComprimindo(true);
     try {
@@ -104,7 +104,7 @@ export function VehicleFormModal({ veiculo, clientes = [], onSave, onClose }: Ve
       }
       setFotos(prev => [...prev, ...novas].slice(0, MAX_FOTOS_ADICIONAIS));
     } catch {
-      setErroFoto('Não foi possível processar uma das imagens. Tente outra foto.');
+      setErroFoto('Não foi possível processar uma das imagens. Ela pode estar corrompida ou em formato não aceito (use JPEG, PNG ou WebP). Tente outra foto.');
     } finally {
       setComprimindo(false);
     }

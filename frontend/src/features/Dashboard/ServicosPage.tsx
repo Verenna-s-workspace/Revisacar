@@ -80,7 +80,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
       setModalAberto(false);
       setEditando(undefined);
     } catch (e) {
-      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o serviço.');
+      setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o serviço. Confira nome, categoria e preço e tente de novo.');
     } finally {
       setSalvando(false);
     }
@@ -91,7 +91,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
     try {
       await acao();
     } catch (e) {
-      setErroAcao(e instanceof Error ? e.message : 'Não foi possível concluir a ação.');
+      setErroAcao(e instanceof Error ? e.message : 'Não foi possível concluir a ação. Atualize a página e tente de novo.');
     }
   }
 

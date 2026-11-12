@@ -49,7 +49,7 @@ export default function AcessoEquipePage({ codigo, children }: Props) {
           fase: 'erro',
           mensagem: detalhe
             ? `${detalhe} Peça um link novo ao dono da oficina.`
-            : 'Não foi possível validar o link agora. Verifique a conexão e tente de novo.',
+            : 'Não foi possível validar o link de acesso. Verifique a internet e tente de novo; se continuar, peça um link novo ao dono da oficina.',
         });
       });
     return () => { cancelado = true; };
