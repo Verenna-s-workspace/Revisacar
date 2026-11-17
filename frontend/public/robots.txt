@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+# Links privados (orçamento do cliente, acesso da equipe, redefinição de senha)
+Disallow: /o/
+Disallow: /f/
+Disallow: /reset-password
+
+Sitemap: https://revisacarapp.com/sitemap.xml
