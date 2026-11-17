@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    allowedHosts: ['revisacar-1-qmmv.onrender.com'],
+    allowedHosts: ['revisacar-1-qmmv.onrender.com', 'revisacarapp.com', 'www.revisacarapp.com'],
   },
   preview: {
-    allowedHosts: ['revisacar-1-qmmv.onrender.com'],
+    allowedHosts: ['revisacar-1-qmmv.onrender.com', 'revisacarapp.com', 'www.revisacarapp.com'],
   },
   build: {
     chunkSizeWarningLimit: 600,

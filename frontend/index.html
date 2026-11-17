@@ -9,8 +9,59 @@
     <link rel="icon" type="image/svg+xml" href="/Logorevisavermelha.svg" />
     <link rel="apple-touch-icon" href="/Logorevisavermelha.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="description" content="RevisaCar — Sistema profissional de inspeção veicular e ordens de serviço" />
-    <title>RevisaCar — Inspeção Veicular</title>
+    <title>RevisaCar — Sistema para Oficina Mecânica | OS, Orçamento e Inspeção</title>
+    <meta name="description" content="RevisaCar é o sistema de gestão para oficina mecânica: ordens de serviço, checklist de inspeção veicular, orçamento por link no WhatsApp, agenda, estoque e financeiro. Funciona no celular e no computador." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://revisacarapp.com/" />
+
+    <!-- Compartilhamento (WhatsApp, Facebook, LinkedIn, X) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="RevisaCar" />
+    <meta property="og:url" content="https://revisacarapp.com/" />
+    <meta property="og:title" content="RevisaCar — Sistema para Oficina Mecânica" />
+    <meta property="og:description" content="Ordens de serviço, inspeção veicular, orçamento por link, agenda, estoque e financeiro da sua oficina em um só lugar." />
+    <meta property="og:image" content="https://revisacarapp.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="RevisaCar — Sistema para Oficina Mecânica" />
+    <meta name="twitter:description" content="Ordens de serviço, inspeção veicular, orçamento por link, agenda, estoque e financeiro da sua oficina em um só lugar." />
+    <meta name="twitter:image" content="https://revisacarapp.com/og-image.jpg" />
+
+    <!-- Dados estruturados (Google) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://revisacarapp.com/#org",
+          "name": "RevisaCar",
+          "url": "https://revisacarapp.com/",
+          "logo": "https://revisacarapp.com/logo-512.png"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://revisacarapp.com/#site",
+          "name": "RevisaCar",
+          "url": "https://revisacarapp.com/",
+          "inLanguage": "pt-BR",
+          "publisher": { "@id": "https://revisacarapp.com/#org" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "RevisaCar",
+          "url": "https://revisacarapp.com/",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, Android, iOS",
+          "inLanguage": "pt-BR",
+          "description": "Sistema de gestão para oficina mecânica: ordens de serviço, checklist de inspeção veicular, orçamento por link, agenda, estoque e financeiro.",
+          "publisher": { "@id": "https://revisacarapp.com/#org" }
+        }
+      ]
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   
@@ -20,8 +71,15 @@
   </head>
   <body>
     <div id="root">
-     
+
     </div>
+    <!-- Texto para buscadores e para quem está sem JavaScript (o app substitui ao carregar) -->
+    <noscript>
+      <h1>RevisaCar — sistema para oficina mecânica</h1>
+      <p>Ordens de serviço, checklist de inspeção veicular, orçamento por link no WhatsApp,
+        agenda, estoque e financeiro da sua oficina, no celular e no computador.</p>
+      <p>Ative o JavaScript para usar o RevisaCar.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
