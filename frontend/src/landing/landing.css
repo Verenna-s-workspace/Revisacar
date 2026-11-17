@@ -1,0 +1,439 @@
+/* Landing pública (revisacarapp.com/). HTML estático: o Google lê sem rodar JavaScript.
+   Direção pedida pelo cliente (referências Campty e growthx): hero na cor da marca com
+   título centralizado, notebook com o painel saindo do hero, faixa colorida, zigue-zague
+   com telas reais, ícones em círculos e rodapé colorido. Fonte geométrica (Outfit). */
+
+:root {
+  --vermelho: #e01500;
+  --vermelho-escuro: #b81100;
+  --vermelho-fundo: #c51200;
+  --rosado: #fdeceb;
+  --branco: #ffffff;
+  --cinza: #f5f6f8;
+  --borda: #e3e5e9;
+  --texto: #1d2127;
+  --suave: #5d6570;
+  --verde: #1a7f4b;
+
+  --fonte: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --faixa: 1180px;
+  --gutter: clamp(16px, 4vw, 40px);
+  --sombra: 0 30px 60px -30px rgba(29, 33, 39, .35);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0; background: var(--branco); color: var(--texto);
+  font-family: var(--fonte); font-size: 1.0625rem; line-height: 1.6;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+h1, h2, h3 { margin: 0; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; }
+h1 { font-size: clamp(2.4rem, 5.6vw, 4.25rem); font-weight: 700; letter-spacing: -0.025em; }
+h2 { font-size: clamp(1.9rem, 3.6vw, 2.75rem); text-wrap: balance; }
+h3 { font-size: 1.25rem; }
+p { margin: 0; }
+a { color: inherit; }
+img { display: block; max-width: 100%; height: auto; }
+:focus-visible { outline: 3px solid var(--vermelho); outline-offset: 3px; border-radius: 6px; }
+
+.pular { position: absolute; left: 16px; top: -60px; z-index: 30; background: var(--texto); color: #fff; padding: 10px 14px; border-radius: 8px; }
+.pular:focus { top: 12px; }
+.faixa { max-width: var(--faixa); margin: 0 auto; padding: 0 var(--gutter); }
+
+/* ── Botões (pílula, como nas referências) ─────────────────────────── */
+.botao {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 22px; border-radius: 999px;
+  font: 600 1rem/1 var(--fonte); text-decoration: none; white-space: nowrap;
+  border: 2px solid transparent; transition: background-color .15s, color .15s, border-color .15s, transform .15s;
+}
+.botao:active { transform: scale(.98); }
+.botao--grande { min-height: 54px; padding: 0 30px; font-size: 1.0625rem; }
+.botao--branco { background: #fff; color: var(--vermelho); }
+.botao--branco:hover { background: var(--rosado); }
+.botao--vazado { border-color: rgba(255, 255, 255, .7); color: #fff; }
+.botao--vazado:hover { background: rgba(255, 255, 255, .12); border-color: #fff; }
+
+/* ── Hero vermelho ─────────────────────────────────────────────────── */
+.hero {
+  position: relative; color: #fff;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255,255,255,.07) 0 18%, transparent 18.2% 27%, rgba(255,255,255,.05) 27.2% 36%, transparent 36.2%),
+    linear-gradient(180deg, var(--vermelho) 0%, var(--vermelho-fundo) 100%);
+  /* o vermelho termina antes do fim: o notebook "sai" do hero para o branco */
+  padding-bottom: 0;
+}
+.hero::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: clamp(120px, 22vw, 300px);
+  background: var(--branco);
+}
+.hero :focus-visible { outline-color: #fff; }
+
+.topo {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  border-bottom: 1px solid transparent;
+  transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+.hero { padding-top: 84px; }
+@media (max-width: 440px) { .hero { padding-top: 72px; } }
+/* Depois de rolar: topo branco, marca e botões no vermelho */
+.topo--solido {
+  background: rgba(255, 255, 255, .97);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom-color: var(--borda); box-shadow: 0 10px 30px -24px rgba(29, 33, 39, .5);
+}
+.topo .marca, .topo__nav a, .topo .botao { transition: color .3s ease, background-color .3s ease, border-color .3s ease; }
+.topo--solido .marca { color: var(--texto); }
+.topo--solido .marca__icone { background: var(--rosado); }
+.topo--solido .topo__nav a { color: var(--suave); }
+.topo--solido .topo__nav a:hover { color: var(--texto); }
+.topo--solido .botao--vazado { color: var(--texto); border-color: var(--borda); }
+.topo--solido .botao--vazado:hover { background: var(--cinza); border-color: var(--texto); }
+.topo--solido .botao--branco { background: var(--vermelho); color: #fff; }
+.topo--solido .botao--branco:hover { background: var(--vermelho-escuro); }
+.topo--solido :focus-visible { outline-color: var(--vermelho); }
+.topo__faixa { display: flex; align-items: center; gap: 28px; min-height: 84px; }
+.marca { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
+.marca__icone { width: 40px; height: 40px; border-radius: 12px; background: #fff; overflow: hidden; display: grid; place-items: center; }
+.marca__icone img { width: 40px; height: 40px; transform: scale(2.1); }
+.marca__nome { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
+.topo__nav { display: flex; gap: 28px; margin-left: auto; }
+.topo__nav a { text-decoration: none; color: rgba(255,255,255,.85); font-weight: 500; }
+.topo__nav a:hover { color: #fff; }
+.topo__acoes { display: flex; gap: 10px; }
+@media (max-width: 880px) { .topo__nav { display: none; } .topo__acoes { margin-left: auto; } }
+@media (max-width: 440px) {
+  .topo__faixa { gap: 8px; min-height: 72px; }
+  .marca__nome { font-size: 1.2rem; }
+  .topo__acoes { gap: 6px; }
+  .topo__acoes .botao { padding: 0 14px; font-size: .9375rem; min-height: 40px; }
+}
+
+.hero__corpo { position: relative; z-index: 2; text-align: center; padding-top: clamp(32px, 6vw, 72px); }
+.hero__corpo h1 { max-width: 19ch; margin: 0 auto; text-wrap: balance; }
+.sublinhado { position: relative; display: inline-block; white-space: nowrap; }
+.sublinhado svg {
+  position: absolute; left: -2%; bottom: -0.12em; width: 104%; height: .32em; overflow: visible;
+  fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; opacity: .9;
+}
+.hero__lead { margin: 22px auto 0; max-width: 36em; font-size: 1.1875rem; color: rgba(255,255,255,.88); }
+.hero__acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
+
+/* Notebook + celular */
+.vitrine { position: relative; z-index: 2; margin-top: clamp(40px, 6vw, 64px); padding-bottom: clamp(24px, 4vw, 48px); }
+.notebook { max-width: 980px; margin: 0 auto; }
+.notebook__tela {
+  background: #1b1d21; border-radius: 18px 18px 0 0; padding: clamp(8px, 1.2vw, 14px);
+  box-shadow: var(--sombra);
+}
+.notebook__tela img { border-radius: 6px; width: 100%; }
+.notebook__base {
+  height: clamp(10px, 1.6vw, 18px); margin: 0 -6%; border-radius: 0 0 16px 16px;
+  background: linear-gradient(#d9dbe0, #b9bcc3);
+  box-shadow: 0 18px 30px -18px rgba(0,0,0,.45);
+}
+.celular {
+  position: absolute; right: max(var(--gutter), calc(50% - 560px)); bottom: clamp(8px, 2vw, 24px);
+  width: clamp(120px, 19vw, 230px);
+  background: #1b1d21; border-radius: clamp(20px, 3vw, 34px); padding: clamp(5px, .8vw, 9px);
+  box-shadow: 0 30px 50px -20px rgba(0,0,0,.5);
+}
+.celular img { border-radius: clamp(15px, 2.4vw, 26px); width: 100%; }
+
+@media (max-width: 640px) {
+  .celular { right: var(--gutter); bottom: 0; }
+  .notebook { margin-right: 18%; }
+}
+
+/* ── Faixa de destaques ────────────────────────────────────────────── */
+.fatos { background: var(--vermelho); color: #fff; }
+.fatos__lista { list-style: none; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 34px; padding-bottom: 34px; }
+.fatos__lista li { display: flex; align-items: center; gap: 14px; padding: 4px 24px; border-left: 1px solid rgba(255,255,255,.3); }
+.fatos__lista li:first-child { border-left: 0; padding-left: 0; }
+.fatos__lista strong { font-size: 2.1rem; font-weight: 600; line-height: 1; white-space: nowrap; }
+.fatos__lista span { font-size: .9375rem; line-height: 1.3; color: rgba(255,255,255,.88); }
+@media (max-width: 900px) {
+  .fatos__lista { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 22px; }
+  .fatos__lista li:nth-child(3) { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 440px) {
+  .fatos__lista { grid-template-columns: minmax(0, 1fr); }
+  .fatos__lista li { border-left: 0; padding-left: 0; }
+}
+
+/* ── Seções ────────────────────────────────────────────────────────── */
+.secao { padding: clamp(64px, 9vw, 112px) 0; }
+/* o topo é fixo: âncoras do menu param abaixo dele */
+[id] { scroll-margin-top: 72px; }
+.secao--sem-topo { padding-top: 0; }
+.secao--cinza { background: var(--cinza); }
+.secao__cabeca { text-align: center; max-width: 680px; margin: 0 auto; }
+.secao__cabeca p { margin-top: 14px; color: var(--suave); font-size: 1.125rem; }
+.secao__cabeca--esq { text-align: left; margin: 0; }
+
+/* Etapas da OS (sequência real → numeradas, ligadas por tracejado) */
+.etapas {
+  list-style: none; padding: 0; margin: 52px 0 0; counter-reset: etapa;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px;
+}
+.etapas li { counter-increment: etapa; position: relative; text-align: center; padding-top: 72px; }
+.etapas li::before {
+  content: counter(etapa); position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--vermelho); color: #fff; font-weight: 700; font-size: 1.25rem;
+  box-shadow: 0 10px 20px -8px rgba(224, 21, 0, .55);
+}
+.etapas li::after {
+  content: ''; position: absolute; top: 26px; left: calc(50% + 38px); width: calc(100% - 76px + 28px);
+  border-top: 2px dashed #f0b3ab;
+}
+.etapas li:last-child::after { display: none; }
+.etapas p { margin-top: 8px; color: var(--suave); font-size: 1rem; }
+@media (max-width: 900px) {
+  .etapas { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 40px; }
+  .etapas li:nth-child(2)::after { display: none; }
+}
+@media (max-width: 520px) {
+  .etapas { grid-template-columns: minmax(0, 1fr); }
+  .etapas li::after { display: none; }
+}
+
+/* Zigue-zague com telas reais */
+.zigue { margin-top: 56px; display: grid; gap: clamp(56px, 8vw, 104px); }
+.zigue__item { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: clamp(32px, 6vw, 80px); align-items: center; }
+.zigue__item:nth-child(even) { grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); }
+.zigue__item:nth-child(even) .zigue__tela { order: 2; }
+.zigue__tela {
+  margin: 0; border-radius: 16px; overflow: hidden; background: #fff;
+  border: 1px solid var(--borda); box-shadow: var(--sombra);
+}
+.zigue__item--celular { grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); }
+.zigue__item--celular .zigue__tela {
+  justify-self: center; width: min(260px, 100%);
+  background: #1b1d21; border: 0; border-radius: 34px; padding: 9px;
+}
+.zigue__item--celular .zigue__tela img { border-radius: 26px; }
+.zigue__texto h3 { font-size: clamp(1.5rem, 2.4vw, 2rem); }
+.zigue__texto > p { margin-top: 14px; color: var(--suave); }
+@media (max-width: 860px) {
+  .zigue__item, .zigue__item:nth-child(even), .zigue__item--celular { grid-template-columns: minmax(0, 1fr); }
+  .zigue__item:nth-child(even) .zigue__tela { order: 0; }
+}
+
+.lista-check { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 10px; }
+.lista-check li { position: relative; padding-left: 32px; font-weight: 500; }
+.lista-check li::before {
+  content: ''; position: absolute; left: 0; top: .2em; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--rosado) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M6.5 11.5l3 3 6-7' fill='none' stroke='%23e01500' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;
+}
+
+/* Funcionalidades: ícones em círculos vermelhos */
+.recursos {
+  list-style: none; padding: 0; margin: 56px 0 0;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 44px 32px;
+}
+.recursos li { text-align: center; }
+.icone {
+  width: 68px; height: 68px; border-radius: 50%; margin: 0 auto 18px;
+  display: grid; place-items: center; background: var(--vermelho); color: #fff;
+  box-shadow: 8px 8px 0 var(--rosado);
+}
+.icone svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.recursos p { margin-top: 8px; color: var(--suave); font-size: 1rem; }
+@media (max-width: 960px) { .recursos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .recursos { grid-template-columns: minmax(0, 1fr); } }
+
+/* Perguntas */
+.faq__faixa { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(32px, 6vw, 80px); align-items: start; }
+@media (max-width: 860px) { .faq__faixa { grid-template-columns: minmax(0, 1fr); } }
+.faq { display: grid; gap: 12px; }
+.faq details { border: 1px solid var(--borda); border-radius: 14px; background: #fff; transition: border-color .15s; }
+.faq details[open] { border-color: #f0b3ab; }
+.faq summary { cursor: pointer; list-style: none; position: relative; padding: 18px 56px 18px 22px; font-weight: 500; font-size: 1.0625rem; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: ''; position: absolute; right: 18px; top: 50%; width: 26px; height: 26px; margin-top: -13px; border-radius: 50%;
+  background: var(--rosado) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cpath d='M13 8v10M8 13h10' stroke='%23e01500' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") center/100% no-repeat;
+  transition: transform .2s ease;
+}
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { padding: 0 22px 20px; color: var(--suave); }
+
+/* Rodapé vermelho com chamada */
+.rodape { background: var(--vermelho); color: #fff; }
+.rodape :focus-visible { outline-color: #fff; }
+.rodape__chamada {
+  display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap;
+  padding-top: clamp(56px, 8vw, 96px); padding-bottom: clamp(48px, 6vw, 72px);
+  border-bottom: 1px solid rgba(255,255,255,.25);
+}
+.rodape__chamada h2 { max-width: 15ch; }
+.rodape__base { display: flex; align-items: center; gap: 24px 36px; flex-wrap: wrap; padding-top: 28px; padding-bottom: 36px; font-size: .9375rem; }
+.rodape__base nav { display: flex; gap: 22px; flex-wrap: wrap; margin-left: auto; }
+.rodape__base nav a { text-decoration: none; color: rgba(255,255,255,.85); }
+.rodape__base nav a:hover { color: #fff; }
+.rodape__base p { width: 100%; color: rgba(255,255,255,.75); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   MOTION
+   Marketing, visto poucas vezes: o orçamento de movimento é maior que numa UI.
+   Só transform/opacity (+ stroke-dashoffset no traço). Entradas em ease-out forte.
+   Tudo que esconde conteúdo depende de .js-motion (posta só com JS e sem
+   "reduzir movimento"), então o Google e quem está sem JS veem a página inteira.
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Barra de progresso da leitura (estado: quanto falta da página) */
+.progresso {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 30;
+  background: #fff; transform-origin: 0 50%; transform: scaleX(0);
+  transition: background-color .3s ease; pointer-events: none;
+}
+.rolou .progresso { background: var(--vermelho); }
+@supports (animation-timeline: scroll()) {
+  .progresso { animation: progresso linear both; animation-timeline: scroll(root); }
+  @keyframes progresso { to { transform: scaleX(1); } }
+}
+
+/* Brilho que segue o mouse */
+.hero { overflow: clip; }
+.hero__brilho {
+  position: absolute; top: -300px; left: -300px; width: 600px; height: 600px; z-index: 1;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.14), transparent 62%);
+  opacity: 0; transition: opacity .4s ease;
+}
+.hero__brilho.ligado { opacity: 1; }
+
+/* ── Hero: sequência de abertura ───────────────────────────────────── */
+.js-motion .palavra {
+  display: inline-block; opacity: 0; translate: 0 .45em;
+  animation: palavra .9s var(--ease-out) forwards;
+  animation-delay: calc(var(--i) * 55ms + 120ms);
+}
+@keyframes palavra { to { opacity: 1; translate: 0 0; } }
+
+/* o traço sob "oficina" se desenha depois que a palavra chega */
+.js-motion .sublinhado svg path {
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: tracar .7s var(--ease-out) forwards;
+  animation-delay: calc(var(--total, 8) * 55ms + 300ms);
+}
+.js-motion .sublinhado svg path + path { animation-delay: calc(var(--total, 8) * 55ms + 480ms); }
+@keyframes tracar { to { stroke-dashoffset: 0; } }
+
+.js-motion .hero__entra {
+  opacity: 0; translate: 0 18px;
+  animation: entrar .8s var(--ease-out) forwards;
+  animation-delay: calc(var(--i) * 90ms + 520ms);
+}
+.js-motion .notebook { opacity: 0; translate: 0 60px; animation: entrar 1.1s var(--ease-out) .7s forwards; }
+.js-motion .celular  { opacity: 0; translate: 0 90px; animation: entrar 1.1s var(--ease-out) 1s forwards; }
+@keyframes entrar { to { opacity: 1; translate: 0 0; } }
+
+/* ── Hero: rolagem ─────────────────────────────────────────────────── */
+/* A tampa do notebook "abre" e o celular sobe mais rápido (parallax) conforme a página rola.
+   Usa transform (a entrada usa translate), então as duas coisas se somam. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .vitrine { perspective: 1800px; }
+    .notebook__tela {
+      transform-origin: 50% 100%;
+      animation: tampa linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0px 520px;
+    }
+    @keyframes tampa {
+      from { transform: rotateX(22deg) scale(.92); }
+      to   { transform: rotateX(0deg) scale(1); }
+    }
+    .js-motion .celular {
+      animation-name: entrar, celular-sobe;
+      animation-duration: 1.1s, auto;
+      animation-timing-function: var(--ease-out), linear;
+      animation-delay: 1s, 0s;
+      animation-fill-mode: forwards, both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0px 700px;
+    }
+    html:not(.js-motion) .celular { animation: celular-sobe linear both; animation-timeline: scroll(root); animation-range: 0px 700px; }
+    @keyframes celular-sobe { from { transform: translateY(40px) rotate(2deg); } to { transform: translateY(-50px) rotate(0deg); } }
+    /* o título se afasta devagar enquanto o notebook toma a tela */
+    .hero__corpo { animation: corpo-sai linear both; animation-timeline: scroll(root); animation-range: 0px 600px; }
+    @keyframes corpo-sai { to { transform: translateY(-60px); opacity: .25; } }
+  }
+}
+
+/* ── Entradas ao aparecer na tela ──────────────────────────────────── */
+.js-motion [data-reveal] {
+  opacity: 0; translate: 0 32px;
+  transition: opacity .8s var(--ease-out), translate .8s var(--ease-out), scale .8s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+.js-motion [data-reveal="esq"]  { translate: -56px 0; }
+.js-motion [data-reveal="dir"]  { translate: 56px 0; }
+.js-motion [data-reveal="zoom"] { translate: 0 24px; scale: .94; }
+.js-motion [data-reveal].visivel { opacity: 1; translate: 0 0; scale: 1; }
+
+/* Etapas: o tracejado se desenha de uma etapa para a próxima */
+.js-motion .etapas li::after {
+  transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .7s var(--ease-in-out);
+  transition-delay: calc(var(--i, 0) * 80ms + 350ms);
+}
+.js-motion .etapas li.visivel::after { transform: scaleX(1); }
+.js-motion .etapas li::before { transition: scale .5s var(--ease-out); scale: .6; transition-delay: calc(var(--i, 0) * 80ms + 100ms); }
+.js-motion .etapas li.visivel::before { scale: 1; }
+
+/* Zigue-zague: o print anda um pouco dentro da moldura enquanto a página rola */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .zigue__tela:not(.zigue__item--celular .zigue__tela) img {
+      animation: dentro linear both; animation-timeline: view(); animation-range: cover;
+    }
+    @keyframes dentro { from { transform: scale(1.06) translateY(2.5%); } to { transform: scale(1.06) translateY(-2.5%); } }
+    .zigue__item--celular .zigue__tela {
+      animation: flutua linear both; animation-timeline: view(); animation-range: cover;
+    }
+    @keyframes flutua { from { transform: translateY(40px) rotate(-3deg); } to { transform: translateY(-40px) rotate(2deg); } }
+  }
+}
+
+/* Faixa vermelha: os itens sobem em sequência (usa o data-reveal) */
+
+/* ── Interações (só com mouse/trackpad) ────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+  .botao { transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .2s var(--ease-out); }
+  .botao:hover { transform: translateY(-2px); }
+  .botao:active { transform: translateY(0) scale(.97); transition-duration: .1s; }
+  .zigue__tela { transition: transform .4s var(--ease-out), box-shadow .4s var(--ease-out); }
+  .zigue__tela:hover { transform: translateY(-6px); box-shadow: 0 40px 70px -30px rgba(29, 33, 39, .45); }
+  .recursos .icone { transition: transform .35s var(--ease-out); }
+  .recursos li:hover .icone { transform: translateY(-6px) rotate(-6deg); }
+  .faq summary { transition: color .15s ease; }
+  .faq summary:hover { color: var(--vermelho); }
+}
+
+/* Perguntas: abre e fecha com altura animada onde o navegador suporta */
+@supports (interpolate-size: allow-keywords) {
+  .faq { interpolate-size: allow-keywords; }
+  .faq details::details-content {
+    block-size: 0; overflow: clip;
+    transition: block-size .3s var(--ease-out), content-visibility .3s allow-discrete;
+  }
+  .faq details[open]::details-content { block-size: auto; }
+}
+
+/* ── Reduzir movimento: sem deslocamentos; só cor e opacidade curtas ── */
+@media (prefers-reduced-motion: reduce) {
+  .botao, .zigue__tela, .recursos .icone { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+  .botao:hover, .zigue__tela:hover, .recursos li:hover .icone { transform: none; }
+  .faq details::details-content { transition: none; }
+  .hero__brilho { display: none; }
+}
