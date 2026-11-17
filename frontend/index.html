@@ -110,204 +110,219 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/landing/landing.css" />
   </head>
   <body>
     <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
-    <header class="topo">
-      <div class="faixa topo__faixa">
-        <a class="marca" href="/" aria-label="RevisaCar, página inicial">
-          <span class="marca__icone"><img src="/Logorevisavermelha.svg" alt="" width="40" height="40" /></span>
-          <span class="marca__nome">RevisaCar</span>
-        </a>
-        <nav class="topo__nav" aria-label="Seções">
+    <!-- Ícones (traço, 24px) -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-os" viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="M9 11h6M9 15h4"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+        <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+        <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 16v2M19 16v2M3 16h18v-4l-2-5H5l-2 5v4Z"/><circle cx="7.5" cy="13" r=".8"/><circle cx="16.5" cy="13" r=".8"/></symbol>
+        <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 8 12 4l8 4v8l-8 4-8-4V8Z"/><path d="m4 8 8 4 8-4M12 12v8"/></symbol>
+        <symbol id="i-money" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v5M17.5 9.5v5"/></symbol>
+        <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/></symbol>
+        <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="10" r="2.3"/><path d="M15.5 14.6A4.5 4.5 0 0 1 21 19"/></symbol>
+        <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+        <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></symbol>
+      </defs>
+    </svg>
+
+    <div class="hero">
+      <header class="topo">
+        <div class="faixa topo__faixa">
+          <a class="marca" href="/" aria-label="RevisaCar, página inicial">
+            <span class="marca__icone"><img src="/Logorevisavermelha.svg" alt="" width="40" height="40" /></span>
+            <span class="marca__nome">RevisaCar</span>
+          </a>
+          <nav class="topo__nav" aria-label="Seções">
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#funcionalidades">Funcionalidades</a>
+            <a href="#perguntas">Perguntas</a>
+          </nav>
+          <div class="topo__acoes">
+            <a class="botao botao--vazado" href="/app/">Entrar</a>
+            <a class="botao botao--branco" href="/app/">Criar conta</a>
+          </div>
+        </div>
+      </header>
+
+      <main id="conteudo">
+        <section class="hero__corpo faixa">
+          <h1>O sistema da sua
+            <span class="sublinhado">oficina<svg viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true"><path d="M4 16C60 6 150 4 296 12M40 20c70-6 150-8 230-4"/></svg></span>
+            do balcão à entrega do carro</h1>
+          <p class="hero__lead">Ordem de serviço com checklist, orçamento que o cliente aprova pelo WhatsApp, agenda, estoque e financeiro. No celular e no computador.</p>
+          <div class="hero__acoes">
+            <a class="botao botao--branco botao--grande" href="/app/">Criar conta da oficina</a>
+            <a class="botao botao--vazado botao--grande" href="#como-funciona">Ver como funciona</a>
+          </div>
+        </section>
+
+        <!-- Telas reais do painel: notebook + celular -->
+        <div class="vitrine faixa">
+          <div class="notebook">
+            <div class="notebook__tela">
+              <img src="/landing/painel.jpg" width="1067" height="667" alt="Visão Geral do RevisaCar: faturamento do mês, meta mensal, gráfico de faturamento, serviços mais feitos, ordens recentes e alertas" fetchpriority="high" />
+            </div>
+            <div class="notebook__base"></div>
+          </div>
+          <div class="celular">
+            <img src="/landing/celular.jpg" width="308" height="667" alt="RevisaCar no celular, com o faturamento do mês e a barra de navegação inferior" />
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Faixa de destaques (fatos, não métricas) -->
+    <section class="fatos" aria-label="Destaques">
+      <ul class="faixa fatos__lista">
+        <li><strong>1 link</strong><span>para o cliente aprovar o orçamento</span></li>
+        <li><strong>0 apps</strong><span>para o cliente baixar</span></li>
+        <li><strong>PIN</strong><span>para cada mecânico entrar</span></li>
+        <li><strong>PDF</strong><span>da OS pronto na entrega</span></li>
+      </ul>
+    </section>
+
+    <!-- Como funciona: zigue-zague -->
+    <section class="secao" id="como-funciona" aria-labelledby="t-fluxo">
+      <div class="faixa">
+        <div class="secao__cabeca">
+          <h2 id="t-fluxo">Do carro chegar ao carro sair</h2>
+          <p>Cada etapa fica registrada na ordem de serviço, com quem fez e quando.</p>
+        </div>
+
+        <ol class="etapas">
+          <li><h3>Recepção com checklist</h3><p>Quilometragem, combustível, avarias e fotos do carro na entrada.</p></li>
+          <li><h3>Orçamento por link</h3><p>Peças e mão de obra num link que o cliente aprova pelo WhatsApp.</p></li>
+          <li><h3>Execução</h3><p>O painel mostra o que está em andamento, esperando peça ou pronto.</p></li>
+          <li><h3>Fechamento e PDF</h3><p>Peças saem do estoque, o pagamento entra no financeiro e o PDF fica pronto.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="secao secao--sem-topo" aria-labelledby="t-dentro">
+      <div class="faixa">
+        <div class="secao__cabeca">
+          <h2 id="t-dentro">Por dentro do RevisaCar</h2>
+          <p>Telas reais do sistema, do jeito que a sua oficina vai usar.</p>
+        </div>
+        <div class="zigue">
+          <article class="zigue__item">
+            <figure class="zigue__tela"><img src="/landing/ordens.jpg" width="1067" height="667" loading="lazy" alt="Lista de ordens de serviço com cliente, placa, modelo, status e data" /></figure>
+            <div class="zigue__texto">
+              <h3>Todas as ordens de serviço numa lista</h3>
+              <p>Filtre por em andamento, aguardando, concluídas ou recusadas e encontre qualquer OS pelo número, pelo cliente ou pela placa.</p>
+              <ul class="lista-check">
+                <li>Status de cada carro à vista</li>
+                <li>Histórico completo por placa</li>
+                <li>Nova OS a um clique</li>
+              </ul>
+            </div>
+          </article>
+          <article class="zigue__item">
+            <figure class="zigue__tela"><img src="/landing/painel.jpg" width="1067" height="667" loading="lazy" alt="Visão Geral com faturamento do mês, meta mensal e serviços mais feitos" /></figure>
+            <div class="zigue__texto">
+              <h3>A oficina inteira numa tela</h3>
+              <p>Faturamento do mês, meta mensal, gráfico dos últimos dias, serviços que mais faturam e os alertas que pedem atenção.</p>
+              <ul class="lista-check">
+                <li>Meta mensal com quanto já foi alcançado</li>
+                <li>Alertas de estoque baixo e OS sem pagamento</li>
+                <li>Opção de esconder os valores na tela</li>
+              </ul>
+            </div>
+          </article>
+          <article class="zigue__item zigue__item--celular">
+            <figure class="zigue__tela"><img src="/landing/celular.jpg" width="308" height="667" loading="lazy" alt="RevisaCar aberto no celular" /></figure>
+            <div class="zigue__texto">
+              <h3>No balcão, no pátio ou em casa</h3>
+              <p>O RevisaCar abre no navegador do celular com a navegação embaixo, ao alcance do polegar. Dá para instalar na tela inicial como um aplicativo.</p>
+              <ul class="lista-check">
+                <li>Sem baixar nada da loja</li>
+                <li>Mesmos dados no celular e no computador</li>
+                <li>Mecânicos entram com nome e PIN</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Funcionalidades com ícones -->
+    <section class="secao secao--cinza" id="funcionalidades" aria-labelledby="t-func">
+      <div class="faixa">
+        <div class="secao__cabeca">
+          <h2 id="t-func">Tudo que a oficina usa no dia a dia</h2>
+          <p>Um sistema só, do primeiro contato com o cliente ao fechamento do mês.</p>
+        </div>
+        <ul class="recursos">
+          <li><span class="icone"><svg><use href="#i-os"/></svg></span><h3>Ordens de serviço</h3><p>Abertas, em execução, aguardando peça ou pagamento, todas em uma lista.</p></li>
+          <li><span class="icone"><svg><use href="#i-check"/></svg></span><h3>Checklist de inspeção</h3><p>Etapas guiadas na entrada do carro, com fotos e observações.</p></li>
+          <li><span class="icone"><svg><use href="#i-link"/></svg></span><h3>Orçamento por link</h3><p>O cliente aprova pelo WhatsApp e as versões ficam guardadas.</p></li>
+          <li><span class="icone"><svg><use href="#i-cal"/></svg></span><h3>Agenda</h3><p>Serviços marcados por dia e horário, com quem chega hoje.</p></li>
+          <li><span class="icone"><svg><use href="#i-car"/></svg></span><h3>Clientes e veículos</h3><p>Histórico de cada carro por placa: o que foi feito e por quanto.</p></li>
+          <li><span class="icone"><svg><use href="#i-box"/></svg></span><h3>Estoque de peças</h3><p>Peças e kits, alerta de estoque baixo e baixa ao concluir a OS.</p></li>
+          <li><span class="icone"><svg><use href="#i-money"/></svg></span><h3>Financeiro</h3><p>Contas a pagar e a receber e o faturamento do mês.</p></li>
+          <li><span class="icone"><svg><use href="#i-team"/></svg></span><h3>Acesso da equipe</h3><p>Cada mecânico entra com nome e PIN, sem e-mail nem senha.</p></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Perguntas -->
+    <section class="secao" id="perguntas" aria-labelledby="t-faq">
+      <div class="faixa faq__faixa">
+        <div class="secao__cabeca secao__cabeca--esq">
+          <h2 id="t-faq">Perguntas frequentes</h2>
+          <p>Não achou sua dúvida? Crie a conta e veja o painel por dentro.</p>
+        </div>
+        <div class="faq">
+          <details>
+            <summary>O RevisaCar funciona no celular?</summary>
+            <p>Sim. Ele abre no navegador do celular, do tablet e do computador, e pode ser instalado na tela inicial como um aplicativo. Não precisa baixar nada da loja.</p>
+          </details>
+          <details>
+            <summary>O cliente precisa baixar algum aplicativo para aprovar o orçamento?</summary>
+            <p>Não. A oficina envia um link pelo WhatsApp, o cliente abre no navegador, vê os itens e valores e aprova ou recusa ali mesmo, sem criar conta.</p>
+          </details>
+          <details>
+            <summary>Meus mecânicos precisam de login e senha?</summary>
+            <p>Não. O dono da oficina gera um link de acesso da equipe, abre no aparelho da oficina e cada funcionário entra com o próprio nome e um PIN.</p>
+          </details>
+          <details>
+            <summary>Dá para entregar a ordem de serviço impressa ao cliente?</summary>
+            <p>Sim. Ao concluir a OS, o RevisaCar gera um PDF com o veículo, os serviços, as peças e os valores, pronto para imprimir ou mandar pelo WhatsApp.</p>
+          </details>
+          <details>
+            <summary>Como faço para começar?</summary>
+            <p>Clique em Criar conta, informe o CNPJ e os dados da oficina e já comece a abrir ordens de serviço.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chamada final + rodapé vermelhos -->
+    <footer class="rodape">
+      <div class="faixa rodape__chamada">
+        <h2>Abra a primeira ordem de serviço hoje</h2>
+        <a class="botao botao--branco botao--grande" href="/app/">Criar conta da oficina</a>
+      </div>
+      <div class="faixa rodape__base">
+        <span class="marca marca--branca"><span class="marca__icone"><img src="/Logorevisavermelha.svg" alt="" width="40" height="40" /></span><span class="marca__nome">RevisaCar</span></span>
+        <nav aria-label="Rodapé">
           <a href="#como-funciona">Como funciona</a>
           <a href="#funcionalidades">Funcionalidades</a>
           <a href="#perguntas">Perguntas</a>
+          <a href="/app/">Entrar no painel</a>
         </nav>
-        <div class="topo__acoes">
-          <a class="botao botao--texto" href="/app/">Entrar</a>
-          <a class="botao botao--primario" href="/app/">Criar conta</a>
-        </div>
-      </div>
-    </header>
-
-    <main id="conteudo">
-      <!-- Hero -->
-      <section class="hero">
-        <div class="faixa hero__faixa">
-          <div class="hero__texto">
-            <h1>Sistema para oficina mecânica, do balcão à entrega do carro</h1>
-            <p class="hero__lead">Abra a ordem de serviço com o checklist do veículo, mande o orçamento por link no WhatsApp e acompanhe a aprovação, a execução e o pagamento no mesmo lugar.</p>
-            <div class="hero__acoes">
-              <a class="botao botao--primario botao--grande" href="/app/">Criar conta da oficina</a>
-              <a class="botao botao--contorno botao--grande" href="#como-funciona">Ver como funciona</a>
-            </div>
-            <p class="hero__nota">Funciona no navegador do celular e do computador. Sem instalar nada.</p>
-          </div>
-
-          <figure class="os" aria-label="Exemplo de ordem de serviço no RevisaCar">
-            <div class="os__topo">
-              <span class="os__num">OS 1047</span>
-              <span class="os__data">Entrada hoje, 08:40</span>
-            </div>
-            <div class="os__veiculo">
-              <div class="placa" aria-label="Placa RVS2C26">
-                <span class="placa__faixa">BRASIL</span>
-                <span class="placa__num">RVS2C26</span>
-              </div>
-              <div>
-                <p class="os__carro">Chevrolet Onix 1.0 · 2021</p>
-                <p class="os__cliente">Cliente: Marcos Andrade</p>
-              </div>
-            </div>
-            <table class="os__itens">
-              <caption class="visualmente-oculto">Itens do orçamento</caption>
-              <tbody>
-                <tr><td>Pastilhas de freio dianteiras</td><td>R$ 189,00</td></tr>
-                <tr><td>Disco de freio dianteiro (par)</td><td>R$ 420,00</td></tr>
-                <tr><td>Mão de obra</td><td>R$ 150,00</td></tr>
-              </tbody>
-              <tfoot>
-                <tr><th scope="row">Total</th><td>R$ 759,00</td></tr>
-              </tfoot>
-            </table>
-            <ol class="os__status" aria-label="Andamento da OS">
-              <li class="feito">Recebido</li>
-              <li class="feito">Orçamento enviado</li>
-              <li class="atual">Aprovado pelo cliente</li>
-            </ol>
-            <p class="os__carimbo" aria-hidden="true">Aprovado pelo link</p>
-            <figcaption class="visualmente-oculto">Ordem de serviço de exemplo com orçamento aprovado pelo cliente.</figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <!-- Fluxo -->
-      <section class="secao" id="como-funciona" aria-labelledby="t-fluxo">
-        <div class="faixa">
-          <h2 id="t-fluxo">Do carro chegar ao carro sair</h2>
-          <p class="secao__lead">Cada etapa fica registrada na ordem de serviço, com quem fez e quando.</p>
-          <ol class="fluxo">
-            <li>
-              <h3>Recepção com checklist</h3>
-              <p>Registre quilometragem, combustível, avarias e fotos do veículo na entrada. O cliente vê o estado em que deixou o carro.</p>
-            </li>
-            <li>
-              <h3>Diagnóstico</h3>
-              <p>O mecânico anota o que encontrou e o que precisa trocar, direto no celular, na frente do carro.</p>
-            </li>
-            <li>
-              <h3>Orçamento por link</h3>
-              <p>Peças e mão de obra viram um orçamento com link. Mande pelo WhatsApp e o cliente aprova ou recusa sem baixar app.</p>
-            </li>
-            <li>
-              <h3>Execução</h3>
-              <p>Com a aprovação, a OS entra em execução. O painel mostra o que está em andamento, aguardando peça ou pronto.</p>
-            </li>
-            <li>
-              <h3>Fechamento e PDF</h3>
-              <p>Ao concluir, as peças saem do estoque, o pagamento entra no financeiro e o PDF da OS fica pronto para o cliente.</p>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <!-- Destaque: orçamento -->
-      <section class="secao secao--aco" aria-labelledby="t-orcamento">
-        <div class="faixa destaque">
-          <div class="destaque__texto">
-            <h2 id="t-orcamento">Orçamento aprovado pelo WhatsApp, sem ligação e sem papel</h2>
-            <p>O cliente recebe um link com os itens, os valores e o total. Ele aprova ou recusa com um toque, e a resposta aparece na hora na ordem de serviço.</p>
-            <ul class="lista-check">
-              <li>Sem cadastro e sem aplicativo para o cliente</li>
-              <li>Versões do orçamento guardadas, caso ele peça para mudar</li>
-              <li>Recusa e aprovação registradas com data e hora</li>
-            </ul>
-          </div>
-          <div class="celular" aria-hidden="true">
-            <div class="celular__tela">
-              <p class="celular__oficina">Orçamento da sua oficina</p>
-              <p class="celular__carro">Onix · RVS2C26</p>
-              <ul>
-                <li><span>Pastilhas dianteiras</span><span>R$ 189,00</span></li>
-                <li><span>Discos (par)</span><span>R$ 420,00</span></li>
-                <li><span>Mão de obra</span><span>R$ 150,00</span></li>
-              </ul>
-              <p class="celular__total"><span>Total</span><span>R$ 759,00</span></p>
-              <span class="celular__botao celular__botao--sim">Aprovar orçamento</span>
-              <span class="celular__botao">Recusar</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Funcionalidades -->
-      <section class="secao" id="funcionalidades" aria-labelledby="t-func">
-        <div class="faixa">
-          <h2 id="t-func">Tudo que a oficina usa no dia a dia</h2>
-          <dl class="recursos">
-            <div><dt>Ordens de serviço</dt><dd>Abertas, em execução, aguardando peça ou pagamento. Veja tudo em uma lista e abra qualquer OS em um toque.</dd></div>
-            <div><dt>Checklist de inspeção veicular</dt><dd>Etapas guiadas na entrada do carro, com fotos e observações de cada item.</dd></div>
-            <div><dt>Agenda</dt><dd>Marque serviços por dia e horário e veja quem chega hoje.</dd></div>
-            <div><dt>Clientes e veículos</dt><dd>Histórico de cada carro por placa: o que foi feito, quando e por quanto.</dd></div>
-            <div><dt>Estoque de peças</dt><dd>Cadastro de peças e kits, alerta de estoque baixo e baixa automática quando a OS é concluída.</dd></div>
-            <div><dt>Financeiro</dt><dd>Contas a pagar e a receber, entradas das ordens concluídas e faturamento do mês.</dd></div>
-            <div><dt>Relatórios</dt><dd>Faturamento por período e serviços mais feitos, para saber onde a oficina ganha.</dd></div>
-            <div><dt>Acesso da equipe</dt><dd>Cada mecânico entra com nome e PIN no aparelho da oficina, sem e-mail nem senha.</dd></div>
-          </dl>
-        </div>
-      </section>
-
-      <!-- Perguntas -->
-      <section class="secao secao--aco" id="perguntas" aria-labelledby="t-faq">
-        <div class="faixa faixa--estreita">
-          <h2 id="t-faq">Perguntas frequentes</h2>
-          <div class="faq">
-            <details>
-              <summary>O RevisaCar funciona no celular?</summary>
-              <p>Sim. Ele abre no navegador do celular, do tablet e do computador, e pode ser instalado na tela inicial como um aplicativo. Não precisa baixar nada da loja.</p>
-            </details>
-            <details>
-              <summary>O cliente precisa baixar algum aplicativo para aprovar o orçamento?</summary>
-              <p>Não. A oficina envia um link pelo WhatsApp, o cliente abre no navegador, vê os itens e valores e aprova ou recusa ali mesmo, sem criar conta.</p>
-            </details>
-            <details>
-              <summary>Meus mecânicos precisam de login e senha?</summary>
-              <p>Não. O dono da oficina gera um link de acesso da equipe, abre no aparelho da oficina e cada funcionário entra com o próprio nome e um PIN.</p>
-            </details>
-            <details>
-              <summary>Dá para entregar a ordem de serviço impressa ao cliente?</summary>
-              <p>Sim. Ao concluir a OS, o RevisaCar gera um PDF com o veículo, os serviços, as peças e os valores, pronto para imprimir ou mandar pelo WhatsApp.</p>
-            </details>
-            <details>
-              <summary>Como faço para começar?</summary>
-              <p>Clique em Criar conta, informe o CNPJ e os dados da oficina e já comece a abrir ordens de serviço.</p>
-            </details>
-          </div>
-        </div>
-      </section>
-
-      <!-- Chamada final -->
-      <section class="final" aria-labelledby="t-final">
-        <div class="faixa final__faixa">
-          <h2 id="t-final">Abra a primeira ordem de serviço hoje</h2>
-          <a class="botao botao--branco botao--grande" href="/app/">Criar conta da oficina</a>
-        </div>
-      </section>
-    </main>
-
-    <footer class="rodape">
-      <div class="faixa rodape__faixa">
-        <span>RevisaCar, sistema para oficina mecânica</span>
-        <a href="/app/">Entrar no painel</a>
+        <p>Sistema para oficina mecânica</p>
       </div>
     </footer>
 
     <script>
-      // Uma pergunta aberta por vez no FAQ
       document.querySelectorAll('.faq details').forEach(function (d) {
         d.addEventListener('toggle', function () {
           if (!d.open) return;
