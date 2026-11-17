@@ -72,7 +72,29 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .hero :focus-visible { outline-color: #fff; }
 
-.topo { position: relative; z-index: 2; }
+.topo {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  border-bottom: 1px solid transparent;
+  transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+.hero { padding-top: 84px; }
+@media (max-width: 440px) { .hero { padding-top: 72px; } }
+/* Depois de rolar: topo branco, marca e botões no vermelho */
+.topo--solido {
+  background: rgba(255, 255, 255, .97);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom-color: var(--borda); box-shadow: 0 10px 30px -24px rgba(29, 33, 39, .5);
+}
+.topo .marca, .topo__nav a, .topo .botao { transition: color .3s ease, background-color .3s ease, border-color .3s ease; }
+.topo--solido .marca { color: var(--texto); }
+.topo--solido .marca__icone { background: var(--rosado); }
+.topo--solido .topo__nav a { color: var(--suave); }
+.topo--solido .topo__nav a:hover { color: var(--texto); }
+.topo--solido .botao--vazado { color: var(--texto); border-color: var(--borda); }
+.topo--solido .botao--vazado:hover { background: var(--cinza); border-color: var(--texto); }
+.topo--solido .botao--branco { background: var(--vermelho); color: #fff; }
+.topo--solido .botao--branco:hover { background: var(--vermelho-escuro); }
+.topo--solido :focus-visible { outline-color: var(--vermelho); }
 .topo__faixa { display: flex; align-items: center; gap: 28px; min-height: 84px; }
 .marca { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
 .marca__icone { width: 40px; height: 40px; border-radius: 12px; background: #fff; overflow: hidden; display: grid; place-items: center; }
@@ -121,11 +143,6 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .celular img { border-radius: clamp(15px, 2.4vw, 26px); width: 100%; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .notebook { animation: subir .8s cubic-bezier(.2,.8,.2,1) .1s both; }
-  .celular { animation: subir .8s cubic-bezier(.2,.8,.2,1) .45s both; }
-  @keyframes subir { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
-}
 @media (max-width: 640px) {
   .celular { right: var(--gutter); bottom: 0; }
   .notebook { margin-right: 18%; }
@@ -149,6 +166,8 @@ img { display: block; max-width: 100%; height: auto; }
 
 /* ── Seções ────────────────────────────────────────────────────────── */
 .secao { padding: clamp(64px, 9vw, 112px) 0; }
+/* o topo é fixo: âncoras do menu param abaixo dele */
+[id] { scroll-margin-top: 72px; }
 .secao--sem-topo { padding-top: 0; }
 .secao--cinza { background: var(--cinza); }
 .secao__cabeca { text-align: center; max-width: 680px; margin: 0 auto; }
@@ -257,3 +276,164 @@ img { display: block; max-width: 100%; height: auto; }
 .rodape__base nav a { text-decoration: none; color: rgba(255,255,255,.85); }
 .rodape__base nav a:hover { color: #fff; }
 .rodape__base p { width: 100%; color: rgba(255,255,255,.75); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   MOTION
+   Marketing, visto poucas vezes: o orçamento de movimento é maior que numa UI.
+   Só transform/opacity (+ stroke-dashoffset no traço). Entradas em ease-out forte.
+   Tudo que esconde conteúdo depende de .js-motion (posta só com JS e sem
+   "reduzir movimento"), então o Google e quem está sem JS veem a página inteira.
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Barra de progresso da leitura (estado: quanto falta da página) */
+.progresso {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 30;
+  background: #fff; transform-origin: 0 50%; transform: scaleX(0);
+  transition: background-color .3s ease; pointer-events: none;
+}
+.rolou .progresso { background: var(--vermelho); }
+@supports (animation-timeline: scroll()) {
+  .progresso { animation: progresso linear both; animation-timeline: scroll(root); }
+  @keyframes progresso { to { transform: scaleX(1); } }
+}
+
+/* Brilho que segue o mouse */
+.hero { overflow: clip; }
+.hero__brilho {
+  position: absolute; top: -300px; left: -300px; width: 600px; height: 600px; z-index: 1;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,.14), transparent 62%);
+  opacity: 0; transition: opacity .4s ease;
+}
+.hero__brilho.ligado { opacity: 1; }
+
+/* ── Hero: sequência de abertura ───────────────────────────────────── */
+.js-motion .palavra {
+  display: inline-block; opacity: 0; translate: 0 .45em;
+  animation: palavra .9s var(--ease-out) forwards;
+  animation-delay: calc(var(--i) * 55ms + 120ms);
+}
+@keyframes palavra { to { opacity: 1; translate: 0 0; } }
+
+/* o traço sob "oficina" se desenha depois que a palavra chega */
+.js-motion .sublinhado svg path {
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: tracar .7s var(--ease-out) forwards;
+  animation-delay: calc(var(--total, 8) * 55ms + 300ms);
+}
+.js-motion .sublinhado svg path + path { animation-delay: calc(var(--total, 8) * 55ms + 480ms); }
+@keyframes tracar { to { stroke-dashoffset: 0; } }
+
+.js-motion .hero__entra {
+  opacity: 0; translate: 0 18px;
+  animation: entrar .8s var(--ease-out) forwards;
+  animation-delay: calc(var(--i) * 90ms + 520ms);
+}
+.js-motion .notebook { opacity: 0; translate: 0 60px; animation: entrar 1.1s var(--ease-out) .7s forwards; }
+.js-motion .celular  { opacity: 0; translate: 0 90px; animation: entrar 1.1s var(--ease-out) 1s forwards; }
+@keyframes entrar { to { opacity: 1; translate: 0 0; } }
+
+/* ── Hero: rolagem ─────────────────────────────────────────────────── */
+/* A tampa do notebook "abre" e o celular sobe mais rápido (parallax) conforme a página rola.
+   Usa transform (a entrada usa translate), então as duas coisas se somam. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .vitrine { perspective: 1800px; }
+    .notebook__tela {
+      transform-origin: 50% 100%;
+      animation: tampa linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0px 520px;
+    }
+    @keyframes tampa {
+      from { transform: rotateX(22deg) scale(.92); }
+      to   { transform: rotateX(0deg) scale(1); }
+    }
+    .js-motion .celular {
+      animation-name: entrar, celular-sobe;
+      animation-duration: 1.1s, auto;
+      animation-timing-function: var(--ease-out), linear;
+      animation-delay: 1s, 0s;
+      animation-fill-mode: forwards, both;
+      animation-timeline: auto, scroll(root);
+      animation-range: normal, 0px 700px;
+    }
+    html:not(.js-motion) .celular { animation: celular-sobe linear both; animation-timeline: scroll(root); animation-range: 0px 700px; }
+    @keyframes celular-sobe { from { transform: translateY(40px) rotate(2deg); } to { transform: translateY(-50px) rotate(0deg); } }
+    /* o título se afasta devagar enquanto o notebook toma a tela */
+    .hero__corpo { animation: corpo-sai linear both; animation-timeline: scroll(root); animation-range: 0px 600px; }
+    @keyframes corpo-sai { to { transform: translateY(-60px); opacity: .25; } }
+  }
+}
+
+/* ── Entradas ao aparecer na tela ──────────────────────────────────── */
+.js-motion [data-reveal] {
+  opacity: 0; translate: 0 32px;
+  transition: opacity .8s var(--ease-out), translate .8s var(--ease-out), scale .8s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+.js-motion [data-reveal="esq"]  { translate: -56px 0; }
+.js-motion [data-reveal="dir"]  { translate: 56px 0; }
+.js-motion [data-reveal="zoom"] { translate: 0 24px; scale: .94; }
+.js-motion [data-reveal].visivel { opacity: 1; translate: 0 0; scale: 1; }
+
+/* Etapas: o tracejado se desenha de uma etapa para a próxima */
+.js-motion .etapas li::after {
+  transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .7s var(--ease-in-out);
+  transition-delay: calc(var(--i, 0) * 80ms + 350ms);
+}
+.js-motion .etapas li.visivel::after { transform: scaleX(1); }
+.js-motion .etapas li::before { transition: scale .5s var(--ease-out); scale: .6; transition-delay: calc(var(--i, 0) * 80ms + 100ms); }
+.js-motion .etapas li.visivel::before { scale: 1; }
+
+/* Zigue-zague: o print anda um pouco dentro da moldura enquanto a página rola */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .zigue__tela:not(.zigue__item--celular .zigue__tela) img {
+      animation: dentro linear both; animation-timeline: view(); animation-range: cover;
+    }
+    @keyframes dentro { from { transform: scale(1.06) translateY(2.5%); } to { transform: scale(1.06) translateY(-2.5%); } }
+    .zigue__item--celular .zigue__tela {
+      animation: flutua linear both; animation-timeline: view(); animation-range: cover;
+    }
+    @keyframes flutua { from { transform: translateY(40px) rotate(-3deg); } to { transform: translateY(-40px) rotate(2deg); } }
+  }
+}
+
+/* Faixa vermelha: os itens sobem em sequência (usa o data-reveal) */
+
+/* ── Interações (só com mouse/trackpad) ────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+  .botao { transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .2s var(--ease-out); }
+  .botao:hover { transform: translateY(-2px); }
+  .botao:active { transform: translateY(0) scale(.97); transition-duration: .1s; }
+  .zigue__tela { transition: transform .4s var(--ease-out), box-shadow .4s var(--ease-out); }
+  .zigue__tela:hover { transform: translateY(-6px); box-shadow: 0 40px 70px -30px rgba(29, 33, 39, .45); }
+  .recursos .icone { transition: transform .35s var(--ease-out); }
+  .recursos li:hover .icone { transform: translateY(-6px) rotate(-6deg); }
+  .faq summary { transition: color .15s ease; }
+  .faq summary:hover { color: var(--vermelho); }
+}
+
+/* Perguntas: abre e fecha com altura animada onde o navegador suporta */
+@supports (interpolate-size: allow-keywords) {
+  .faq { interpolate-size: allow-keywords; }
+  .faq details::details-content {
+    block-size: 0; overflow: clip;
+    transition: block-size .3s var(--ease-out), content-visibility .3s allow-discrete;
+  }
+  .faq details[open]::details-content { block-size: auto; }
+}
+
+/* ── Reduzir movimento: sem deslocamentos; só cor e opacidade curtas ── */
+@media (prefers-reduced-motion: reduce) {
+  .botao, .zigue__tela, .recursos .icone { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+  .botao:hover, .zigue__tela:hover, .recursos li:hover .icone { transform: none; }
+  .faq details::details-content { transition: none; }
+  .hero__brilho { display: none; }
+}
