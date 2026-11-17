@@ -147,7 +147,7 @@ export default function App() {
 
   const handleBackToLogin = () => {
     // Sai de /reset-password: sem isso, recarregar a página reabriria a tela de redefinição.
-    if (window.location.pathname !== '/') window.history.replaceState(null, '', '/');
+    if (window.location.pathname !== '/app/') window.history.replaceState(null, '', '/app/');
     setAuthMode('login');
   };
 

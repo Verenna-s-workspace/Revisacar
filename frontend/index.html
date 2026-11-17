@@ -2,34 +2,36 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#e01500" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/svg+xml" href="/Logorevisavermelha.svg" />
-    <link rel="apple-touch-icon" href="/Logorevisavermelha.svg" />
+    <link rel="apple-touch-icon" href="/logo-512.png" />
     <link rel="manifest" href="/manifest.json" />
-    <title>RevisaCar — Sistema para Oficina Mecânica | OS, Orçamento e Inspeção</title>
-    <meta name="description" content="RevisaCar é o sistema de gestão para oficina mecânica: ordens de serviço, checklist de inspeção veicular, orçamento por link no WhatsApp, agenda, estoque e financeiro. Funciona no celular e no computador." />
+
+    <!-- Quem já está logado vai direto pro painel (buscadores não têm sessão e leem a página) -->
+    <script>
+      try { if (localStorage.getItem('revisacarUser')) location.replace('/app/'); } catch (e) {}
+    </script>
+
+    <title>Sistema para Oficina Mecânica | RevisaCar — OS, Orçamento e Checklist</title>
+    <meta name="description" content="Sistema para oficina mecânica: ordem de serviço, checklist de inspeção veicular, orçamento que o cliente aprova pelo link no WhatsApp, agenda, estoque e financeiro. No celular e no computador." />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href="https://revisacarapp.com/" />
 
-    <!-- Compartilhamento (WhatsApp, Facebook, LinkedIn, X) -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="RevisaCar" />
     <meta property="og:url" content="https://revisacarapp.com/" />
     <meta property="og:title" content="RevisaCar — Sistema para Oficina Mecânica" />
-    <meta property="og:description" content="Ordens de serviço, inspeção veicular, orçamento por link, agenda, estoque e financeiro da sua oficina em um só lugar." />
+    <meta property="og:description" content="Ordem de serviço, checklist de inspeção, orçamento aprovado pelo link, agenda, estoque e financeiro da sua oficina em um só lugar." />
     <meta property="og:image" content="https://revisacarapp.com/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="RevisaCar — Sistema para Oficina Mecânica" />
-    <meta name="twitter:description" content="Ordens de serviço, inspeção veicular, orçamento por link, agenda, estoque e financeiro da sua oficina em um só lugar." />
+    <meta name="twitter:description" content="Ordem de serviço, checklist de inspeção, orçamento aprovado pelo link, agenda, estoque e financeiro da sua oficina em um só lugar." />
     <meta name="twitter:image" content="https://revisacarapp.com/og-image.jpg" />
 
-    <!-- Dados estruturados (Google) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -54,32 +56,264 @@
           "name": "RevisaCar",
           "url": "https://revisacarapp.com/",
           "applicationCategory": "BusinessApplication",
+          "applicationSubCategory": "Sistema para oficina mecânica",
           "operatingSystem": "Web, Android, iOS",
           "inLanguage": "pt-BR",
-          "description": "Sistema de gestão para oficina mecânica: ordens de serviço, checklist de inspeção veicular, orçamento por link, agenda, estoque e financeiro.",
+          "description": "Sistema de gestão para oficina mecânica: ordem de serviço, checklist de inspeção veicular, orçamento aprovado pelo cliente por link, agenda, estoque, financeiro e relatórios.",
+          "featureList": [
+            "Ordem de serviço digital",
+            "Checklist de inspeção veicular com fotos",
+            "Orçamento enviado por link e aprovado pelo cliente",
+            "Agenda de serviços",
+            "Cadastro de clientes e veículos",
+            "Controle de estoque de peças",
+            "Financeiro com contas a pagar e a receber",
+            "Relatórios de faturamento",
+            "Acesso da equipe por PIN",
+            "PDF da OS concluída"
+          ],
           "publisher": { "@id": "https://revisacarapp.com/#org" }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "O RevisaCar funciona no celular?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Sim. Ele abre no navegador do celular, do tablet e do computador, e pode ser instalado na tela inicial como um aplicativo. Não precisa baixar nada da loja." }
+            },
+            {
+              "@type": "Question",
+              "name": "O cliente precisa baixar algum aplicativo para aprovar o orçamento?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Não. A oficina envia um link pelo WhatsApp, o cliente abre no navegador, vê os itens e valores e aprova ou recusa ali mesmo, sem criar conta." }
+            },
+            {
+              "@type": "Question",
+              "name": "Meus mecânicos precisam de login e senha?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Não. O dono da oficina gera um link de acesso da equipe, abre no aparelho da oficina e cada funcionário entra com o próprio nome e um PIN." }
+            },
+            {
+              "@type": "Question",
+              "name": "Dá para entregar a ordem de serviço impressa ao cliente?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Sim. Ao concluir a OS, o RevisaCar gera um PDF com o veículo, os serviços, as peças e os valores, pronto para imprimir ou mandar pelo WhatsApp." }
+            },
+            {
+              "@type": "Question",
+              "name": "Como faço para começar?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Clique em Criar conta, informe o CNPJ e os dados da oficina e já comece a abrir ordens de serviço." }
+            }
+          ]
         }
       ]
     }
     </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Fredoka:wght@400..600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <!-- Fontes da agenda mobile (Plus Jakarta Sans + JetBrains Mono) -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/landing/landing.css" />
   </head>
   <body>
-    <div id="root">
+    <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
-    </div>
-    <!-- Texto para buscadores e para quem está sem JavaScript (o app substitui ao carregar) -->
-    <noscript>
-      <h1>RevisaCar — sistema para oficina mecânica</h1>
-      <p>Ordens de serviço, checklist de inspeção veicular, orçamento por link no WhatsApp,
-        agenda, estoque e financeiro da sua oficina, no celular e no computador.</p>
-      <p>Ative o JavaScript para usar o RevisaCar.</p>
-    </noscript>
-    <script type="module" src="/src/main.tsx"></script>
+    <header class="topo">
+      <div class="faixa topo__faixa">
+        <a class="marca" href="/" aria-label="RevisaCar, página inicial">
+          <span class="marca__icone"><img src="/Logorevisavermelha.svg" alt="" width="40" height="40" /></span>
+          <span class="marca__nome">RevisaCar</span>
+        </a>
+        <nav class="topo__nav" aria-label="Seções">
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#funcionalidades">Funcionalidades</a>
+          <a href="#perguntas">Perguntas</a>
+        </nav>
+        <div class="topo__acoes">
+          <a class="botao botao--texto" href="/app/">Entrar</a>
+          <a class="botao botao--primario" href="/app/">Criar conta</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="conteudo">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="faixa hero__faixa">
+          <div class="hero__texto">
+            <h1>Sistema para oficina mecânica, do balcão à entrega do carro</h1>
+            <p class="hero__lead">Abra a ordem de serviço com o checklist do veículo, mande o orçamento por link no WhatsApp e acompanhe a aprovação, a execução e o pagamento no mesmo lugar.</p>
+            <div class="hero__acoes">
+              <a class="botao botao--primario botao--grande" href="/app/">Criar conta da oficina</a>
+              <a class="botao botao--contorno botao--grande" href="#como-funciona">Ver como funciona</a>
+            </div>
+            <p class="hero__nota">Funciona no navegador do celular e do computador. Sem instalar nada.</p>
+          </div>
+
+          <figure class="os" aria-label="Exemplo de ordem de serviço no RevisaCar">
+            <div class="os__topo">
+              <span class="os__num">OS 1047</span>
+              <span class="os__data">Entrada hoje, 08:40</span>
+            </div>
+            <div class="os__veiculo">
+              <div class="placa" aria-label="Placa RVS2C26">
+                <span class="placa__faixa">BRASIL</span>
+                <span class="placa__num">RVS2C26</span>
+              </div>
+              <div>
+                <p class="os__carro">Chevrolet Onix 1.0 · 2021</p>
+                <p class="os__cliente">Cliente: Marcos Andrade</p>
+              </div>
+            </div>
+            <table class="os__itens">
+              <caption class="visualmente-oculto">Itens do orçamento</caption>
+              <tbody>
+                <tr><td>Pastilhas de freio dianteiras</td><td>R$ 189,00</td></tr>
+                <tr><td>Disco de freio dianteiro (par)</td><td>R$ 420,00</td></tr>
+                <tr><td>Mão de obra</td><td>R$ 150,00</td></tr>
+              </tbody>
+              <tfoot>
+                <tr><th scope="row">Total</th><td>R$ 759,00</td></tr>
+              </tfoot>
+            </table>
+            <ol class="os__status" aria-label="Andamento da OS">
+              <li class="feito">Recebido</li>
+              <li class="feito">Orçamento enviado</li>
+              <li class="atual">Aprovado pelo cliente</li>
+            </ol>
+            <p class="os__carimbo" aria-hidden="true">Aprovado pelo link</p>
+            <figcaption class="visualmente-oculto">Ordem de serviço de exemplo com orçamento aprovado pelo cliente.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Fluxo -->
+      <section class="secao" id="como-funciona" aria-labelledby="t-fluxo">
+        <div class="faixa">
+          <h2 id="t-fluxo">Do carro chegar ao carro sair</h2>
+          <p class="secao__lead">Cada etapa fica registrada na ordem de serviço, com quem fez e quando.</p>
+          <ol class="fluxo">
+            <li>
+              <h3>Recepção com checklist</h3>
+              <p>Registre quilometragem, combustível, avarias e fotos do veículo na entrada. O cliente vê o estado em que deixou o carro.</p>
+            </li>
+            <li>
+              <h3>Diagnóstico</h3>
+              <p>O mecânico anota o que encontrou e o que precisa trocar, direto no celular, na frente do carro.</p>
+            </li>
+            <li>
+              <h3>Orçamento por link</h3>
+              <p>Peças e mão de obra viram um orçamento com link. Mande pelo WhatsApp e o cliente aprova ou recusa sem baixar app.</p>
+            </li>
+            <li>
+              <h3>Execução</h3>
+              <p>Com a aprovação, a OS entra em execução. O painel mostra o que está em andamento, aguardando peça ou pronto.</p>
+            </li>
+            <li>
+              <h3>Fechamento e PDF</h3>
+              <p>Ao concluir, as peças saem do estoque, o pagamento entra no financeiro e o PDF da OS fica pronto para o cliente.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Destaque: orçamento -->
+      <section class="secao secao--aco" aria-labelledby="t-orcamento">
+        <div class="faixa destaque">
+          <div class="destaque__texto">
+            <h2 id="t-orcamento">Orçamento aprovado pelo WhatsApp, sem ligação e sem papel</h2>
+            <p>O cliente recebe um link com os itens, os valores e o total. Ele aprova ou recusa com um toque, e a resposta aparece na hora na ordem de serviço.</p>
+            <ul class="lista-check">
+              <li>Sem cadastro e sem aplicativo para o cliente</li>
+              <li>Versões do orçamento guardadas, caso ele peça para mudar</li>
+              <li>Recusa e aprovação registradas com data e hora</li>
+            </ul>
+          </div>
+          <div class="celular" aria-hidden="true">
+            <div class="celular__tela">
+              <p class="celular__oficina">Orçamento da sua oficina</p>
+              <p class="celular__carro">Onix · RVS2C26</p>
+              <ul>
+                <li><span>Pastilhas dianteiras</span><span>R$ 189,00</span></li>
+                <li><span>Discos (par)</span><span>R$ 420,00</span></li>
+                <li><span>Mão de obra</span><span>R$ 150,00</span></li>
+              </ul>
+              <p class="celular__total"><span>Total</span><span>R$ 759,00</span></p>
+              <span class="celular__botao celular__botao--sim">Aprovar orçamento</span>
+              <span class="celular__botao">Recusar</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Funcionalidades -->
+      <section class="secao" id="funcionalidades" aria-labelledby="t-func">
+        <div class="faixa">
+          <h2 id="t-func">Tudo que a oficina usa no dia a dia</h2>
+          <dl class="recursos">
+            <div><dt>Ordens de serviço</dt><dd>Abertas, em execução, aguardando peça ou pagamento. Veja tudo em uma lista e abra qualquer OS em um toque.</dd></div>
+            <div><dt>Checklist de inspeção veicular</dt><dd>Etapas guiadas na entrada do carro, com fotos e observações de cada item.</dd></div>
+            <div><dt>Agenda</dt><dd>Marque serviços por dia e horário e veja quem chega hoje.</dd></div>
+            <div><dt>Clientes e veículos</dt><dd>Histórico de cada carro por placa: o que foi feito, quando e por quanto.</dd></div>
+            <div><dt>Estoque de peças</dt><dd>Cadastro de peças e kits, alerta de estoque baixo e baixa automática quando a OS é concluída.</dd></div>
+            <div><dt>Financeiro</dt><dd>Contas a pagar e a receber, entradas das ordens concluídas e faturamento do mês.</dd></div>
+            <div><dt>Relatórios</dt><dd>Faturamento por período e serviços mais feitos, para saber onde a oficina ganha.</dd></div>
+            <div><dt>Acesso da equipe</dt><dd>Cada mecânico entra com nome e PIN no aparelho da oficina, sem e-mail nem senha.</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- Perguntas -->
+      <section class="secao secao--aco" id="perguntas" aria-labelledby="t-faq">
+        <div class="faixa faixa--estreita">
+          <h2 id="t-faq">Perguntas frequentes</h2>
+          <div class="faq">
+            <details>
+              <summary>O RevisaCar funciona no celular?</summary>
+              <p>Sim. Ele abre no navegador do celular, do tablet e do computador, e pode ser instalado na tela inicial como um aplicativo. Não precisa baixar nada da loja.</p>
+            </details>
+            <details>
+              <summary>O cliente precisa baixar algum aplicativo para aprovar o orçamento?</summary>
+              <p>Não. A oficina envia um link pelo WhatsApp, o cliente abre no navegador, vê os itens e valores e aprova ou recusa ali mesmo, sem criar conta.</p>
+            </details>
+            <details>
+              <summary>Meus mecânicos precisam de login e senha?</summary>
+              <p>Não. O dono da oficina gera um link de acesso da equipe, abre no aparelho da oficina e cada funcionário entra com o próprio nome e um PIN.</p>
+            </details>
+            <details>
+              <summary>Dá para entregar a ordem de serviço impressa ao cliente?</summary>
+              <p>Sim. Ao concluir a OS, o RevisaCar gera um PDF com o veículo, os serviços, as peças e os valores, pronto para imprimir ou mandar pelo WhatsApp.</p>
+            </details>
+            <details>
+              <summary>Como faço para começar?</summary>
+              <p>Clique em Criar conta, informe o CNPJ e os dados da oficina e já comece a abrir ordens de serviço.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chamada final -->
+      <section class="final" aria-labelledby="t-final">
+        <div class="faixa final__faixa">
+          <h2 id="t-final">Abra a primeira ordem de serviço hoje</h2>
+          <a class="botao botao--branco botao--grande" href="/app/">Criar conta da oficina</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="rodape">
+      <div class="faixa rodape__faixa">
+        <span>RevisaCar, sistema para oficina mecânica</span>
+        <a href="/app/">Entrar no painel</a>
+      </div>
+    </footer>
+
+    <script>
+      // Uma pergunta aberta por vez no FAQ
+      document.querySelectorAll('.faq details').forEach(function (d) {
+        d.addEventListener('toggle', function () {
+          if (!d.open) return;
+          document.querySelectorAll('.faq details').forEach(function (o) { if (o !== d) o.open = false; });
+        });
+      });
+    </script>
   </body>
 </html>
