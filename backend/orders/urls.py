@@ -8,7 +8,7 @@ from . import relatorios_views
 from . import visao_geral_views
 from . import agendamentos_views, clientes_views, veiculos_views
 from . import alertas_views, fechamento_views, fotos_obrigatorias, orcamento_link_views, orcamento_views
-from . import oficina_config_views, acesso_equipe_views
+from . import oficina_config_views, acesso_equipe_views, conta_views
 
 urlpatterns = [
     # Root
@@ -69,6 +69,11 @@ urlpatterns = [
 
     # Sessão atual (dono ou funcionário)
     path("me", views.me),
+
+    # Minha conta (qualquer usuário logado, só a PRÓPRIA conta — o alvo vem do token):
+    # trocar o próprio nome e excluir a própria conta (do dono = apaga a oficina inteira).
+    path("conta", conta_views.conta),
+    path("conta/excluir", conta_views.conta_excluir),
 
     # Financeiro — protegido por financeiro.ver / financeiro.editar / financeiro.ver_margem
     path("financeiro/categorias", financeiro_views.categorias),

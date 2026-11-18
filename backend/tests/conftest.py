@@ -102,6 +102,10 @@ def pg_dsn():
     # No Supabase esse papel já existe; os GRANTs dos scripts dependem dele.
     cur.execute("do $$ begin if not exists (select 1 from pg_roles where rolname='service_role') "
                 "then create role service_role; end if; end $$")
+    # anon/authenticated: a 0004 e a 0010 revogam acessos deles (no Supabase esses papéis sempre existem).
+    for papel in ("anon", "authenticated"):
+        cur.execute(f"do $$ begin if not exists (select 1 from pg_roles where rolname='{papel}') "
+                    f"then create role {papel}; end if; end $$")
     # Ordem importa: servicos.sql usa estoque_kits (limpeza do vínculo ao excluir).
     for nome in ("estoque.sql", "servicos.sql", "ordens_oficina.sql", "visao_geral.sql", "financeiro.sql", "ordens_status.sql", "orcamentos.sql", "ordens_execucao.sql", "alertas.sql", "orcamento_link.sql", "ordens_fotos.sql"):
         sql = (BACKEND_DIR / "sql" / nome).read_text(encoding="utf-8")
@@ -154,8 +158,9 @@ def pg_dsn():
     )
     # Migrations versionadas (db): controle, limpeza, tabelas do app do cliente, integração.
     for nome in ("0000_controle.sql", "0001_limpeza_segura.sql", "0002_tabelas_app_cliente.sql",
-                 "0003_integracao_cliente_oficina.sql", "0005_config_oficina.sql", "0006_codigo_acesso_equipe.sql",
-                 "0007_fotos_veiculos.sql", "0008_reserva_caixa.sql", "0009_taxa_maquininha.sql"):
+                 "0003_integracao_cliente_oficina.sql", "0004_auth_persistence.sql", "0005_config_oficina.sql",
+                 "0006_codigo_acesso_equipe.sql", "0007_fotos_veiculos.sql", "0008_reserva_caixa.sql",
+                 "0009_taxa_maquininha.sql", "0010_excluir_conta.sql"):
         sql = (BACKEND_DIR / "sql" / "migrations" / nome).read_text(encoding="utf-8")
         cur.execute(sql)
         cur.execute(sql)  # idempotência

@@ -609,6 +609,16 @@ export const api = {
   desativarAcessoEquipe: () =>
     authFetch(`${API_BASE}/oficina/acesso-equipe`, { method: 'DELETE' }),
 
+  /** Minha conta (dono ou funcionário, só a própria): trocar o nome de quem está logado. Não é o nome da
+   *  oficina (esse é de /oficina/config). Devolve `{ nome, accessToken }` — o token novo já leva o nome novo. */
+  atualizarMeuNome: (nome: string) =>
+    authFetch(`${API_BASE}/conta`, { method: 'PATCH', body: JSON.stringify({ nome }) }),
+
+  /** Exclui a própria conta. Dono: `{ senha, confirmacao }` (apaga a oficina inteira); funcionário:
+   *  `{ pin, confirmacao }`. `confirmacao` é a palavra EXCLUIR. Senha/PIN errados voltam 403, não 401. */
+  excluirMinhaConta: (corpo: { senha?: string; pin?: string; confirmacao: string }) =>
+    authFetch(`${API_BASE}/conta/excluir`, { method: 'POST', body: JSON.stringify(corpo) }),
+
   /** Sem login: o aparelho do funcionário troca o código pela oficina. */
   resolverCodigoOficina: (codigo: string) =>
     fetch(`${API_BASE}/publico/oficina/${encodeURIComponent(codigo)}`, { headers: baseHeaders }).then(handleResponse),

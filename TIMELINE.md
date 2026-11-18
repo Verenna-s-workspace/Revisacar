@@ -28,6 +28,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Financeiro — taxa da maquininha | 🟡 SQL + API + front + testes prontos (976 testes; tsc + build ok). Falta: rodar `0009_taxa_maquininha.sql` (depois da 0008) e validar contra o Supabase real; ainda não testado no navegador |
 | Agenda — duração variável | 🟡 Front + testes prontos (980 testes backend; tsc + build ok). Sem migration nem mudança de API: o backend já aceitava `horaFim` livre. A oficina define a duração (30 min–12 h) ao agendar, remarcar, ajustar ("Ajustar horário") e confirmar pedido pendente ("Confirmar pedido"). Início a cada 30 min; conflito checado só no front. Ainda não testado no navegador |
 | Financeiro — "Ver mais" em contas a pagar/receber | 🟡 Só frontend (tsc + build ok; ordenação/limite verificados com dados de exemplo). O widget mostrava só 6 contas e sem ordem de urgência; agora ordena (vencidas primeiro) e, passando de 6, mostra "Ver mais · +N", que abre a tela com todas as contas (resumo total/vencido, filtros Todas/Vencidas/A vencer, busca, marcar como pago e editar). Sem migration nem mudança de API: o backend já devolvia todos os pendentes. Ainda não testado no navegador |
+| Minha conta — trocar o nome e excluir a conta | 🟡 SQL + API + front + testes prontos (1026 testes backend; tsc + build ok; navegador com API simulada, desktop dono e 390px funcionário). Falta: rodar `0010_excluir_conta.sql` no Supabase (depois da 0004 e das demais) e validar contra o Supabase/Storage reais |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 
@@ -584,3 +585,25 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 2. Preencher a taxa em **%** (hoje só em R$), tabela de taxas por oficina que sugira o valor, e parcelamento (recebimento em datas diferentes) — ficaram de fora de propósito.
 3. Pendentes e entradas geradas pela OS (orçamento aprovado) nascem sem taxa; o dono edita ao receber.
 4. Resumo da OS (`/ordens/<id>/fechamento`) ainda lista só o bruto de cada lançamento.
+
+## Minha conta: trocar o nome e excluir a conta (2026-11-17, branch `feat/minha-conta-nome-excluir`, parte de `main`)
+
+**Pedido.** Só dava para mudar o nome da oficina; o nome de quem usa a conta (dono e funcionário) não. E não havia como excluir a conta.
+
+**O que entrou**
+- **Trocar o nome** (`PATCH /conta`): vale para dono (`admins.nome`) e funcionário (`funcionarios.nome`), qualquer cargo, sem permissão especial — cada um mexe só na **própria** conta (o alvo vem do token, nunca do corpo). **Não** mexe no nome da oficina (`config_oficina`). Devolve um **token novo** com o nome novo (o nome vai dentro do token e é usado em `criado_por_nome`), e o app atualiza o topo sem sair da sessão. Regras: 2–80 caracteres, espaços repetidos/quebras de linha viram um espaço, sem caracteres de controle. Funcionário desativado/removido recebe 404 (o token ainda vale por minutos).
+- **Excluir a conta** (`POST /conta/excluir`): exige a palavra **EXCLUIR** e a confirmação de identidade — **senha** para o dono, **PIN** para o funcionário. Errar a senha/PIN responde **403** (não 401, para o app não achar que a sessão caiu) e conta no limite de 5 tentativas em 15 min (dono: contador próprio `conta:<CNPJ>`; funcionário: o mesmo do PIN do login).
+  - **Funcionário:** remove só o cadastro e as sessões dele. Agendamentos em que era o mecânico ficam sem mecânico; ordens e lançamentos antigos guardam o nome como texto e continuam.
+  - **Dono: apaga a oficina inteira** (ordens, fotos, orçamentos e links, estoque, serviços, financeiro e reserva de caixa, agenda, convites, carteira, funcionários, sessões e a conta). Tudo no banco numa **transação só** — função `conta_excluir_oficina` (migração **0010**): ou apaga tudo ou nada (uma FK inesperada desfaz tudo e o app responde "nada foi apagado"). Só o `service_role` executa. Arquivos do Storage (`<ordem_id>/...`) saem **depois**, em segundo plano; falha ali só é registrada em log (não desfaz a exclusão).
+  - **Não é apagado:** conta do app do cliente (`customers.origem = 'app'`) e o veículo dela — só some o vínculo com a oficina (`oficina_clientes`) e a marca `oficina_origem_doc` do veículo. Cadastros de balcão (`origem = 'oficina'`) são apagados.
+- **Tela:** card "Minha conta" no fim de Configurações (todos os cargos veem): campo "Seu nome" + "Salvar nome" e zona de perigo com modal de confirmação (texto diferente para dono e funcionário). Ao concluir, sai da sessão e, no dono, apaga a cópia local da oficina (`oficina_config`, overlay do atendimento, aparelho lembrado); o tema fica.
+
+**Arquivos:** `backend/sql/migrations/0010_excluir_conta.sql`, `orders/conta_views.py` (novo), `orders/serializers.py` (`ContaNomeSerializer`), `orders/auth_store.py` (limite de tentativas), `orders/urls.py`, `tests/test_conta.py` (46 testes, Postgres real), `tests/conftest.py` (carrega a 0004/0010 e cria os papéis `anon`/`authenticated`); frontend: `Configuracoes/MinhaContaCard.tsx`, `utils/conta_utils.ts`, `utils/api.ts`, `context/AuthContext.tsx` (`atualizarNome`), `ConfiguracoesPage.tsx`.
+
+**Validado:** pytest 1026, flake8, `tsc`, `vite build`; navegador (Chromium, API simulada): dono no desktop e funcionário a 390px — renomear (espaços limpos, token trocado, topo atualizado), nome inválido bloqueado, modal com botão travado até senha/PIN + EXCLUIR, erro de senha/PIN mantém a sessão, sucesso sai e limpa a cópia local. **NÃO validado:** contra o Supabase/PostgREST/Storage reais (a função SQL foi testada em Postgres local, não no Supabase).
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0010_excluir_conta.sql` no SQL Editor do Supabase (idempotente). Sem ela, excluir a conta do dono responde 503 explicando; **trocar o nome e excluir funcionário funcionam sem a migração**.
+2. Se uma tabela nova passar a referenciar `admins(doc)`, incluí-la na função (senão a exclusão é barrada e desfeita — por desenho, nunca apaga pela metade).
+3. Exclusão "suave" (período para desfazer / exportar os dados antes) e avisar o dono por e-mail ficaram de fora.
+4. O dono pode excluir a conta mesmo com funcionários cadastrados: eles são apagados junto (o modal avisa).

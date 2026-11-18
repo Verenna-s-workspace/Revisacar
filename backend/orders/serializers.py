@@ -166,6 +166,28 @@ class FuncionarioPinLoginSerializer(serializers.Serializer):
         return validate_pin_format(value)
 
 
+NOME_CONTA_MIN = 2
+NOME_CONTA_MAX = 80
+_CONTROLE_RE = re.compile(r"[\x00-\x1f\x7f]")
+
+
+class ContaNomeSerializer(serializers.Serializer):
+    """Nome da PESSOA que usa a conta (dono ou funcionário) — não é o nome comercial da oficina
+    (esse fica em Configurações > Dados da Oficina). Livre como no cadastro (há donos que usam o
+    nome da oficina aqui), só sem caracteres de controle e com tamanho razoável."""
+    nome = serializers.CharField(max_length=NOME_CONTA_MAX * 2)   # folga: o limite real vale depois de limpar os espaços
+
+    def validate_nome(self, value):
+        v = " ".join(str(value).split())    # tira pontas e junta espaços repetidos
+        if _CONTROLE_RE.search(v):
+            raise serializers.ValidationError("O nome tem caracteres que não podem ser usados.")
+        if len(v) < NOME_CONTA_MIN or not any(c.isalnum() for c in v):
+            raise serializers.ValidationError("Informe o seu nome (pelo menos 2 letras).")
+        if len(v) > NOME_CONTA_MAX:
+            raise serializers.ValidationError(f"O nome pode ter no máximo {NOME_CONTA_MAX} caracteres.")
+        return v
+
+
 class VeiculoSerializer(serializers.Serializer):
     placa = serializers.CharField()
     modelo = serializers.CharField()
