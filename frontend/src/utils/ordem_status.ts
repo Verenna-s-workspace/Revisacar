@@ -42,3 +42,64 @@ export const ROTULO_STATUS: Record<StatusOrdem, string> = {
   finalizada: 'Concluída',
   recusada: 'Recusada',
 };
+
+// ── Aparência dos selos (usada por components/system/Badge e icons) ───────────
+
+/** Uma das 8 fases da OS (uma por status). */
+export type FaseOS = StatusOrdem;
+
+/** Chave do ícone de cada fase — o desenho fica em components/system/icons.tsx. */
+export type IconeFase =
+  | 'inbox'
+  | 'documento'
+  | 'relogio'
+  | 'caixa'
+  | 'chave'
+  | 'checkCirculo'
+  | 'checkDuplo'
+  | 'xCirculo'
+  | 'check';
+
+export interface InfoStatusOS {
+  fase: FaseOS;
+  icone: IconeFase;
+  rotulo: string;
+}
+
+/** Ícone de cada fase. A cor vem de ESTILO_FASE. */
+const ICONE_FASE: Record<FaseOS, IconeFase> = {
+  rascunho: 'inbox',
+  em_orcamento: 'documento',
+  pendente_aprovacao: 'relogio',
+  aprovada: 'checkCirculo',
+  em_execucao: 'chave',
+  aguardando: 'caixa',
+  finalizada: 'checkDuplo',
+  recusada: 'xCirculo',
+};
+
+/** Cor do texto e do fundo de cada fase (tokens de index.css, que já trocam no modo escuro). */
+const ESTILO_FASE: Record<FaseOS, { color: string; bg: string }> = {
+  rascunho:           { color: 'var(--color-muted)', bg: 'var(--color-surface-high)' },
+  em_orcamento:       { color: 'var(--color-warn)',  bg: 'var(--color-warn-bg)' },
+  pendente_aprovacao: { color: 'var(--color-warn)',  bg: 'var(--color-warn-bg)' },
+  aprovada:           { color: 'var(--color-ok)',    bg: 'var(--color-ok-bg)' },
+  em_execucao:        { color: 'var(--color-ok)',    bg: 'var(--color-ok-bg)' },
+  aguardando:         { color: 'var(--color-crit)',  bg: 'var(--color-crit-bg)' },
+  finalizada:         { color: 'var(--color-ok)',    bg: 'var(--color-ok-bg)' },
+  recusada:           { color: 'var(--color-na)',    bg: 'var(--color-na-bg)' },
+};
+
+export const estiloFase = (fase: FaseOS) => ESTILO_FASE[fase];
+
+const ehStatusConhecido = (s: string | null | undefined): s is StatusOrdem =>
+  !!s && Object.prototype.hasOwnProperty.call(ROTULO_STATUS, s);
+
+/**
+ * Fase, ícone e rótulo de um status. Valor desconhecido ou vazio (linha antiga)
+ * cai em "rascunho", igual ao backend (status_no_salvamento).
+ */
+export function infoStatusOS(status: string | null | undefined): InfoStatusOS {
+  const fase: FaseOS = ehStatusConhecido(status) ? status : 'rascunho';
+  return { fase, icone: ICONE_FASE[fase], rotulo: ROTULO_STATUS[fase] };
+}
