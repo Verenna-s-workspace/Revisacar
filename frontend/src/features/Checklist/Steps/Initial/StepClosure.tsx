@@ -1,4 +1,5 @@
 import { useOrdemServico } from "../../../../hooks/useOrdemServico";
+import { useTecnicoSugerido } from "../../../../hooks/useTecnicoSugerido";
 import { Input } from "../../../../components/inputs/input";
 import { Textarea } from "../../../../components/inputs/textarea";
 import { tokens } from "../../../../constants";
@@ -47,6 +48,8 @@ function StepWrapper({
 }
 
 export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
+  // Antes do ramo mobile: vale para desktop e celular (a versão mobile é renderizada por aqui).
+  useTecnicoSugerido(os);
   const g4 = useGrid4();
   const { isMobile } = useResponsive();
   const {

@@ -638,3 +638,22 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 3. Tela de **mesclar clientes duplicados** (a rede de segurança para o que escapar).
 4. Mecânico não cadastra por falta de `clientes.editar`; se na prática for ele quem faz o checklist, avaliar uma permissão própria ou liberar cadastro rápido para o cargo.
 5. Os cadastros automáticos ficam sem CPF/endereço (marcados na observação); a OS não preenche marca.
+
+## Sugestão do técnico logado nos campos "nome do técnico" (2026-11-19, branch `feat/sugerir-tecnico-logado`, parte de `main`)
+
+**Pedido.** Onde se digita o nome do técnico numa ação normal (encerramento do checklist, agendamento etc.), sugerir o nome de quem está logado. Não aplicar onde não é ação normal (ex.: nome do técnico em Configurações). Auditar todos os campos e dizer quais podem e quais não.
+
+**Auditoria dos campos com nome de técnico/mecânico**
+| Campo | Decisão | Motivo |
+|---|---|---|
+| Encerramento do checklist, "Nome do técnico" (`StepClosure` desktop e `StepClosureMobile`; o mobile reaproveita o mesmo estado) | **Sugestão aplicada** | Ação normal: quem encerra costuma ser quem fez o serviço. |
+| Agendamento (`NewAppointmentModal`) | **Não há campo** | Não existe campo de mecânico hoje. O backend aceita `mecanico`, mas exige nome exato de funcionário ativo (`_mecanico_por_nome`); texto livre falharia, inclusive para o dono. Se quiserem, o caminho é um select de funcionários, não um input. |
+| Configurações: `FuncionariosCard`, `MinhaContaCard` | **Excluído** | O nome é o dado em edição, não "quem faz a ação". |
+| Login (`FuncionarioPicker`) | **Excluído** | Escolhe quem entra. |
+| Cards/modal da agenda, `OrdensPage`, `DecisaoModais`, PDF | **Excluído** | Só exibição, sem digitação. |
+
+**Regras.** Sugestão preenchida **uma vez por OS** (marca `tecnicoSugeridoRef` no `useOrdemServico`, zerada em `novaOrdem`/`loadOrder`); continua editável e, se o usuário apagar ou trocar, não volta sozinha ao navegar entre passos. Nunca sobrescreve nome já digitado ou já salvo na OS. **Cargo atendente não recebe sugestão** (não executa serviço); dono, gerente e mecânico recebem. O nome passa pelo mesmo filtro e limite do campo (100) e só é usado se `validarNome` aceitar.
+
+**Arquivos:** `frontend/src/utils/tecnico_sugerido.ts` (novo), `hooks/useTecnicoSugerido.ts` (novo), `hooks/useOrdemServico.ts`, `Steps/Initial/StepClosure.tsx`.
+
+**Validado:** `tsc --noEmit` (só os 4 erros antigos de `Badge.tsx`/`icons.tsx`), `vite build`, e a função `nomeSugeridoParaTecnico` no Node (dono, gerente, mecânico, atendente, caixa alta, sem login, espaços, nome curto, só números, limite). **NÃO validado:** a tela no navegador (nem a 390px) nem o efeito de preenchimento em React rodando.

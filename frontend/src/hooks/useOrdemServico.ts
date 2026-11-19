@@ -61,6 +61,8 @@ export function useOrdemServico() {
   const [newPhotos, setNewPhotos] = useState<Photo[]>([]);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tecnico,  setTecnico]  = useState<Tecnico>(INITIAL_TECNICO);
+  // "Já sugeri o técnico logado nesta OS?" (ver useTecnicoSugerido). Zerada ao começar/abrir outra OS.
+  const tecnicoSugeridoRef = useRef(false);
 
   // 5 fotos obrigatórias da entrada (hodômetro, frente, traseira, laterais): estado compartilhado
   // pelas etapas pro bloqueio valer na tela de fotos, nas abas e no "Próxima etapa".
@@ -485,6 +487,7 @@ export function useOrdemServico() {
     setCliente(payload.cliente    || INITIAL_CLIENTE);
     setVeiculo({ ...INITIAL_VEICULO, ...(payload.veiculo || {}) });
     setTecnico(payload.tecnico    || INITIAL_TECNICO);
+    tecnicoSugeridoRef.current = false;
 
     setSelected(new Set(payload.servicos_selecionados || []));
     setChecklist(payload.checklist || initChecklist());
@@ -542,6 +545,7 @@ export function useOrdemServico() {
     setCliente(INITIAL_CLIENTE);
     setVeiculo(INITIAL_VEICULO);
     setTecnico(INITIAL_TECNICO);
+    tecnicoSugeridoRef.current = false;
     setSelected(new Set());
     setChecklist(initChecklist());
     setItensAdicionais([]);
@@ -588,7 +592,7 @@ export function useOrdemServico() {
     osHeader, setOsHeader,
     cliente,  setCliente,
     veiculo,  setVeiculo,
-    tecnico,  setTecnico,
+    tecnico,  setTecnico, tecnicoSugeridoRef,
     photos,   setPhotos,
     newPhotos, setNewPhotos,
     lightbox, setLightbox,
