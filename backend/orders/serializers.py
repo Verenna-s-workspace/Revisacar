@@ -30,11 +30,22 @@ class OSHeaderSerializer(serializers.Serializer):
         return campos.km(value)
 
 
+def _id_opcional(value):
+    """`id` de cliente/veículo escolhido na tela (sugestão aceita). Valor que não é uuid é ignorado, não é erro:
+    o backend só usa o id se ele existir na carteira da oficina."""
+    v = str(value or "").strip()
+    return v if re.fullmatch(r"[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}", v) else ""
+
+
 class ClienteSerializer(serializers.Serializer):
+    id = serializers.CharField(required=False, allow_blank=True)
     nome = serializers.CharField()
     doc = serializers.CharField(default="", allow_blank=True)
     tel = serializers.CharField()
     email = serializers.CharField(default="", allow_blank=True)
+
+    def validate_id(self, value):
+        return _id_opcional(value)
 
     def validate_nome(self, value):
         return campos.nome(value, obrigatorio=True)
@@ -189,6 +200,7 @@ class ContaNomeSerializer(serializers.Serializer):
 
 
 class VeiculoSerializer(serializers.Serializer):
+    id = serializers.CharField(required=False, allow_blank=True)
     placa = serializers.CharField()
     modelo = serializers.CharField()
     ano = serializers.CharField(default="", allow_blank=True)
@@ -198,6 +210,9 @@ class VeiculoSerializer(serializers.Serializer):
     chassi = serializers.CharField(default="", allow_blank=True)
     obs_entrada = serializers.CharField(default="", allow_blank=True)
     obs_cliente = serializers.CharField(default="", allow_blank=True)
+
+    def validate_id(self, value):
+        return _id_opcional(value)
 
     def validate_placa(self, value):
         v = value.upper().strip()

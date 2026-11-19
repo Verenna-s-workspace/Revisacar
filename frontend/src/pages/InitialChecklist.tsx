@@ -3,13 +3,14 @@ import type { useOrdemServico } from '../hooks/useOrdemServico';
 import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
 import { StepTabs } from '../components/StepTabs';
-import { Lightbox } from '../components/ui';
+import { Lightbox, useResponsive } from '../components/ui';
 import { entradaConfig } from '../features/Checklist/configs/initial';
 import { tokens } from '../constants';
 import { api } from '../utils/api';
 import { salvarOverlay } from '../utils/atendimento_utils';
 import type { OSPrefillInput } from '../types/atendimento';
 import { sanitizarPrefill } from '../utils/campos_checklist';
+import { AvisoCadastro } from '../features/Checklist/Steps/Initial/CadastroExistente';
 
 interface CheckProps {
   /** Estado da OS — vive no App e é compartilhado entre as etapas (entrada, diagnóstico, orçamento). */
@@ -26,6 +27,7 @@ interface CheckProps {
 const FOTO_STEP = 2;
 
 export default function Check({ os, prefill, onBackToStart, onNextChecklist }: CheckProps) {
+  const { isMobile, isTablet } = useResponsive();
 
   const currentStep = entradaConfig.find((s) => s.id === os.step);
 
@@ -140,6 +142,8 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
   }}
   steps={entradaConfig}
 />
+
+      <AvisoCadastro info={os.cadastroInfo} onFechar={() => os.setCadastroInfo(null)} px={isMobile ? 16 : isTablet ? 24 : 40} />
 
       {CurrentComponent && (
         <CurrentComponent

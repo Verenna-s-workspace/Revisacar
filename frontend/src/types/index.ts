@@ -8,6 +8,8 @@ export interface OSHeader {
 }
 
 export interface Cliente {
+  /** Id do cadastro existente escolhido na sugestão da tela (opcional). O servidor só o usa se existir na carteira. */
+  id?: string;
   nome: string;
   doc: string;
   tel: string;
@@ -15,6 +17,8 @@ export interface Cliente {
 }
 
 export interface Veiculo {
+  /** Id do veículo existente escolhido na sugestão da tela (opcional). */
+  id?: string;
   placa: string;
   modelo: string;
   ano: string;

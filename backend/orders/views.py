@@ -708,10 +708,12 @@ def me(request):
 
 # ── Ordens ────────────────────────────────────────────────────────────────────
 
-def _vincular_ordem(oficina_doc, ordem_id, ordem):
-    """Liga a OS ao cliente/veículo da carteira (melhor esforço). Import tardio: os_vinculo importa este módulo."""
+def _vincular_ordem(request, oficina_doc, ordem_id, ordem):
+    """Liga a OS ao cliente/veículo da carteira e cadastra o que falta se o cargo puder (melhor esforço).
+    Import tardio: os_vinculo importa este módulo. Devolve o resultado para ir na resposta."""
     from . import os_vinculo
-    os_vinculo.vincular(oficina_doc, ordem_id, ordem)
+    pode_cadastrar = "clientes.editar" in (request.admin.get("permissoes") or [])
+    return os_vinculo.vincular(oficina_doc, ordem_id, ordem, pode_cadastrar=pode_cadastrar)
 
 
 @api_view(["GET", "POST"])
@@ -762,8 +764,8 @@ def ordens_list(request):
     }
 
     supabase.table("ordens").insert(data).execute()
-    _vincular_ordem(oficina_doc, ordem_id, ordem)
-    return Response(data, status=status.HTTP_201_CREATED)
+    vinculo = _vincular_ordem(request, oficina_doc, ordem_id, ordem)
+    return Response({**data, "vinculo": vinculo}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PUT", "DELETE"])
@@ -828,8 +830,8 @@ def ordem_detail(request, ordem_id):
         )
         if not res.data:
             return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
-        _vincular_ordem(oficina_doc, ordem_id, ordem)
-        corpo = res.data[0]
+        vinculo = _vincular_ordem(request, oficina_doc, ordem_id, ordem)
+        corpo = {**res.data[0], "vinculo": vinculo}
         if fotos_faltando:
             corpo = {**corpo, "fotos_obrigatorias_pendentes": fotos_faltando}
         return Response(corpo)
