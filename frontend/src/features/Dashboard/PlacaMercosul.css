@@ -1,30 +1,63 @@
 .placa-merc {
-  display: inline-flex; flex-direction: column; align-items: stretch;
-  width: 73px; height: 29px; box-sizing: border-box; overflow: hidden;
-  background: #FFFFFF; border: 1.5px solid #1A1D22; border-radius: 4px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 73px;
+  height: 29px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1.5px solid #1A1D22;
+  border-radius: 4px;
 }
 
 .placa-merc__faixa {
+  position: relative;
   flex: none;
   height: 10px;
+  width: 100%;
+  box-sizing: border-box;
   background: #003399;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Alinha a bandeira à direita */
-  padding-left: 3px;    
-  justify-content: start;    /* Pequeno recuo da borda */
+  justify-content: flex-end; /* Mantém a bandeira na direita */
+  padding: 0 3px;
+}
+
+.placa-merc__pais {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%); /* Centraliza exato no X e no Y */
+  margin: 0;
+  line-height: 1; /* Remove a altura extra da linha que fazia vazar */
+  font-family: var(--font-mono, 'DM Mono', 'JetBrains Mono', monospace);
+  font-size: 7px;
+  font-weight: 500;
+  color: #FFFFFF;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .placa-merc__bandeira {
-  height: 5.5px;             /* Cabe perfeitamente nos 5px de altura */
+  display: block; /* Remove o espaço fantasma inferior de imagens inline */
+  height: 5.5px;
   width: auto;
-  display: block;
-  justify-content: start;
+  max-width: 10px;
   object-fit: contain;
 }
 
 .placa-merc__texto {
-  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
-  font-family: var(--os-mono); font-size: 12px; line-height: 16px; font-weight: 500;
-  color: #1A1D22; letter-spacing: 0; white-space: nowrap;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  line-height: 1; /* Garante que o texto de 12px caiba nos 16px restantes */
+  font-family: var(--font-mono, 'DM Mono', 'JetBrains Mono', monospace);
+  font-size: 12px;
+  font-weight: 500;
+  color: #1A1D22;
+  letter-spacing: 0;
+  white-space: nowrap;
 }

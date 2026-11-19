@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react';
-import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useAtendimento } from '../../../hooks/useAtendimento';
 import { useEstoque } from '../../../hooks/useEstoque';
@@ -11,12 +9,10 @@ import {
   possivelRetornoNaOrdem,
   qtdPecasNaOrdem,
 } from '../../../utils/atendimento_utils';
-import { ResumoOperacional } from './ResumoOperacional';
-import { ProximoAgendamento } from './ProximoAgendamento';
 import { AlertaClientesNaoAvisados } from './AlertaClientesNaoAvisados';
-import { KanbanBoard } from './KanbanBoard';
 import { OSDetalheModal } from './OSDetalheModal';
 import { AtendimentoDesktop } from './Desktop/AtendimentoDesktop';
+import { AtendimentoMobile } from './Mobile/AtendimentoMobile';
 import { PecasNecessarias } from './PecasNecessarias';
 import { HistoricoExpress } from './HistoricoExpress';
 import type { NavPage } from '../../../types/dashboard';
@@ -35,7 +31,7 @@ interface AtendimentoPageProps {
 }
 
 export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill, onVerClientesNaoAvisados }: AtendimentoPageProps) {
-  const { loading, erro, ordens, agendamentos, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear, marcarClienteAvisado } =
+  const { loading, erro, ordens, agendamentos, colunas, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear, marcarClienteAvisado } =
     useAtendimento();
   const { kits, itens } = useEstoque();
   const { servicos } = useServicos();
@@ -79,84 +75,6 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
     onLoadOS?.(ordem.id);
   };
 
-  // ── conteúdo ────────────────────────────────────────────────────────────────
-
-  const content = (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
-      {/* header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: isMobile ? '14px 16px' : '16px 28px',
-          background: 'var(--color-surface)',
-          borderBottom: `1px solid ${tokens.color.border}`,
-          flexShrink: 0,
-        }}
-      >
-        {isMobile && (
-          <button
-            onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
-          >
-            {Icons.chevL}
-          </button>
-        )}
-        <div>
-          <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-            Atendimento
-          </h2>
-          <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
-            Painel operacional do mecânico — fila, execução e pendências de hoje.
-          </p>
-        </div>
-      </div>
-
-      {erro && (
-        <div style={{
-          margin: isMobile ? '12px 16px 0' : '14px 28px 0',
-          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
-          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
-        }}>
-          {erro}
-        </div>
-      )}
-
-      {/* corpo */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          padding: isMobile ? '12px 12px 32px' : '18px 28px 36px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        {/* (celular) Resumo + Próximo Agendamento — faixas menores, tamanhos diferentes entre si (Seção 9) */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '0.85fr 1.15fr', gap: 14 }}>
-          <ResumoOperacional resumo={resumo} loading={loading} />
-          <ProximoAgendamento agendamento={proximoAgendamento} loading={loading} onIniciarAtendimento={handleIniciarAtendimento} />
-        </div>
-
-        <AlertaClientesNaoAvisados clientes={clientesNaoAvisados} onAbrirOS={setSelected} onVerMais={onVerClientesNaoAvisados} />
-
-        {/* Kanban — ocupa a largura toda, é o conteúdo principal (Seção 9) */}
-        <KanbanBoard
-          colunas={colunas}
-          isMobile={isMobile}
-          qtdPecasPorOrdem={qtdPecasPorOrdem}
-          possivelRetornoPorOrdem={possivelRetornoPorOrdem}
-          onAbrirOS={setSelected}
-          onIniciarAtendimento={handleIniciarAtendimento}
-          // Skeleton só na primeira carga: recarregar depois de uma ação não deve piscar o quadro.
-          loading={loading && ordens.length === 0}
-        />
-      </div>
-    </div>
-  );
-
   // ── modal ───────────────────────────────────────────────────────────────────
 
   const modals = selected && (
@@ -177,9 +95,25 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
 
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: 'var(--color-bg)', minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="atendimento" onNav={onNav} />
-        {content}
+        <AtendimentoMobile
+          colunas={colunas}
+          agendamentos={agendamentos}
+          // Skeleton só na primeira carga: recarregar depois de uma ação não deve piscar o quadro.
+          loading={loading && ordens.length === 0}
+          erro={erro}
+          clientesNaoAvisados={clientesNaoAvisados}
+          proximoAgendamento={proximoAgendamento}
+          qtdPecasPorOrdem={qtdPecasPorOrdem}
+          possivelRetornoPorOrdem={possivelRetornoPorOrdem}
+          onVoltar={() => onNav('dashboard')}
+          onAbrirOS={setSelected}
+          onContinuarChecklist={handleContinuarChecklist}
+          onPecaChegou={desbloquear}
+          onIniciarAtendimento={handleIniciarAtendimento}
+          onVerClientesNaoAvisados={onVerClientesNaoAvisados}
+        />
         <MobileNav active="atendimento" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
         {modals}
       </div>
