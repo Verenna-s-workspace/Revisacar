@@ -607,3 +607,34 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 2. Se uma tabela nova passar a referenciar `admins(doc)`, incluí-la na função (senão a exclusão é barrada e desfeita — por desenho, nunca apaga pela metade).
 3. Exclusão "suave" (período para desfazer / exportar os dados antes) e avisar o dono por e-mail ficaram de fora.
 4. O dono pode excluir a conta mesmo com funcionários cadastrados: eles são apagados junto (o modal avisa).
+
+## Cadastro automático de cliente e veículo pelo checklist, sem duplicar (2026-11-18, branch `feat/checklist-cadastro-automatico`, parte de `main`)
+
+**Pedido.** Se no checklist de entrada o cliente ou o veículo ainda não existe no sistema, cadastrar sozinho pelo próprio checklist — sem duplicar. Veículo: a placa. Cliente: nome repete, telefone não é confiável e CPF é opcional, então não havia chave óbvia.
+
+**Regra adotada: só reaproveita por sinal forte; sinal fraco vira sugestão na tela, nunca fusão automática.** Tudo dentro da carteira da própria oficina.
+- **Veículo:** placa normalizada (sem hífen, maiúscula). Existe → reaproveita; senão cadastra. Se a placa está no nome de **outra pessoa** (carro vendido), a OS fica com a pessoa digitada, o dono do veículo **não** muda sozinho e a resposta avisa (trocar o dono é na tela Veículos).
+- **Cliente, nesta ordem:** (1) cadastro escolhido na sugestão da tela (`cliente.id`); (2) CPF/CNPJ; (3) e-mail; (4) dono da placa, se o digitado for compatível (mesmo nome **ou** mesmo telefone); (5) **telefone E nome** iguais (nome sem acento/caixa e sem "da/de/do"; telefone sem máscara, sem 55, com o 9); (6) o vínculo que a OS já tinha (corrigir digitação não cria outra pessoa); (7) nada bateu → cliente de balcão novo.
+- **Telefone sozinho e nome sozinho NÃO juntam cadastros** (família usa o mesmo número; existem homônimos; "João Silva" ≠ "João Silva Neto"). Nesses casos a tela mostra "Já existe um cadastro parecido. É a mesma pessoa?" e a pessoa confirma com um toque ou diz "É outra pessoa".
+- **Permissão:** só cadastra quem tem `clientes.editar` (dono, gerente, atendente). **Mecânico não tem**: a OS dele é salva e ligada ao que já existe, sem criar cadastro; a resposta avisa.
+
+**Marca e ano.** `customer_vehicles` exige `brand` e `year` no banco (compartilhado com o app do cliente) e o checklist não tem "Marca". O texto de "Modelo" vai inteiro para `model` e `brand` fica vazio. **Sem o ano o veículo NÃO é cadastrado** (nada é inventado): o cliente é cadastrado normalmente, a tela avisa "informe o ano" e o veículo entra no salvamento seguinte em que o ano estiver preenchido.
+
+**Corrida (dois salvamentos ao mesmo tempo).** Migração **0011**: índice único parcial `(oficina_origem_doc, plate_norm)` em veículos não excluídos. Se o INSERT cair em 23505, o backend usa o veículo que o outro salvamento acabou de criar. Cliente **não** tem trava no banco (nome+telefone não dá índice único confiável): a janela de corrida existe, mas é estreita; a tela Clientes é a rede de segurança para mesclar manualmente.
+
+**Marcas no cadastro:** cliente e veículo criados levam "Cadastrado automaticamente pelo checklist (OS …)" em `oficina_clientes.observacoes` / `customer_vehicles.notes`, para o dono achar e completar.
+
+**Tela (passo Identificação).** Painéis sob o bloco do cliente e do veículo: sugestões de cadastro existente (cliente: CPF, e-mail, nome+telefone, telefone, nome parecido; veículo: placa já cadastrada, com o dono) com "Usar este cadastro" / "Desfazer"; veículos do cliente escolhido para tocar em vez de digitar a placa; "Cliente novo / Veículo novo: será cadastrado ao salvar" (só para quem pode cadastrar e com a lista carregada). Depois de salvar, banner fechável "Cliente e veículo cadastrados automaticamente". Editar o **nome** para outra pessoa solta o vínculo com o cadastro escolhido; telefone/e-mail/CPF podem ser atualizados sem soltar (o checklist **não altera** o cadastro existente).
+
+**Contrato que mudou:** `os_vinculo.py` deixou de ser "só liga, nunca cria". Três testes de `test_carteira.py` foram atualizados para o novo contrato (um deles mudou de nome). A resposta de `POST/PUT /ordens` ganhou `vinculo` (`customer_id`, `vehicle_id`, `cliente_criado`, `veiculo_criado`, `avisos`).
+
+**Arquivos:** `backend/orders/cadastro_checklist.py` (novo), `os_vinculo.py`, `views.py`, `serializers.py` (`id` opcional em cliente/veículo da OS), `sql/migrations/0011_veiculo_placa_unica_oficina.sql`, `tests/test_cadastro_checklist.py` (41 testes, Postgres real), `tests/conftest.py`, `tests/test_carteira.py`; frontend: `utils/cadastro_existente.ts`, `hooks/useCadastrosExistentes.ts`, `Steps/Initial/CadastroExistente.tsx`, `StepIdentification.tsx`, `hooks/useOrdemServico.ts` (`cadastroInfo`), `pages/InitialChecklist.tsx`, `types/index.ts`.
+
+**Validado:** testes de backend (carteira + cadastro automático: 145; inclui duplicidade, família no mesmo telefone, homônimos, pai/filho, placa de outro dono, mecânico, isolamento entre oficinas, id de outra oficina, corrida), flake8, `vite build`, e a lógica de sugestão do front rodada no Node. **NÃO validado:** a tela no navegador (nem a 390px), nem contra o Supabase/PostgREST reais. O `tsc --noEmit` já falha na `main` por 4 erros em `components/system/Badge.tsx` e `icons.tsx` (`ordem_status` sem `estiloFase`/`infoStatusOS`/`FaseOS`/`IconeFase`); esta branch não acrescenta nenhum.
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0011_veiculo_placa_unica_oficina.sql` no SQL Editor do Supabase (idempotente). Se houver placa repetida na mesma oficina, ela avisa quais são e **não** cria o índice; resolva na tela Veículos e rode de novo. Sem ela o cadastro automático funciona, só sem a trava do banco.
+2. Decidir se **Ano** passa a ser obrigatório no checklist (hoje opcional): garantiria que todo veículo novo entre na frota. Hoje sem ano o veículo fica de fora.
+3. Tela de **mesclar clientes duplicados** (a rede de segurança para o que escapar).
+4. Mecânico não cadastra por falta de `clientes.editar`; se na prática for ele quem faz o checklist, avaliar uma permissão própria ou liberar cadastro rápido para o cargo.
+5. Os cadastros automáticos ficam sem CPF/endereço (marcados na observação); a OS não preenche marca.

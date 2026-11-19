@@ -657,19 +657,26 @@ def test_os_liga_cliente_e_veiculo_da_carteira(api, db, monkeypatch):
     assert api.get(f"/veiculos/{v['id']}").json()["ultimaOSId"] == r.json()["id"]
 
 
-def test_os_liga_por_email_e_nao_cria_nada_na_carteira(api, db):
+def test_os_liga_por_email_e_nao_cadastra_veiculo_sem_ano(api, db):
     cli = _cliente(api, cpfCnpj="", email="carlos@exemplo.com")
     r = api.post("/ordens", _corpo_os(cliente={"doc": "", "email": "CARLOS@exemplo.com"}, veiculo={"placa": "ZZZ9Z99"}), format="json")
     assert _os_ids(db, r.json()["id"]) == (cli["id"], None)
-    assert len(api.get("/veiculos").json()) == 0  # placa desconhecida: não cadastra veículo sozinha
+    # Placa desconhecida e sem o ano (o banco exige): o veículo não é inventado; a resposta explica.
+    assert len(api.get("/veiculos").json()) == 0
+    assert any("ano" in a for a in r.json()["vinculo"]["avisos"])
 
 
 def test_os_nao_liga_cliente_de_outra_oficina_nem_conta_do_app_fora_da_carteira(api, api_b, db):
     _cliente(api_b)                                  # mesmo CPF, mas na oficina B
-    _conta_app(db, email="ana@app.com")              # conta do app sem vínculo com a oficina A
+    conta_app_id = _conta_app(db, email="ana@app.com")  # conta do app sem vínculo com a oficina A
     r = api.post("/ordens", _corpo_os(cliente={"email": "ana@app.com"}), format="json")
     assert r.status_code == 201
-    assert _os_ids(db, r.json()["id"]) == (None, None)
+    # Nunca liga à conta do app nem ao cliente da oficina B: cadastra um cliente de balcão novo, só da A.
+    customer_id = _os_ids(db, r.json()["id"])[0]
+    assert customer_id not in (conta_app_id,)
+    cur = db.cursor()
+    cur.execute("select origem, oficina_origem_doc, email from customers where id=%s", (customer_id,))
+    assert cur.fetchone() == ("oficina", OFICINA_A, "ana@app.com")
 
 
 def test_os_de_cliente_do_app_vinculado_fica_visivel_para_ele(api, db):
@@ -683,9 +690,12 @@ def test_os_de_cliente_do_app_vinculado_fica_visivel_para_ele(api, db):
 
 def test_editar_os_atualiza_o_vinculo(api, db):
     cli = _cliente(api)
-    r = api.post("/ordens", _corpo_os(cliente={"doc": ""}), format="json")
+    # Primeiro salvamento com outra pessoa (outro nome e telefone, sem CPF): nada bate, cadastra um cliente novo.
+    r = api.post("/ordens", _corpo_os(cliente={"nome": "Outra Pessoa", "tel": "11977776666", "doc": ""}), format="json")
     oid = r.json()["id"]
-    assert _os_ids(db, oid) == (None, None)
+    novo = _os_ids(db, oid)[0]
+    assert novo and novo != cli["id"]
+    # Depois o CPF é preenchido e bate com o cliente da carteira: o vínculo passa para ele.
     r2 = api.put(f"/ordens/{oid}", _corpo_os(), format="json")
     assert r2.status_code == 200, r2.content
     assert _os_ids(db, oid)[0] == cli["id"]
