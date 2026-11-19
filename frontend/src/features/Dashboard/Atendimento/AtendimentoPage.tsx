@@ -16,6 +16,7 @@ import { ProximoAgendamento } from './ProximoAgendamento';
 import { AlertaClientesNaoAvisados } from './AlertaClientesNaoAvisados';
 import { KanbanBoard } from './KanbanBoard';
 import { OSDetalheModal } from './OSDetalheModal';
+import { AtendimentoDesktop } from './Desktop/AtendimentoDesktop';
 import { PecasNecessarias } from './PecasNecessarias';
 import { HistoricoExpress } from './HistoricoExpress';
 import type { NavPage } from '../../../types/dashboard';
@@ -34,7 +35,7 @@ interface AtendimentoPageProps {
 }
 
 export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSComPrefill, onVerClientesNaoAvisados }: AtendimentoPageProps) {
-  const { loading, erro, ordens, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear, marcarClienteAvisado } =
+  const { loading, erro, ordens, agendamentos, colunas, resumo, clientesNaoAvisados, proximoAgendamento, atualizarOverlay, garantirIniciado, desbloquear, marcarClienteAvisado } =
     useAtendimento();
   const { kits, itens } = useEstoque();
   const { servicos } = useServicos();
@@ -133,7 +134,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
           gap: 14,
         }}
       >
-        {/* Resumo + Próximo Agendamento — faixas menores, tamanhos diferentes entre si (Seção 9) */}
+        {/* (celular) Resumo + Próximo Agendamento — faixas menores, tamanhos diferentes entre si (Seção 9) */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '0.85fr 1.15fr', gap: 14 }}>
           <ResumoOperacional resumo={resumo} loading={loading} />
           <ProximoAgendamento agendamento={proximoAgendamento} loading={loading} onIniciarAtendimento={handleIniciarAtendimento} />
@@ -188,7 +189,22 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="atendimento" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>{content}</main>
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <AtendimentoDesktop
+          colunas={colunas}
+          agendamentos={agendamentos}
+          // Skeleton só na primeira carga: recarregar depois de uma ação não deve piscar o quadro.
+          loading={loading && ordens.length === 0}
+          erro={erro}
+          clientesNaoAvisados={clientesNaoAvisados}
+          proximoAgendamento={proximoAgendamento}
+          qtdPecasPorOrdem={qtdPecasPorOrdem}
+          possivelRetornoPorOrdem={possivelRetornoPorOrdem}
+          onAbrirOS={setSelected}
+          onIniciarAtendimento={handleIniciarAtendimento}
+          onVerClientesNaoAvisados={onVerClientesNaoAvisados}
+        />
+      </main>
       {modals}
     </div>
   );
