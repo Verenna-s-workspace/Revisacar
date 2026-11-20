@@ -202,9 +202,10 @@ def _titulo(ctx, texto, direita=None):
 
 
 def _cabecalho(ctx, dados, oficina):
-    nome = Table([["", "", [ctx.p(ctx.txt(oficina.get("nome") or "Oficina", 60), "titulo", "b"),
-                           ctx.p(f"CNPJ {doc_txt(oficina['cnpj'])}" if oficina.get("cnpj") else "Relatório final da OS",
-                                 "micro", "m", CINZA)]]],
+    subtitulo = f"CNPJ {doc_txt(oficina['cnpj'])}" if oficina.get("cnpj") else "Relatório final da OS"
+    titulo_oficina = [ctx.p(ctx.txt(oficina.get("nome") or "Oficina", 60), "titulo", "b"),
+                      ctx.p(subtitulo, "micro", "m", CINZA)]
+    nome = Table([["", "", titulo_oficina]],
                  colWidths=[ctx.esp(2.6), ctx.esp(6), LARGURA * 0.58 - ctx.esp(8.6)])
     nome.setStyle(_sem_margem([("BACKGROUND", (0, 0), (0, 0), COR_MARCA), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     esquerda = []
@@ -383,7 +384,6 @@ def _tabela_itens(ctx, pecas, servicos, versao, limite):
               ("BOTTOMPADDING", (0, 0), (-1, -1), ctx.esp(3)), ("LINEBELOW", (0, 0), (-1, 0), 0.8, TINTA)]
 
     def grupo(titulo, itens, vazio):
-        nonlocal linhas
         linhas.append([ctx.p(titulo, "peq", "b", CINZA), "", "", ""])
         estilo.append(("SPAN", (0, len(linhas) - 1), (-1, len(linhas) - 1)))
         estilo.append(("BACKGROUND", (0, len(linhas) - 1), (-1, len(linhas) - 1), FUNDO))
@@ -493,8 +493,8 @@ def _construir(dados: dict, fk: float, sp: float, limite, corte):
         canal = CANAL_ROTULO.get(apr.get("canal"), apr.get("canal") or "")
         esq = [ctx.rico(f"<font name='{F_TXT_B}'>Orçamento aprovado pelo cliente</font> "
                         f"{'via ' + escape(canal) + ' ' if canal else ''}em {_data_local(apr['em'])}.", "peq", "r", TINTA)]
-        esq.append(ctx.p((f"Versão {apr['versao']}, registrada em " if apr.get("versao") else "Registrada em ")
-                          + data_hora_br(apr["em"]) + ".", "peq", "r", CINZA))
+        prefixo = f"Versão {apr['versao']}, registrada em " if apr.get("versao") else "Registrada em "
+        esq.append(ctx.p(prefixo + data_hora_br(apr["em"]) + ".", "peq", "r", CINZA))
         if apr.get("obs"):
             esq.append(ctx.p(ctx.txt(apr["obs"]), "peq", "r", CINZA))
     else:
@@ -502,7 +502,6 @@ def _construir(dados: dict, fk: float, sp: float, limite, corte):
     esq += [Spacer(1, ctx.esp(4)), _assinaturas(ctx, dados, larg_esq)]
 
     total_pecas, total_mao = _soma(pecas), _soma(servicos)
-    interno_dir = larg_dir - 2 * ctx.esp(10)
     linhas_totais = [
         [ctx.p("Peças", "peq", "r", SOBRE_ESCURO), ctx.p(brl(total_pecas), "peq", "m", colors.white, TA_RIGHT)],
         [ctx.p("Mão de obra", "peq", "r", SOBRE_ESCURO), ctx.p(brl(total_mao), "peq", "m", colors.white, TA_RIGHT)],
@@ -527,6 +526,7 @@ def _construir(dados: dict, fk: float, sp: float, limite, corte):
 
     rodape = _rodape_da_pagina(oficina, dados.get("os_num"))
     # fonte inicial do canvas = DM Sans (senão o reportlab deixa uma referência à Helvetica no arquivo)
+
     def canvas(*args, **kw):
         kw.update(initialFontName=F_TXT, initialFontSize=TAMANHOS["corpo"])
         return Canvas(*args, **kw)

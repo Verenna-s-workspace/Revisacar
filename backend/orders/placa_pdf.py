@@ -98,20 +98,20 @@ class PlacaFlowable(Flowable):
             c.setStrokeColor(colors.Color(0x3B / 255, 0x3D / 255, 0x40 / 255, alpha=0.4))
             c.setFillColor(_CINZA)
             c.rect(fx, fy, fl, faixa_h, stroke=1, fill=1)
-            
+
             # Texto centralizado na faixa
             c.setFillColor(_PRETO)
             c.setFont(self.fonte, self.tam_pais)
             c.drawCentredString(w / 2, fy + faixa_h / 2 - self.tam_pais * 0.34, "BR-BRASIL",
                                 charSpace=0.2 * p)
-            
+
             # Furos mais próximos das extremidades (3.5 * p em vez de 8 * p)
             for cx in (fx + 3.5 * p, fx + fl - 3.5 * p):
                 c.setLineWidth(0.5 * p)
                 c.setStrokeColor(_FURO_BORDA)
                 c.setFillColor(_PRETO)
                 c.circle(cx, fy + faixa_h / 2, 1.5 * p, stroke=1, fill=1)
-            
+
             centro_texto = (fy + borda) / 2
         c.setFillColor(_PRETO)
         c.setFont(self.fonte, self.tam_texto)
