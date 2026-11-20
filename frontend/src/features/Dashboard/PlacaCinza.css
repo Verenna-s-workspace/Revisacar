@@ -14,12 +14,12 @@
 .placa-cinza__faixa {
   flex: none;
   display: flex;
-  align-items: center;      /* Centraliza texto e furos na vertical */
-  justify-content: center;  /* Centraliza na horizontal */
-  gap: 2px;                 /* Espaço limpo entre os furos e o texto */
+  align-items: center;
+  justify-content: space-between; /* Empurra cada furo para um canto e deixa o texto no centro */
+  padding: 0 3px;                 /* Distância fixa entre os furos e a borda da tarjeta */
   height: 10px;
   width: 80%;
-  margin-top: 1px;          /* Pequeno respiro da borda superior */
+  margin-top: 1px;
   align-self: center;
   box-sizing: border-box;
   background: #A5A8AA;
