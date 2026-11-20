@@ -6,7 +6,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import { formatBRL } from '../../../utils/dashboard';
 import { valorOS } from '../../../utils/relatorios';
 import type { OrdemRow } from '../../../types/dashboard';
-import { PlacaMercosul } from '../PlacaMercosul';
+import { Placa } from '../Placa';
 import { StatusOS } from './StatusOS';
 import { IcBuscar, IcEditar, IcLixeira } from './icones';
 import {
@@ -254,7 +254,7 @@ export function OrdensMobile({ ordens, loading, onAbrir, onEditar, onExcluir, ex
                             <StatusOS status={o.status} />
                           </div>
                           <div className="osm-linha2">
-                            <PlacaMercosul placa={o.placa} />
+                            <Placa placa={o.placa} />
                             <div className="osm-cliente">
                               <span className="osm-cliente__nome">{o.cliente}</span>
                               <span className="osm-cliente__detalhe">{detalhe || '—'}</span>

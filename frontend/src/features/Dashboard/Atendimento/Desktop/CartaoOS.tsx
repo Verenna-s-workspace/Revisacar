@@ -3,7 +3,7 @@ import { momentoConclusao } from '../../../../utils/atendimento_utils';
 import type { ReactNode } from 'react';
 import type { Agendamento } from '../../../../types/agendamento';
 import type { ItemKanban, KanbanColunaId, OSAtendimento } from '../../../../types/atendimento';
-import { PlacaMercosul } from '../../PlacaMercosul';
+import { Placa } from '../../Placa';
 import { mecanicoDaOrdem } from '../../Ordens/ordensUtils';
 import { IcAlerta, IcPacote, IcPessoa, IcRelogio } from './icones';
 import { statusDoCartao } from './statusCartao';
@@ -58,7 +58,7 @@ export function CartaoOS({ item, coluna, agora, vinculado, qtdPecas, possivelRet
     return (
       <article className="at-cartao">
         <div className="at-cartao__topo">
-          <PlacaMercosul placa={ag.placa} />
+          <Placa placa={ag.placa} />
           <span className="at-pill at-pill--agendado">Agendado · {ag.horaInicio}</span>
         </div>
         <div className="at-cartao__linha-titulo">
@@ -133,7 +133,7 @@ export function CartaoOS({ item, coluna, agora, vinculado, qtdPecas, possivelRet
       }}
     >
       <div className="at-cartao__topo">
-        <PlacaMercosul placa={ordem.placa} />
+        <Placa placa={ordem.placa} />
         <span className={`at-pill at-pill--${st.tom}`}>{st.rotulo}</span>
       </div>
 

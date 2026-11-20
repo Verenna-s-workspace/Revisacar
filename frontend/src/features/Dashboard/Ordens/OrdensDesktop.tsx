@@ -5,8 +5,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import { formatBRL } from '../../../utils/dashboard';
 import { valorOS } from '../../../utils/relatorios';
 import type { OrdemRow } from '../../../types/dashboard';
-import { PlacaMercosul } from '../PlacaMercosul';
-import { PlacaCinza } from '../PlacaCinza';
+import { Placa } from '../Placa';
 import { StatusOS } from './StatusOS';
 import {
   IcAbrir, IcBuscar, IcEditar, IcFiltros, IcLixeira, IcMais, IcReticencias, IcSetaDir, IcSetaEsq,
@@ -278,7 +277,7 @@ export function OrdensDesktop({
                         <div className="os-cliente">{o.cliente}</div>
                         <div className="os-veiculo">{veiculoDaOrdem(o)}</div>
                       </td>
-                      <td><PlacaCinza placa={o.placa} /></td>
+                      <td><Placa placa={o.placa} /></td>
                       <td><StatusOS status={o.status} /></td>
                       <td className="os-cel-mecanico">{mec ?? <span className="os-vazio">—</span>}</td>
                       <td className="os-cel-entrada">{formatarEntrada(o.created_at)}</td>

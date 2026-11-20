@@ -98,9 +98,19 @@ export function formatPlaca(rawValue: string): string {
   return (rawValue || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
 }
 
+export type TipoPlaca = 'antiga' | 'mercosul';
+
+/** Identifica o padrão da placa: 'antiga' (ABC-1234 / ABC1234), 'mercosul' (ABC1D23)
+ * ou null se não bate com nenhum. Ignora hífen, espaços e caixa (abc1d23 → 'mercosul'). */
+export function tipoPlaca(value: string | null | undefined): TipoPlaca | null {
+  const v = formatPlaca(value ?? '');
+  if (/^[A-Z]{3}\d{4}$/.test(v)) return 'antiga';
+  if (/^[A-Z]{3}\d[A-Z]\d{2}$/.test(v)) return 'mercosul';
+  return null;
+}
+
 export function isValidPlaca(value: string): boolean {
-  const v = formatPlaca(value);
-  return /^[A-Z]{3}\d{4}$/.test(v) || /^[A-Z]{3}\d[A-Z]\d{2}$/.test(v);
+  return tipoPlaca(value) !== null;
 }
 
 // ── Moeda (BRL) ─────────────────────────────────────────────────────────────

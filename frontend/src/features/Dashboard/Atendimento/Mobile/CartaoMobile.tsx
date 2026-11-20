@@ -3,7 +3,7 @@ import { statusAntesDaExecucao, statusEmExecucao } from '../../../../utils/ordem
 import { momentoConclusao } from '../../../../utils/atendimento_utils';
 import type { Agendamento } from '../../../../types/agendamento';
 import type { ItemKanban, KanbanColunaId, OSAtendimento } from '../../../../types/atendimento';
-import { PlacaMercosul } from '../../PlacaMercosul';
+import { Placa } from '../../Placa';
 import { mecanicoDoItem } from '../Desktop/CartaoOS';
 import { IcAlerta, IcPacote, IcPessoa, IcRelogio } from '../Desktop/icones';
 import { statusDoCartao } from '../Desktop/statusCartao';
@@ -50,7 +50,7 @@ export function CartaoMobile({
     return (
       <article className="atm-cartao">
         <div className="atm-cartao__topo">
-          <PlacaMercosul placa={ag.placa} />
+          <Placa placa={ag.placa} />
           <span className="atm-cartao__os" />
           <span className="at-pill at-pill--agendado">Agendado · {ag.horaInicio}</span>
         </div>
@@ -112,7 +112,7 @@ export function CartaoMobile({
   return (
     <article className={`atm-cartao atm-cartao--${coluna}`}>
       <div className="atm-cartao__topo">
-        <PlacaMercosul placa={ordem.placa} />
+        <Placa placa={ordem.placa} />
         <span className="atm-cartao__os">#{ordem.os_num}</span>
         <span className={`at-pill at-pill--${st.tom}`}>{st.rotulo}</span>
       </div>
