@@ -35,7 +35,7 @@ from reportlab.platypus import (
     Flowable, Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 
-# Cores e fontes do site / do PDF do checklist (RevisaCar: vermelho #CC1400, DM Sans + DM Mono).
+# Cores e fonte do site (RevisaCar: vermelho #CC1400, DM Sans).
 COR_MARCA = colors.HexColor("#CC1400")
 COR_TEXTO = colors.HexColor("#1a1a1a")
 COR_SUAVE = colors.HexColor("#6b6b6b")
@@ -50,12 +50,10 @@ PASTA_FONTES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets"
 
 
 def _registrar_fontes():
-    """Usa DM Sans / DM Mono (as do site) se os .ttf estiverem em assets/fonts; senão cai em
-    Helvetica / Courier, que vêm com o reportlab. Devolve os nomes das fontes a usar."""
-    arquivos = {
-        "DMSans": "DMSans-Regular.ttf", "DMSans-Medium": "DMSans-Medium.ttf", "DMSans-Bold": "DMSans-Bold.ttf",
-        "DMMono": "DMMono-Regular.ttf", "DMMono-Medium": "DMMono-Medium.ttf",
-    }
+    """DM Sans (a fonte do site) a partir dos .ttf de assets/fonts: Regular, Medium e Bold — os 3 pesos
+    dos PDFs. Sem os arquivos, cai em Helvetica, que vem com o reportlab. O PDF não usa fonte mono:
+    os nomes F_MONO* continuam existindo e apontam para a própria DM Sans. Devolve os nomes a usar."""
+    arquivos = {"DMSans": "DMSans-Regular.ttf", "DMSans-Medium": "DMSans-Medium.ttf", "DMSans-Bold": "DMSans-Bold.ttf"}
     caminhos = {nome: os.path.join(PASTA_FONTES, arq) for nome, arq in arquivos.items()}
     if all(os.path.exists(c) for c in caminhos.values()):
         try:
@@ -63,10 +61,10 @@ def _registrar_fontes():
                 pdfmetrics.registerFont(TTFont(nome, caminho))
             pdfmetrics.registerFontFamily("DMSans", normal="DMSans", bold="DMSans-Bold",
                                           italic="DMSans", boldItalic="DMSans-Bold")
-            return "DMSans", "DMSans-Medium", "DMSans-Bold", "DMMono", "DMMono-Medium"
+            return "DMSans", "DMSans-Medium", "DMSans-Bold", "DMSans", "DMSans-Medium"
         except Exception:  # noqa: BLE001 — fonte corrompida não pode impedir o PDF
             pass
-    return "Helvetica", "Helvetica", "Helvetica-Bold", "Courier", "Courier-Bold"
+    return "Helvetica", "Helvetica", "Helvetica-Bold", "Helvetica", "Helvetica"
 
 
 F_TXT, F_TXT_M, F_TXT_B, F_MONO, F_MONO_M = _registrar_fontes()
