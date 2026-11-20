@@ -281,11 +281,11 @@ def test_pdf_concluida_conteudo_e_so_preco_cobrado(dono, db):
     oid = _executando(dono, db, [_peca("Pastilha", 2, 100), _servico("Alinhamento", 1, 80)])
     assert _concluir(dono, oid, {"observacao": "Cliente retirou às 17h"}).status_code == 200
     texto = _texto_pdf(dono.get(f"/ordens/{oid}/pdf-concluida").content)
-    assert "RELATÓRIO FINAL DA OS" in texto and "OS CONCLUÍDA" in texto
-    assert "Total de peças R$ 200,00" in texto and "Total de mão de obra R$ 80,00" in texto
-    assert "TOTAL GERAL R$ 280,00" in texto
+    assert "Relatório final · Ordem de serviço" in texto and "Serviço concluído" in texto
+    assert "Peças R$ 200,00" in texto and "Mão de obra R$ 80,00" in texto
+    assert "Total geral R$ 280,00" in texto
     assert "Pastilha" in texto and "Alinhamento" in texto
-    assert "Aprovado" in texto and "Cliente retirou às 17h" in texto
+    assert "Orçamento aprovado pelo cliente" in texto and "Cliente retirou às 17h" in texto
     assert "0/5" in texto  # a OS de teste não tem fotos obrigatórias
     assert "custo" not in texto.lower() and "margem" not in texto.lower()
 
