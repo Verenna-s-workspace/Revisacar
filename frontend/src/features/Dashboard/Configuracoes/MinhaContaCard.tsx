@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
-import { Card } from '../Primitives';
+import { Button } from '../../../components/system';
+import { Aviso, ModalCfg, RodapeAcoes } from './cfgUi';
+import { IcCheck } from './icones';
 import { Input } from '../../../components/inputs/input';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../utils/api';
@@ -11,19 +11,17 @@ import {
   normalizarNome, problemaNoNome,
 } from '../../../utils/conta_utils';
 
-const caixaDeErro = {
-  padding: '10px 14px', background: 'var(--color-crit-bg)', color: 'var(--color-crit)',
-  border: '1px solid var(--color-crit-border)', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-} as const;
-
-const botaoSecundario = {
-  padding: '9px 16px', background: 'transparent', color: tokens.color.text,
-  border: `1px solid ${tokens.color.border}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-} as const;
-
 const ROTULO_CARGO: Record<string, string> = {
   dono: 'Dono', gerente: 'Gerente', mecanico: 'Mecânico', atendente: 'Atendente',
 };
+
+/** Linha de apoio do painel: "Dono · CNPJ …" ou "Cargo · e-mail". */
+export function detalheDaConta(user: { tipo?: string; doc?: string; cargo?: string; email?: string } | null | undefined): string {
+  if (!user) return '';
+  return user.tipo !== 'funcionario'
+    ? (user.doc ? `Dono · CNPJ ${user.doc}` : 'Dono')
+    : `${ROTULO_CARGO[user.cargo ?? ''] ?? 'Funcionário'}${user.email ? ` · ${user.email}` : ''}`;
+}
 
 /**
  * Minha conta — vale para qualquer pessoa logada (dono, gerente, mecânico, atendente), sem permissão
@@ -33,7 +31,7 @@ const ROTULO_CARGO: Record<string, string> = {
  *  • Excluir minha conta: dono apaga a oficina inteira (confirma com a senha); funcionário apaga só o
  *    próprio cadastro (confirma com o PIN). Nos dois casos é preciso digitar EXCLUIR.
  */
-export function MinhaContaCard({ isMobile }: { isMobile: boolean }) {
+export function MinhaContaCard() {
   const { user, atualizarNome, logout } = useAuth();
   const ehDono = user?.tipo !== 'funcionario';
 
@@ -72,78 +70,38 @@ export function MinhaContaCard({ isMobile }: { isMobile: boolean }) {
     }
   };
 
-  const detalhe = ehDono
-    ? (user.doc ? `Dono · CNPJ ${user.doc}` : 'Dono')
-    : `${ROTULO_CARGO[user.cargo ?? ''] ?? 'Funcionário'}${user.email ? ` · ${user.email}` : ''}`;
-
   return (
-    <Card style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${tokens.color.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ color: 'var(--color-ferrari)', display: 'flex' }}>{Icons.user}</span>
-          <div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: tokens.color.text }}>Minha conta</div>
-            <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{detalhe}</div>
-          </div>
-        </div>
-      </div>
+    <>
+      <form className="cfg-form" onSubmit={salvarNome}>
+        {erroNome && <Aviso tom="crit">{erroNome}</Aviso>}
+        <Input
+          name="meu-nome"
+          label="Seu nome"
+          value={nome}
+          maxLength={NOME_CONTA_MAX}
+          error={problema ?? undefined}
+          hint={ehDono
+            ? 'É o seu nome de usuário, que aparece no topo e nos registros. O nome da oficina fica em "Dados da oficina".'
+            : 'Aparece no topo e nos registros que você faz (ordens, lançamentos).'}
+          onChangeValue={v => { setNome(v); setNomeSalvo(false); setErroNome(''); }}
+        />
+        <RodapeAcoes>
+          <Button type="submit" variant="primary" disabled={!podeSalvar} loading={salvando}>
+            {salvando ? 'Salvando…' : nomeSalvo ? <>{IcCheck} Salvo</> : 'Salvar nome'}
+          </Button>
+        </RodapeAcoes>
+      </form>
 
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <form onSubmit={salvarNome} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {erroNome && <div role="alert" style={caixaDeErro}>{erroNome}</div>}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexDirection: isMobile ? 'column' : 'row' }}>
-            <div style={{ flex: 1, width: '100%' }}>
-              <Input
-                name="meu-nome"
-                label="Seu nome"
-                value={nome}
-                maxLength={NOME_CONTA_MAX}
-                error={problema ?? undefined}
-                hint={ehDono
-                  ? 'É o seu nome de usuário, que aparece no topo e nos registros. O nome da oficina fica em "Dados da Oficina".'
-                  : 'Aparece no topo e nos registros que você faz (ordens, lançamentos).'}
-                onChangeValue={v => { setNome(v); setNomeSalvo(false); setErroNome(''); }}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!podeSalvar}
-              style={{
-                padding: '10px 18px', background: 'var(--color-ferrari)', color: 'white', border: 'none',
-                borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, boxShadow: 'var(--shadow-sm)',
-                cursor: podeSalvar ? 'pointer' : 'not-allowed', opacity: podeSalvar ? 1 : 0.5,
-                width: isMobile ? '100%' : 'auto', whiteSpace: 'nowrap',
-              }}
-            >
-              {salvando ? 'Salvando…' : nomeSalvo ? <>{Icons.check} Salvo</> : 'Salvar nome'}
-            </button>
-          </div>
-        </form>
-
-        <div style={{
-          padding: 16, border: '1px solid var(--color-crit-border)', background: 'var(--color-crit-bg)',
-          borderRadius: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ flex: '1 1 260px' }}>
-            <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--color-crit)' }}>Excluir minha conta</div>
-            <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: tokens.color.text, lineHeight: 1.45 }}>
-              {ehDono
-                ? 'Apaga a oficina inteira: ordens, orçamentos, estoque, financeiro, agenda, clientes cadastrados por você e o acesso de todos os funcionários. Não dá para desfazer.'
-                : 'Remove o seu cadastro e o seu acesso à oficina. Os registros que você já fez continuam com o seu nome. Não dá para desfazer.'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setExcluindo(true)}
-            style={{
-              padding: '9px 16px', background: 'transparent', color: 'var(--color-crit)',
-              border: '1px solid var(--color-crit)', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
-              cursor: 'pointer', width: isMobile ? '100%' : 'auto',
-            }}
-          >
-            Excluir conta
-          </button>
+      <div className="cfg-risco">
+        <div className="cfg-risco__texto">
+          <div className="cfg-risco__titulo">Excluir minha conta</div>
+          <p className="cfg-risco__descricao">
+            {ehDono
+              ? 'Apaga a oficina inteira: ordens, orçamentos, estoque, financeiro, agenda, clientes cadastrados por você e o acesso de todos os funcionários. Não dá para desfazer.'
+              : 'Remove o seu cadastro e o seu acesso à oficina. Os registros que você já fez continuam com o seu nome. Não dá para desfazer.'}
+          </p>
         </div>
+        <Button className="cfg-btn--risco" onClick={() => setExcluindo(true)}>Excluir conta</Button>
       </div>
 
       {excluindo && (
@@ -157,7 +115,7 @@ export function MinhaContaCard({ isMobile }: { isMobile: boolean }) {
           }}
         />
       )}
-    </Card>
+    </>
   );
 }
 
@@ -171,13 +129,6 @@ function ExcluirContaModal({ ehDono, onCancelar, onExcluida }: {
 
   const segredoOk = ehDono ? segredo.length > 0 : /^\d{6}$/.test(segredo);
   const pode = segredoOk && confirmacaoCorreta(palavra) && !ocupado;
-
-  // Esc fecha — menos no meio do envio (a exclusão já está a caminho).
-  useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape' && !ocupado) onCancelar(); };
-    window.addEventListener('keydown', aoTeclar);
-    return () => window.removeEventListener('keydown', aoTeclar);
-  }, [ocupado, onCancelar]);
 
   const confirmar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,90 +147,61 @@ function ExcluirContaModal({ ehDono, onCancelar, onExcluida }: {
     }
   };
 
+  // Esc e clique fora fecham (ModalCfg) — menos no meio do envio, quando a exclusão já está a caminho.
   return (
-    <div
-      className="sheet-backdrop"
-      onMouseDown={e => { if (e.target === e.currentTarget && !ocupado) onCancelar(); }}
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16,
-        backdropFilter: 'blur(4px)',
-      }}
+    <ModalCfg
+      titulo={ehDono ? 'Excluir a oficina e a sua conta?' : 'Excluir a sua conta?'}
+      tom="crit"
+      bloqueado={ocupado}
+      onFechar={onCancelar}
     >
-      <div
-        className="sheet-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Excluir conta"
-        style={{
-          background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 460,
-          border: `1px solid ${tokens.color.border}`, boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
-          maxHeight: '100%', overflowY: 'auto',
-        }}
-      >
-        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${tokens.color.border}` }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-crit)' }}>
-            {ehDono ? 'Excluir a oficina e a sua conta?' : 'Excluir a sua conta?'}
-          </h3>
-        </div>
-        <form onSubmit={confirmar} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {ehDono ? (
-            <div style={{ fontSize: '0.84rem', color: tokens.color.text, lineHeight: 1.5 }}>
-              Isto apaga <strong>tudo</strong> da oficina, para sempre:
-              <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
-                <li>ordens de serviço, fotos e orçamentos;</li>
-                <li>estoque, catálogo de serviços e financeiro;</li>
-                <li>agenda, clientes e veículos cadastrados pela oficina;</li>
-                <li>todos os funcionários (eles perdem o acesso).</li>
-              </ul>
-              <p style={{ margin: '10px 0 0' }}>
-                A conta de cliente que usa o aplicativo não é apagada — só deixa de estar ligada à oficina.
-              </p>
-            </div>
-          ) : (
-            <div style={{ fontSize: '0.84rem', color: tokens.color.text, lineHeight: 1.5 }}>
-              O seu cadastro e o seu acesso à oficina serão removidos. Os registros que você já fez
-              (ordens, lançamentos) continuam, com o seu nome. A oficina e os outros funcionários não são afetados.
-            </div>
-          )}
-
-          {erro && <div role="alert" style={caixaDeErro}>{erro}</div>}
-
-          <Input
-            name="excluir-segredo"
-            type={ehDono ? 'password' : 'digits'}
-            label={ehDono ? 'Sua senha' : 'Seu PIN (6 números)'}
-            maxLength={ehDono ? undefined : 6}
-            autoFocus
-            value={segredo}
-            onChangeValue={v => { setSegredo(v); setErro(''); }}
-          />
-          <Input
-            name="excluir-palavra"
-            label={`Para confirmar, digite ${PALAVRA_CONFIRMACAO}`}
-            placeholder={PALAVRA_CONFIRMACAO}
-            value={palavra}
-            onChangeValue={setPalavra}
-          />
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <button type="button" onClick={onCancelar} disabled={ocupado} style={botaoSecundario}>
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={!pode}
-              style={{
-                padding: '9px 16px', background: 'var(--color-crit)', color: 'white', border: 'none',
-                borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
-                cursor: pode ? 'pointer' : 'not-allowed', opacity: pode ? 1 : 0.5,
-              }}
-            >
-              {ocupado ? 'Excluindo…' : ehDono ? 'Excluir tudo definitivamente' : 'Excluir minha conta'}
-            </button>
+      <form className="cfg-form" onSubmit={confirmar}>
+        {ehDono ? (
+          <div className="cfg-modal__corpo">
+            Isto apaga <strong>tudo</strong> da oficina, para sempre:
+            <ul>
+              <li>ordens de serviço, fotos e orçamentos;</li>
+              <li>estoque, catálogo de serviços e financeiro;</li>
+              <li>agenda, clientes e veículos cadastrados pela oficina;</li>
+              <li>todos os funcionários (eles perdem o acesso).</li>
+            </ul>
+            <p style={{ margin: '10px 0 0' }}>
+              A conta de cliente que usa o aplicativo não é apagada — só deixa de estar ligada à oficina.
+            </p>
           </div>
-        </form>
-      </div>
-    </div>
+        ) : (
+          <div className="cfg-modal__corpo">
+            O seu cadastro e o seu acesso à oficina serão removidos. Os registros que você já fez
+            (ordens, lançamentos) continuam, com o seu nome. A oficina e os outros funcionários não são afetados.
+          </div>
+        )}
+
+        {erro && <Aviso tom="crit">{erro}</Aviso>}
+
+        <Input
+          name="excluir-segredo"
+          type={ehDono ? 'password' : 'digits'}
+          label={ehDono ? 'Sua senha' : 'Seu PIN (6 números)'}
+          maxLength={ehDono ? undefined : 6}
+          autoFocus
+          value={segredo}
+          onChangeValue={v => { setSegredo(v); setErro(''); }}
+        />
+        <Input
+          name="excluir-palavra"
+          label={`Para confirmar, digite ${PALAVRA_CONFIRMACAO}`}
+          placeholder={PALAVRA_CONFIRMACAO}
+          value={palavra}
+          onChangeValue={setPalavra}
+        />
+
+        <RodapeAcoes>
+          <Button onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
+          <Button type="submit" variant="danger" disabled={!pode} loading={ocupado}>
+            {ocupado ? 'Excluindo…' : ehDono ? 'Excluir tudo definitivamente' : 'Excluir minha conta'}
+          </Button>
+        </RodapeAcoes>
+      </form>
+    </ModalCfg>
   );
 }

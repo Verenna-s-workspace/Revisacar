@@ -1,366 +1,91 @@
-import { useState, useEffect } from 'react';
-import { tokens } from '../../constants';
-import { Icons } from './Icons';
-import { Card } from './Primitives';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
+import { formatCpfCnpj } from '../../components/inputs/masks';
+import { NavSecoes, PainelSecao } from './Configuracoes/cfgUi';
+import { useOficinaConfig } from './Configuracoes/useOficinaConfig';
+import { SECOES } from './Configuracoes/secoes';
+import type { IdSecao } from './Configuracoes/secoes';
+import { DadosOficinaSecao, HorarioFuncionamentoSecao } from './Configuracoes/OficinaSecoes';
 import { FuncionariosCard } from './Configuracoes/FuncionariosCard';
 import { AcessoEquipeCard } from './Configuracoes/AcessoEquipeCard';
 import { ReservaCaixaCard } from './Configuracoes/ReservaCaixaCard';
-import { MinhaContaCard } from './Configuracoes/MinhaContaCard';
-import { Input } from '../../components/inputs/input';
-import { DEFAULT_HORA_ABERTURA, DEFAULT_HORA_FECHAMENTO } from '../../utils/agenda';
-import { useAuth } from '../../context/AuthContext';
-import { api } from '../../utils/api';
-import { mensagemDoErro } from '../../utils/api_erro';
-import { donoDaCopiaLocal, podeEditarConfiguracoes, salvarOficinaConfig, sincronizarOficinaConfig } from '../../utils/oficina_config';
+import { AplicativoSecao } from './Configuracoes/AplicativoSecao';
+import { PlanoCobrancaSecao } from './Configuracoes/PlanoCobrancaSecao';
+import { MinhaContaCard, detalheDaConta } from './Configuracoes/MinhaContaCard';
+import './Configuracoes/configuracoes.css';
 
-
-
-// Sem nada salvo neste navegador, os campos começam vazios (nome e CNPJ vêm da
-// conta logada) — antes vinham dados de exemplo que pareciam ser da oficina.
-const WORKSHOP_DEFAULTS = {
-  nome: '',
-  cnpj: '',
-  telefone: '',
-  email: '',
-  endereco: '',
-  valorHora: 0,
-  horaAbertura: DEFAULT_HORA_ABERTURA,
-  horaFechamento: DEFAULT_HORA_FECHAMENTO,
-};
-
+/**
+ * Configurações. Desktop: menu de seções à esquerda + um painel por vez à direita (redesign do Figma).
+ * Celular/tablet: ainda sem o redesign — os mesmos painéis aparecem empilhados, um abaixo do outro.
+ *
+ * Os dados da oficina (seções "Dados da oficina" e "Horário de funcionamento") vivem aqui, em um único
+ * hook, porque as duas seções editam e salvam o mesmo conjunto: trocar de seção não perde o que foi digitado.
+ */
 export function ConfiguracoesPage({ isMobile }: { isMobile: boolean }) {
   const { user } = useAuth();
-  
-  // Connection state
-  const [online, setOnline] = useState(navigator.onLine);
-  
-  // PWA installable prompt
-  const [installable, setInstallable] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { can } = usePermissions();
+  const cfg = useOficinaConfig();
 
-  // Workshop state loaded/saved to localStorage. Mescla com WORKSHOP_DEFAULTS
-  // pra preencher campos novos (como o horário de funcionamento) que não
-  // existiam ainda em configurações salvas antes dessa funcionalidade.
-  const [workshop, setWorkshop] = useState(() => {
-    // Só a conta do dono é a oficina; no login de funcionário `nome` é o da pessoa.
-    const dono = user && user.tipo !== 'funcionario';
-    const padrao = { ...WORKSHOP_DEFAULTS, nome: dono ? user.nome : '', cnpj: dono ? user.doc ?? '' : '' };
-    const saved = localStorage.getItem('oficina_config');
-    if (saved) {
-      try {
+  // Esconder uma seção sem permissão é só UX — quem barra de verdade é o backend.
+  const visiveis = SECOES.filter(s => !s.permissao || can(s.permissao));
+  const [idAtivo, setIdAtivo] = useState<IdSecao>(visiveis[0].id);
+  const ativa = visiveis.find(s => s.id === idAtivo) ?? visiveis[0];
 
-        const local = JSON.parse(saved);
-        // Cópia de outra oficina (computador compartilhado) não aparece aqui nem por um instante;
-        // a antiga (CNPJ de exemplo) aparece pra pessoa conferir — e só vai ao servidor se ela salvar.
-        return donoDaCopiaLocal(local, user?.doc) === 'outra' ? padrao : { ...padrao, ...local };
-
-      } catch {
-        return padrao;
-      }
-    }
-    return padrao;
-  });
-
-  const podeEditar = podeEditarConfiguracoes(user);
-
-  // O servidor é a fonte (migração 0005); o estado acima, da cópia local, só evita a tela vazia
-  // enquanto ele responde. Sem resposta (rede/servidor), fica a cópia local.
-  const [carregandoServidor, setCarregandoServidor] = useState(true);
-  useEffect(() => {
-    let vivo = true;
-    sincronizarOficinaConfig(podeEditar).then(servidor => {
-      if (!vivo) return;
-      if (servidor) {
-        const { salvo, atualizadoEm: _em, ...dados } = servidor;
-        // Salvo no servidor: vale o servidor. Ainda não: fica o que a tela mostrava (cópia local
-        // desta oficina ou antiga), só com o CNPJ e o nome da conta quando faltam.
-        setWorkshop((atual: typeof workshop) => salvo ? dados : { ...atual, cnpj: dados.cnpj, nome: atual.nome || dados.nome });
-      }
-      setCarregandoServidor(false);
-    });
-    return () => { vivo = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const [salvando, setSalvando] = useState(false);
-  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [horarioTentouSalvar, setHorarioTentouSalvar] = useState(false);
-  const horarioInvalido = workshop.horaFechamento <= workshop.horaAbertura;
-
-  useEffect(() => {
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Check PWA prompt status
-    const prompt = (window as any).deferredPrompt;
-    if (prompt) {
-      setInstallable(true);
-      setDeferredPrompt(prompt);
-    }
-
-    const handleBeforePrompt = (e: any) => {
-      setInstallable(true);
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforePrompt);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeinstallprompt', handleBeforePrompt);
-    };
-  }, []);
-
-  const handleSaveWorkshop = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (horarioInvalido) {
-      setHorarioTentouSalvar(true);
-      return;
-    }
-    setErroSalvar(null);
-    setSalvando(true);
-    try {
-      const { cnpj: _cnpj, ...dados } = workshop;   // CNPJ é o login da conta: o servidor não troca
-      const salvo = await api.salvarConfigOficina(dados);
-      const { salvo: _s, atualizadoEm: _em, ...confirmado } = salvo;
-      setWorkshop(confirmado);
-      try { salvarOficinaConfig(confirmado); } catch { /* cópia local é só cache */ }
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (erro) {
-      setErroSalvar(mensagemDoErro(erro, 'Não foi possível salvar os dados da oficina. Tente de novo.'));
-    } finally {
-      setSalvando(false);
+  const conteudo = (id: IdSecao): ReactNode => {
+    switch (id) {
+      case 'dados':      return <DadosOficinaSecao cfg={cfg} />;
+      case 'equipe':     return <FuncionariosCard />;
+      case 'acesso':     return <AcessoEquipeCard nomeOficina={cfg.workshop.nome} />;
+      case 'horario':    return <HorarioFuncionamentoSecao cfg={cfg} />;
+      case 'reserva':    return <ReservaCaixaCard />;
+      case 'aplicativo': return <AplicativoSecao />;
+      case 'plano':      return <PlanoCobrancaSecao />;
+      case 'conta':      return <MinhaContaCard />;
     }
   };
 
-  const handleInstallPWA = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`[PWA] Instalação resultado: ${outcome}`);
-    setDeferredPrompt(null);
-    setInstallable(false);
+  const descricaoDe = (id: IdSecao, padrao?: string) => (id === 'conta' ? detalheDaConta(user) : padrao);
+
+  // Subtítulo: o que está salvo (não o que está sendo digitado).
+  const { nome, cnpj } = cfg.original;
+  const subtitulo = [nome, cnpj && `CNPJ ${formatCpfCnpj(cnpj)}`].filter(Boolean).join(' · ');
+
+  const trocarSecao = (id: string) => {
+    setIdAtivo(id as IdSecao);
+    cfg.limparAvisos();
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header Area */}
-      <div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Configurações do Sistema</h2>
-        <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '2px 0 0' }}>Personalize sua oficina e gerencie o app PWA.</p>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
-        {/* General Form */}
-        <Card style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-            <span style={{ color: 'var(--color-ferrari)', display: 'flex' }}>{Icons.cog}</span>
-            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Dados da Oficina</h3>
-          </div>
-
-          <form onSubmit={handleSaveWorkshop} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Input
-              name="workshop_nome"
-              label="Nome Comercial da Oficina"
-              required
-              value={workshop.nome}
-              onChangeValue={v => setWorkshop({ ...workshop, nome: v })}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-              <Input
-                name="workshop_cnpj"
-                type="cpf_cnpj"
-                label="CNPJ"
-                value={workshop.cnpj}
-                disabled
-                hint="É o login da conta; não muda por aqui."
-              />
-              <Input
-                name="workshop_valor_hora"
-                type="currency"
-                label="Taxa de Mão de Obra (R$/hora)"
-                required
-                value={workshop.valorHora ? String(workshop.valorHora) : ''}
-                onChangeValue={v => setWorkshop({ ...workshop, valorHora: Number(v) || 0 })}
-              />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-              <Input
-                name="workshop_telefone"
-                type="phone"
-                label="Telefone / WhatsApp"
-                required
-                value={workshop.telefone}
-                onChangeValue={v => setWorkshop({ ...workshop, telefone: v })}
-              />
-              <Input
-                name="workshop_email"
-                type="email"
-                label="Email de Atendimento"
-                required
-                value={workshop.email}
-                onChangeValue={v => setWorkshop({ ...workshop, email: v })}
-              />
-            </div>
-            <Input
-              name="workshop_endereco"
-              label="Endereço da Oficina"
-              required
-              value={workshop.endereco}
-              onChangeValue={v => setWorkshop({ ...workshop, endereco: v })}
-            />
-
-            <div>
-              <div style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>
-                Horário de Funcionamento
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-                <Input
-                  name="workshop_hora_abertura"
-                  type="time"
-                  label="Abertura"
-                  required
-                  value={workshop.horaAbertura}
-                  onChangeValue={v => setWorkshop({ ...workshop, horaAbertura: v })}
-                />
-                <Input
-                  name="workshop_hora_fechamento"
-                  type="time"
-                  label="Fechamento"
-                  required
-                  value={workshop.horaFechamento}
-                  onChangeValue={v => setWorkshop({ ...workshop, horaFechamento: v })}
-                  error={horarioTentouSalvar && horarioInvalido ? 'Deve ser depois do horário de abertura.' : undefined}
-                />
-              </div>
-              <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
-                Define automaticamente os horários disponíveis na tela de Agendamentos.
-              </span>
-            </div>
-            
-            {savedSuccess && (
-              <div style={{
-                padding: '10px 14px',
-                background: 'var(--color-ok-bg)',
-                color: 'var(--color-ok)',
-                border: '1px solid var(--color-ok-border)',
-                borderRadius: 8,
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                textAlign: 'center',
-              }}>
-                Configurações da oficina salvas com sucesso!
-              </div>
-            )}
-            {erroSalvar && (
-              <div role="alert" style={{
-                padding: '10px 14px',
-                background: 'var(--color-crit-bg)',
-                color: 'var(--color-crit)',
-                border: '1px solid var(--color-crit-border)',
-                borderRadius: 8,
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                textAlign: 'center',
-              }}>
-                {erroSalvar}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={salvando || carregandoServidor || !podeEditar}
-              style={{
-                alignSelf: 'flex-end',
-                padding: '10px 22px',
-                background: 'var(--color-ferrari)',
-                color: 'white',
-                border: 'none',
-                borderRadius: 10,
-                fontSize: '0.86rem',
-                fontWeight: 700,
-                cursor: salvando || carregandoServidor || !podeEditar ? 'not-allowed' : 'pointer',
-                opacity: salvando || carregandoServidor || !podeEditar ? 0.6 : 1,
-                boxShadow: 'var(--shadow-sm)',
-                width: isMobile ? '100%' : 'auto',
-              }}
-            >
-              {salvando ? 'Salvando…' : carregandoServidor ? 'Carregando…' : 'Salvar Dados'}
-            </button>
-          </form>
-        </Card>
-
-        {/* Sidebar Controls (Network & PWA) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Network & PWA Card */}
-          <Card style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                Status de Conectividade
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: online ? 'var(--color-ok)' : 'var(--color-crit)',
-                  boxShadow: online ? '0 0 8px var(--color-ok)' : '0 0 8px var(--color-crit)',
-                }} />
-                <span style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text }}>
-                  {online ? 'Dispositivo Online' : 'Modo Offline Ativo'}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 6, lineHeight: 1.4 }}>
-                {online 
-                  ? 'Você está sincronizado com a nuvem em tempo real.' 
-                  : 'Suas ordens e fotos de inspeção serão salvas localmente e sincronizadas quando restabelecer a conexão.'}
-              </p>
-            </div>
-
-            {installable && (
-              <div style={{ borderTop: `1px solid ${tokens.color.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                  Aplicativo Instalável
-                </div>
-                <button
-                  onClick={handleInstallPWA}
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    background: 'var(--color-ferrari)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  {Icons.plus} Instalar RevisaCar
-                </button>
-              </div>
-            )}
-          </Card>
+    <div className={`cfg-page${isMobile ? ' cfg-page--compacto' : ''}`}>
+      <header className="cfg-header">
+        <div className="cfg-header__titulos">
+          <h1 className="cfg-titulo">Configurações</h1>
+          {subtitulo && <p className="cfg-subtitulo">{subtitulo}</p>}
         </div>
-      </div>
+      </header>
 
-      <FuncionariosCard isMobile={isMobile} />
-
-      <AcessoEquipeCard isMobile={isMobile} nomeOficina={workshop.nome} />
-
-      <ReservaCaixaCard isMobile={isMobile} />
-
-      <MinhaContaCard isMobile={isMobile} />
+      {isMobile ? (
+        <div className="cfg-empilhado">
+          {visiveis.map(s => (
+            <PainelSecao key={s.id} id={s.id} titulo={s.titulo} descricao={descricaoDe(s.id, s.descricao)}>
+              {conteudo(s.id)}
+            </PainelSecao>
+          ))}
+        </div>
+      ) : (
+        <div className="cfg-layout">
+          <NavSecoes
+            itens={visiveis.map(s => ({ id: s.id, rotulo: s.rotulo, emBreve: s.emBreve }))}
+            ativo={ativa.id}
+            onSelecionar={trocarSecao}
+          />
+          <PainelSecao key={ativa.id} id={ativa.id} titulo={ativa.titulo} descricao={descricaoDe(ativa.id, ativa.descricao)}>
+            {conteudo(ativa.id)}
+          </PainelSecao>
+        </div>
+      )}
     </div>
   );
 }

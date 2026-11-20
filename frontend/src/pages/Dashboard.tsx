@@ -84,7 +84,7 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 // devolvem o conteúdo interno, sem Sidebar/topbar). Reaproveita a mesma casca
 // da PlaceholderPage, mas com o conteúdo real no lugar do placeholder.
 
-function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; children: React.ReactNode }) {
+function ShellPage({ page, onNav, isMobile, onNewOS, semCabecalho = false, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; /** Desktop: a tela traz o próprio cabeçalho (sem o "Olá, …" nem o respiro padrão). */ semCabecalho?: boolean; children: React.ReactNode }) {
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
       <MobileTopbar active={page} onNav={onNav} />
@@ -95,9 +95,16 @@ function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader onNav={onNav} active={page} />
-        <div style={{ padding: '18px 28px 32px' }}>{children}</div>
+      <main style={semCabecalho
+        ? { flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }
+        : { flex: 1, minWidth: 0, overflowY: 'auto' }}
+      >
+        {semCabecalho ? children : (
+          <>
+            <DesktopHeader onNav={onNav} active={page} />
+            <div style={{ padding: '18px 28px 32px' }}>{children}</div>
+          </>
+        )}
       </main>
     </div>
   );
@@ -281,7 +288,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   }
   if (page === 'configuracoes') {
     return (
-      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} semCabecalho>
         <ConfiguracoesPage isMobile={isMobile} />
       </ShellPage>
     );

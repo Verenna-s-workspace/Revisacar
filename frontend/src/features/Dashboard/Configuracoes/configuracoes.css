@@ -1,0 +1,315 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Configurações" (desktop) — redesign do Figma.
+ * Tudo vive sob .cfg-page: os tokens abaixo e os ajustes em Input/Select/Button
+ * valem só aqui e não mudam as outras telas. Fontes do projeto: DM Sans (texto)
+ * e DM Mono (códigos). Pesos 400 / 500 / 700 (o 600 do Figma vira 700, como no
+ * resto do sistema).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.cfg-page {
+  /* Neutros */
+  --cfg-bg: #FFFFFF;
+  --cfg-surface: #FFFFFF;
+  --cfg-surface-high: #EEF0F3;
+  --cfg-hover: #F5F6F8;
+  --cfg-borda: #E2E5EA;
+  --cfg-borda-forte: #C9CED6;
+  --cfg-borda-campo: #868D98;
+  --cfg-texto: #1A1D22;
+  --cfg-texto-2: #4F5661;
+  --cfg-mudo: #666E7B;
+  --cfg-sutil: #868D98;
+
+  /* Marca (uma ação principal por painel) e foco */
+  --cfg-marca: #E01500;
+  --cfg-marca-hover: #C21200;
+  --cfg-foco: #3469EC;
+
+  --cfg-ativo-bg: #1A1D22;
+  --cfg-ativo-fg: #FFFFFF;
+  --cfg-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+
+  --cfg-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+  --cfg-mono: var(--font-mono, 'DM Mono', 'JetBrains Mono', monospace);
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  padding: 28px 32px 40px;
+  flex: 1 0 auto;
+  min-height: 100%;
+  background: var(--cfg-bg);
+  color: var(--cfg-texto);
+  font-family: var(--cfg-fonte);
+}
+
+body.dark .cfg-page {
+  --cfg-bg: var(--color-bg, #09090b);
+  --cfg-surface: var(--color-surface, #151518);
+  --cfg-surface-high: var(--color-surface-high, #1c1c21);
+  --cfg-hover: rgba(255, 255, 255, 0.05);
+  --cfg-borda: rgba(255, 255, 255, 0.1);
+  --cfg-borda-forte: rgba(255, 255, 255, 0.18);
+  --cfg-borda-campo: rgba(255, 255, 255, 0.28);
+  --cfg-texto: #f4f4f5;
+  --cfg-texto-2: #d4d4d8;
+  --cfg-mudo: #9ca3af;
+  --cfg-sutil: #8b8b94;
+  --cfg-foco: #7aa2ff;
+  --cfg-ativo-bg: #f4f4f5;
+  --cfg-ativo-fg: #151518;
+  --cfg-sombra-sm: none;
+}
+
+/* Celular/tablet: sem moldura própria (a casca do celular já dá o respiro) e painéis empilhados. */
+.cfg-page--compacto { padding: 0; background: transparent; min-height: 0; gap: 16px; }
+.cfg-empilhado { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
+.cfg-header { display: flex; align-items: center; gap: 8px; min-height: 60px; }
+.cfg-header__titulos { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cfg-titulo {
+  margin: 0;
+  font-size: 28px; line-height: 36px; font-weight: 700; letter-spacing: -0.015em;
+  color: var(--cfg-texto);
+}
+.cfg-subtitulo { margin: 0; font-size: 14px; line-height: 20px; font-weight: 400; color: var(--cfg-texto-2); }
+.cfg-page--compacto .cfg-header { min-height: 0; }
+.cfg-page--compacto .cfg-titulo { font-size: 20px; line-height: 28px; }
+
+/* ── Layout: navegação (esquerda) + painel (direita) ─────────────────────── */
+.cfg-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* ── Navegação das seções ────────────────────────────────────────────────── */
+.cfg-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 24px; }
+.cfg-nav__item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; height: 36px; padding: 0 12px;
+  border: 0; border-radius: 6px;
+  background: transparent; color: var(--cfg-texto-2);
+  font-family: var(--cfg-fonte); font-size: 13px; line-height: 16px; font-weight: 500;
+  text-align: left; cursor: pointer;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+.cfg-nav__item:hover { background: var(--cfg-hover); color: var(--cfg-texto); }
+.cfg-nav__item--ativo,
+.cfg-nav__item--ativo:hover { background: var(--cfg-surface-high); color: var(--cfg-texto); font-weight: 700; }
+.cfg-nav__item:focus-visible { outline: 2px solid var(--cfg-foco); outline-offset: 2px; }
+.cfg-nav__rotulo { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cfg-nav__tag {
+  flex: none; padding: 1px 8px; border-radius: 999px;
+  background: var(--cfg-surface-high); color: var(--cfg-mudo);
+  font-size: 12px; line-height: 16px; font-weight: 500;
+}
+
+/* ── Painel da seção (o "formulário" do Figma) ───────────────────────────── */
+.cfg-painel {
+  box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 20px;
+  width: 100%; max-width: 720px; min-width: 0;
+  padding: 24px;
+  background: var(--cfg-surface);
+  border: 1px solid var(--cfg-borda);
+  border-radius: 8px;
+}
+.cfg-painel__cabecalho { display: flex; flex-direction: column; gap: 8px; }
+.cfg-painel__titulo {
+  margin: 0;
+  font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--cfg-texto);
+}
+.cfg-painel__descricao { margin: 0; font-size: 14px; line-height: 20px; color: var(--cfg-texto-2); }
+.cfg-page--compacto .cfg-painel { padding: 16px; max-width: none; }
+.cfg-page--compacto .cfg-painel__titulo { font-size: 17px; line-height: 24px; }
+
+/* ── Formulário: grade de 2 colunas, rodapé de ações ─────────────────────── */
+.cfg-form { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.cfg-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.cfg-grade__inteira { grid-column: 1 / -1; }
+.cfg-page--compacto .cfg-grade { grid-template-columns: minmax(0, 1fr); }
+
+.cfg-acoes {
+  display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding-top: 16px; border-top: 1px solid var(--cfg-borda);
+}
+.cfg-barra { display: flex; justify-content: flex-end; }
+
+/* ── Textos e blocos de apoio ────────────────────────────────────────────── */
+.cfg-bloco { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.cfg-bloco--separado { padding-top: 20px; border-top: 1px solid var(--cfg-borda); }
+.cfg-bloco__titulo { margin: 0; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--cfg-texto); }
+.cfg-texto { margin: 0; font-size: 14px; line-height: 20px; color: var(--cfg-texto-2); }
+.cfg-texto--pequeno { font-size: 13px; line-height: 18px; color: var(--cfg-mudo); }
+.cfg-rotulo { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--cfg-texto); }
+.cfg-destaque {
+  padding: 12px 14px; border-radius: 8px; background: var(--cfg-surface-high);
+  font-size: 14px; line-height: 20px; color: var(--cfg-texto-2);
+}
+.cfg-destaque strong { color: var(--cfg-texto); font-weight: 700; }
+.cfg-destaque .cfg-texto--pequeno { margin-top: 6px; }
+
+.cfg-status { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--cfg-texto); }
+.cfg-status__ponto { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--color-ok); }
+.cfg-status__ponto--crit { background: var(--color-crit); }
+
+.cfg-codigo { font-family: var(--cfg-mono); font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: 0.12em; color: var(--cfg-texto); }
+.cfg-caixa-link {
+  box-sizing: border-box; width: 100%; padding: 8px 12px;
+  border: 1px solid var(--cfg-borda); border-radius: 6px; background: var(--cfg-surface-high);
+  font-size: 13px; line-height: 18px; color: var(--cfg-texto); word-break: break-all; user-select: all;
+}
+.cfg-linha { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+
+/* ── Avisos (sucesso / erro) ─────────────────────────────────────────────── */
+.cfg-aviso {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 14px; border-radius: 6px; border: 1px solid transparent;
+  font-size: 13px; line-height: 18px; font-weight: 500;
+}
+.cfg-aviso > svg { flex: none; margin-top: 1px; }
+.cfg-aviso--ok { background: var(--color-ok-bg); color: var(--color-ok); border-color: var(--color-ok-border); }
+.cfg-aviso--crit { background: var(--color-crit-bg); color: var(--color-crit); border-color: var(--color-crit-border); }
+
+/* ── Estado vazio / carregando / erro ────────────────────────────────────── */
+.cfg-estado {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 28px 16px; text-align: center;
+  border: 1px dashed var(--cfg-borda-forte); border-radius: 8px;
+  font-size: 14px; line-height: 20px; color: var(--cfg-texto-2);
+}
+.cfg-estado__icone { display: flex; color: var(--color-crit); }
+.cfg-estado__titulo { font-weight: 700; color: var(--cfg-texto); }
+.cfg-estado__acao { margin-top: 8px; }
+
+/* ── Lista (equipe) ──────────────────────────────────────────────────────── */
+.cfg-lista { list-style: none; margin: 0; padding: 0; border: 1px solid var(--cfg-borda); border-radius: 8px; }
+.cfg-lista__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap;
+  padding: 12px 16px;
+}
+.cfg-lista__item + .cfg-lista__item { border-top: 1px solid var(--cfg-borda); }
+.cfg-lista__item--inativo .cfg-lista__texto { opacity: 0.55; }
+.cfg-lista__texto { display: flex; flex-direction: column; min-width: 0; flex: 1 1 180px; }
+.cfg-lista__nome { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--cfg-texto); overflow-wrap: anywhere; }
+.cfg-lista__detalhe { font-size: 13px; line-height: 18px; color: var(--cfg-mudo); overflow-wrap: anywhere; }
+.cfg-lista__acoes { display: flex; align-items: center; gap: 8px; }
+.cfg-lista__cargo { width: 148px; }
+
+/* "Ativo / Inativo": botão em pílula (liga e desliga o acesso) */
+.cfg-pilula {
+  min-width: 68px; height: 28px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--cfg-borda-forte); background: var(--cfg-surface-high); color: var(--cfg-mudo);
+  font-family: var(--cfg-fonte); font-size: 12px; line-height: 16px; font-weight: 500; cursor: pointer;
+}
+.cfg-pilula--ok { background: var(--color-ok-bg); color: var(--color-ok); border-color: var(--color-ok-border); }
+.cfg-pilula:focus-visible { outline: 2px solid var(--cfg-foco); outline-offset: 2px; }
+
+/* ── Interruptor ─────────────────────────────────────────────────────────── */
+.cfg-opcao-linha { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.cfg-opcao-linha__texto { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cfg-interruptor {
+  flex: none; position: relative; width: 44px; height: 26px; padding: 0;
+  border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--cfg-borda-forte); transition: background 0.15s ease;
+}
+.cfg-interruptor::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: var(--cfg-sombra-sm); transition: transform 0.15s ease;
+}
+.cfg-interruptor[aria-checked='true'] { background: var(--cfg-ativo-bg); }
+.cfg-interruptor[aria-checked='true']::after { transform: translateX(18px); }
+.cfg-interruptor:focus-visible { outline: 2px solid var(--cfg-foco); outline-offset: 2px; }
+
+/* ── Opções em cartão (rádio) ────────────────────────────────────────────── */
+.cfg-opcoes { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.cfg-opcoes__legenda { padding: 0; margin-bottom: 2px; }
+.cfg-opcoes__grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cfg-page--compacto .cfg-opcoes__grade { grid-template-columns: minmax(0, 1fr); }
+.cfg-opcao {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px;
+  border: 1px solid var(--cfg-borda-forte); border-radius: 8px; cursor: pointer;
+}
+.cfg-opcao--marcada { border-color: var(--cfg-ativo-bg); background: var(--cfg-surface-high); }
+.cfg-opcao input { margin-top: 3px; accent-color: var(--cfg-ativo-bg); }
+.cfg-opcao__titulo { display: block; font-size: 13px; line-height: 16px; font-weight: 700; color: var(--cfg-texto); }
+.cfg-opcao__texto { display: block; margin-top: 2px; font-size: 13px; line-height: 18px; color: var(--cfg-mudo); }
+
+/* ── Zona de risco (excluir conta) ───────────────────────────────────────── */
+.cfg-risco {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px;
+  padding: 16px; border-radius: 8px;
+  border: 1px solid var(--color-crit-border); background: var(--color-crit-bg);
+}
+.cfg-risco__texto { flex: 1 1 260px; min-width: 0; }
+.cfg-risco__titulo { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--color-crit); }
+.cfg-risco__descricao { margin: 4px 0 0; font-size: 13px; line-height: 18px; color: var(--cfg-texto); }
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.cfg-modal-fundo {
+  position: fixed; inset: 0; z-index: var(--z-modal, 1000);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(26, 26, 26, 0.45);
+}
+.cfg-modal {
+  box-sizing: border-box; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 16px; padding: 24px;
+  background: var(--cfg-surface); border: 1px solid var(--cfg-borda); border-radius: 12px;
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(17, 19, 23, 0.18));
+  font-family: var(--cfg-fonte); color: var(--cfg-texto);
+}
+.cfg-modal__titulo { margin: 0; font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em; color: var(--cfg-texto); }
+.cfg-modal__titulo--crit { color: var(--color-crit); }
+.cfg-modal__corpo { margin: 0; font-size: 14px; line-height: 20px; color: var(--cfg-texto-2); }
+.cfg-modal__corpo ul { margin: 8px 0 0; padding-left: 20px; }
+
+/* ══ Ajustes dos componentes do projeto, só dentro desta tela ═══════════════ */
+
+/* Campos (Input / Select): 36px, borda 1px #868D98, raio 6; foco = anel azul de 2px */
+.cfg-page .inp-wrap { gap: 6px; }
+.cfg-page .inp-label { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--cfg-texto); }
+.cfg-page .inp-required { display: none; }   /* quase todos os campos são obrigatórios: o asterisco só poluía */
+.cfg-page .inp {
+  height: 36px; padding: 0 12px;
+  font-size: 14px; line-height: 20px; color: var(--cfg-texto);
+  background: var(--cfg-surface);
+  border: 1px solid var(--cfg-borda-campo); border-radius: 6px;
+  box-shadow: none;
+}
+.cfg-page .inp::placeholder { color: var(--cfg-sutil); }
+.cfg-page .inp:hover { box-shadow: none; border-color: var(--cfg-mudo); }
+.cfg-page .inp:focus-visible { outline: none; border-color: var(--cfg-foco) !important; box-shadow: 0 0 0 1px var(--cfg-foco); }
+.cfg-page .inp:disabled {
+  opacity: 1; cursor: not-allowed;
+  background: var(--cfg-surface-high); border-color: var(--cfg-borda);
+  color: var(--cfg-sutil); -webkit-text-fill-color: var(--cfg-sutil);
+}
+.cfg-page .inp.error { background: var(--color-crit-bg); border-color: var(--color-crit); }
+.cfg-page .inp-hint-text,
+.cfg-page .inp-error-text { font-size: 13px; line-height: 18px; }
+.cfg-page .inp-hint-text { color: var(--cfg-mudo); }
+
+/* Botões (Button do sistema): 36px, raio 6, rótulo 13/700 */
+.cfg-page .sys-btn { min-height: 36px; padding: 0 16px; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700; }
+.cfg-page .sys-btn--sm { min-height: 32px; padding: 0 12px; }
+.cfg-page .sys-btn--icon { width: 36px; padding: 0; }
+.cfg-page .sys-btn--icon.sys-btn--sm { width: 32px; }
+.cfg-page .sys-btn--primary { background: var(--cfg-marca); color: #fff; }
+.cfg-page .sys-btn--primary:not(:disabled):hover { background: var(--cfg-marca-hover); }
+.cfg-page .sys-btn--secondary,
+.cfg-page .sys-btn--icon {
+  background: var(--cfg-surface); color: var(--cfg-texto);
+  border-color: var(--cfg-borda-forte); box-shadow: var(--cfg-sombra-sm);
+}
+.cfg-page .sys-btn--secondary:not(:disabled):hover,
+.cfg-page .sys-btn--icon:not(:disabled):hover { background: var(--cfg-surface-high); }
+.cfg-page .sys-btn:focus-visible { outline: 2px solid var(--cfg-foco); outline-offset: 2px; }
+.cfg-page a.sys-btn { text-decoration: none; }
+/* Destrutiva contornada (a sólida fica só no modal de confirmação) */
+.cfg-page .sys-btn.cfg-btn--risco { background: transparent; color: var(--color-crit); border-color: var(--color-crit); box-shadow: none; }
+.cfg-page .sys-btn.cfg-btn--risco:not(:disabled):hover { background: var(--color-crit-bg); }
