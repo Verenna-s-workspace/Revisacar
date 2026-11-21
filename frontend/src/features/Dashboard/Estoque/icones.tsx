@@ -47,3 +47,14 @@ export const IcLixeira: ReactNode = (
 export const IcCaixa: ReactNode = <span className="es-ic">{Icons.box}</span>;
 export const IcAlerta: ReactNode = <span className="es-ic">{Icons.alert}</span>;
 export const IcDinheiro: ReactNode = <span className="es-ic es-ic--pequeno">{Icons.dollar}</span>;
+
+// Cabeçalhos de seção do modal de produto (Lucide: info, image, file-text)
+export const IcInfo: ReactNode = (
+  <svg {...base}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+);
+export const IcImagem: ReactNode = (
+  <svg {...base}><rect width="18" height="18" x="3" y="3" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21" /></svg>
+);
+export const IcTexto: ReactNode = (
+  <svg {...base}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8" /></svg>
+);

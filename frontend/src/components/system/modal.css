@@ -1,0 +1,306 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Padrão de modal (Modal.tsx) — Figma do redesign.
+ * Usa a MESMA paleta/tipografia de Ordens, Atendimento e Estoque (cinzas frios,
+ * DM Sans, pesos 400/500/700, raio 6 em campos e botões, 8 em cartões, 12 na
+ * janela). Os tokens ficam em .sys-modal-backdrop porque a janela é renderizada
+ * fora das páginas (que têm tokens próprios: --os-*, --es-*).
+ * Quando as telas migrarem para tokens globais, é só trocar este bloco.
+ *
+ * Os campos (Input/Select/Textarea) continuam os mesmos componentes: aqui só se
+ * ajusta a aparência quando estão dentro de .sys-modal. Nada vaza para fora dela.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.sys-modal-backdrop {
+  --sm-surface: #FFFFFF;
+  --sm-painel: #F6F7F9;          /* fundo do corpo: os cartões brancos se destacam nele */
+  --sm-surface-alta: #EEF0F3;
+  --sm-borda: #E2E5EA;
+  --sm-borda-forte: #C9CED6;
+  --sm-texto: #1A1D22;
+  --sm-texto-2: #4F5661;
+  --sm-mudo: #666E7B;
+  --sm-sutil: #868D98;
+  --sm-marca: #E01500;
+  --sm-marca-hover: #C21200;
+  --sm-ativo: #1A1D22;           /* estado "ligado" do interruptor (como o chip ativo) */
+  --sm-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+  --sm-sombra: 0 24px 64px rgba(17, 19, 23, 0.22), 0 4px 12px rgba(17, 19, 23, 0.08);
+
+  /* Avisos — mesma paleta dos status da OS (Ordens/Status.css) */
+  --sm-info-bg: #EEF0F3;      --sm-info-borda: #E2E5EA;      --sm-info-ponto: #868D98;      --sm-info-texto: #3B4049;
+  --sm-atencao-bg: #FFF8EB;   --sm-atencao-borda: #FDD98A;   --sm-atencao-ponto: #E0860B;   --sm-atencao-texto: #934F09;  /* pendente_aprovacao */
+  --sm-erro-bg: #FFF0F3;      --sm-erro-borda: #FFC2CF;      --sm-erro-ponto: #E62753;      --sm-erro-texto: #A50C34;     /* recusada */
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 9999);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(17, 19, 23, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+  font-family: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+}
+
+body.dark .sys-modal-backdrop {
+  --sm-surface: var(--color-surface, #151518);
+  --sm-painel: var(--color-bg, #09090b);
+  --sm-surface-alta: var(--color-surface-high, #1c1c21);
+  --sm-borda: rgba(255, 255, 255, 0.1);
+  --sm-borda-forte: rgba(255, 255, 255, 0.18);
+  --sm-texto: #f4f4f5;
+  --sm-texto-2: #d4d4d8;
+  --sm-mudo: #9ca3af;
+  --sm-sutil: #8b8b94;
+  --sm-ativo: #f4f4f5;
+  --sm-sombra-sm: none;
+  --sm-sombra: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --sm-info-bg: rgba(255, 255, 255, 0.06);    --sm-info-borda: rgba(255, 255, 255, 0.12);   --sm-info-ponto: #9ca3af;  --sm-info-texto: #d4d4d8;
+  --sm-atencao-bg: rgba(245, 158, 11, 0.14);  --sm-atencao-borda: rgba(245, 158, 11, 0.3);  --sm-atencao-ponto: #fbbf24; --sm-atencao-texto: #fcd34d;
+  --sm-erro-bg: rgba(244, 63, 94, 0.15);      --sm-erro-borda: rgba(244, 63, 94, 0.32);     --sm-erro-ponto: #fb7185;   --sm-erro-texto: #fda4af;
+}
+
+/* A página atrás não rola com um modal aberto */
+body:has(.sys-modal-backdrop) { overflow: hidden; }
+
+/* ── Janela ──────────────────────────────────────────────────────────────── */
+.sys-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: min(90vh, 880px);
+  max-height: min(90dvh, 880px);
+  background: var(--sm-surface);
+  color: var(--sm-texto);
+  border: 1px solid var(--sm-borda);
+  border-radius: 12px;
+  box-shadow: var(--sm-sombra);
+  overflow: hidden;
+  animation: scaleIn 0.18s ease;
+}
+/* O foco entra na própria janela ao abrir (leitores de tela) — sem anel: ele é programático */
+.sys-modal:focus, .sys-modal:focus-visible { outline: none; }
+.sys-modal--sm { max-width: 440px; }
+.sys-modal--md { max-width: 560px; }
+.sys-modal--lg { max-width: 720px; }
+.sys-modal--xl { max-width: 960px; }
+
+/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
+.sys-modal__header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 24px;
+  background: var(--sm-surface);
+  border-bottom: 1px solid var(--sm-borda);
+}
+.sys-modal__header-icon {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border: 1px solid var(--sm-borda); border-radius: 8px;
+  background: var(--sm-surface-alta); color: var(--sm-texto-2);
+}
+.sys-modal__header-icon svg { width: 20px; height: 20px; stroke-width: 1.75; }
+.sys-modal__header-text { flex: 1 1 auto; min-width: 0; padding-top: 1px; }
+.sys-modal__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.sys-modal__title {
+  margin: 0;
+  font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -0.015em;
+  color: var(--sm-texto);
+}
+.sys-modal__description { margin: 2px 0 0; font-size: 14px; line-height: 20px; color: var(--sm-texto-2); }
+.sys-modal__close {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; color: var(--sm-mudo); cursor: pointer;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+.sys-modal__close:hover { background: var(--sm-surface-alta); color: var(--sm-texto); }
+
+/* ── Corpo ───────────────────────────────────────────────────────────────── */
+.sys-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+  background: var(--sm-painel);
+}
+
+.sys-modal__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.sys-modal__col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sys-modal__col--aside { order: -1; }   /* lateral à esquerda; no DOM ela vem depois (ordem do Tab) */
+
+/* ── Seção (cartão) ──────────────────────────────────────────────────────── */
+.sys-modal__section {
+  background: var(--sm-surface);
+  border: 1px solid var(--sm-borda);
+  border-radius: 8px;
+  min-width: 0;
+}
+.sys-modal__section-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--sm-borda);
+  border-radius: 8px 8px 0 0;
+}
+.sys-modal__section-icon { flex: none; display: inline-flex; color: var(--sm-texto-2); }
+.sys-modal__section-icon svg { width: 16px; height: 16px; stroke-width: 1.75; }
+.sys-modal__section-text { flex: 1 1 auto; min-width: 0; }
+.sys-modal__section-title { margin: 0; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--sm-texto); }
+.sys-modal__section-desc { margin: 0; font-size: 13px; line-height: 18px; color: var(--sm-mudo); }
+.sys-modal__section-body { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+
+.sys-modal__section--attention { border-color: var(--sm-atencao-borda); }
+.sys-modal__section--attention .sys-modal__section-head {
+  background: var(--sm-atencao-bg); border-bottom-color: var(--sm-atencao-borda);
+}
+.sys-modal__section--attention .sys-modal__section-icon,
+.sys-modal__section--attention .sys-modal__section-title { color: var(--sm-atencao-texto); }
+
+.sys-modal__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.sys-modal__fields--single { grid-template-columns: minmax(0, 1fr); }
+
+/* ── Selo (cabeçalho) ────────────────────────────────────────────────────── */
+.sys-modal__badge {
+  --n-bg: var(--sm-info-bg); --n-borda: var(--sm-info-borda); --n-ponto: var(--sm-info-ponto); --n-texto: var(--sm-info-texto);
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 2px 8px;
+  background: var(--n-bg); border: 1px solid var(--n-borda); border-radius: 4px;
+  font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--n-texto); white-space: nowrap;
+}
+.sys-modal__badge--attention { --n-bg: var(--sm-atencao-bg); --n-borda: var(--sm-atencao-borda); --n-ponto: var(--sm-atencao-ponto); --n-texto: var(--sm-atencao-texto); }
+.sys-modal__badge--error { --n-bg: var(--sm-erro-bg); --n-borda: var(--sm-erro-borda); --n-ponto: var(--sm-erro-ponto); --n-texto: var(--sm-erro-texto); }
+.sys-modal__badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--n-ponto); }
+
+/* ── Cartões de destaque ─────────────────────────────────────────────────── */
+.sys-modal__highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.sys-modal__highlight {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  padding: 14px 16px;
+  background: var(--sm-surface); border: 1px solid var(--sm-borda); border-radius: 8px;
+}
+.sys-modal__highlight-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-texto-2);
+}
+.sys-modal__highlight-icon { display: inline-flex; color: var(--sm-sutil); }
+.sys-modal__highlight-icon svg { width: 14px; height: 14px; stroke-width: 1.75; }
+.sys-modal__highlight-hint { margin: 0; font-size: 12px; line-height: 16px; color: var(--sm-mudo); }
+.sys-modal__required { color: var(--sm-erro-texto); }
+
+/* ── Campos dentro do modal (mesmos componentes, aparência do redesign) ──── */
+.sys-modal .inp-wrap { gap: 6px; }
+.sys-modal .inp-label { font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-texto); }
+.sys-modal .inp-required { color: var(--sm-erro-texto); }
+.sys-modal .inp-hint-text, .sys-modal .inp-count-text { font-size: 12px; line-height: 16px; color: var(--sm-mudo); }
+.sys-modal .inp-error-text { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--sm-erro-texto); }
+
+.sys-modal .inp,
+.sys-modal .inp-textarea {
+  min-height: 36px;
+  padding-top: 7px; padding-bottom: 7px; padding-left: 12px;
+  font-size: 14px; line-height: 20px; color: var(--sm-texto);
+  background: var(--sm-surface);
+  border: 1px solid var(--sm-borda-forte);
+  border-radius: 6px;
+}
+.sys-modal .inp::placeholder, .sys-modal .inp-textarea::placeholder { color: var(--sm-sutil); opacity: 1; }
+.sys-modal .inp:disabled, .sys-modal .inp-textarea:disabled { background: var(--sm-painel); }
+.sys-modal .inp.error, .sys-modal .inp-textarea.error {
+  border-color: var(--sm-erro-ponto); background: var(--sm-erro-bg);
+}
+.sys-modal .inp-textarea { min-height: 80px; resize: vertical; }
+
+/* Valor em destaque: campo grande, sem moldura pesada */
+.sys-modal__highlight .inp {
+  min-height: 44px;
+  font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Aviso ───────────────────────────────────────────────────────────────── */
+.sys-modal__notice {
+  --n-bg: var(--sm-info-bg); --n-borda: var(--sm-info-borda); --n-ponto: var(--sm-info-ponto); --n-texto: var(--sm-info-texto);
+  padding: 10px 12px;
+  background: var(--n-bg); border: 1px solid var(--n-borda); border-left: 3px solid var(--n-ponto);
+  border-radius: 6px; color: var(--n-texto);
+}
+.sys-modal__notice--attention { --n-bg: var(--sm-atencao-bg); --n-borda: var(--sm-atencao-borda); --n-ponto: var(--sm-atencao-ponto); --n-texto: var(--sm-atencao-texto); }
+.sys-modal__notice--error { --n-bg: var(--sm-erro-bg); --n-borda: var(--sm-erro-borda); --n-ponto: var(--sm-erro-ponto); --n-texto: var(--sm-erro-texto); }
+.sys-modal__notice-title { margin-bottom: 2px; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.sys-modal__notice-text { font-size: 13px; line-height: 18px; font-weight: 500; }
+
+/* ── Interruptor ─────────────────────────────────────────────────────────── */
+.sys-modal__switch { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.sys-modal__switch-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sys-modal__switch-label { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--sm-texto); }
+.sys-modal__switch-desc { font-size: 13px; line-height: 18px; color: var(--sm-mudo); }
+.sys-modal__switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.sys-modal__switch-track {
+  flex: none; position: relative; width: 36px; height: 20px; border-radius: 9999px;
+  background: var(--sm-borda-forte); transition: background 0.15s ease;
+}
+.sys-modal__switch-track::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(17, 19, 23, 0.25); transition: transform 0.15s ease;
+}
+.sys-modal__switch-input:checked + .sys-modal__switch-track { background: var(--sm-ativo); }
+body.dark .sys-modal__switch-input:checked + .sys-modal__switch-track::after { background: #151518; }
+.sys-modal__switch-input:checked + .sys-modal__switch-track::after { transform: translateX(16px); }
+.sys-modal__switch-input:focus-visible + .sys-modal__switch-track { outline: 2px solid var(--color-accent, #CC1400); outline-offset: 2px; }
+.sys-modal__switch-input:disabled + .sys-modal__switch-track { opacity: 0.5; }
+
+/* ── Rodapé ──────────────────────────────────────────────────────────────── */
+.sys-modal__footer { flex: none; padding: 16px 24px; background: var(--sm-surface); border-top: 1px solid var(--sm-borda); }
+.sys-modal__footer-notice { margin-bottom: 12px; }
+.sys-modal__footer-row { display: flex; align-items: center; gap: 12px; }
+.sys-modal__footer-hint { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 18px; color: var(--sm-mudo); }
+.sys-modal__actions { flex: none; display: flex; align-items: center; gap: 8px; }
+
+/* Botões do sistema (Button) com a medida do redesign: 36 · raio 6 · 13/700 */
+.sys-modal .sys-btn { min-height: 36px; padding: 0 16px; border-radius: 6px; font-size: 13px; font-weight: 700; }
+.sys-modal .sys-btn--sm { min-height: 32px; padding: 0 12px; }
+.sys-modal .sys-btn--primary { background: var(--sm-marca); }
+.sys-modal .sys-btn--primary:not(:disabled):hover { background: var(--sm-marca-hover); }
+.sys-modal .sys-btn--secondary {
+  background: var(--sm-surface); color: var(--sm-texto);
+  border-color: var(--sm-borda-forte); box-shadow: var(--sm-sombra-sm);
+}
+.sys-modal .sys-btn--secondary:not(:disabled):hover { background: var(--sm-surface-alta); }
+.sys-modal .sys-btn--ghost { color: var(--sm-texto); }
+.sys-modal .sys-btn--ghost:not(:disabled):hover { background: var(--sm-surface-alta); }
+
+/* ── Telas estreitas ─────────────────────────────────────────────────────── */
+@media (max-width: 820px) {
+  .sys-modal__columns { grid-template-columns: minmax(0, 1fr); }
+  .sys-modal__col--aside { order: 0; }
+}
+@media (max-width: 640px) {
+  .sys-modal-backdrop { padding: 0; align-items: flex-end; }
+  .sys-modal { max-width: none; max-height: 94dvh; border-radius: 12px 12px 0 0; }
+  .sys-modal__header { padding: 16px; }
+  .sys-modal__body { padding: 16px; }
+  .sys-modal__section-head { padding: 12px 16px; }
+  .sys-modal__section-body { padding: 16px; }
+  .sys-modal__fields { grid-template-columns: minmax(0, 1fr); }
+  .sys-modal__footer { padding: 12px 16px; }
+  .sys-modal__footer-hint { display: none; }
+  .sys-modal__actions { flex: 1 1 auto; }
+  .sys-modal__actions .sys-btn { flex: 1 1 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sys-modal-backdrop, .sys-modal { animation: none; }
+  .sys-modal__switch-track, .sys-modal__switch-track::after { transition: none; }
+}

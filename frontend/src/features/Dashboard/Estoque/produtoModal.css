@@ -1,0 +1,20 @@
+/* Modal de produto — só o que é específico dele (foto). Estrutura, cartões, campos,
+ * avisos e botões vêm do padrão em components/system/modal.css. */
+
+/* Prévia: mesma moldura/fundo da miniatura da lista, em proporção 4:3 */
+.pf-tile {
+  display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 4 / 3; overflow: hidden;
+  background: var(--sm-surface-alta);
+  border: 1px solid var(--sm-borda); border-radius: 6px;
+}
+.pf-tile__img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pf-tile__padrao { display: block; width: 72%; height: 88%; }
+
+.pf-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pf-botao { position: relative; }
+.pf-botao:focus-within { outline: 2px solid var(--color-accent, #CC1400); outline-offset: 2px; }
+.pf-botao[aria-disabled='true'] { opacity: 0.7; }
+.pf-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: inherit; font-size: 0; }
+.sys-modal .pf-remover { color: var(--sm-erro-texto); }
+.sys-modal .pf-remover:not(:disabled):hover { background: var(--sm-erro-bg); }
