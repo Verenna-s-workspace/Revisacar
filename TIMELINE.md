@@ -31,6 +31,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Minha conta — trocar o nome e excluir a conta | 🟡 SQL + API + front + testes prontos (1026 testes backend; tsc + build ok; navegador com API simulada, desktop dono e 390px funcionário). Falta: rodar `0010_excluir_conta.sql` no Supabase (depois da 0004 e das demais) e validar contra o Supabase/Storage reais |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
+| Travas do frontend (Fase 0) | 🟡 Configs prontas (ESLint, Prettier, alias `@/`, passo no CI), todas as regras como aviso. Falta: instalar as dependências (`npm install -D …`), rodar `npm run lint`, `tsc` e `build`, e commitar o `package-lock.json` |
 
 ## Estoque — backend (2026-10-04)
 **Arquivos:** `backend/sql/estoque.sql`, `backend/orders/estoque_views.py`, seção "Estoque" em `serializers.py`, rotas em `urls.py`, `backend/tests/*`, `requirements-dev.txt`.
@@ -638,3 +639,26 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 3. Tela de **mesclar clientes duplicados** (a rede de segurança para o que escapar).
 4. Mecânico não cadastra por falta de `clientes.editar`; se na prática for ele quem faz o checklist, avaliar uma permissão própria ou liberar cadastro rápido para o cargo.
 5. Os cadastros automáticos ficam sem CPF/endereço (marcados na observação); a OS não preenche marca.
+
+
+## Travas do frontend: ESLint, Prettier e alias `@/` (2026-11-20, branch `chore/travas-lint`, parte de `main`)
+
+**Pedido.** O frontend é mexido por mais de uma pessoa e por IAs em paralelo, e o problema mais comum é duplicação e componentes não reaproveitados. A análise de `src/` (297 arquivos) mostrou que nada barra isso automaticamente: sem ESLint, sem Prettier, sem alias, `noUnusedLocals` desligado. Esta é a Fase 0 do roteiro de reorganização: instalar as travas **sem mudar nenhum comportamento**.
+
+**Decisões**
+- Todas as regras começam como **aviso**: o CI roda `npm run lint`, mas não quebra. Sobem para erro conforme as fases de migração terminam.
+- **Não formatei o código com Prettier.** A configuração entra (aspas simples, `printWidth` 140), mas rodar em tudo reescreveria centenas de arquivos e conflitaria com todas as branches abertas (de pessoas e de IAs). Use `npm run format -- <arquivo>` só em arquivos novos ou que você já vai tocar.
+- **Alias `@/` criado, nenhum import convertido** (são 435 imports com 3 ou mais `../`). Arquivos novos podem usar `@/`; os antigos migram quando forem tocados.
+- `noUnusedLocals` continua `false`; quem acusa variável sem uso é o ESLint (aviso). `forceConsistentCasingInFileNames` ligado explicitamente: o build do Render roda em Linux, e um import com a caixa errada passa em macOS/Windows e quebra no deploy.
+- Plugin `react-hooks` carregado porque o código já tem 7 `eslint-disable-next-line react-hooks/exhaustive-deps` e nunca houve ESLint para checá-los.
+- Dependências **não** foram escritas à mão no `package.json`: o `npm install -D` atualiza `package.json` e `package-lock.json` juntos (o CI usa `npm ci`, que falha se o lock estiver fora de sincronia).
+
+**Arquivos:** `frontend/eslint.config.js`, `frontend/.prettierrc.json`, `frontend/.prettierignore` (novos); `frontend/package.json` (scripts `lint`, `lint:fix`, `format`, `format:check`), `frontend/tsconfig.json` (`paths`, `forceConsistentCasingInFileNames`), `frontend/vite.config.ts` (alias); `.github/workflows/ci.yml` (passo ESLint).
+
+**Validado:** sintaxe de `eslint.config.js`, de `vite.config.ts` (como ESM) e do `ci.yml`; `package.json` e `.prettierrc.json` são JSON válido; a função `comoAviso` (rebaixa erro para aviso, preserva `off` e opções) testada isolada; o patch aplica limpo sobre a `main` (`git apply --check`). **NÃO validado:** ESLint e Prettier **não foram executados** (o ambiente de trabalho não tinha rede para instalar os pacotes), então não se sabe quantos avisos o código gera hoje, nem se a configuração carrega sem erro com as versões que o npm resolver. `tsc` e `vite build` com o `paths` e o alias novos também não rodaram.
+
+**Pendências / ideias para depois**
+1. Rodar `npm install -D …`, `npm run lint`, `npx tsc --noEmit` e `npm run build`, e commitar `package.json` + `package-lock.json`.
+2. Decidir quais regras sobem para erro depois de ver a contagem de avisos.
+3. Fase 1 (remover código morto) com `knip` e `jscpd`; regras de fronteira e bloqueio de `<button>` cru só depois do kit de componentes.
+4. O `package.json` da raiz do repositório declara `typescript ^7.0.2`, enquanto o frontend usa `^5.5.3` (5.9.3 no lock). Não mexi; vale conferir se é intencional.

@@ -8,6 +8,7 @@ import { filtrarItensPorBusca, itemEstaBaixo } from '../../utils/estoque_utils';
 import type { EstoqueItem, EstoqueKit, NovoEstoqueItemInput, NovoEstoqueKitInput } from '../../types/estoque';
 import type { NavPage } from '../../types/dashboard';
 
+import { EstoqueDesktop } from './Estoque/EstoqueDesktop';
 import { EstoqueStats } from './Estoque/EstoqueStats';
 import { EstoqueFilters } from './Estoque/EstoqueFilters';
 import { CategoriaGrid } from './Estoque/CategoriaGrid';
@@ -42,6 +43,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
   const [editandoItem, setEditandoItem] = useState<EstoqueItem | undefined>(undefined);
+  // Desktop: categoria filtrada na lista, pra já vir selecionada ao criar produto.
+  const [categoriaNovoProduto, setCategoriaNovoProduto] = useState<string | undefined>(undefined);
   const [excluindoItem, setExcluindoItem] = useState<EstoqueItem | null>(null);
 
   const [modalKitAberto, setModalKitAberto] = useState(false);
@@ -91,6 +94,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
       else await criarItem(input);
       setModalProdutoAberto(false);
       setEditandoItem(undefined);
+      setCategoriaNovoProduto(undefined);
     } catch (e) {
       setErroSalvar(e instanceof Error ? e.message : 'Não foi possível salvar o item. Confira nome, quantidade e valores e tente de novo.');
     } finally {
@@ -410,11 +414,11 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
       {modalProdutoAberto && (
         <ProdutoModal
           item={editandoItem}
-          categoriaInicial={visao.tipo === 'categoria' ? visao.categoria : undefined}
+          categoriaInicial={categoriaNovoProduto ?? (visao.tipo === 'categoria' ? visao.categoria : undefined)}
           onSave={salvarProduto}
           erro={erroSalvar}
           salvando={salvando}
-          onClose={() => { setModalProdutoAberto(false); setEditandoItem(undefined); }}
+          onClose={() => { setModalProdutoAberto(false); setEditandoItem(undefined); setCategoriaNovoProduto(undefined); }}
         />
       )}
       {excluindoItem && (
@@ -459,11 +463,33 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
     );
   }
 
+  // Desktop: tela redesenhada em ./Estoque (EstoqueDesktop). O celular segue com o layout anterior.
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="estoque" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {content}
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <EstoqueDesktop
+          itens={itens}
+          kits={kits}
+          carregando={carregando}
+          erro={erro}
+          valorTotal={stats.valorTotal}
+          busca={busca}
+          onBusca={setBusca}
+          erroExcluir={erroExcluir}
+          onFecharErroExcluir={() => setErroExcluir(null)}
+          onRecarregar={recarregar}
+          onNovoProduto={categoria => { setCategoriaNovoProduto(categoria); abrirNovoProduto(); }}
+          onNovoKit={abrirNovoKit}
+          onEditarProduto={abrirEdicaoProduto}
+          onExcluirProduto={setExcluindoItem}
+          onEditarKit={abrirEdicaoKit}
+          onExcluirKit={setExcluindoKit}
+          onAplicarKit={handleAplicarKit}
+          aplicandoKitId={aplicandoKitId}
+          erroAplicarKit={erroAplicarKit}
+          disponibilidadeKit={disponibilidadeKit}
+        />
       </main>
       {modals}
     </div>
