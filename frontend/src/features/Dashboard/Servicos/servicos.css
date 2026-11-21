@@ -506,6 +506,21 @@ body.dark .sv-page {
   transition: background 0.15s ease;
 }
 
+/* O index.css força min 44×44 em todo <button> (celular/toque): sem isto o switch vira
+ * um círculo. Tamanho fixo (especificidade maior que a regra global); o alvo de toque
+ * de 44px vem do ::before invisível. */
+button.sv-switch.sv-switch {
+  min-width: 32px;
+  min-height: 18px;
+  flex-shrink: 0;
+}
+
+.sv-switch::before {
+  content: '';
+  position: absolute;
+  inset: -13px -6px;
+}
+
 .sv-switch[aria-checked='true'] {
   background: var(--sv-chip-ativo-bg);
 }

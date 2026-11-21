@@ -218,6 +218,11 @@ body.dark .cfg-page {
   border: 0; border-radius: 999px; cursor: pointer;
   background: var(--cfg-borda-forte); transition: background 0.15s ease;
 }
+/* O index.css força min 44×44 em todo <button> (celular/toque): sem isto o interruptor
+ * vira um círculo. Tamanho fixo (especificidade maior que a regra global); o alvo de
+ * toque de 44px vem do ::before invisível. */
+button.cfg-interruptor.cfg-interruptor { min-width: 44px; min-height: 26px; flex-shrink: 0; }
+.cfg-interruptor::before { content: ''; position: absolute; inset: -9px 0; }
 .cfg-interruptor::after {
   content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
   background: #fff; box-shadow: var(--cfg-sombra-sm); transition: transform 0.15s ease;
