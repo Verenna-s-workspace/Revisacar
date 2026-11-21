@@ -178,6 +178,8 @@ export function useAlertas() {
 
   return {
     alertas, grupos, total: alertas.length, escondidos, loading, erro, avisos, recarregar,
+    /** Resposta crua de GET /alertas (null se não carregou) — a Visão Geral soma o "a receber" daqui. */
+    backend: dados.backend,
     adiar, dispensar, restaurar, erroAcao, limparErroAcao: () => setErroAcao(null),
   };
 }

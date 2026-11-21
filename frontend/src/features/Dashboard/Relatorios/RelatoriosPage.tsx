@@ -2,7 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
-import { BotaoPrivacidade, GraficoPrivado } from '../../../components/Privacidade';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { GraficoPrivado } from '../../../components/Privacidade';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import { ALVO } from '../../../utils/destaque';
 import type { Destaque } from '../../../utils/destaque';
@@ -114,8 +115,6 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
             </p>
           </div>
         </div>
-        {/* Desktop: esta tela não usa o cabeçalho com o sino, então o botão fica aqui. No celular ele está na topbar. */}
-        {!mobile && <BotaoPrivacidade variante="desktop" />}
       </div>
 
       {/* período */}
@@ -321,6 +320,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="relatorios" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <DesktopTopBar page="relatorios" onNav={onNav} />
         {content}
       </main>
     </div>

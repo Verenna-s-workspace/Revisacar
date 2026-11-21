@@ -4,6 +4,7 @@ import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge, Skeleton } from './Primitives';
 import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
+import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
 import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
@@ -199,6 +200,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
       <div style={{ display: 'flex', minHeight: '100dvh' }}>
         <Sidebar active="ordens" onNav={onNav} onNewOS={onNewOS} />
         <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+          <DesktopTopBar page="ordens" onNav={onNav} />
           <OrdensDesktop
             ordens={ordens}
             loading={loading}
