@@ -117,6 +117,7 @@ export const ICONES_PAGINA: Partial<Record<NavPage, JSX.Element>> = {
 };
 
 /** Ícones de apoio da sidebar. */
+/** Ícones de apoio da sidebar. */
 export const ICONES_SIDEBAR = {
   /** Botão de colapsar: painel com a coluna da esquerda. */
   painel: (
@@ -139,6 +140,14 @@ export const ICONES_SIDEBAR = {
   sair: (
     <Svg>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </Svg>
+  ),
+  /** Folhas/camadas empilhadas — item "Mais" da barra inferior mobile. */
+  mais: (
+    <Svg>
+      <path d="M12 3 3 7.5 12 12l9-4.5Z" />
+      <path d="M5.2 10.9 3 12l9 4.5 9-4.5-2.2-1.1" />
+      <path d="M5.2 15.4 3 16.5 12 21l9-4.5-2.2-1.1" />
     </Svg>
   ),
 };

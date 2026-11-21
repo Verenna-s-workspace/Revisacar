@@ -171,8 +171,7 @@ input, textarea, select, [contenteditable="true"] {
   color: var(--color-ferrari);
 }
 
-.dashboard-sidebar-link:hover,
-.dashboard-mobile-bottom-nav__item:hover {
+.dashboard-sidebar-link:hover {
   background: var(--color-ferrari-mid);
 }
 
@@ -1109,74 +1108,107 @@ body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: 
 }
 
 .dashboard-mobile-bottom-nav {
+  --nav-borda: #E2E5EA;
+  --nav-icone: #868D98;
+  --nav-rotulo: #666E7B;
+  --nav-rotulo-ativo: #1A1D22;
+  --nav-ativo: #E01500;
+
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 10px 0;
-  padding-bottom: max(18px, env(safe-area-inset-bottom));
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
   z-index: var(--z-bottom-nav);
-  box-shadow: 0 -6px 24px rgba(0,0,0,0.08);
-  /* altura única, compartilhada com o padding-bottom das páginas */
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background: var(--color-surface);
+  border-top: 1px solid var(--nav-borda);
   min-height: var(--mobile-bottom-nav-h);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.dark .dashboard-mobile-bottom-nav {
+  --nav-borda: var(--color-border);
+  --nav-icone: var(--color-subtle);
+  --nav-rotulo: var(--color-muted);
+  --nav-rotulo-ativo: var(--color-text);
+  --nav-ativo: var(--color-accent);
 }
 
 .dashboard-mobile-bottom-nav__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 4px 2px;
   border: none;
+  border-radius: 0;
   background: transparent;
   cursor: pointer;
-  color: var(--color-muted);
-  font-size: 0.75rem;
   font-family: var(--font-sans);
-  font-weight: 600;
-  padding: 6px 12px;
-  min-width: 64px;
-  min-height: 48px;
-  justify-content: center;
-  border-radius: 14px;
+  font-size: var(--text-xs);
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--nav-rotulo);
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
-.dashboard-mobile-bottom-nav__item svg {
-  display: block;
-  width: 1.4em;
-  height: 1.4em;
-  color: var(--color-ferrari);
-}
-
-.dashboard-mobile-bottom-nav__item--active {
-  color: var(--color-ferrari);
-  /* destaque além da cor: pílula + peso (o ícone é vermelho em todos) */
-  background: var(--color-accent-dim);
-  font-weight: 700;
-}
-
-.dashboard-mobile-bottom-nav__fab {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: var(--color-ferrari);
-  border: 3px solid var(--color-surface);
+.dashboard-mobile-bottom-nav__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(204,20,0,0.4);
-  margin-bottom: 10px;
-  color: white;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+  color: var(--nav-icone);
+  transition: color 0.15s ease;
 }
 
+.dashboard-mobile-bottom-nav__icon svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.dashboard-mobile-bottom-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-mobile-bottom-nav__item--active {
+  color: var(--nav-rotulo-ativo);
+}
+
+.dashboard-mobile-bottom-nav__item--active .dashboard-mobile-bottom-nav__icon {
+  color: var(--nav-ativo);
+}
+
+.dashboard-mobile-bottom-nav__item:active {
+  background: var(--color-surface-high);
+}
+
+.dashboard-mobile-bottom-nav__item:focus-visible {
+  outline: 2px solid var(--nav-ativo);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-mobile-bottom-nav__item:hover:not(.dashboard-mobile-bottom-nav__item--active) {
+    color: var(--nav-rotulo-ativo);
+  }
+  .dashboard-mobile-bottom-nav__item:hover:not(.dashboard-mobile-bottom-nav__item--active) .dashboard-mobile-bottom-nav__icon {
+    color: var(--color-text-second);
+  }
+}
 .dashboard-layout {
   flex: 1;
   min-width: 0;
@@ -1428,22 +1460,18 @@ body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: 
  * mais baixa (ícone ao lado do rótulo) e a topbar rola junto com a página —
  * o menu continua a um gesto, e a navegação principal fica sempre embaixo. */
 @media (orientation: landscape) and (max-height: 500px) {
-  :root { --mobile-bottom-nav-h: calc(56px + env(safe-area-inset-bottom)); }
+  :root { --mobile-bottom-nav-h: calc(49px + env(safe-area-inset-bottom)); }
   .dashboard-mobile-topbar { position: static; }
-  .dashboard-mobile-bottom-nav {
-    padding-top: 4px;
-    padding-bottom: max(4px, env(safe-area-inset-bottom));
-  }
   .dashboard-mobile-bottom-nav__item {
     flex-direction: row;
-    gap: 8px;
-    min-height: var(--tap-min);
-    padding: 4px 14px;
+    gap: 6px;
+    min-height: 48px;
+    padding: 0 8px;
   }
-  .dashboard-mobile-bottom-nav__fab {
-    width: 46px;
-    height: 46px;
-    margin-bottom: 0;
+  .dashboard-mobile-bottom-nav__icon,
+  .dashboard-mobile-bottom-nav__icon svg {
+    width: 20px;
+    height: 20px;
   }
 }
 

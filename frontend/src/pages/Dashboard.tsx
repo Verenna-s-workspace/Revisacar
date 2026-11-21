@@ -5,6 +5,7 @@ import { useResponsive } from '../components/ui';
 import { useOrdens } from '../hooks/useOrdens';
 import { useVisaoGeral } from '../hooks/useVisaoGeral';
 import { useAlertas } from '../hooks/useAlertas';
+
 import { formatBRL, formatBRLCompacto, HEAT_DAYS_INICIAIS, HEAT_DAYS_COMPLETO } from '../utils/dashboard';
 import { calcularVariacao } from '../utils/relatorios';
 import {
@@ -40,8 +41,9 @@ const ServicosPage = telaSobDemanda(() => import('../features/Dashboard/Servicos
 const RelatoriosPage = telaSobDemanda(() => import('../features/Dashboard/Relatorios/RelatoriosPage').then((m) => m.RelatoriosPage));
 const AtendimentoPage = telaSobDemanda(() => import('../features/Dashboard/Atendimento/AtendimentoPage').then((m) => m.AtendimentoPage));
 const AlertasPage = telaSobDemanda(() => import('../features/Dashboard/Alertas/AlertasPage').then((m) => m.AlertasPage));
+const MaisPage = telaSobDemanda(() => import('../features/Dashboard/Mais/MaisPage').then((m) => m.MaisPage));
 const SUBPAGINAS = [AtendimentoPage, AgendamentosPage, AlertasPage, ClientesPage, VeiculosPage, EstoquePage,
-  ServicosPage, FinanceiroPage, RelatoriosPage, ConfiguracoesPage];
+  ServicosPage, FinanceiroPage, RelatoriosPage, ConfiguracoesPage, MaisPage];
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
@@ -210,6 +212,21 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     handleNav(d.page);
   };
 
+  if (page === 'mais') {
+    if (!isMobile) {
+      return (
+        <ShellPage page={page} onNav={handleNav} isMobile={false} onNewOS={onNewOS} semCabecalho>
+          <MaisPage onNav={handleNav} />
+        </ShellPage>
+      );
+    }
+    return (
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MaisPage onNav={handleNav} />
+        <MobileNav active="mais" onNav={handleNav} onNewOS={onNewOS} />
+      </div>
+    );
+  }
   if (page === 'alertas') {
     return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} destaque={destaque} onDestaqueConcluido={concluirDestaque} />;
   }

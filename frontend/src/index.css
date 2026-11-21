@@ -36,7 +36,7 @@
   /* Altura da bottom-nav mobile (fixed) + a área segura real do aparelho —
    * páginas usam isso como padding-bottom pra garantir que o conteúdo nunca
    * fique escondido atrás dela, inclusive em telas com barra de gestos. */
-  --mobile-bottom-nav-h: calc(88px + env(safe-area-inset-bottom));
+--mobile-bottom-nav-h: calc(57px + env(safe-area-inset-bottom));
 
   /* Colors — Brand red */
   --color-ferrari: #CC1400;
