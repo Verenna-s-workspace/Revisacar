@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useClientes } from '../../../hooks/useClientes';
 import { useOrdens } from '../../../hooks/useOrdens';
@@ -196,6 +197,7 @@ export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: Ve
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="veiculos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page="veiculos" onNav={onNav} />
         <VeiculosDesktop
           veiculos={filtered}
           totalVeiculos={veiculos.length}

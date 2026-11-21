@@ -3,6 +3,7 @@ import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { Skeleton } from '../Primitives';
 import { useResponsive } from '../../../components/ui';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -38,6 +39,8 @@ interface AgendamentosPageProps {
   initialSearch?: string;
   /** Abre automaticamente o detalhe deste agendamento assim que a lista carregar. */
   initialHighlightId?: string;
+  /** Abre o modal de novo agendamento ao chegar (botão "Agendar" da Visão Geral). */
+  initialNovo?: boolean;
 }
 
 // ── Filter logic ──────────────────────────────────────────────────────────────
@@ -117,7 +120,7 @@ function ViewSwitcher({ active, onChange }: { active: AgendaViewMode; onChange: 
 
 // ── AgendamentosPage ─────────────────────────────────────────────────────────
 
-export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, initialHighlightId }: AgendamentosPageProps) {
+export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, initialHighlightId, initialNovo }: AgendamentosPageProps) {
   const {
     agendamentos, loading, usingApi, erro, stats,
     addAgendamento, updateAgendamento, updateStatus, cancelAgendamento,
@@ -129,7 +132,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   const [search,   setSearch]         = useState(initialSearch ?? '');
   const [filtros,  setFiltros]        = useState<AgendaFiltros>({ status: 'todos', periodo: 'todos' });
   const [selectedAg, setSelectedAg]   = useState<Agendamento | null>(null);
-  const [newModalOpen, setNewModalOpen] = useState(false);
+  const [newModalOpen, setNewModalOpen] = useState(!!initialNovo);
   const [newModalDate,  setNewModalDate] = useState<string | undefined>(undefined);
   const [rescheduleId,  setRescheduleId] = useState<string | null>(null);
   const [ajuste, setAjuste] = useState<{ ag: Agendamento; modo: 'ajustar' | 'confirmar' } | null>(null);
@@ -218,7 +221,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-                Agendamentos
+                Agenda
               </h2>
             </div>
             <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
@@ -466,6 +469,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
       <div style={{ display: 'flex', minHeight: '100dvh' }}>
         <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
         <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <DesktopTopBar page="agendamentos" onNav={onNav} />
           {content}
         </main>
         {modals}
@@ -481,6 +485,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <DesktopTopBar page="agendamentos" onNav={onNav} />
         {content}
       </main>
       {modals}

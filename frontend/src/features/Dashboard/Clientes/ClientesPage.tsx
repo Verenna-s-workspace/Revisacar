@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -284,6 +285,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="clientes" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page="clientes" onNav={onNav} />
         <ClientesDesktop
           clientes={filtered}
           totalClientes={clientes.length}

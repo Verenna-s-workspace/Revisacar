@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useAtendimento } from '../../../hooks/useAtendimento';
 import { useEstoque } from '../../../hooks/useEstoque';
 import { useServicos } from '../../../hooks/useServicos';
@@ -124,6 +125,7 @@ export function AtendimentoPage({ onNav, isMobile, onNewOS, onLoadOS, onNewOSCom
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="atendimento" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page="atendimento" onNav={onNav} />
         <AtendimentoDesktop
           colunas={colunas}
           agendamentos={agendamentos}

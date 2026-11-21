@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../constants';
 import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
+import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { useServicos } from '../../hooks/useServicos';
 import { useEstoque } from '../../hooks/useEstoque';
 import type { ServicoItem } from '../../types/servico';
@@ -126,6 +127,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="servicos" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page="servicos" onNav={onNav} />
         <ServicosDesktop
           servicos={servicos}
           loading={loading}

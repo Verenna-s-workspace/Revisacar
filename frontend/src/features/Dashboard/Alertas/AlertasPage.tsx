@@ -2,6 +2,7 @@
 
 import { tokens } from '../../../constants';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useAlertas } from '../../../hooks/useAlertas';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import type { AcaoAlerta } from '../../../utils/alertas';
@@ -56,6 +57,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao, destaque, onDest
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="alertas" onNav={onNav} onNewOS={onNewOS} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page="alertas" onNav={onNav} />
         <AlertasDesktop
           grupos={grupos}
           alertas={alertas}

@@ -70,10 +70,10 @@ export function GraficoPrivado({ children, ativo = true, selo = true, style }: G
   );
 }
 
-/** Botão olho / olho cortado do cabeçalho. `desktop` usa o estilo do sino; `mobile` o da topbar. */
-export function BotaoPrivacidade({ variante }: { variante: 'desktop' | 'mobile' }) {
+/** Botão olho / olho cortado do cabeçalho. `desktop` usa o estilo do sino; `mobile` o da topbar; `topbar` o da top-bar desktop. */
+export function BotaoPrivacidade({ variante }: { variante: 'desktop' | 'mobile' | 'topbar' }) {
   const { oculto, alternar, interagiu } = usePrivacidade();
-  const base = variante === 'mobile' ? 'dashboard-mobile-topbar__button' : 'dashboard-button';
+  const base = variante === 'mobile' ? 'dashboard-mobile-topbar__button' : variante === 'topbar' ? 'rv-tb__btn' : 'dashboard-button';
   return (
     <>
       <button
