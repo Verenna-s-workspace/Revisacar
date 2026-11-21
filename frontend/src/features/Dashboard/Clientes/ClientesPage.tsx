@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
@@ -16,10 +15,8 @@ import type { OrdemRow } from '../../../types/dashboard';
 import type { NovoAgendamentoInput } from '../../../types/agendamento';
 
 import { ClientesDesktop } from './ClientesDesktop';
-import { ClientStats } from './ClientStats';
-import { ClientFilters } from './ClientFilters';
+import { ClientesMobile } from './ClientesMobile';
 import { ClientFilterModal } from './ClientFilterModal';
-import { ClientGrid } from './ClientGrid';
 import { ClientDetailsModal } from './ClientDetailsModal';
 import { ClientFormModal } from './ClientFormModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -93,8 +90,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   const [deletingVeiculo, setDeletingVeiculo] = useState<VeiculoCadastrado | null>(null);
   const [viewingOrdem,    setViewingOrdem]    = useState<OrdemRow | null>(null);
 
-  const filtered         = useMemo(() => applyFilters(clientesEnriquecidos, search, filtros), [clientesEnriquecidos, search, filtros]);
-  const hasActiveFilters = filtrosAtivos(filtros) || search.length > 0;
+  const filtered = useMemo(() => applyFilters(clientesEnriquecidos, search, filtros), [clientesEnriquecidos, search, filtros]);
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
 
@@ -150,10 +146,6 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
       await addAgendamento(input);
       setAgendaTarget(null);
     } catch (e) { avisarErro(e); }
-  };
-
-  const goToAgendamentoBadge = (c: ClienteComDados) => {
-    if (c.proximoAgendamento) onGoToAgendamentos({ search: c.nome, highlightId: c.proximoAgendamento.id });
   };
 
   // ── handlers: veículo (dentro do perfil do cliente) ───────────────────────────
@@ -255,91 +247,31 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
     </>
   );
 
-  // ── layout mobile (mantido como estava) ─────────────────────────────────────
+  // ── layout mobile ───────────────────────────────────────────────────────────
 
   if (isMobile) {
     return (
       <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileTopbar active="clientes" onNav={onNav} />
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px',
-            background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`,
-            flexShrink: 0, flexWrap: 'wrap', gap: 10,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button
-                onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
-              >
-                {Icons.chevL}
-              </button>
-              <div>
-                <h2 style={{ fontWeight: 800, fontSize: '1.05rem', color: tokens.color.text, margin: 0 }}>
-                  Clientes
-                </h2>
-                <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
-                  Gerencie a carteira de clientes da oficina.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={openCreate}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '8px 14px',
-                background: tokens.color.ferrari, color: 'white',
-                border: 'none', borderRadius: 10, cursor: 'pointer',
-                fontSize: '0.84rem', fontWeight: 700, boxShadow: tokens.shadow.sm,
-                fontFamily: tokens.fontSans,
-              }}
-            >
-              <span style={{ display: 'flex' }}>{Icons.plus}</span>
-              Cadastrar
-            </button>
-          </div>
-
-          {erro && (
-            <div style={{
-              margin: '12px 16px 0',
-              padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
-              border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
-            }}>
-              {erro}
-            </div>
-          )}
-
-          <ClientFilters
-            search={search}
-            filtros={filtros}
-            onSearch={setSearch}
-            onOpenFilters={() => setFilterModalOpen(true)}
-            onClear={() => { setFiltros(emptyFiltros()); setSearch(''); }}
-          />
-
-          <div style={{
-            flex: 1, minHeight: 0, overflowY: 'auto',
-            padding: '12px 12px 32px',
-            display: 'flex', flexDirection: 'column', gap: 16,
-          }}>
-            <ClientStats stats={stats} loading={loading} />
-
-            <ClientGrid
-              clientes={filtered}
-              loading={loading}
-              hasAnyCliente={clientes.length > 0}
-              hasActiveFilters={hasActiveFilters}
-              onView={setSelected}
-              onEdit={openEdit}
-              onSchedule={openAgendar}
-              onDelete={c => { setSelected(null); setDeleteTarget(c); }}
-              onGoToAgendamento={goToAgendamentoBadge}
-              onClearFilters={() => { setFiltros(emptyFiltros()); setSearch(''); }}
-              onNovoCliente={openCreate}
-            />
-          </div>
-        </div>
+        <ClientesMobile
+          clientes={filtered}
+          totalClientes={clientes.length}
+          stats={stats}
+          loading={loading}
+          erro={erro}
+          search={search}
+          filtros={filtros}
+          onSearch={setSearch}
+          onFiltros={setFiltros}
+          onOpenFilters={() => setFilterModalOpen(true)}
+          onClearFilters={() => { setFiltros(emptyFiltros()); setSearch(''); }}
+          onRecarregar={reload}
+          onNovoCliente={openCreate}
+          onView={setSelected}
+          onEdit={openEdit}
+          onSchedule={openAgendar}
+          onDelete={c => { setSelected(null); setDeleteTarget(c); }}
+        />
         <MobileNav active="clientes" onNav={onNav} onNewOS={onNewOS ?? openCreate} />
         {modals}
       </div>

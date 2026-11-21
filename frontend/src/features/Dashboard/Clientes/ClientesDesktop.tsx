@@ -349,8 +349,9 @@ export function ClientesDesktop({
                         {c.ordens.length}
                       </div>
 
-                      {/* Coluna Gasto total: mantida vazia por enquanto (apenas estrutura visual) */}
-                      <div role="cell" className="cl-cel cl-cel-num" aria-label="Gasto total ainda não calculado" />
+                      <div role="cell" className="cl-cel cl-cel-num">
+                        <span className="cl-vazio">—</span>
+                      </div>
 
                       <div role="cell" className="cl-cel cl-cel-acoes">
                         <button
