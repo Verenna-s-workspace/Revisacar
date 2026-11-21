@@ -12,7 +12,7 @@ interface ProdutoFotoCampoProps {
   onRemover: () => void;
 }
 
-/** Conteúdo da seção "Foto do produto": prévia, trocar/remover e o aviso de armazenamento. */
+/** Conteúdo da seção "Foto do produto": prévia, trocar/remover e erro de processamento. */
 export function ProdutoFotoCampo({ foto, comprimindo, erro, onSelecionar, onRemover }: ProdutoFotoCampoProps) {
   return (
     <>
@@ -40,10 +40,6 @@ export function ProdutoFotoCampo({ foto, comprimindo, erro, onSelecionar, onRemo
       </div>
 
       {erro && <ModalNotice tone="error" role="alert">{erro}</ModalNotice>}
-
-      <ModalNotice tone="attention" title="Aviso">
-        A foto fica salva só nesta sessão — ainda não há backend de armazenamento pra imagens.
-      </ModalNotice>
     </>
   );
 }

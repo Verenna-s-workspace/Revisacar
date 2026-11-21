@@ -175,10 +175,10 @@ export function itensMaisMovimentados(
 
 // ── Foto: compressão no navegador ──────────────────────────────────────────────
 //
-// Sem backend de storage ainda — a foto vira data URL e vive só no estado da
-// sessão. Redimensiona pra largura máxima ~480px e recomprime como JPEG
-// qualidade ~0.7 antes de guardar, pra não inflar o estado com base64 de
-// fotos de câmera em resolução alta.
+// A foto vira data URL e é enviada ao backend, que a valida (formato e tamanho)
+// e grava em `foto_data_url` do item/kit. Redimensiona pra largura máxima ~480px
+// e recomprime como JPEG qualidade ~0.7 antes de enviar, pra não inflar o
+// registro com base64 de fotos de câmera em resolução alta.
 
 export function comprimirImagem(file: File, maxWidth = 480, qualidade = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -459,7 +459,7 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **Decisões e pendências**
 - Fotos ficam no próprio registro (como o estoque), então `GET /veiculos` e `GET /clientes` devolvem todas. Com a frota crescendo, vale migrar para o Storage (a coluna `foto_principal_path` da 0003 já está reservada para isso).
 - `foto_principal_path` não foi reaproveitada: é caminho de Storage lido pelo app do cliente.
-- `ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade. Não mexido.
+- ~~`ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade.~~ Resolvido em 2026-11-21: o aviso (que também existia no `CriarKitModal.tsx`) foi removido; o backend já gravava a foto em `estoque_itens`/`estoque_kits.foto_data_url` desde o módulo de Estoque.
 ## Auditoria UX/UI e responsividade do painel (2026-10-30, branch `feat/ux-responsivo`)
 **Auditoria:** 11 telas medidas por script e por print no build de produção ligado ao backend do Render, em 390×844, 768×1024, 844×390 (celular deitado), 1024×768 e 1366/1440. O pior caso era o notebook (980–1279 px): larguras fixas pensadas para 1440 px.
 
