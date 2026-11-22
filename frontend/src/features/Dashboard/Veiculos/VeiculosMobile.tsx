@@ -434,7 +434,7 @@ export function VeiculosMobile({
                       </div>
 
                       <div className="vem-linha2">
-                        <VeiculoFoto src={v.fotoPrincipal} />
+                        <VeiculoFoto src={v.fotoPrincipal} categoria={v.categoria} />
                         <div className="vem-info">
                           <span className="vem-info__nome">{titulo}</span>
                           <span className="vem-info__detalhe">{detalhe}</span>

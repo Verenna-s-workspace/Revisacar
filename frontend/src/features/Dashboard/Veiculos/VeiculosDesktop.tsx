@@ -373,7 +373,7 @@ export function VeiculosDesktop({
                       }}
                     >
                       <div role="cell" className="ve-cel ve-cel-veiculo">
-                        <VeiculoFoto src={v.fotoPrincipal} />
+                        <VeiculoFoto src={v.fotoPrincipal} categoria={v.categoria} />
                         <div className="ve-item">
                           <div className="ve-item__nome" title={titulo}>
                             {titulo}

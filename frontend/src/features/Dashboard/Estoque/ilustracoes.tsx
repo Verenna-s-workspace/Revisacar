@@ -37,3 +37,8 @@ export function CaixasEmpilhadasSvg({ className }: { className?: string }) {
     </svg>
   );
 }
+
+
+
+
+

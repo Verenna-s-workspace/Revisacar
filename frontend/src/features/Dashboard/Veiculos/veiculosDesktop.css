@@ -503,6 +503,26 @@ body.dark .ve-page {
   display: block;
 }
 
+/* Ilustração do carro no hero do modal de detalhes (sem foto cadastrada): à direita,
+   longe do bloco de título/placa à esquerda e do botão de fechar. */
+.ve-hero__padrao {
+  position: absolute;
+  top: -6px;
+  right: 64px;
+  width: 236px;
+  height: 236px;
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .ve-hero__padrao {
+    top: -6px;
+    right: 52px;
+    width: 124px;
+    height: 124px;
+  }
+}
+
 .ve-item {
   flex: 1 1 auto;
   min-width: 0;
