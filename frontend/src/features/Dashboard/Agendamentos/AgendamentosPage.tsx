@@ -1,11 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
-import { AgendaIcons } from './icons';
 import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
-import { Skeleton } from '../Primitives';
-import { useResponsive } from '../../../components/ui';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
 import type { NavPage } from '../../../types/dashboard';
 import type {
@@ -16,14 +11,11 @@ import type {
   NovoAgendamentoInput,
 } from '../../../types/agendamento';
 import { toISODate, isSameMonth, parseISODate, addDays, duracaoEmMinutos } from '../../../utils/agenda';
+import { inicioDaSemana } from './agendamentosDesktopUtils';
 
 // Sub-components
-import { AppointmentStats } from './AppointmentStats';
-import { AppointmentFilters } from './AppointmentFilters';
-import { DailyView } from './DailyView';
-import { WeeklyView } from './WeeklyView';
-import { MonthlyView } from './MonthlyView';
-import { AppointmentCard } from './AppointmentCard';
+import { AgendamentosDesktop } from './AgendamentosDesktop';
+import { AgendamentoFiltrosModal, FILTROS_PADRAO } from './AgendamentoFiltrosModal';
 import { AppointmentModal } from './AppointmentModal';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import { AjustarHorarioModal } from './AjustarHorarioModal';
@@ -45,7 +37,13 @@ interface AgendamentosPageProps {
 
 // ── Filter logic ──────────────────────────────────────────────────────────────
 
-function applyFilters(list: Agendamento[], search: string, filtros: AgendaFiltros): Agendamento[] {
+function applyFilters(
+  list: Agendamento[],
+  search: string,
+  filtros: AgendaFiltros,
+  /** Desktop: a semana vai de segunda a domingo (como na grade). Mobile segue de domingo a sábado. */
+  semanaComecaNaSegunda = false,
+): Agendamento[] {
   const todayISO = toISODate(new Date());
   const today = new Date();
 
@@ -56,9 +54,10 @@ function applyFilters(list: Agendamento[], search: string, filtros: AgendaFiltro
       if (filtros.periodo === 'hoje' && ag.data !== todayISO) return false;
       if (filtros.periodo === 'semana') {
         const d = parseISODate(ag.data);
-        const start = new Date(today);
+        let start = new Date(today);
         start.setDate(today.getDate() - today.getDay());
         start.setHours(0, 0, 0, 0);
+        if (semanaComecaNaSegunda) start = inicioDaSemana(today);
         const end = addDays(start, 6);
         if (d < start || d > end) return false;
       }
@@ -78,46 +77,6 @@ function applyFilters(list: Agendamento[], search: string, filtros: AgendaFiltro
   });
 }
 
-// ── View mode switcher ────────────────────────────────────────────────────────
-
-const VIEW_OPTS: { mode: AgendaViewMode; icon: JSX.Element; label: string }[] = [
-  { mode: 'diario',  icon: AgendaIcons.viewDay,   label: 'Diário'  },
-  { mode: 'semanal', icon: AgendaIcons.viewWeek,  label: 'Semanal' },
-  { mode: 'mensal',  icon: AgendaIcons.viewMonth, label: 'Mensal'  },
-];
-
-function ViewSwitcher({ active, onChange }: { active: AgendaViewMode; onChange: (m: AgendaViewMode) => void }) {
-  return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', gap: 2,
-        background: tokens.color.surfaceHigh, borderRadius: 10, padding: 3,
-      }}
-    >
-      {VIEW_OPTS.map(o => (
-        <button
-          key={o.mode}
-          onClick={() => onChange(o.mode)}
-          title={o.label}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '6px 12px', borderRadius: 8, border: 'none',
-            background: active === o.mode ? 'white' : 'transparent',
-            color: active === o.mode ? tokens.color.ferrari : tokens.color.muted,
-            fontWeight: active === o.mode ? 700 : 500,
-            fontSize: '0.78rem', cursor: 'pointer',
-            boxShadow: active === o.mode ? tokens.shadow.xs : 'none',
-            transition: 'all 0.15s ease', fontFamily: tokens.fontSans,
-          }}
-        >
-          <span style={{ display: 'flex' }}>{o.icon}</span>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // ── AgendamentosPage ─────────────────────────────────────────────────────────
 
 export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, initialHighlightId, initialNovo }: AgendamentosPageProps) {
@@ -127,10 +86,11 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     rescheduleAgendamento, getOcupados,
   } = useAgendamentos();
 
-  const [viewMode, setViewMode]       = useState<AgendaViewMode>('diario');
+  const [viewMode, setViewMode]       = useState<AgendaViewMode>(isMobile ? 'diario' : 'semanal');
   const [viewDate, setViewDate]       = useState(() => new Date());
   const [search,   setSearch]         = useState(initialSearch ?? '');
-  const [filtros,  setFiltros]        = useState<AgendaFiltros>({ status: 'todos', periodo: 'todos' });
+  const [filtros,  setFiltros]        = useState<AgendaFiltros>(FILTROS_PADRAO);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [selectedAg, setSelectedAg]   = useState<Agendamento | null>(null);
   const [newModalOpen, setNewModalOpen] = useState(!!initialNovo);
   const [newModalDate,  setNewModalDate] = useState<string | undefined>(undefined);
@@ -147,11 +107,11 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   }, [loading, initialHighlightId]);
 
   const filtered = useMemo(
-    () => applyFilters(agendamentos, search, filtros),
-    [agendamentos, search, filtros],
+    () => applyFilters(agendamentos, search, filtros, !isMobile),
+    [agendamentos, search, filtros, isMobile],
   );
 
-  const showList = isMobile || filtros.status !== 'todos' || filtros.periodo !== 'todos' || search.length > 0;
+  const showList = filtros.status !== 'todos' || filtros.periodo !== 'todos' || search.length > 0;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -190,207 +150,6 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     }
   }, [addAgendamento, rescheduleAgendamento, rescheduleId, viewMode]);
 
-  // ── Content ─────────────────────────────────────────────────────────────────
-
-  // Em modo Lista (busca/filtros de período ou status ativos, ou mobile), a
-  // seção precisa do comportamento ORIGINAL: altura livre + rolagem natural da
-  // página. O travamento em altura fixa (usado para isolar o scroll interno das
-  // views de calendário) só se aplica quando NÃO estamos em modo Lista.
-  const content = (
-    <div style={{
-      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg,
-      ...(showList ? {} : { minHeight: 0, overflow: 'hidden' }),
-    }}>
-
-      {/* ── Page header (fixo) ─── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: isMobile ? '14px 16px' : '16px 28px',
-        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0,
-        flexWrap: 'wrap', gap: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {isMobile && (
-            <button
-              onClick={() => onNav('dashboard')}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.muted, display: 'flex', padding: 4 }}
-            >
-              {Icons.chevL}
-            </button>
-          )}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-                Agenda
-              </h2>
-            </div>
-            <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
-              {loading ? 'Carregando...' : `${agendamentos.length} agendamentos no total`}
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {!isMobile && (
-            <ViewSwitcher active={viewMode} onChange={setViewMode} />
-          )}
-          <button
-            onClick={() => openNewModal()}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: isMobile ? '8px 14px' : '9px 18px',
-              background: tokens.color.ferrari, color: 'white',
-              border: 'none', borderRadius: 10, cursor: 'pointer',
-              fontSize: '0.84rem', fontWeight: 700, boxShadow: tokens.shadow.sm,
-              fontFamily: tokens.fontSans,
-            }}
-          >
-            <span style={{ display: 'flex' }}>{Icons.plus}</span>
-            {isMobile ? 'Novo' : 'Novo Agendamento'}
-          </button>
-        </div>
-      </div>
-
-      {erro && (
-        <div style={{
-          margin: isMobile ? '12px 14px 0' : '14px 28px 0',
-          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
-          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
-        }}>
-          {erro}
-        </div>
-      )}
-
-      {/* ── Filters (fixo) ─── */}
-      <AppointmentFilters
-        search={search}
-        filtros={filtros}
-        onSearch={setSearch}
-        onFiltros={setFiltros}
-      />
-
-      {/* ── Mobile view switcher (fixo) ─── */}
-      {isMobile && (
-        <div style={{ padding: '10px 14px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}` }}>
-          <ViewSwitcher active={viewMode} onChange={setViewMode} />
-        </div>
-      )}
-
-      {/*
-        ── Body: container principal da área de agendamentos ───────────────────
-        Ocupa todo o espaço restante (flex:1, minHeight:0) dentro do `content`,
-        que agora tem altura finita. Este wrapper só rola (overflowY:auto) quando
-        o conteúdo excede o espaço disponível — o que na prática só acontece na
-        visão em Lista (busca/filtros ativos). Nas visões de calendário
-        (Diário/Semanal), o card abaixo preenche exatamente este espaço e é ELE
-        quem cuida do próprio scroll internamente, então este wrapper permanece
-        parado, sem rolar.
-      */}
-      <div style={{
-        flex: 1, minHeight: 0, overflowY: 'auto',
-        padding: isMobile ? '12px 12px 32px' : '18px 28px 36px',
-        display: 'flex', flexDirection: 'column', gap: 16,
-      }}>
-        {/* Stats cards — altura fixa, nunca encolhe */}
-        <div style={{ flexShrink: 0 }}>
-          <AppointmentStats stats={stats} loading={loading} />
-        </div>
-
-        {loading ? (
-          <Skeleton h={420} r={16} />
-        ) : (
-          <>
-            {/* Calendar views — cada uma preenche o espaço restante (flex:1,
-                minHeight:0) e isola a própria rolagem internamente. */}
-            {!showList && viewMode === 'diario' && (
-              <DailyView
-                date={viewDate}
-                agendamentos={filtered}
-                onDateChange={setViewDate}
-                onCardClick={setSelectedAg}
-              />
-            )}
-            {!showList && viewMode === 'semanal' && (
-              <WeeklyView
-                date={viewDate}
-                agendamentos={filtered}
-                onDateChange={setViewDate}
-                onCardClick={setSelectedAg}
-                onDayClick={handleDayClick}
-              />
-            )}
-            {!showList && viewMode === 'mensal' && (
-              <MonthlyView
-                date={viewDate}
-                agendamentos={filtered}
-                onDateChange={setViewDate}
-                onDayClick={d => {
-                  if (viewMode === 'mensal') {
-                    handleDayClick(d);
-                  } else {
-                    openNewModal(toISODate(d));
-                  }
-                }}
-              />
-            )}
-
-            {/* List view (mobile, search, or filters active) */}
-            {showList && filtered.length > 0 && (
-              <div
-                style={{
-                  background: 'var(--color-surface)', borderRadius: 14,
-                  border: `1px solid ${tokens.color.border}`,
-                  boxShadow: tokens.shadow.xs, overflow: 'hidden',
-                }}
-              >
-                <div style={{ padding: '14px 18px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: tokens.color.text }}>Lista de Agendamentos</div>
-                  <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
-                </div>
-                <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {filtered.map(ag => (
-                    <AppointmentCard key={ag.id} agendamento={ag} variant="large" onClick={() => setSelectedAg(ag)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Empty state */}
-            {filtered.length === 0 && (
-              <div
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: 12, padding: '60px 20px',
-                  background: 'var(--color-surface)', borderRadius: 16,
-                  border: `1px solid ${tokens.color.border}`,
-                }}
-              >
-                <div style={{ fontSize: '3rem', opacity: 0.18 }}>📅</div>
-                <div style={{ fontWeight: 700, color: tokens.color.text, fontSize: '1rem' }}>
-                  Nenhum agendamento encontrado
-                </div>
-                <div style={{ fontSize: '0.84rem', color: tokens.color.muted, textAlign: 'center', maxWidth: 280 }}>
-                  Ajuste os filtros ou crie um novo agendamento.
-                </div>
-                <button
-                  onClick={() => openNewModal()}
-                  style={{
-                    marginTop: 4, padding: '10px 22px',
-                    background: tokens.color.ferrari, color: 'white',
-                    border: 'none', borderRadius: 10, cursor: 'pointer',
-                    fontSize: '0.875rem', fontWeight: 600, fontFamily: tokens.fontSans,
-                  }}
-                >
-                  + Novo Agendamento
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-
   // ── Modals ───────────────────────────────────────────────────────────────────
 
   const modals = (
@@ -413,6 +172,13 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
           getOcupados={getOcupados}
           onSave={changes => updateAgendamento(ajuste.ag.id, changes)}
           onClose={() => setAjuste(null)}
+        />
+      )}
+      {!isMobile && filtrosAbertos && (
+        <AgendamentoFiltrosModal
+          filtros={filtros}
+          onApply={setFiltros}
+          onClose={() => setFiltrosAbertos(false)}
         />
       )}
       {newModalOpen && (
@@ -460,33 +226,32 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     );
   }
 
-  if (showList) {
-    // ── Modo Lista: shell ORIGINAL (altura livre, rolagem natural da página) ──
-    // É exatamente o que existia antes do ajuste de scroll interno do Diário/
-    // Semanal/Mensal. Restaurado 1:1 para que a lista de agendamentos volte a
-    // rolar como rolava antes, sem nenhum conteúdo cortado.
-    return (
-      <div style={{ display: 'flex', minHeight: '100dvh' }}>
-        <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
-        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <DesktopTopBar page="agendamentos" onNav={onNav} />
-          {content}
-        </main>
-        {modals}
-      </div>
-    );
-  }
-
+  // Desktop: cabeçalho, busca/filtros e calendário ou lista (./AgendamentosDesktop).
+  // A página inteira rola junto (como Estoque, Veículos e Ordens), tanto no calendário quanto na lista.
   return (
-    // Modo calendário (Diário/Semanal/Mensal): shell travado em 100dvh (ao invés
-    // de minHeight). Isso é o que permite que os containers filhos com
-    // `flex:1 + minHeight:0` calculem uma altura FINITA e, por consequência,
-    // que o scroll interno do DailyView/WeeklyView funcione isoladamente.
-    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
         <DesktopTopBar page="agendamentos" onNav={onNav} />
-        {content}
+        <AgendamentosDesktop
+          agendamentos={filtered}
+          total={agendamentos.length}
+          loading={loading}
+          erro={erro}
+          viewMode={viewMode}
+          onViewMode={setViewMode}
+          viewDate={viewDate}
+          onViewDate={setViewDate}
+          search={search}
+          onSearch={setSearch}
+          filtros={filtros}
+          onFiltros={setFiltros}
+          emLista={showList}
+          onOpenFilters={() => setFiltrosAbertos(true)}
+          onNovo={() => openNewModal()}
+          onCardClick={setSelectedAg}
+          onDayClick={handleDayClick}
+        />
       </main>
       {modals}
     </div>
