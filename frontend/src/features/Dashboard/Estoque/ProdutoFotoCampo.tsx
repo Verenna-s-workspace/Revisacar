@@ -36,9 +36,7 @@ export function ProdutoFotoCampo({ foto, comprimindo, erro, onSelecionar, onRemo
 
       {erro && <ModalNotice tone="error" role="alert">{erro}</ModalNotice>}
 
-      <ModalNotice tone="attention" title="Aviso">
-        A foto fica salva só nesta sessão — ainda não há backend de armazenamento pra imagens.
-      </ModalNotice>
+     
     </>
   );
 }
