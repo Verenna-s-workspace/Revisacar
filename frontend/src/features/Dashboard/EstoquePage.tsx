@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
-import { Card, Skeleton } from './Primitives';codium frontend/src/features/Dashboard/EstoquePage.tsx
+import { Card, Skeleton } from './Primitives';
 import { useEstoque } from '../../hooks/useEstoque';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { EstoqueItem, EstoqueKit, NovoEstoqueItemInput, NovoEstoqueKitInput } from '../../types/estoque';
