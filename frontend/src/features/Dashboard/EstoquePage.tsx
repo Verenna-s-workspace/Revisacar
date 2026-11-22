@@ -1,23 +1,17 @@
 import { useMemo, useState } from 'react';
-import { tokens } from '../../constants';
-import { Icons } from './Icons';
 import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { Card, Skeleton } from './Primitives';
 import { useEstoque } from '../../hooks/useEstoque';
-import { filtrarItensPorBusca, itemEstaBaixo } from '../../utils/estoque_utils';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { EstoqueItem, EstoqueKit, NovoEstoqueItemInput, NovoEstoqueKitInput } from '../../types/estoque';
 import type { NavPage } from '../../types/dashboard';
 
 import { EstoqueDesktop } from './Estoque/EstoqueDesktop';
-import { EstoqueStats } from './Estoque/EstoqueStats';
-import { EstoqueFilters } from './Estoque/EstoqueFilters';
-import { CategoriaGrid } from './Estoque/CategoriaGrid';
-import { EstoqueItemCard } from './Estoque/EstoqueItemCard';
-import { EstoqueBaixoTira } from './Estoque/EstoqueBaixoTira';
-import { QuarentenaAlert } from './Estoque/QuarentenaAlert';
-import { KitCard } from './Estoque/KitCard';
+import { EstoqueMobile } from './Estoque/EstoqueMobile';
 import { ProdutoModal } from './Estoque/ProdutoModal';
+import { ProdutoDetalheModal } from './Estoque/ProdutoDetalheModal';
+import { KitDetalheModal } from './Estoque/KitDetalheModal';
 import { CriarKitModal } from './Estoque/CriarKitModal';
 import { ConfirmDeleteModal } from './Estoque/ConfirmDeleteModal';
 
@@ -29,8 +23,6 @@ interface EstoquePageProps {
   initialSearch?: string;
 }
 
-type Visao = { tipo: 'inicio' } | { tipo: 'categoria'; categoria: string } | { tipo: 'baixo-estoque' };
-
 export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: EstoquePageProps) {
   const {
     itens, kits, carregando, erro, stats,
@@ -38,13 +30,19 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
     criarKit, atualizarKit, excluirKit, aplicarKit, disponibilidadeKit,
   } = useEstoque();
 
+  const { can } = usePermissions();
+  // Custo é a base da margem: mesma regra do Orçamento (financeiro.ver_margem).
+  const mostrarCusto = can('financeiro.ver_margem');
+
   const [busca, setBusca] = useState(initialSearch ?? '');
-  const [visao, setVisao] = useState<Visao>({ tipo: 'inicio' });
-  const [somenteBaixo, setSomenteBaixo] = useState(false);
+
+  // Celular: tocar numa linha abre o modal de detalhes (guarda só o id, pra refletir o estoque atual).
+  const [detalheItemId, setDetalheItemId] = useState<string | null>(null);
+  const [detalheKitId, setDetalheKitId] = useState<string | null>(null);
 
   const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
   const [editandoItem, setEditandoItem] = useState<EstoqueItem | undefined>(undefined);
-  // Desktop: categoria filtrada na lista, pra já vir selecionada ao criar produto.
+  // Categoria filtrada na lista, pra já vir selecionada ao criar produto.
   const [categoriaNovoProduto, setCategoriaNovoProduto] = useState<string | undefined>(undefined);
   const [excluindoItem, setExcluindoItem] = useState<EstoqueItem | null>(null);
 
@@ -63,19 +61,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   const itensPorId = useMemo(() => new Map(itens.map(i => [i.id, i])), [itens]);
 
-  const resultadosBusca = useMemo(
-    () => (busca.trim() ? filtrarItensPorBusca(itens, busca) : null),
-    [busca, itens]
-  );
-
-  const itensDaVisao = useMemo(() => {
-    if (visao.tipo === 'categoria') {
-      const daCategoria = itens.filter(i => i.categoria === visao.categoria);
-      return somenteBaixo ? daCategoria.filter(itemEstaBaixo) : daCategoria;
-    }
-    if (visao.tipo === 'baixo-estoque') return itens.filter(itemEstaBaixo);
-    return [];
-  }, [itens, visao, somenteBaixo]);
+  const detalheItem = detalheItemId ? itensPorId.get(detalheItemId) : undefined;
+  const detalheKit = detalheKitId ? kits.find(k => k.id === detalheKitId) : undefined;
 
   function abrirNovoProduto() {
     setErroSalvar(null);
@@ -151,271 +138,34 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
     setAplicandoKitId(null);
   }
 
-  function selecionarCategoria(categoria: string) {
-    setSomenteBaixo(false);
-    setVisao({ tipo: 'categoria', categoria });
-  }
-
-  const BTN_PRIMARIO = {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
-    background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 9,
-    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-  } as const;
-
-  const BTN_SECUNDARIO = {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
-    background: 'transparent', color: tokens.color.ferrari, border: `1px solid ${tokens.color.ferrari}`, borderRadius: 9,
-    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-  } as const;
-
-  // ── conteúdo ──────────────────────────────────────────────────────────────
-
-  const content = (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
-      {/* header */}
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: isMobile ? '14px 16px' : '16px 28px', background: 'var(--color-surface)',
-          borderBottom: `1px solid ${tokens.color.border}`, flexShrink: 0, flexWrap: 'wrap', gap: 10,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {isMobile && (
-            <button
-              onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
-            >
-              {Icons.chevL}
-            </button>
-          )}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-                Estoque
-              </h2>
-            </div>
-            <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
-              Peças, insumos e kits da oficina.
-            </p>
-          </div>
-        </div>
-
-        {!erro && (
-          // Mobile: botões com texto, na largura toda, lado a lado (antes só o "+")
-          <div style={{ display: 'flex', gap: 10, width: isMobile ? '100%' : undefined }}>
-            <button type="button" onClick={abrirNovoKit} style={{ ...BTN_SECUNDARIO, ...(isMobile ? { flex: 1, justifyContent: 'center', minHeight: 44 } : null) }}>
-              <span style={{ display: 'flex' }}>{Icons.plus}</span>
-              {isMobile ? 'Novo kit' : 'Criar Kit'}
-            </button>
-            <button type="button" onClick={abrirNovoProduto} style={{ ...BTN_PRIMARIO, ...(isMobile ? { flex: 1, justifyContent: 'center', minHeight: 44 } : null) }}>
-              <span style={{ display: 'flex' }}>{Icons.plus}</span>
-              {isMobile ? 'Novo produto' : 'Adicionar Produto'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      <EstoqueFilters busca={busca} onBusca={setBusca} />
-
-      {/* corpo */}
-      <div
-        style={{
-          flex: 1, minHeight: 0, overflowY: 'auto',
-          padding: isMobile ? '12px 12px 32px' : '18px 28px 36px',
-          display: 'flex', flexDirection: 'column', gap: 16,
-        }}
-      >
-        {erroExcluir && (
-          <Card style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: tokens.color.crit, display: 'flex' }}>{Icons.alert}</span>
-              <span style={{ fontSize: '0.85rem', color: tokens.color.text }}>{erroExcluir}</span>
-            </div>
-            <button
-              onClick={() => setErroExcluir(null)}
-              style={{ padding: '6px 12px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, cursor: 'pointer', fontSize: '0.78rem', color: tokens.color.text }}
-            >
-              Fechar
-            </button>
-          </Card>
-        )}
-
-        {erro && !carregando && (
-          <Card style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: tokens.color.crit, display: 'flex' }}>{Icons.alert}</span>
-              <span style={{ fontSize: '0.85rem', color: tokens.color.text }}>{erro}</span>
-            </div>
-            <button
-              onClick={recarregar}
-              style={{ padding: '7px 14px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
-            >
-              Tentar novamente
-            </button>
-          </Card>
-        )}
-
-        {!erro && (
-          <>
-            <EstoqueStats stats={stats} loading={carregando} />
-
-            {carregando ? (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14 }}>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Card key={i} style={{ padding: 14 }}>
-                    <Skeleton h={140} r={8} />
-                  </Card>
-                ))}
-              </div>
-            ) : resultadosBusca ? (
-              resultadosBusca.length === 0 ? (
-                <Card style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 16, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
-                    {Icons.search}
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: tokens.color.text }}>Nenhum item encontrado</div>
-                  <div style={{ fontSize: '0.82rem', color: tokens.color.muted, maxWidth: 320 }}>
-                    Tente buscar por outro nome ou por um veículo de aplicação.
-                  </div>
-                </Card>
-              ) : (
-                <div>
-                  <div style={{ fontSize: '0.78rem', color: tokens.color.muted, marginBottom: 10 }}>
-                    {resultadosBusca.length} {resultadosBusca.length === 1 ? 'resultado' : 'resultados'} pra &quot;{busca}&quot;
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
-                    {resultadosBusca.map(item => (
-                      <EstoqueItemCard
-                        key={item.id}
-                        item={item}
-                        onEdit={() => abrirEdicaoProduto(item)}
-                        onDelete={() => setExcluindoItem(item)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )
-            ) : (
-              <>
-                <QuarentenaAlert itens={itens} />
-
-                {visao.tipo === 'inicio' && (
-                  <EstoqueBaixoTira itens={itens} onVerTodos={() => setVisao({ tipo: 'baixo-estoque' })} />
-                )}
-
-                {visao.tipo === 'inicio' && (
-                  <>
-                    <CategoriaGrid itens={itens} onSelecionar={selecionarCategoria} />
-
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>Kits</h3>
-                        <span style={{ fontSize: '0.78rem', color: tokens.color.muted }}>({kits.length})</span>
-                      </div>
-
-                      {kits.length === 0 ? (
-                        <Card style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-                          <div style={{ width: 52, height: 52, borderRadius: 14, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
-                            {Icons.box}
-                          </div>
-                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>Nenhum kit cadastrado</div>
-                          <div style={{ fontSize: '0.8rem', color: tokens.color.muted, maxWidth: 300 }}>
-                            Combine itens já cadastrados numa receita pra dar baixa rápida em serviços comuns.
-                          </div>
-                        </Card>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-                          {kits.map(kit => (
-                            <KitCard
-                              key={kit.id}
-                              kit={kit}
-                              itensPorId={itensPorId}
-                              disponibilidade={disponibilidadeKit(kit)}
-                              aplicando={aplicandoKitId === kit.id}
-                              erro={erroAplicarKit[kit.id] ?? null}
-                              onAplicar={() => handleAplicarKit(kit)}
-                              onEdit={() => abrirEdicaoKit(kit)}
-                              onDelete={() => setExcluindoKit(kit)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {visao.tipo !== 'inicio' && (
-                  <div>
-                    <button
-                      onClick={() => setVisao({ tipo: 'inicio' })}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.ferrari, fontSize: '0.82rem', fontWeight: 700, padding: 0, marginBottom: 12 }}
-                    >
-                      <span style={{ display: 'flex' }}>{Icons.chevL}</span>
-                      Categorias
-                    </button>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: tokens.color.text, margin: 0 }}>
-                        {visao.tipo === 'categoria' ? visao.categoria : 'Estoque Baixo'}
-                        <span style={{ fontWeight: 600, color: tokens.color.muted, fontSize: '0.8rem', marginLeft: 8 }}>
-                          ({itensDaVisao.length})
-                        </span>
-                      </h3>
-                      {visao.tipo === 'categoria' && (
-                        <button
-                          onClick={() => setSomenteBaixo(v => !v)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9,
-                            border: `1px solid ${somenteBaixo ? tokens.color.warn : tokens.color.border}`,
-                            background: somenteBaixo ? tokens.color.warnBg : 'transparent',
-                            color: somenteBaixo ? tokens.color.warn : tokens.color.textSecond,
-                            fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <span style={{ display: 'flex' }}>{Icons.alert}</span>
-                          Só estoque baixo
-                        </button>
-                      )}
-                    </div>
-
-                    {itensDaVisao.length === 0 ? (
-                      <Card style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-                        <div style={{ width: 52, height: 52, borderRadius: 14, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
-                          {Icons.box}
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>Nenhum item encontrado</div>
-                        <div style={{ fontSize: '0.8rem', color: tokens.color.muted, maxWidth: 300 }}>
-                          {somenteBaixo ? 'Nenhum item em baixo estoque nesta categoria.' : 'Cadastre o primeiro item pra começar.'}
-                        </div>
-                      </Card>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
-                        {itensDaVisao.map(item => (
-                          <EstoqueItemCard
-                            key={item.id}
-                            item={item}
-                            onEdit={() => abrirEdicaoProduto(item)}
-                            onDelete={() => setExcluindoItem(item)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-
   const modals = (
     <>
+      {detalheItem && (
+        <ProdutoDetalheModal
+          item={detalheItem}
+          mostrarCusto={mostrarCusto}
+          onClose={() => setDetalheItemId(null)}
+          onEditar={item => { setDetalheItemId(null); abrirEdicaoProduto(item); }}
+          onExcluir={item => { setDetalheItemId(null); setExcluindoItem(item); }}
+        />
+      )}
+      {detalheKit && (
+        <KitDetalheModal
+          kit={detalheKit}
+          itensPorId={itensPorId}
+          disponibilidade={disponibilidadeKit(detalheKit)}
+          aplicando={aplicandoKitId === detalheKit.id}
+          erro={erroAplicarKit[detalheKit.id] ?? null}
+          onClose={() => setDetalheKitId(null)}
+          onAplicar={handleAplicarKit}
+          onEditar={kit => { setDetalheKitId(null); abrirEdicaoKit(kit); }}
+          onExcluir={kit => { setDetalheKitId(null); setExcluindoKit(kit); }}
+        />
+      )}
       {modalProdutoAberto && (
         <ProdutoModal
           item={editandoItem}
-          categoriaInicial={categoriaNovoProduto ?? (visao.tipo === 'categoria' ? visao.categoria : undefined)}
+          categoriaInicial={categoriaNovoProduto}
           onSave={salvarProduto}
           erro={erroSalvar}
           salvando={salvando}
@@ -453,18 +203,35 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   // ── layout ────────────────────────────────────────────────────────────────
 
+  // Celular: tela redesenhada em ./Estoque (EstoqueMobile). Tocar num item/kit abre o modal de detalhes.
   if (isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: 'var(--color-bg)', minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileSafeTop />
-        {content}
+        <EstoqueMobile
+          itens={itens}
+          kits={kits}
+          carregando={carregando}
+          erro={erro}
+          valorTotal={stats.valorTotal}
+          busca={busca}
+          onBusca={setBusca}
+          erroExcluir={erroExcluir}
+          onFecharErroExcluir={() => setErroExcluir(null)}
+          onRecarregar={recarregar}
+          onNovoProduto={categoria => { setCategoriaNovoProduto(categoria); abrirNovoProduto(); }}
+          onNovoKit={abrirNovoKit}
+          onAbrirProduto={item => setDetalheItemId(item.id)}
+          onAbrirKit={kit => setDetalheKitId(kit.id)}
+          disponibilidadeKit={disponibilidadeKit}
+        />
         <MobileNav active="estoque" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
         {modals}
       </div>
     );
   }
 
-  // Desktop: tela redesenhada em ./Estoque (EstoqueDesktop). O celular segue com o layout anterior.
+  // Desktop: tela redesenhada em ./Estoque (EstoqueDesktop).
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="estoque" onNav={onNav} onNewOS={onNewOS} />

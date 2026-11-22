@@ -4,10 +4,9 @@ import { Skeleton } from '../Primitives';
 import { Valor } from '../../../components/Privacidade';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { formatBRL } from '../../../utils/dashboard';
-import {
-  CATEGORIA_GRUPOS, CATEGORIAS_FLAT, filtrarItensPorBusca, itemEstaBaixo, ordenarPorCriticidade,
-} from '../../../utils/estoque_utils';
+import { filtrarItensPorBusca, itemEstaBaixo, ordenarPorCriticidade } from '../../../utils/estoque_utils';
 import type { EstoqueItem, EstoqueKit } from '../../../types/estoque';
+import { agruparCategorias } from './categorias';
 import { EstoqueLinha } from './EstoqueLinha';
 import { KitLinha } from './KitLinha';
 import { QuarentenaAviso } from './QuarentenaAviso';
@@ -82,18 +81,7 @@ export function EstoqueDesktop({
   const itensPorId = useMemo(() => new Map(itens.map(i => [i.id, i])), [itens]);
   const qtdBaixos = useMemo(() => itens.filter(itemEstaBaixo).length, [itens]);
 
-  /** Categorias do sistema (agrupadas) + qualquer categoria antiga que exista nos itens. */
-  const gruposCategoria = useMemo(() => {
-    const contagem = new Map<string, number>();
-    itens.forEach(i => contagem.set(i.categoria, (contagem.get(i.categoria) ?? 0) + 1));
-    const grupos = CATEGORIA_GRUPOS.map(g => ({
-      grupo: g.grupo,
-      opcoes: g.categorias.map(c => ({ categoria: c, qtd: contagem.get(c) ?? 0 })),
-    }));
-    const outras = [...contagem.keys()].filter(c => !CATEGORIAS_FLAT.includes(c)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    if (outras.length > 0) grupos.push({ grupo: 'Outras', opcoes: outras.map(c => ({ categoria: c, qtd: contagem.get(c) ?? 0 })) });
-    return grupos;
-  }, [itens]);
+  const gruposCategoria = useMemo(() => agruparCategorias(itens), [itens]);
 
   const itensFiltrados = useMemo(() => {
     // "Estoque baixo": mais crítico primeiro. Busca e categoria combinam com qualquer filtro rápido.

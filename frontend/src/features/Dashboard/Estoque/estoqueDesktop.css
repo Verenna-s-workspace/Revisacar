@@ -246,7 +246,9 @@ body.dark .es-page {
 .es-foto {
   flex: none; display: flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; overflow: hidden;
-  border: 1px solid var(--es-borda); border-radius: 6px; background: var(--es-surface-high);
+  /* fora de .es-page (celular, modais) os tokens vêm do próprio contexto */
+  border: 1px solid var(--es-borda, var(--esm-borda, var(--sm-borda, #E2E5EA))); border-radius: 6px;
+  background: var(--es-surface-high, var(--esm-surface-high, var(--sm-surface-alta, #EEF0F3)));
 }
 .es-foto__img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .es-foto__padrao { width: 100%; height: 100%; display: block; }
