@@ -8,9 +8,10 @@ export type { ConfirmDialogProps, ConfirmOptions } from './ConfirmDialog';
 export { ICONES_STATUS, IconeAlerta } from './icons';
 export {
   Modal, ModalHeader, ModalBody, ModalColumns, ModalSection, ModalFields,
-  ModalHighlights, ModalHighlight, ModalNotice, ModalBadge, ModalSwitch, ModalFooter,
+  ModalHighlights, ModalHighlight, ModalValue, ModalDetails, ModalDetail, ModalRows, ModalRow,
+  ModalNotice, ModalBadge, ModalSwitch, ModalFooter,
 } from './Modal';
 export type {
   ModalProps, ModalHeaderProps, ModalSectionProps, ModalHighlightProps,
-  ModalNoticeProps, ModalSwitchProps, ModalFooterProps,
+  ModalNoticeProps, ModalSwitchProps, ModalFooterProps, ModalRowProps,
 } from './Modal';

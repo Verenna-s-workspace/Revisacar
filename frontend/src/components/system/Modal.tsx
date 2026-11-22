@@ -25,6 +25,9 @@ import './modal.css';
  *     </ModalFooter>
  *   </Modal>
  *
+ * Modo leitura (modais de detalhes): troque os campos por ModalValue (em ModalHighlight), ModalDetails/ModalDetail
+ * e ModalRows/ModalRow — o resto da estrutura é idêntico, então ver e editar ficam parecidos.
+ *
  * Medidas (px): janela raio 12 · cabeçalho 20/24 · corpo 24, 16 entre cartões ·
  * cartão raio 8, padding 20, 16 entre campos · rodapé 16/24 · botões e campos 36, raio 6.
  * Tamanhos: sm 440 · md 560 · lg 720 · xl 960. Um botão primário por modal.
@@ -141,7 +144,7 @@ export function ModalHeader({ title, description, icon, meta }: ModalHeaderProps
 }
 
 /** Selo pequeno de estado, pensado para o `meta` do cabeçalho (mesma paleta dos avisos). */
-export function ModalBadge({ tone = 'info', children }: { tone?: 'info' | 'attention' | 'error'; children: ReactNode }) {
+export function ModalBadge({ tone = 'info', children }: { tone?: 'info' | 'attention' | 'error' | 'success'; children: ReactNode }) {
   return (
     <span className={`sys-modal__badge sys-modal__badge--${tone}`}>
       <span className="sys-modal__badge-dot" aria-hidden="true" />
@@ -158,15 +161,17 @@ export function ModalBody({ children }: { children: ReactNode }) {
 }
 
 /**
- * Coluna lateral (ex.: foto) + coluna principal. A principal vem primeiro no DOM — é por ela que o
- * Tab começa (os campos que a pessoa preenche) — e a lateral aparece à esquerda só visualmente.
- * Em telas estreitas vira uma coluna só, com a lateral depois da principal.
+ * Coluna lateral (ex.: foto) + coluna principal. Em telas estreitas vira uma coluna só.
+ * Formulário (padrão): a principal vem primeiro no DOM — é por ela que o Tab começa — e a lateral
+ * aparece à esquerda só visualmente (em tela estreita, depois da principal).
+ * `asideFirst` (modais de leitura): a lateral vem primeiro também em tela estreita (a foto abre o modal).
  */
-export function ModalColumns({ aside, children }: { aside: ReactNode; children: ReactNode }) {
+export function ModalColumns({ aside, children, asideFirst }: { aside: ReactNode; children: ReactNode; asideFirst?: boolean }) {
+  const lateral = <div className="sys-modal__col sys-modal__col--aside">{aside}</div>;
+  const principal = <div className="sys-modal__col">{children}</div>;
   return (
-    <div className="sys-modal__columns">
-      <div className="sys-modal__col">{children}</div>
-      <div className="sys-modal__col sys-modal__col--aside">{aside}</div>
+    <div className={`sys-modal__columns${asideFirst ? ' sys-modal__columns--aside-first' : ''}`}>
+      {asideFirst ? <>{lateral}{principal}</> : <>{principal}{lateral}</>}
     </div>
   );
 }
@@ -213,25 +218,82 @@ export function ModalHighlights({ children }: { children: ReactNode }) {
 
 export interface ModalHighlightProps {
   label: string;
-  /** id do campo dentro do cartão (liga o rótulo ao campo). */
-  htmlFor: string;
+  /** id do campo dentro do cartão (liga o rótulo ao campo). Sem ele (modo leitura) o rótulo vira texto. */
+  htmlFor?: string;
   icon?: ReactNode;
   required?: boolean;
   hint?: string;
+  /** error = valor em alerta (ex.: estoque baixo), com a cor de erro dos status da OS. */
+  tone?: 'default' | 'error';
   children: ReactNode;
 }
 
-export function ModalHighlight({ label, htmlFor, icon, required, hint, children }: ModalHighlightProps) {
+export function ModalHighlight({ label, htmlFor, icon, required, hint, tone = 'default', children }: ModalHighlightProps) {
+  const rotulo = (
+    <>
+      {icon && <span className="sys-modal__highlight-icon" aria-hidden="true">{icon}</span>}
+      {label}
+      {required && <span className="sys-modal__required" aria-hidden="true"> *</span>}
+    </>
+  );
   return (
-    <div className="sys-modal__highlight">
-      <label className="sys-modal__highlight-label" htmlFor={htmlFor}>
-        {icon && <span className="sys-modal__highlight-icon" aria-hidden="true">{icon}</span>}
-        {label}
-        {required && <span className="sys-modal__required" aria-hidden="true"> *</span>}
-      </label>
+    <div className={`sys-modal__highlight${tone === 'error' ? ' sys-modal__highlight--error' : ''}`}>
+      {htmlFor
+        ? <label className="sys-modal__highlight-label" htmlFor={htmlFor}>{rotulo}</label>
+        : <div className="sys-modal__highlight-label">{rotulo}</div>}
       {children}
       {hint && <p className="sys-modal__highlight-hint">{hint}</p>}
     </div>
+  );
+}
+
+/** Valor em destaque dentro de um ModalHighlight, no modo leitura (no lugar do campo). */
+export function ModalValue({ children }: { children: ReactNode }) {
+  return <p className="sys-modal__value">{children}</p>;
+}
+
+// ── Modo leitura: pares rótulo/valor e linhas de lista ───────────────────────
+
+/** Grade de pares rótulo/valor (modais de detalhes). Duas colunas que viram uma em telas estreitas. */
+export function ModalDetails({ children, columns = 2 }: { children: ReactNode; columns?: 1 | 2 }) {
+  return <dl className={`sys-modal__details${columns === 1 ? ' sys-modal__details--single' : ''}`}>{children}</dl>;
+}
+
+/** Um par rótulo/valor. Valor vazio aparece como "—". `wide` ocupa a linha inteira (textos longos). */
+export function ModalDetail({ label, children, wide }: { label: string; children?: ReactNode; wide?: boolean }) {
+  const vazio = children === undefined || children === null || children === '' || children === false;
+  return (
+    <div className={`sys-modal__detail${wide ? ' sys-modal__detail--wide' : ''}`}>
+      <dt className="sys-modal__detail-label">{label}</dt>
+      <dd className={`sys-modal__detail-value${vazio ? ' sys-modal__detail-value--vazio' : ''}`}>{vazio ? '—' : children}</dd>
+    </div>
+  );
+}
+
+/** Lista de linhas separadas por divisores (ex.: componentes de um kit). */
+export function ModalRows({ children, label }: { children: ReactNode; label?: string }) {
+  return <ul className="sys-modal__rows" aria-label={label}>{children}</ul>;
+}
+
+export interface ModalRowProps {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  /** Conteúdo à direita (quantidade, selo…). */
+  aside?: ReactNode;
+  /** Imagem/ícone à esquerda. */
+  leading?: ReactNode;
+}
+
+export function ModalRow({ title, subtitle, aside, leading }: ModalRowProps) {
+  return (
+    <li className="sys-modal__row">
+      {leading}
+      <div className="sys-modal__row-text">
+        <span className="sys-modal__row-title">{title}</span>
+        {subtitle && <span className="sys-modal__row-subtitle">{subtitle}</span>}
+      </div>
+      {aside && <div className="sys-modal__row-aside">{aside}</div>}
+    </li>
   );
 }
 

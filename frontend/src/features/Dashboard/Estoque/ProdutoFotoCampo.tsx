@@ -1,7 +1,6 @@
 import type { ChangeEvent } from 'react';
 import { Button, ModalNotice } from '../../../components/system';
-import { CaixasEmpilhadasSvg } from './ilustracoes';
-import './produtoModal.css';
+import { ProdutoFotoPreview } from './ProdutoFotoPreview';
 
 interface ProdutoFotoCampoProps {
   /** Foto atual (data URL). Ausente = ilustração das três caixas, a mesma da lista. */
@@ -12,15 +11,11 @@ interface ProdutoFotoCampoProps {
   onRemover: () => void;
 }
 
-/** Conteúdo da seção "Foto do produto": prévia, trocar/remover e erro de processamento. */
+/** Conteúdo da seção "Foto do produto": prévia, trocar/remover e o aviso de armazenamento. */
 export function ProdutoFotoCampo({ foto, comprimindo, erro, onSelecionar, onRemover }: ProdutoFotoCampoProps) {
   return (
     <>
-      <div className="pf-tile">
-        {foto
-          ? <img className="pf-tile__img" src={foto} alt="Prévia da foto do produto" />
-          : <CaixasEmpilhadasSvg className="pf-tile__padrao" />}
-      </div>
+      <ProdutoFotoPreview foto={foto} alt="Prévia da foto do produto" />
 
       <div className="pf-acoes">
         {/* O input fica escondido só visualmente: continua alcançável pelo teclado (foco aparece no botão) */}
@@ -33,13 +28,17 @@ export function ProdutoFotoCampo({ foto, comprimindo, erro, onSelecionar, onRemo
           <input className="pf-input" type="file" accept="image/*" onChange={onSelecionar} disabled={comprimindo} />
         </label>
         {foto && (
-          <Button variant="ghost" size="sm" className="pf-remover" onClick={onRemover}>
+          <Button variant="danger" size="sm" onClick={onRemover}>
             Remover foto
           </Button>
         )}
       </div>
 
       {erro && <ModalNotice tone="error" role="alert">{erro}</ModalNotice>}
+
+      <ModalNotice tone="attention" title="Aviso">
+        A foto fica salva só nesta sessão — ainda não há backend de armazenamento pra imagens.
+      </ModalNotice>
     </>
   );
 }

@@ -4,12 +4,8 @@ import { formatBRL } from '../../../utils/dashboard';
 import { itemEstaBaixo } from '../../../utils/estoque_utils';
 import type { EstoqueItem } from '../../../types/estoque';
 import { EstoqueFoto } from './EstoqueFoto';
+import { formatarQuantidade } from './estoqueFormat';
 import { IcAlerta, IcCaixa, IcDinheiro, IcReticencias } from './icones';
-
-/** Quantidade pode ser fracionada (ex.: 1,5 L) — no padrão pt-BR, sem zeros sobrando. */
-export function formatarQuantidade(n: number): string {
-  return n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
-}
 
 /** Valor sem o "R$": o ícone de dinheiro já faz o papel do símbolo (leitor de tela lê "R$"). */
 function Preco({ valor }: { valor?: number }) {
