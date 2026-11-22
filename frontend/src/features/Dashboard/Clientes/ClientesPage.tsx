@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
-import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
@@ -253,7 +253,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   if (isMobile) {
     return (
       <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="clientes" onNav={onNav} />
+        <MobileSafeTop />
         <ClientesMobile
           clientes={filtered}
           totalClientes={clientes.length}

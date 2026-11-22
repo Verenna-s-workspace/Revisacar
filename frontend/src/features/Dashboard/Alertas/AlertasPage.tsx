@@ -1,7 +1,7 @@
 /* --- START OF FILE src/features/Dashboard/Alertas/AlertasPage.tsx --- */
 
 import { tokens } from '../../../constants';
-import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useAlertas } from '../../../hooks/useAlertas';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
@@ -31,7 +31,7 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao, destaque, onDest
   if (isMobile) {
     return (
       <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="alertas" onNav={onNav} />
+        <MobileSafeTop />
         <AlertasMobile
           grupos={grupos}
           alertas={alertas}

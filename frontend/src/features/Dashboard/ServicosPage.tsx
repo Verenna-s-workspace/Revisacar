@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../constants';
-import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { useServicos } from '../../hooks/useServicos';
 import { useEstoque } from '../../hooks/useEstoque';
@@ -103,7 +103,7 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   if (isMobile) {
     return (
       <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="servicos" onNav={onNav} />
+        <MobileSafeTop />
         <ServicosMobile
           servicos={servicos}
           loading={loading}

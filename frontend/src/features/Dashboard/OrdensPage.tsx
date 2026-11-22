@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge, Skeleton } from './Primitives';
-import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
@@ -223,7 +223,7 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
   // ── Celular: lista redesenhada em ./Ordens (OrdensMobile) ──
   return (
     <div style={{ background: 'var(--color-bg)', minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-      <MobileTopbar active="ordens" onNav={onNav} />
+      <MobileSafeTop />
       <OrdensMobile
         ordens={ordens}
         loading={loading}

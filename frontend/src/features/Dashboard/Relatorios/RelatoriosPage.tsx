@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
-import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
-import { GraficoPrivado } from '../../../components/Privacidade';
+import { BotaoPrivacidade, GraficoPrivado } from '../../../components/Privacidade';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import { ALVO } from '../../../utils/destaque';
 import type { Destaque } from '../../../utils/destaque';
@@ -115,6 +115,8 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
             </p>
           </div>
         </div>
+        {/* Celular sem top-bar: o olhinho fica aqui. No desktop ele está na top-bar. */}
+        {mobile && <BotaoPrivacidade variante="mobile" />}
       </div>
 
       {/* período */}
@@ -309,7 +311,7 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
   if (mobile) {
     return (
       <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="relatorios" onNav={onNav} />
+        <MobileSafeTop />
         {content}
         <MobileNav active="relatorios" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
       </div>
