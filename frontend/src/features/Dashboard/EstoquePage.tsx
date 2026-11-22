@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { Card, Skeleton } from './Primitives';
 import { useEstoque } from '../../hooks/useEstoque';
@@ -207,7 +207,7 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
   if (isMobile) {
     return (
       <div style={{ background: 'var(--color-bg)', minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="estoque" onNav={onNav} />
+        <MobileSafeTop />
         <EstoqueMobile
           itens={itens}
           kits={kits}

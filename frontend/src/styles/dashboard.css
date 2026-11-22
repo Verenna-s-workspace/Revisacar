@@ -1676,3 +1676,6 @@ body.dark .dashboard-mobile-bottom-nav {
   width: 100%;
   height: 100%;
 }
+
+/* Celular sem top-bar: só o respiro do entalhe / barra de status. */
+.rv-safe-top { flex: none; height: env(safe-area-inset-top, 0px); }

@@ -301,43 +301,14 @@ export function DesktopHeader({ onNav, active }: { onNav?: (p: NavPage) => void;
   );
 }
 
-// ── Mobile Topbar ─────────────────────────────────────────────────────────────
+// ── Mobile: sem top-bar ───────────────────────────────────────────────────────
+// O celular não tem mais barra superior no painel. Resta só este respiro para o entalhe /
+// barra de status (viewport-fit=cover). Nome da oficina, olhinho e sino moram na própria
+// tela "Hoje" (VisaoGeralMobile); o resto do painel chega aos alertas pela aba "Mais".
+// (Os checklists têm o próprio AppTopBar, com o "Voltar" — esse continua.)
 
-interface MobileTopbarProps {
-  onNav?: (p: NavPage) => void;
-  /** Página atual. */
-  active?: NavPage;
-}
-
-export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
-  const { total: totalAlertas } = useAlertasResumo();
-
-  return (
-    <AppTopBar
-      className="dashboard-mobile-topbar"
-      onLogoClick={() => onNav?.('dashboard')}
-      logoLabel="Ir para a Visão Geral"
-      end={
-        <>
-          {active && TELAS_COM_PRIVACIDADE.includes(active) && <BotaoPrivacidade variante="mobile" />}
-          <button
-            type="button"
-            className="dashboard-mobile-topbar__button dashboard-mobile-topbar__button--end"
-            onClick={() => onNav?.('alertas')}
-            style={{ position: 'relative' }}
-            aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}
-          >
-            <span style={{ display: 'flex' }}>{Icons.bell}</span>
-            {totalAlertas > 0 && (
-              <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 4px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {totalAlertas > 99 ? '99+' : totalAlertas}
-              </span>
-            )}
-          </button>
-        </>
-      }
-    />
-  );
+export function MobileSafeTop() {
+  return <div className="rv-safe-top" aria-hidden="true" />;
 }
 
 // ── Mobile Bottom Nav ─────────────────────────────────────────────────────────
@@ -350,7 +321,7 @@ interface MobileNavProps {
 
 export function MobileNav({ active, onNav }: MobileNavProps) {
   const items: { key: string; label: string; icon: JSX.Element; page: NavPage }[] = [
-    { key: 'dashboard',    label: 'Geral',    icon: ICONES_PAGINA.dashboard ?? Icons.home,   page: 'dashboard' },
+    { key: 'dashboard',    label: 'Hoje',      icon: ICONES_PAGINA.dashboard ?? Icons.home,   page: 'dashboard' },
     { key: 'ordens',       label: 'Ordens',   icon: ICONES_PAGINA.ordens ?? Icons.orders,    page: 'ordens' },
     { key: 'agendamentos', label: 'Agenda',   icon: ICONES_PAGINA.agendamentos ?? Icons.cal, page: 'agendamentos' },
     { key: 'clientes',     label: 'Clientes', icon: ICONES_PAGINA.clientes ?? Icons.user,    page: 'clientes' },

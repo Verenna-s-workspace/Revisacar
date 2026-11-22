@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
-import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { Skeleton } from '../Primitives';
 import { useResponsive } from '../../../components/ui';
@@ -434,7 +434,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
     // O desktop abaixo permanece exatamente como estava.
     return (
       <div className="agm-shell" style={{ minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="agendamentos" onNav={onNav} />
+        <MobileSafeTop />
         <AgendaMobile
           agendamentos={filtered}
           total={agendamentos.length}
