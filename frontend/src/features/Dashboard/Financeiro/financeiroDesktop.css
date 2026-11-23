@@ -44,8 +44,10 @@
   align-items: stretch;
   gap: 20px;
   padding: 28px 32px 40px;
+  /* flex: 1 já preenche a altura do <main> (coluna flex). NÃO usar min-height: 100% aqui:
+   * somado à topbar sticky de 56px, o conteúdo passa 56px do <main> (overflow-y: auto do
+   * ShellPage) e ele vira um scroller escondido que "come" o primeiro gesto da roda. */
   flex: 1 0 auto;
-  min-height: 100%;
   background: var(--fin-bg);
   color: var(--fin-texto);
   font-family: var(--fin-fonte);
