@@ -662,3 +662,23 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 2. Decidir quais regras sobem para erro depois de ver a contagem de avisos.
 3. Fase 1 (remover código morto) com `knip` e `jscpd`; regras de fronteira e bloqueio de `<button>` cru só depois do kit de componentes.
 4. O `package.json` da raiz do repositório declara `typescript ^7.0.2`, enquanto o frontend usa `^5.5.3` (5.9.3 no lock). Não mexi; vale conferir se é intencional.
+
+## Financeiro redesign desktop (2026-11-22, branch `feat/financeiro-redesign-desktop`, parte de `main`)
+
+**Pedido (saJ):** refazer a tela Financeiro (só desktop) a partir do Figma, com filtro de período em modal, filtros dos lançamentos em modal, gráfico de barras de entradas × saídas e rosca de despesas. Sem `position: absolute` na estrutura.
+
+**Decisões**
+- Desktop usa `FinanceiroDesktop` (Grid/Flex, tokens `.fin-page` copiados do Estoque); mobile continua no layout antigo.
+- Período: Este mês, Mês passado, Esta semana, Última semana, Trimestre, Personalizado (máx. 800 dias, igual ao backend). Trimestre = trimestre civil; semana = domingo a sábado; "Última semana" = semana cheia anterior.
+- Filtros dos lançamentos (tipo, status, origem, categoria, forma de pagamento, data, valor) agem sobre os lançamentos já carregados; gráfico e KPIs seguem o período inteiro. "Pendente" = em aberto e no prazo; "Vencido" é calculado, nunca gravado.
+- Gráfico: barras por dia (≤8 dias), semana (≤45) ou mês; entradas pelo líquido. Cores #2F6FDE / #B35C00 validadas com `validate_palette.js`.
+- Reserva compacta; movimentos em modal ("Ver movimentos"). Cancelar lançamento usa `ConfirmDialog`.
+- Exportar = CSV dos lançamentos exibidos (`;`, vírgula decimal, BOM).
+- Sem migração SQL.
+
+**Arquivos:** `utils/financeiro_utils.ts`, `Financeiro/{FinanceiroDesktop,PeriodoModal,FiltrosLancamentosModal,FluxoCaixaBarras,ReservaDesktop,icones}.tsx`, `Financeiro/financeiroDesktop.css`, `FinanceiroPage.tsx`, `pages/Dashboard.tsx`.
+
+**Validado:** `tsc --noEmit`, `npm run build`, eslint sem erros; funções de período/fluxo/filtro/CSV com 26 checagens; captura de tela em 1440px com dados fictícios (tela e os dois modais).
+**NÃO validado:** com API real; modo escuro; telas < 1280px; leitor de tela; download do CSV no Excel; mobile (não alterado, exceto "Últimos 3 meses" mantido via período personalizado).
+
+**Pendências:** meta de faturamento (depende de dados da Visão Geral); agrupar lançamentos por OS; `ContasListaCompleta` e `RetiradaReservaModal` ainda no visual antigo.

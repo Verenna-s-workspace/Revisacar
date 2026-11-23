@@ -307,7 +307,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   }
   if (page === 'financeiro') {
     return (
-      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} semCabecalho>
         <FinanceiroPage isMobile={isMobile} destaque={destaque} onDestaqueConcluido={concluirDestaque} />
       </ShellPage>
     );

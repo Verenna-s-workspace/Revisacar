@@ -18,27 +18,13 @@ import { TransacaoModal } from './Financeiro/TransacaoModal';
 import { ReservaCard } from './Financeiro/ReservaCard';
 import { labelCategoria, LABEL_STATUS } from './Financeiro/categoriaLabels';
 import type { Transacao } from './Financeiro/types';
-import { isoLocal } from '../../utils/financeiro_utils';
+import { PERIODO_PADRAO, resolverPeriodo, isoLocal } from '../../utils/financeiro_utils';
+import type { PeriodoSel } from '../../utils/financeiro_utils';
+import { ConfirmDialog } from '../../components/system/ConfirmDialog';
+import { FinanceiroDesktop } from './Financeiro/FinanceiroDesktop';
 import { Valor, GraficoPrivado } from '../../components/Privacidade';
 import { useDestaqueAoChegar } from '../../hooks/useDestaqueAoChegar';
 import type { Destaque } from '../../utils/destaque';
-
-type Preset = 'este-mes' | 'mes-passado' | '3-meses';
-
-// Datas no calendário LOCAL (toISOString converteria pra UTC e, à noite no
-// Brasil, empurraria o limite do período pro dia seguinte).
-function periodoDoPreset(preset: Preset): { de: string; ate: string } {
-  const hoje = new Date();
-  const a = hoje.getFullYear();
-  const m = hoje.getMonth();
-  if (preset === 'mes-passado') {
-    return { de: isoLocal(new Date(a, m - 1, 1)), ate: isoLocal(new Date(a, m, 0)) };
-  }
-  if (preset === '3-meses') {
-    return { de: isoLocal(new Date(a, m - 2, 1)), ate: isoLocal(new Date(a, m + 1, 0)) };
-  }
-  return { de: isoLocal(new Date(a, m, 1)), ate: isoLocal(new Date(a, m + 1, 0)) };
-}
 
 function formatDataCurta(iso: string): string {
   const [, mes, dia] = iso.split('-');
@@ -52,17 +38,21 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
   const podeVerMargem = can('financeiro.ver_margem');
   const podeRetirarReserva = can('financeiro.reserva');
 
-  const [preset, setPreset] = useState<Preset>('este-mes');
+  const [periodo, setPeriodo] = useState<PeriodoSel>(PERIODO_PADRAO);
+  // Desktop: lançamento aguardando confirmação do cancelamento.
+  const [cancelando, setCancelando] = useState<Transacao | null>(null);
+  const [cancelandoOcupado, setCancelandoOcupado] = useState(false);
   // Modal: undefined = fechado, null = novo lançamento, Transacao = edição.
   const [modal, setModal] = useState<Transacao | null | undefined>(undefined);
   const [erroAcao, setErroAcao] = useState('');
   // Tela com TODAS as contas a pagar/receber (o widget só mostra as 6 mais urgentes). null = Financeiro normal.
   const [visaoContas, setVisaoContas] = useState<TipoContas | null>(null);
 
-  const { de, ate } = periodoDoPreset(preset);
+  // Datas no calendário LOCAL (ver resolverPeriodo).
+  const { de, ate } = useMemo(() => resolverPeriodo(periodo), [periodo]);
   const {
     resumo, transacoes, pendentesReceber, pendentesPagar, categorias,
-    carregando, erro, criar, atualizar, cancelar,
+    carregando, erro, recarregar, criar, atualizar, cancelar,
   } = useFinanceiro({ de, ate, podeVer, podeVerMargem });
   // A reserva é um extra: se não carregar, o restante do Financeiro segue normal.
   const { reserva, erro: erroReserva, recarregar: recarregarReserva, retirar, desfazerRetirada } = useReserva({ podeVer });
@@ -109,8 +99,7 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
     }
   };
 
-  const handleCancelar = async (id: string) => {
-    if (!window.confirm('Cancelar este lançamento? Ele sai dos totais, mas fica no histórico.')) return;
+  const executarCancelamento = async (id: string) => {
     setErroAcao('');
     try {
       await cancelar(id);
@@ -118,6 +107,19 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
     } catch (e) {
       setErroAcao(mensagemDoErro(e, 'Não foi possível cancelar. Tente de novo.'));
     }
+  };
+
+  const handleCancelar = async (id: string) => {
+    if (!window.confirm('Cancelar este lançamento? Ele sai dos totais, mas fica no histórico.')) return;
+    await executarCancelamento(id);
+  };
+
+  const confirmarCancelamento = async () => {
+    if (!cancelando) return;
+    setCancelandoOcupado(true);
+    await executarCancelamento(cancelando.id);
+    setCancelandoOcupado(false);
+    setCancelando(null);
   };
 
   if (!podeVer) {
@@ -128,8 +130,56 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
     );
   }
 
+  // Desktop: tela redesenhada. A lista completa de contas ("Ver todas") segue no layout anterior.
+  if (!isMobile && !visaoContas) {
+    return (
+      <>
+        <FinanceiroDesktop
+          periodo={periodo}
+          de={de}
+          ate={ate}
+          onPeriodo={setPeriodo}
+          resumo={resumo}
+          transacoes={transacoes}
+          pendentesReceber={pendentesReceber}
+          pendentesPagar={pendentesPagar}
+          categorias={categorias}
+          carregando={carregando}
+          erro={erro || erroAcao || null}
+          onRecarregar={recarregar}
+          reserva={reserva}
+          erroReserva={erroReserva}
+          podeEditar={podeEditar}
+          podeVerMargem={podeVerMargem}
+          podeRetirarReserva={podeRetirarReserva}
+          onNovo={() => setModal(null)}
+          onEditar={t => setModal(t)}
+          onMarcarPago={handleMarcarPago}
+          onCancelar={setCancelando}
+          onVerTodasContas={setVisaoContas}
+          onRetirarReserva={retirar}
+          onDesfazerRetirada={desfazerRetirada}
+        />
+        {modal !== undefined && (
+          <TransacaoModal categorias={categorias} transacao={modal ?? undefined} onFechar={() => setModal(undefined)} onSalvar={handleSalvarTransacao} />
+        )}
+        <ConfirmDialog
+          open={!!cancelando}
+          tone="danger"
+          title="Cancelar este lançamento?"
+          description="Ele sai dos totais, mas fica no histórico."
+          confirmLabel="Cancelar lançamento"
+          cancelLabel="Voltar"
+          loading={cancelandoOcupado}
+          onConfirm={confirmarCancelamento}
+          onCancel={() => setCancelando(null)}
+        />
+      </>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: isMobile ? 0 : '18px 28px 32px' }}>
       {/* Header */}
       <div style={{ display: visaoContas ? 'none' : 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
         <div>
@@ -140,8 +190,15 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
         </div>
         <div style={{ display: 'flex', gap: 10, width: isMobile ? '100%' : 'auto' }}>
           <select
-            value={preset}
-            onChange={e => setPreset(e.target.value as Preset)}
+            value={periodo.id === 'mes-passado' ? 'mes-passado' : periodo.id === 'personalizado' ? '3-meses' : 'este-mes'}
+            onChange={e => {
+              const v = e.target.value;
+              if (v === '3-meses') {
+                // Mobile segue com "Últimos 3 meses" (mês atual + 2 anteriores), como antes do redesign.
+                const h = new Date();
+                setPeriodo({ id: 'personalizado', de: isoLocal(new Date(h.getFullYear(), h.getMonth() - 2, 1)), ate: isoLocal(new Date(h.getFullYear(), h.getMonth() + 1, 0)) });
+              } else setPeriodo({ id: v as 'este-mes' | 'mes-passado' });
+            }}
             aria-label="Período"
             style={{ flex: isMobile ? 1 : undefined, minWidth: 0, padding: '9px 12px', borderRadius: 10, border: `1px solid ${tokens.color.border}`, background: tokens.color.surface, color: tokens.color.text, fontSize: '0.82rem', fontWeight: 600 }}
           >
