@@ -81,9 +81,13 @@ export function Topbar({
       type="button"
       className="topbar__logo topbar__logo--clickable"
       onClick={onBackToStart}
-      title="Voltar para a Home"
-      aria-label="Voltar para a Home"
+      title="Voltar para o painel"
+      aria-label="Voltar para o painel"
     >
+      {/* Seta visível: antes o único sinal de que o logo voltava ao painel era o hover. */}
+      <span className="topbar__voltar" aria-hidden="true">
+        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M10 3 5 8l5 5" /></svg>
+      </span>
       {logoContent}
     </button>
   ) : (

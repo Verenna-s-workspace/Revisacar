@@ -1679,3 +1679,8 @@ body.dark .dashboard-mobile-bottom-nav {
 
 /* Celular sem top-bar: só o respiro do entalhe / barra de status. */
 .rv-safe-top { flex: none; height: env(safe-area-inset-top, 0px); }
+
+/* Valores do orçamento no detalhe da OS: alinhados à direita mesmo com a máscara de privacidade
+   (a máscara reserva a largura do valor real e, sem isto, sobra espaço à direita). */
+.os-orc-valor { white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.os-orc-valor .privacidade-mascara { text-align: right; }

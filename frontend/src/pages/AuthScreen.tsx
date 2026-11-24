@@ -193,7 +193,7 @@ export function AuthScreen({ onAuthenticated, onProgress, onIrParaFuncionario }:
           )}
 
           {mode !== 'forgot' && (
-            <Input name="auth_cnpj" type="cpf_cnpj" label="CNPJ" value={doc} onChangeValue={setDoc} placeholder="00.000.000/0000-00" />
+            <Input name="auth_cnpj" type="cpf_cnpj" label="CNPJ" value={doc} onChangeValue={setDoc} placeholder="00.000.000/0000-00" autoComplete="username" />
           )}
 
           {mode === 'register' && (

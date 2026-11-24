@@ -56,6 +56,7 @@ export const validateStep1 = (
   if (!osHeader.os_time)        errors.os_time = 'Campo obrigatório';
   if (!cliente.nome?.trim())    errors.cli_nome = 'Campo obrigatório';
   if (!cliente.tel?.trim())     errors.cli_tel = 'Campo obrigatório';
+  if (!veiculo.placa?.trim())   errors.vei_placa = 'Campo obrigatório'; // marcado com * no formulário
   if (!veiculo.modelo?.trim())  errors.vei_modelo = 'Campo obrigatório';
   for (const [chave, msg] of Object.entries(validarFormatosEntrada(osHeader, cliente, veiculo))) {
     if (!errors[chave]) errors[chave] = msg; // "obrigatório" tem prioridade sobre o formato

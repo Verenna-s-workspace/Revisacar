@@ -9,6 +9,10 @@ import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
 import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
 import type { OrdemRow, NavPage } from '../../types/dashboard';
+import type { Orcamento } from '../../types/orcamento';
+import { usePermissions } from '../../hooks/usePermissions';
+import { Valor } from '../../components/Privacidade';
+import { formatBRL } from '../../utils/dashboard';
 import { OrdensDesktop } from './Ordens/OrdensDesktop';
 import { OrdensMobile } from './Ordens/OrdensMobile';
 import type { FiltroStatus } from './Ordens/ordensUtils';
@@ -63,6 +67,81 @@ export function OSRow({ ordem, onClick }: { ordem: OrdemRow; onClick: () => void
 
 // ── OSModal ───────────────────────────────────────────────────────────────────
 
+const ROTULO_ORCAMENTO: Record<Orcamento['status'], string> = {
+  rascunho: 'Em montagem', enviado: 'Enviado ao cliente', aprovado: 'Aprovado',
+  recusado: 'Recusado', substituido: 'Substituído',
+};
+
+/** Versão que vale: a aprovada; senão a mais recente que não foi substituída. */
+function orcamentoVigente(lista: Orcamento[]): Orcamento | null {
+  return lista.find(o => o.status === 'aprovado')
+    ?? [...lista].sort((a, b) => b.versao - a.versao).find(o => o.status !== 'substituido')
+    ?? null;
+}
+
+/** Serviços, peças e total do orçamento da OS (antes o detalhe mostrava só identificação). */
+function ResumoOrcamento({ ordemId }: { ordemId: string }) {
+  const { can } = usePermissions();
+  const verValor = can('financeiro.ver');
+  const [estado, setEstado] = useState<{ carregando: boolean; orcamento: Orcamento | null; erro: boolean }>(
+    { carregando: true, orcamento: null, erro: false });
+
+  useEffect(() => {
+    let vivo = true;
+    api.listarOrcamentos(ordemId, Intl.DateTimeFormat().resolvedOptions().timeZone)
+      .then((lista: Orcamento[]) => { if (vivo) setEstado({ carregando: false, orcamento: orcamentoVigente(Array.isArray(lista) ? lista : []), erro: false }); })
+      .catch(() => { if (vivo) setEstado({ carregando: false, orcamento: null, erro: true }); });
+    return () => { vivo = false; };
+  }, [ordemId]);
+
+  const { carregando, orcamento, erro } = estado;
+  const titulo = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <span style={{ width: 18, height: 2, background: '#CC1400', borderRadius: 1, display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
+      <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>
+        Orçamento{orcamento ? ` · v${orcamento.versao} · ${ROTULO_ORCAMENTO[orcamento.status]}` : ''}
+      </span>
+    </div>
+  );
+
+  let corpo: React.ReactNode;
+  if (carregando) corpo = <Skeleton w="100%" h={56} />;
+  else if (erro) corpo = <p style={{ margin: 0, color: tokens.color.muted, fontSize: '0.85rem' }}>Não foi possível carregar o orçamento.</p>;
+  else if (!orcamento || orcamento.itens.length === 0) corpo = <p style={{ margin: 0, color: tokens.color.muted, fontSize: '0.85rem' }}>Nenhum serviço ou peça lançado ainda.</p>;
+  else {
+    const grupos: { tipo: 'servico' | 'peca'; rotulo: string }[] = [{ tipo: 'servico', rotulo: 'Serviços' }, { tipo: 'peca', rotulo: 'Peças' }];
+    corpo = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {grupos.map(({ tipo, rotulo }) => {
+          const itens = orcamento.itens.filter(i => i.tipo === tipo);
+          if (!itens.length) return null;
+          return (
+            <div key={tipo}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: tokens.color.muted, marginBottom: 4 }}>{rotulo}</div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {itens.map(i => (
+                  <li key={i.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: `1px solid ${tokens.color.border}`, fontSize: '0.875rem' }}>
+                    <span>{i.quantidade !== 1 && <span style={{ color: tokens.color.muted }}>{i.quantidade.toLocaleString('pt-BR')}× </span>}{i.descricao}{i.marca ? <span style={{ color: tokens.color.muted }}> · {i.marca}</span> : null}</span>
+                    {verValor && <span className="os-orc-valor"><Valor texto={formatBRL(i.subtotal)} /></span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+        {verValor && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.95rem' }}>
+            <span>Total</span>
+            <span className="os-orc-valor"><Valor texto={formatBRL(orcamento.total)} /></span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return <div>{titulo}{corpo}</div>;
+}
+
 interface OSModalProps {
   ordem: OrdemRow;
   onClose: () => void;
@@ -99,10 +178,10 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()}>
+      <div className="dashboard-modal" role="dialog" aria-modal="true" aria-labelledby="os-modal-titulo" onClick={e => e.stopPropagation()}>
         <div className="dashboard-modal__header">
           <div>
-            <div className="dashboard-modal__title">OS #{ordem.os_num}</div>
+            <div className="dashboard-modal__title" id="os-modal-titulo">OS #{ordem.os_num}</div>
             <div className="dashboard-modal__subtitle">
               {new Date(ordem.created_at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
@@ -133,6 +212,7 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
             <Field label="Hora" val={h.os_time} />
             <Field label="KM" val={formatKm(h.os_km)} />
           </Section>
+          <ResumoOrcamento ordemId={ordem.id} />
           <Section title="Cliente">
             <Field label="Nome" val={cli.nome || ordem.cliente} />
             <Field label="Documento" val={formatCpfCnpj(cli.doc)} />

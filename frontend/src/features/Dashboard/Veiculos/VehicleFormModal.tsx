@@ -198,7 +198,7 @@ export function VehicleFormModal({ veiculo, clientes = [], onSave, onClose }: Ve
               <Input name="modelo" label="Modelo" required placeholder="Corolla Altis" value={form.modelo} onChangeValue={setField('modelo')} />
 
               <Input name="ano" type="number" label="Ano" required placeholder="2022" value={form.ano} onChangeValue={setField('ano')} />
-              <Input name="cor" label="Cor" placeholder="Prata" value={form.cor} onChangeValue={setField('cor')} />
+              <Input name="cor" label="Cor" placeholder="ex.: Prata" value={form.cor} onChangeValue={setField('cor')} />
 
               <Input name="quilometragem" type="number" label="Quilometragem" placeholder="32000" value={form.quilometragem} onChangeValue={setField('quilometragem')} />
               <Select name="combustivel" label="Combustível" value={form.combustivel} options={COMBUSTIVEL_OPTIONS} onChangeValue={setField('combustivel')} />
