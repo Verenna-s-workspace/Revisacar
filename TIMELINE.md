@@ -682,3 +682,24 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **NÃO validado:** com API real; modo escuro; telas < 1280px; leitor de tela; download do CSV no Excel; mobile (não alterado, exceto "Últimos 3 meses" mantido via período personalizado).
 
 **Pendências:** meta de faturamento (depende de dados da Visão Geral); agrupar lançamentos por OS; `ContasListaCompleta` e `RetiradaReservaModal` ainda no visual antigo.
+
+## Financeiro mobile (2026-11-23, branch feat/financeiro-mobile, parte de main)
+
+**Pedido:** versão mobile da tela de Financeiro a partir da desktop, usando Clientes Mobile como referência visual/estrutural; adaptação real (não encolher); manter todas as funcionalidades; "Novo lançamento" só com o ícone + preto. Só mobile.
+
+**Decisões**
+- Nova `Financeiro/FinanceiroMobile.tsx` + `FinanceiroMobile.css` (prefixo `finm-`, tokens e padrões do `ClientesMobile.css`). `FinanceiroPage` escolhe Mobile ou Desktop com as mesmas props/ações; modais de Novo/Editar e o ConfirmDialog de cancelar agora valem também no celular (antes `window.confirm`).
+- Hierarquia: topo (título, olhinho da privacidade, +) → chips de período (+ "Personalizado" abre o `PeriodoModal`) → KPIs (Faturamento em destaque, grade 2 colunas; `data-destaque-id` mantidos) → linha da Caixa de reserva (abre folha com retirar/movimentos/desfazer) → abas **Lançamentos · Contas · Gráficos**.
+- Lançamentos: busca + Filtros (`FiltrosLancamentosModal` reaproveitado), pílulas removíveis, Exportar CSV, cartões com deslize (Receber/Pagar, Editar, Cancelar) e folha de detalhes (taxa, líquido, forma, datas, cliente, origem), "Mostrar mais".
+- Contas: A receber / A pagar (totais e vencido), filtros Todas/Vencidas/A vencer, busca, botão Receber/Pagar. Substitui o "Ver todas" no celular (o desktop segue com `ContasListaCompleta`).
+- Gráficos: `FluxoCaixaBarras` ganhou prop opcional `compacto` (padrão intacto) e rosca de despesas com lista.
+- `ShellPage` (Dashboard.tsx) ganhou `mobileSemRecuo`: Financeiro mobile é borda a borda e traz o próprio olhinho.
+- Sem migração SQL, sem mudança de backend.
+
+**Arquivos:** `Financeiro/{FinanceiroMobile.tsx,.css,ReservaMobile.tsx,LancamentoSheet.tsx,lancamentoUtils.ts}`, `FluxoCaixaBarras.tsx`, `FinanceiroPage.tsx`, `pages/Dashboard.tsx`.
+
+**Validado:** `tsc --noEmit`, ESLint (0 erros), `npm run build`; renderizado em Chrome headless a 390px com dados fictícios (abas, folhas, filtros, vazio, erro, escuro, somente leitura, privacidade ligada/desligada): sem erro de JS e sem rolagem horizontal.
+
+**NÃO validado:** contra o backend/Supabase reais; em aparelho físico (iOS/Android); gesto de deslize por toque real (só renderização); download do CSV no iOS; retirada/desfazer da reserva ponta a ponta.
+
+**Pendências:** o layout antigo do Financeiro (KpiCards, ReservaCard, ContasWidget etc.) ficou sem uso no celular e, fora `ContasListaCompleta`, também no desktop — candidato a limpeza; `nomeDoLancamento/rotuloStatus/classeStatus` duplicam helpers de `FinanceiroDesktop` (unificar depois).

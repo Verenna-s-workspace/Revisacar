@@ -1,0 +1,1540 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Financeiro" no celular — segue o layout e os padrões de ClientesMobile.css
+ * (topo com título + ação, chips horizontais, lista em cartões com deslize,
+ * bottom sheet) e a paleta da versão desktop (.fin-page).
+ * Tudo vive sob .finm-page (e .finm-sheet-backdrop para o portal no body).
+ * Cores de estado NÃO são definidas aqui: selos e avisos leem as variáveis
+ * --st-* das classes os-status--* (Ordens/Status.css).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.finm-page,
+.finm-sheet-backdrop {
+  --finm-bg: #FFFFFF;
+  --finm-surface: #FFFFFF;
+  --finm-surface-high: #EEF0F3;
+  --finm-borda: #E2E5EA;
+  --finm-borda-forte: #C9CED6;
+  --finm-texto: #1A1D22;
+  --finm-texto-2: #4F5661;
+  --finm-mudo: #666E7B;
+  --finm-sutil: #868D98;
+  --finm-marca: #E01500;
+  --finm-foco: #3469EC;
+  --finm-ok: #12673D;
+  --finm-ok-bg: #EEFBF3;
+  --finm-ok-borda: #AEE9C5;
+  --finm-perigo: #A50C34;
+  --finm-perigo-bg: #FFF0F3;
+  --finm-perigo-borda: #FFC2CF;
+  --finm-chip-ativo-bg: #1A1D22;
+  --finm-chip-ativo-fg: #FFFFFF;
+  --finm-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+
+  /* Variáveis que o gráfico de barras e o tooltip (FluxoCaixaBarras) leem — mesmos valores do desktop */
+  --fin-surface: var(--finm-surface);
+  --fin-surface-high: var(--finm-surface-high);
+  --fin-borda: var(--finm-borda);
+  --fin-texto: var(--finm-texto);
+  --fin-texto-2: var(--finm-texto-2);
+  --fin-mudo: var(--finm-mudo);
+  --fin-entradas: #2F6FDE;
+  --fin-saidas: #B35C00;
+  --fin-sombra-menu: 0 8px 24px rgba(17, 19, 23, 0.14), 0 2px 6px rgba(17, 19, 23, 0.08);
+  --fin-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+
+  --finm-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+}
+
+.finm-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  background: var(--finm-bg);
+  color: var(--finm-texto);
+  font-family: var(--finm-fonte);
+}
+
+body.dark .finm-page,
+body.dark .finm-sheet-backdrop {
+  --finm-bg: var(--color-bg, #09090b);
+  --finm-surface: var(--color-surface, #151518);
+  --finm-surface-high: var(--color-surface-high, #1c1c21);
+  --finm-borda: rgba(255, 255, 255, 0.1);
+  --finm-borda-forte: rgba(255, 255, 255, 0.18);
+  --finm-texto: #f4f4f5;
+  --finm-texto-2: #d4d4d8;
+  --finm-mudo: #9ca3af;
+  --finm-sutil: #8b8b94;
+  --finm-foco: #7aa2ff;
+  --finm-ok: #6ee7b7;
+  --finm-ok-bg: rgba(16, 185, 129, 0.15);
+  --finm-ok-borda: rgba(16, 185, 129, 0.3);
+  --finm-perigo: #fda4af;
+  --finm-perigo-bg: rgba(244, 63, 94, 0.15);
+  --finm-perigo-borda: rgba(244, 63, 94, 0.32);
+  --finm-chip-ativo-bg: #f4f4f5;
+  --finm-chip-ativo-fg: #151518;
+  --finm-sombra-sm: none;
+  --fin-entradas: #5b93f0;
+  --fin-saidas: #e0860b;
+  --fin-sombra-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Topo ────────────────────────────────────────────────────────────────── */
+.finm-topo {
+  display: flex;
+  flex-direction: column;
+  background: var(--finm-surface);
+}
+
+.finm-barra {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 52px;
+  padding: 8px 4px 0 16px;
+}
+
+.finm-barra__titulos {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.finm-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--finm-texto);
+}
+
+.finm-subtitulo {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ação principal: só o ícone + preto, como os botões de ação das outras telas mobile */
+.finm-acao {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--finm-texto);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-acao svg {
+  width: 22px;
+  height: 22px;
+}
+
+.finm-acao:active {
+  background: var(--finm-surface-high);
+}
+
+/* Olhinho do Modo Privacidade: mesmo tom do + (o estado ligado segue vermelho) */
+.finm-barra .dashboard-mobile-topbar__button {
+  color: var(--finm-texto);
+  border-radius: 6px;
+}
+
+.finm-barra .privacidade-botao--ativo {
+  color: var(--finm-marca);
+}
+
+/* ── Chips horizontais (período e filtros das contas) ────────────────────── */
+.finm-periodos,
+.finm-filtros {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.finm-filtros {
+  padding-top: 0;
+}
+
+.finm-periodos::-webkit-scrollbar,
+.finm-filtros::-webkit-scrollbar {
+  display: none;
+}
+
+.finm-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda);
+  border-radius: 18px;
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-chip svg {
+  flex: none;
+}
+
+.finm-chip__qtd {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-chip[aria-pressed='true'] {
+  background: var(--finm-chip-ativo-bg);
+  border-color: var(--finm-chip-ativo-bg);
+  color: var(--finm-chip-ativo-fg);
+}
+
+.finm-chip[aria-pressed='true'] .finm-chip__qtd {
+  color: var(--finm-chip-ativo-fg);
+}
+
+/* Critério ligado nos Filtros: pílula tracejada que se remove com um toque */
+.finm-pilula {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px dashed var(--finm-borda-forte);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--finm-texto-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.finm-pilula svg {
+  flex: none;
+  color: var(--finm-sutil);
+}
+
+.finm-pilula--limpar {
+  border-style: solid;
+  border-color: transparent;
+  font-weight: 700;
+  color: var(--finm-texto);
+}
+
+/* ── Aviso de erro ───────────────────────────────────────────────────────── */
+.finm-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--st-bg);
+  border: 1px solid var(--st-borda);
+  color: var(--st-texto);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.finm-aviso--sheet {
+  margin: 0;
+}
+
+.finm-aviso__btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--st-borda);
+  border-radius: 6px;
+  background: var(--finm-surface);
+  color: inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Indicadores ─────────────────────────────────────────────────────────── */
+.finm-conteudo {
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.15s ease;
+}
+
+.finm-conteudo--carregando {
+  opacity: 0.6;
+}
+
+.finm-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 4px 16px 12px;
+  background: var(--finm-surface);
+}
+
+.finm-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda);
+  border-radius: 8px;
+}
+
+/* Faturamento ocupa a linha toda; um indicador sozinho na última linha também */
+.finm-kpi--destaque,
+.finm-kpis > .finm-kpi:last-child:nth-child(even) {
+  grid-column: 1 / -1;
+}
+
+.finm-kpi--destaque {
+  padding: 14px 16px;
+}
+
+.finm-kpi__rotulo {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--finm-texto-2);
+}
+
+.finm-kpi__valor {
+  max-width: 100%;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.finm-kpi--destaque .finm-kpi__valor {
+  font-size: 28px;
+  line-height: 34px;
+}
+
+.finm-kpi__valor--negativo {
+  color: var(--finm-perigo);
+}
+
+.finm-kpi__contexto {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-kpi__contexto--alerta {
+  color: var(--finm-perigo);
+  font-weight: 500;
+}
+
+/* ── Caixa de reserva (linha que abre a folha) ───────────────────────────── */
+.finm-reserva {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 32px);
+  min-height: 56px;
+  margin: 0 16px 12px;
+  padding: 10px 12px 10px 14px;
+  box-sizing: border-box;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda);
+  border-radius: 8px;
+  color: var(--finm-texto);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-reserva:active {
+  background: var(--finm-surface-high);
+}
+
+.finm-reserva__texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.finm-reserva__titulo {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.finm-reserva__sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--finm-mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finm-reserva__sub--alerta {
+  color: var(--finm-perigo);
+  font-weight: 500;
+}
+
+.finm-reserva__saldo {
+  flex: none;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-reserva__saldo--negativo {
+  color: var(--finm-perigo);
+}
+
+.finm-reserva__seta {
+  flex: none;
+  display: inline-flex;
+  color: var(--finm-sutil);
+}
+
+/* ── Abas (Lançamentos · Contas · Gráficos) ──────────────────────────────── */
+.finm-abas {
+  display: flex;
+  padding: 0 8px;
+  background: var(--finm-surface);
+  border-bottom: 1px solid var(--finm-borda);
+}
+
+.finm-aba {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--finm-mudo);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-aba[aria-selected='true'] {
+  color: var(--finm-texto);
+  border-bottom-color: var(--finm-texto);
+}
+
+.finm-aba__qtd {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--finm-mudo);
+}
+
+.finm-aba__qtd--alerta {
+  font-weight: 700;
+  color: var(--finm-perigo);
+}
+
+/* ── Busca + botão Filtros ───────────────────────────────────────────────── */
+.finm-busca-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.finm-busca {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda);
+  border-radius: 6px;
+  color: var(--finm-sutil);
+  cursor: text;
+}
+
+.finm-busca:focus-within {
+  border-color: var(--finm-foco);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--finm-foco) 25%, transparent);
+}
+
+.finm-busca svg {
+  flex: none;
+}
+
+.finm-busca input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--finm-texto);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.finm-busca input::placeholder {
+  color: var(--finm-mudo);
+  opacity: 1;
+}
+
+.finm-busca input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.finm-filtros-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--finm-borda-forte);
+  border-radius: 6px;
+  background: var(--finm-surface);
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--finm-sombra-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-filtros-btn:active {
+  background: var(--finm-surface-high);
+}
+
+.finm-filtros-btn__contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--finm-chip-ativo-bg);
+  color: var(--finm-chip-ativo-fg);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+/* ── Cabeçalho da lista (contagem + exportar) ────────────────────────────── */
+.finm-lista-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 0 16px;
+  border-top: 1px solid var(--finm-borda);
+  background: var(--finm-surface);
+}
+
+.finm-lista-cab__texto {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-link-btn:active:not(:disabled) {
+  background: var(--finm-surface-high);
+}
+
+.finm-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.finm-lista-nota {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--finm-mudo);
+  border-bottom: 1px solid var(--finm-borda);
+}
+
+/* ── Lista ───────────────────────────────────────────────────────────────── */
+.finm-lista {
+  background: var(--finm-surface);
+  border-top: 1px solid var(--finm-borda);
+}
+
+.finm-lista-cab + .finm-lista {
+  border-top: 0;
+}
+
+.finm-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.finm-item {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--finm-borda);
+  background: var(--finm-surface-high);
+}
+
+.finm-cartao {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  background: var(--finm-surface);
+  cursor: pointer;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease;
+}
+
+.finm-cartao:active {
+  background: var(--finm-surface-high);
+}
+
+.finm-linha1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.finm-meta-topo {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finm-mais-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--finm-mudo);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-mais-btn:active {
+  background: var(--finm-surface-high);
+}
+
+.finm-linha2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Miniatura redonda: seta de entrada (verde) ou de saída (neutra) */
+.finm-tipo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--finm-borda);
+  background: var(--finm-surface-high);
+  color: var(--finm-texto-2);
+}
+
+.finm-tipo--entrada {
+  background: var(--finm-ok-bg);
+  border-color: var(--finm-ok-borda);
+  color: var(--finm-ok);
+}
+
+.finm-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.finm-info__nome,
+.finm-info__detalhe {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finm-info__nome {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--finm-texto);
+}
+
+.finm-info__detalhe {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--finm-mudo);
+}
+
+.finm-valor {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finm-valor--entrada {
+  color: var(--finm-ok);
+}
+
+.finm-valor__liquido {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: var(--finm-mudo);
+}
+
+/* Ações reveladas ao deslizar para a esquerda (mesmo padrão de Clientes/Ordens) */
+.finm-acoes {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+
+.finm-acoes__btn {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  border: 0;
+  background: var(--finm-surface-high);
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.finm-acoes__btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.finm-acoes__btn--ok {
+  background: var(--finm-ok-bg);
+  color: var(--finm-ok);
+}
+
+.finm-acoes__btn--perigo {
+  background: var(--finm-perigo-bg);
+  color: var(--finm-perigo);
+}
+
+/* ── Contas ──────────────────────────────────────────────────────────────── */
+.finm-contas-tipos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+.finm-contas-tipo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 12px;
+  box-sizing: border-box;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda);
+  border-radius: 8px;
+  color: var(--finm-texto);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-contas-tipo[aria-pressed='true'] {
+  border-color: var(--finm-texto);
+  box-shadow: inset 0 0 0 1px var(--finm-texto);
+}
+
+.finm-contas-tipo__rotulo {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--finm-texto-2);
+}
+
+.finm-contas-tipo__valor {
+  max-width: 100%;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.finm-contas-tipo__ctx {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-contas-tipo__ctx--alerta {
+  color: var(--finm-perigo);
+  font-weight: 500;
+}
+
+.finm-conta {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--finm-borda);
+  background: var(--finm-surface);
+}
+
+.finm-conta__corpo {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* O toque em qualquer ponto da linha abre os detalhes; o botão Receber/Pagar fica por cima */
+.finm-conta__corpo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.finm-conta__nome {
+  display: block;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--finm-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finm-conta__valor {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finm-conta__venc {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-conta__venc--vencida {
+  color: var(--finm-perigo);
+  font-weight: 500;
+}
+
+.finm-conta__btn {
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: -10px 0 -8px;
+  padding: 0 12px;
+  border: 1px solid var(--finm-borda-forte);
+  border-radius: 6px;
+  background: var(--finm-surface);
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--finm-sombra-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.finm-conta__btn:active {
+  background: var(--finm-surface-high);
+}
+
+/* ── Gráficos ────────────────────────────────────────────────────────────── */
+.finm-graficos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.finm-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda);
+  border-radius: 8px;
+}
+
+.finm-card__cab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--finm-borda);
+}
+
+.finm-card__titulo {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--finm-texto);
+}
+
+.finm-card__sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--finm-mudo);
+}
+
+.finm-card__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 12px;
+}
+
+.finm-card__vazio {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--finm-mudo);
+}
+
+.finm-rosca {
+  display: grid;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
+}
+
+.finm-rosca > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.finm-rosca__total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.finm-rosca__total span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--finm-mudo);
+}
+
+.finm-rosca__total strong {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-despesas {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.finm-despesa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--finm-borda);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.finm-despesa:first-child {
+  border-top: 0;
+}
+
+.finm-despesa__ponto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.finm-despesa__nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--finm-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finm-despesa__pct {
+  flex: none;
+  min-width: 36px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--finm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-despesa__valor {
+  flex: none;
+  min-width: 84px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Estados e paginação ─────────────────────────────────────────────────── */
+.finm-carregando {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 16px 16px;
+}
+
+.finm-carregando__grade {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.finm-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--finm-mudo);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.finm-vazio strong {
+  font-weight: 700;
+  color: var(--finm-texto);
+}
+
+.finm-vazio__icone {
+  display: inline-flex;
+  margin-bottom: 4px;
+  color: var(--finm-sutil);
+}
+
+.finm-vazio__icone svg {
+  width: 24px;
+  height: 24px;
+}
+
+.finm-vazio__btn {
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 6px;
+  border: 1px solid var(--finm-borda-forte);
+  background: var(--finm-surface);
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.finm-mais-pag {
+  display: block;
+  width: calc(100% - 32px);
+  height: 44px;
+  margin: 16px;
+  background: var(--finm-surface);
+  border: 1px solid var(--finm-borda-forte);
+  border-radius: 6px;
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Bottom sheet (lançamento e reserva) ─────────────────────────────────── */
+.finm-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer-backdrop, 2000);
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.finm-sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: var(--finm-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 -10px 25px -5px rgba(15, 23, 42, 0.16);
+  font-family: var(--finm-fonte);
+  color: var(--finm-texto);
+}
+
+.finm-sheet__grab {
+  flex: none;
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--finm-borda-forte);
+  margin: 0 auto 2px;
+}
+
+.finm-sheet__titulo {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+  color: var(--finm-texto);
+  overflow-wrap: anywhere;
+}
+
+.finm-sheet__sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finm-sheet__texto {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--finm-texto-2);
+}
+
+.finm-sheet__texto--alerta {
+  color: var(--finm-perigo);
+}
+
+.finm-sheet__secao {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--finm-texto);
+}
+
+.finm-sheet__valor {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--finm-texto);
+}
+
+.finm-sheet__valor--entrada {
+  color: var(--finm-ok);
+}
+
+.finm-sheet__valor--negativo {
+  color: var(--finm-perigo);
+}
+
+.finm-sheet__lista {
+  margin: 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--finm-borda);
+}
+
+.finm-sheet__linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--finm-borda);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.finm-sheet__linha dt {
+  flex: none;
+  color: var(--finm-texto-2);
+}
+
+.finm-sheet__linha dd {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  font-weight: 500;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.finm-sheet__linha .finm-sheet__ok {
+  color: var(--finm-ok);
+}
+
+.finm-sheet__opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--finm-borda);
+  border-radius: 8px;
+  background: var(--finm-surface);
+  color: var(--finm-texto);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.finm-sheet__opt svg {
+  flex: none;
+  color: var(--finm-mudo);
+}
+
+.finm-sheet__opt:active:not(:disabled) {
+  background: var(--finm-surface-high);
+}
+
+.finm-sheet__opt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.finm-sheet__opt--ok,
+.finm-sheet__opt--ok svg {
+  color: var(--finm-ok);
+}
+
+.finm-sheet__opt--ok {
+  background: var(--finm-ok-bg);
+  border-color: var(--finm-ok-borda);
+}
+
+.finm-sheet__opt--perigo,
+.finm-sheet__opt--perigo svg {
+  color: var(--finm-perigo);
+}
+
+.finm-sheet__opt--perigo {
+  background: var(--finm-perigo-bg);
+  border-color: var(--finm-perigo-borda);
+}
+
+.finm-sheet__cancel {
+  flex: none;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--finm-surface-high);
+  color: var(--finm-texto-2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Movimentos da reserva (dentro da folha) */
+.finm-movimentos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.finm-movimento {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--finm-borda);
+}
+
+.finm-movimento:first-child {
+  border-top: 0;
+}
+
+.finm-movimento__texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.finm-movimento__titulo {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--finm-texto);
+  overflow-wrap: anywhere;
+}
+
+.finm-movimento__data {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--finm-mudo);
+}
+
+.finm-movimento__valor {
+  flex: none;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--finm-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.finm-movimento__valor--deposito {
+  color: var(--finm-ok);
+}
+
+.finm-movimento__desfazer {
+  flex: none;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--finm-texto-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.finm-movimento__desfazer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Foco e movimento ────────────────────────────────────────────────────── */
+.finm-page :is(.finm-acao, .finm-chip, .finm-pilula, .finm-filtros-btn, .finm-link-btn, .finm-aba, .finm-reserva, .finm-contas-tipo, .finm-mais-btn, .finm-acoes__btn, .finm-conta__btn, .finm-conta__corpo, .finm-mais-pag, .finm-vazio__btn, .finm-aviso__btn):focus-visible,
+.finm-page .finm-cartao:focus-visible,
+.finm-sheet :is(.finm-sheet__opt, .finm-sheet__cancel, .finm-movimento__desfazer):focus-visible {
+  outline: 2px solid var(--finm-foco);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finm-cartao,
+  .finm-conteudo {
+    transition: none;
+  }
+}
+
+/* ── Modais de Período e Filtros no celular ──────────────────────────────────
+ * Eles são os mesmos do desktop (classes .fin-*, definidas em financeiroDesktop.css).
+ * Em tela estreita os grupos de opções quebram de linha em vez de estourar a largura. */
+@media (max-width: 640px) {
+  .fin-seg {
+    display: flex;
+    flex-wrap: wrap;
+    align-self: stretch;
+  }
+
+  .fin-seg button {
+    flex: 1 1 auto;
+    min-height: 36px;
+  }
+
+  .fin-chip {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fin-opcao__datas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
