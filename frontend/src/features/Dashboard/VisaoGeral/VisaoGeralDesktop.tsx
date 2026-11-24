@@ -130,7 +130,8 @@ function KpiFaturamento({ vg, loading, onSalvarMeta, onAbrir }: {
     contexto = (
       <>
         <Valor texto={`${pct}%`} mascara="••%" /> da meta de <Valor texto={formatarMeta(meta)} mascara="R$ ••••" />
-        {editavel && <> · {botaoMeta('Editar meta')}</>}
+        {/* nowrap: o "·" quebra junto com o botão, nunca fica pendurado no fim da linha */}
+        {editavel && <span style={{ whiteSpace: 'nowrap' }}> · {botaoMeta('Editar meta')}</span>}
       </>
     );
   } else if (editavel) {

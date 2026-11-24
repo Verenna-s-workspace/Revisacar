@@ -164,9 +164,9 @@ export function Step1({ os }: StepProps) {
               onChangeValue={(v) => setOsHeader((p) => ({ ...p, os_time: v }))}
             />
           </Field>
-          <Field label="Km atual" hint="ex: 87.450">
+          <Field label="Km atual">
             <Input
-              name="os_km" type="km" placeholder="87.450"
+              name="os_km" type="km" placeholder="ex.: 87.450"
               value={osHeader.os_km} validate={validarKm} error={erro('os_km')}
               onChangeValue={(v) => setOsHeader((p) => ({ ...p, os_km: v }))}
             />
@@ -178,7 +178,7 @@ export function Step1({ os }: StepProps) {
         <div style={g3}>
           <Field label="Nome completo *" span={2}>
             <Input
-              name="cliente_nome" type="nome" placeholder="Ex: João da Silva" maxLength={LIM.nome}
+              name="cliente_nome" type="nome" placeholder="ex.: João da Silva" maxLength={LIM.nome}
               value={cliente.nome} validate={validarNome}
               error={erro('cli_nome')}
               onChangeValue={editarNome}
@@ -229,7 +229,7 @@ export function Step1({ os }: StepProps) {
           </Field>
           <Field label="Modelo *" span={2}>
             <Input
-              name="veiculo_modelo" placeholder="ex: Toyota Corolla"
+              name="veiculo_modelo" placeholder="ex.: Toyota Corolla"
               maxLength={LIM.modelo} filter={FILTRO.modelo}
               value={veiculo.modelo}
               error={erro('vei_modelo')}
@@ -238,7 +238,7 @@ export function Step1({ os }: StepProps) {
           </Field>
           <Field label="Ano">
             <Input
-              name="veiculo_ano" type="ano" placeholder="2014" value={veiculo.ano}
+              name="veiculo_ano" type="ano" placeholder="ex.: 2014" value={veiculo.ano}
               validate={validarAno} error={erro('vei_ano')}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, ano: v }))}
             />
@@ -262,7 +262,7 @@ export function Step1({ os }: StepProps) {
           />
           <Field label="Cor">
             <Input
-              name="veiculo_cor" placeholder="Prata" value={veiculo.cor}
+              name="veiculo_cor" placeholder="ex.: Prata" value={veiculo.cor}
               maxLength={LIM.cor} filter={FILTRO.cor}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, cor: v }))}
             />
@@ -285,7 +285,7 @@ export function Step1({ os }: StepProps) {
           </Field>
           <Field label="Chassi" span={2} hint="17 caracteres">
             <Input
-              name="veiculo_chassi" type="chassi" placeholder="ex: 9BWZZZ377VT004251"
+              name="veiculo_chassi" type="chassi" placeholder="ex.: 9BWZZZ377VT004251"
               value={veiculo.chassi} validate={validarChassi} error={erro('vei_chassi')}
               onChangeValue={(v) => setVeiculo((p) => ({ ...p, chassi: v }))}
             />

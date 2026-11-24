@@ -161,14 +161,29 @@ export function validarFormatosEntrada(osHeader: OSHeader, cliente: Cliente, vei
   ]);
 }
 
-/** Encerramento — dados do técnico (a saída não pode ser anterior à entrada). */
+/** Km rodado entre entrada e saída acima disso é quase sempre dígito a mais (teste de rodagem é curto). */
+export const KM_RODADO_MAX = 5000;
+
+/** Km de saída comparado com o de entrada (só quando os dois foram preenchidos). */
+export function validarKmSaida(kmEntrada: string, kmSaida: string): string | undefined {
+  const formato = validarKm(kmSaida);
+  if (formato) return formato;
+  const e = onlyDigits(kmEntrada), s = onlyDigits(kmSaida);
+  if (!e || !s) return undefined;
+  const rodado = Number(s) - Number(e);
+  if (rodado < 0) return 'Menor que o km de entrada';
+  if (rodado > KM_RODADO_MAX) return `${rodado.toLocaleString('pt-BR')} km a mais que na entrada: confira os números`;
+  return undefined;
+}
+
+/** Encerramento — dados do técnico (a saída não pode ser anterior à entrada, nem em data nem em km). */
 export function validarFormatosTecnico(osHeader: OSHeader, tecnico: Tecnico): ValidationErrors {
   const antes = tecnico.data_saida && osHeader.os_date && tecnico.data_saida < osHeader.os_date
     ? 'Anterior à data de entrada' : undefined;
   return montar([
     ['tec_nome', validarNome(tecnico.nome)],
     ['tec_registro', validarRegistro(tecnico.registro)],
-    ['tec_km', validarKm(tecnico.km_saida)],
+    ['tec_km', validarKmSaida(osHeader.os_km, tecnico.km_saida)],
     ['tec_data', validarData(tecnico.data_saida) ?? antes],
   ]);
 }
