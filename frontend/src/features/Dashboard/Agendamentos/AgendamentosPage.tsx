@@ -81,7 +81,7 @@ function applyFilters(
 
 export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, initialHighlightId, initialNovo }: AgendamentosPageProps) {
   const {
-    agendamentos, loading, usingApi, erro, stats,
+    agendamentos, loading, usingApi, erro,
     addAgendamento, updateAgendamento, updateStatus, cancelAgendamento,
     rescheduleAgendamento, getOcupados,
   } = useAgendamentos();
@@ -196,7 +196,7 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   // ── Layout ───────────────────────────────────────────────────────────────────
 
   if (isMobile) {
-    // Mobile: layout próprio (pasta ./mobile), com as visões Diária/Semanal/Mensal.
+    // Mobile: layout próprio (pasta ./mobile), com as visões Dia/Semana/Mês, lista com busca/filtros e filtros em bottom sheet.
     // O desktop abaixo permanece exatamente como estava.
     return (
       <div className="agm-shell" style={{ minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
@@ -206,7 +206,6 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
           total={agendamentos.length}
           loading={loading}
           erro={erro}
-          stats={stats}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           viewDate={viewDate}
@@ -215,7 +214,6 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
           onSearchChange={setSearch}
           filtros={filtros}
           onFiltrosChange={setFiltros}
-          onBack={() => onNav('dashboard')}
           onCardClick={setSelectedAg}
           onNew={openNewModal}
           onDayClick={handleDayClick}
