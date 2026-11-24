@@ -882,3 +882,69 @@ def test_confirmar_pedido_pendente_define_a_duracao(api, db):
     assert r.status_code == 200, r.content
     corpo = r.json()
     assert corpo["status"] == "agendado" and corpo["horaFim"] == "10:15"
+
+
+# ── Histórico do cliente (GET /clientes: totalOS e gastoTotal pelo vínculo real) ──
+
+def _os_do_cliente(db, oid, status, customer_id, cliente_digitado="Outro Nome Qualquer", oficina=OFICINA_A):
+    db.cursor().execute(
+        "insert into ordens (id, created_at, updated_at, placa, cliente, status, payload, oficina_doc, customer_id) "
+        "values (%s,'2026-11-12T15:00:00Z','2026-11-12T15:00:00Z','ABC1D23',%s,%s,'{}',%s,%s)",
+        (oid, cliente_digitado, status, oficina, customer_id))
+
+
+def _valor(db, oid, status, valor, oficina=OFICINA_A):
+    db.cursor().execute("insert into financeiro_transacoes (oficina_doc, tipo, categoria, valor, status, "
+                        "data_competencia, ordem_servico_id) values (%s,'entrada','servicos',%s,%s,'2026-11-10',%s)",
+                        (oficina, valor, status, oid))
+
+
+def test_lista_de_clientes_traz_total_de_os_e_gasto_pago_pelo_vinculo(api, db):
+    c = _cliente(api)
+    # O nome digitado na OS não importa: o que liga é ordens.customer_id.
+    _os_do_cliente(db, "os-a", "finalizada", c["id"], cliente_digitado="[TESTE] Carlos")
+    _os_do_cliente(db, "os-b", "em_execucao", c["id"])
+    _os_do_cliente(db, "os-c", "recusada", c["id"])          # recusada não conta
+    _valor(db, "os-a", "pago", 150.5)
+    _valor(db, "os-a", "pendente", 99)                         # ainda não pago: fora do gasto
+    _valor(db, "os-b", "cancelado", 40)
+    _valor(db, "os-a", "pago", 1000, oficina=OFICINA_B)        # lançamento de outra oficina não soma
+
+    linha = api.get("/clientes").json()[0]
+    assert linha["totalOS"] == 2
+    assert linha["gastoTotal"] == 150.5
+
+
+def test_gasto_do_cliente_so_vai_para_quem_ve_o_financeiro(fake, db):
+    dono = _api("dono")
+    c = _cliente(dono)
+    _os_do_cliente(db, "os-a", "finalizada", c["id"])
+    _valor(db, "os-a", "pago", 80)
+    mecanico = _api("mecanico")
+    if "clientes.ver" not in permissoes_do_cargo("mecanico") or "financeiro.ver" in permissoes_do_cargo("mecanico"):
+        pytest.skip("cargo de teste não serve para este caso")
+    linha = mecanico.get("/clientes").json()[0]
+    assert linha["totalOS"] == 1
+    assert "gastoTotal" not in linha
+
+
+def test_cliente_sem_os_vem_com_zero():
+    assert clientes_views.historico_por_cliente(OFICINA_A, [], com_gasto=True) == {}
+
+
+# ── Situação do veículo: pronta hoje = ainda na oficina ───────────────────────
+
+def test_status_do_veiculo_pronto_no_dia_da_conclusao():
+    from datetime import date
+    hoje = date(2026, 11, 24)
+    # 23/11 23:30 em São Paulo = 24/11 02:30 UTC → ainda é "ontem" na oficina
+    assert veiculos_views.status_do_veiculo(
+        {"status": "finalizada", "concluida_em": "2026-11-24T02:30:00Z"}, hoje) == "disponivel"
+    assert veiculos_views.status_do_veiculo(
+        {"status": "finalizada", "concluida_em": "2026-11-24T15:00:00Z"}, hoje) == "pronto_entrega"
+    assert veiculos_views.status_do_veiculo(
+        {"status": "finalizada", "concluida_em": None, "updated_at": "2026-11-24T12:00:00+00:00"}, hoje) == "pronto_entrega"
+    assert veiculos_views.status_do_veiculo({"status": "pendente_aprovacao"}, hoje) == "aguardando_aprovacao"
+    assert veiculos_views.status_do_veiculo({"status": "rascunho"}, hoje) == "na_oficina"
+    assert veiculos_views.status_do_veiculo({"status": "recusada"}, hoje) == "disponivel"
+    assert veiculos_views.status_do_veiculo(None, hoje) == "disponivel"

@@ -29,16 +29,29 @@ export const statusAntesDaExecucao = (s: string | null | undefined) => !!s && AN
 /** Trabalhando no veículo agora. */
 export const statusEmExecucao = (s: string | null | undefined) => s === 'em_execucao';
 
+/**
+ * Regra ÚNICA de "carro na oficina" (Visão Geral, Atendimento, Ordens e Veículos contam igual):
+ * toda OS aberta — da entrada até aguardando peça, inclusive esperando aprovação — mais as
+ * concluídas HOJE (prontas, esperando o cliente buscar). Espelho de veiculos_views.STATUS_VEICULO.
+ */
+export function naOficina(o: { status?: string | null; concluida_em?: string | null; updated_at?: string }, agora: Date = new Date()): boolean {
+  const s = o.status;
+  if (!s || s === 'recusada') return false;
+  if (s !== 'finalizada') return true;
+  const fim = new Date(o.concluida_em || o.updated_at || '');
+  return !Number.isNaN(fim.getTime()) && fim.toDateString() === agora.toDateString();
+}
+
 /** Encerrada sem execução: não é trabalho pendente em nenhuma coluna. */
 export const statusRecusada = (s: string | null | undefined) => s === 'recusada';
 
 export const ROTULO_STATUS: Record<StatusOrdem, string> = {
-  rascunho: 'Em andamento',
+  rascunho: 'Entrada',
   em_orcamento: 'Em orçamento',
   pendente_aprovacao: 'Aguardando aprovação',
   aprovada: 'Aprovada',
   em_execucao: 'Em execução',
-  aguardando: 'Aguardando peças',
+  aguardando: 'Aguardando peça',
   finalizada: 'Concluída',
   recusada: 'Recusada',
 };

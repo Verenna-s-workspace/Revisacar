@@ -43,7 +43,7 @@ export function OrdensMobile({ ordens, loading, onAbrir, onEditar, onExcluir, ex
   const { can } = usePermissions();
   const verValor = can('financeiro.ver');
 
-  const [filtro, setFiltro] = useState<FiltroMobile>('patio');
+  const [filtro, setFiltro] = useState<FiltroMobile>('todas');
   const [busca, setBusca] = useState('');
   const [limite, setLimite] = useState(POR_PAGINA);
   const [aberto, setAberto] = useState<string | null>(null);          // linha com as ações à mostra
@@ -58,7 +58,7 @@ export function OrdensMobile({ ordens, loading, onAbrir, onEditar, onExcluir, ex
   const filtroEfetivo: FiltroMobile = buscando ? 'todas' : filtro;
 
   const contagem = useMemo(
-    () => Object.fromEntries(FILTROS_MOBILE.map(f => [f, ordens.filter(o => noFiltroMobile(o.status, f)).length])) as Record<FiltroMobile, number>,
+    () => Object.fromEntries(FILTROS_MOBILE.map(f => [f, ordens.filter(o => noFiltroMobile(o, f)).length])) as Record<FiltroMobile, number>,
     [ordens],
   );
   const noPatioAgora = useMemo(() => ordens.filter(noPatio).length, [ordens]);
@@ -67,7 +67,7 @@ export function OrdensMobile({ ordens, loading, onAbrir, onEditar, onExcluir, ex
     const q = busca.trim().toLowerCase().replace(/^#/, '');
     return ordens
       .filter(o => {
-        if (!noFiltroMobile(o.status, filtroEfetivo)) return false;
+        if (!noFiltroMobile(o, filtroEfetivo)) return false;
         if (!q) return true;
         return o.os_num.toLowerCase().includes(q) || o.cliente.toLowerCase().includes(q) ||
           o.placa.toLowerCase().includes(q) || (o.modelo ?? '').toLowerCase().includes(q);
@@ -151,7 +151,7 @@ export function OrdensMobile({ ordens, loading, onAbrir, onEditar, onExcluir, ex
           <div className="osm-barra__titulos">
             <h1 className="osm-titulo">Ordens</h1>
             <p className="osm-subtitulo">
-              {ordens.length} {ordens.length === 1 ? 'ordem' : 'ordens'} · {noPatioAgora} no pátio
+              {ordens.length} {ordens.length === 1 ? 'ordem' : 'ordens'} · {noPatioAgora} na oficina
             </p>
           </div>
           <button type="button" className="osm-acao" aria-label="Buscar ordens" onClick={focarBusca}>

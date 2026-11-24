@@ -5,7 +5,7 @@ export const STATUS_CARTAO: Record<string, { rotulo: string; tom: string }> = {
   pendente_aprovacao: { rotulo: 'Aguardando aprovação', tom: 'aprovacao' },
   aprovada:           { rotulo: 'Aprovada',             tom: 'aprovada' },
   em_execucao:        { rotulo: 'Em execução',          tom: 'execucao' },
-  aguardando:         { rotulo: 'Aguardando peças',     tom: 'pecas' },
+  aguardando:         { rotulo: 'Aguardando peça',      tom: 'pecas' },
   finalizada:         { rotulo: 'Concluída',            tom: 'concluida' },
 };
 

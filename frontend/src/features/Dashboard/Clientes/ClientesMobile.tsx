@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { Skeleton } from '../Primitives';
 import { Placa } from '../Placa';
 import { formatPhoneBR } from '../../../components/inputs/masks';
+import { Valor } from '../../../components/Privacidade';
+import { formatBRL } from '../../../utils/dashboard';
 import { CLIENTE_STATUS_CONFIG } from './StatusBadge';
 import { filtrosAtivos, formatDataCurta } from '../../../utils/clientes_utils';
 import { ownerInitial } from '../../../utils/veiculos_utils';
@@ -315,7 +317,7 @@ export function ClientesMobile({
               {visiveis.map(c => {
                 const telefone = formatarTelefone(c.telefone);
                 const extras = Math.max(0, c.veiculos.length - 1);
-                const qtdOS = c.ordens.length;
+                const qtdOS = c.totalOS ?? c.ordens.length;
                 const osLabel = `${qtdOS} OS`;
                 const visitaLabel = c.ultimaVisita ? formatDataCurta(c.ultimaVisita) : null;
                 const metaTopo = [osLabel, visitaLabel].filter(Boolean).join(' · ');
@@ -371,7 +373,7 @@ export function ClientesMobile({
                           {statusLabel}
                         </span>
                         <span className="clm-meta-topo">{metaTopo}</span>
-                        <span className="clm-gasto" aria-label="Gasto total">—</span>
+                        <span className="clm-gasto" aria-label="Gasto total">{c.gastoTotal !== undefined && c.gastoTotal > 0 ? <Valor texto={formatBRL(c.gastoTotal)} /> : '—'}</span>
                         <button
                           type="button"
                           className="clm-mais-btn"

@@ -9,7 +9,7 @@ import { OSRow } from '../OrdensPage';
 import { ownerInitial, formatKm } from '../../../utils/veiculos_utils';
 import { formatAgendadoBadge, formatDataCurta } from '../../../utils/clientes_utils';
 import { formatBRL } from '../../../utils/dashboard';
-import { TICKET } from '../../../utils/relatorios';
+import { Valor } from '../../../components/Privacidade';
 import type { ClienteComDados } from '../../../types/cliente';
 import type { VeiculoCadastrado } from '../../../types/veiculo';
 import type { Agendamento } from '../../../types/agendamento';
@@ -78,7 +78,8 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
   ];
 
   const concluidas = c.ordens.filter(o => o.status === 'finalizada');
-  const gastosEstimados = concluidas.length * TICKET;
+  // Gasto real: entradas pagas do Financeiro (GET /clientes). Sem `financeiro.ver` não vem.
+  const gastoTotal = c.gastoTotal;
 
   return (
     <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1100 }}>
@@ -219,9 +220,9 @@ export function ClientDetailsModal({ cliente: c, onClose, onEdit, onDelete, onVi
           {tab === 'historico' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                <Field icon={Icons.orders} label="Ordens de Serviço" value={c.ordens.length} />
+                <Field icon={Icons.orders} label="Ordens de Serviço" value={c.totalOS ?? c.ordens.length} />
                 <Field icon={ClienteIcons.checkCircle} label="Concluídas" value={concluidas.length} />
-                <Field icon={Icons.money} label="Gastos Estimados" value={gastosEstimados > 0 ? formatBRL(gastosEstimados) : '—'} />
+                <Field icon={Icons.money} label="Gasto total" value={gastoTotal !== undefined ? <Valor texto={formatBRL(gastoTotal)} /> : '—'} />
               </div>
               <div>
                 <SectionLabel>Ordens de Serviço</SectionLabel>

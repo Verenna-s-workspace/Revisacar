@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { statusAntesDaExecucao, statusEmExecucao } from '../../../../utils/ordem_status';
+import { statusEmExecucao } from '../../../../utils/ordem_status';
 import { momentoConclusao } from '../../../../utils/atendimento_utils';
 import type { Agendamento } from '../../../../types/agendamento';
 import type { ItemKanban, KanbanColunaId, OSAtendimento } from '../../../../types/atendimento';
@@ -71,7 +71,7 @@ export function CartaoMobile({
   // ── OS de verdade ────────────────────────────────────────────────────────────
   const { ordem } = item;
   const st = statusDoCartao(ordem.status);
-  const emExecucao = statusEmExecucao(ordem.status) || (statusAntesDaExecucao(ordem.status) && !!ordem.iniciadoEm);
+  const emExecucao = statusEmExecucao(ordem.status); // mesma regra da coluna (só o status do banco)
   const servico = vinculado?.titulo ?? null;
 
   let tempoTexto: string | null = null;

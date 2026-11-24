@@ -92,7 +92,8 @@ export function useClientes() {
     if (usingApi) {
       try {
         const salvo: Cliente = await api.atualizarCliente(id, patch);
-        if (salvo?.id) setClientes(prev => prev.map(c => (c.id === id ? salvo : c)));
+        // O PATCH não traz o histórico (totalOS/gastoTotal): mantém o que a lista já tinha.
+        if (salvo?.id) setClientes(prev => prev.map(c => (c.id === id ? { totalOS: c.totalOS, gastoTotal: c.gastoTotal, ...salvo } : c)));
       } catch (e) {
         if (anterior) setClientes(prev => prev.map(c => (c.id === id ? anterior : c)));
         throw new Error(mensagemDeErro(e, 'Não foi possível atualizar o cliente. Tente novamente.'));

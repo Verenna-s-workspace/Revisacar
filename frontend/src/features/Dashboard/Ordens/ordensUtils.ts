@@ -1,20 +1,22 @@
 import type { OrdemRow } from '../../../types/dashboard';
+import { ROTULO_STATUS, naOficina } from '../../../utils/ordem_status';
 
 // ── Filtros de status (chips) ─────────────────────────────────────────────────
-// Um chip por status da OS. "rascunho" não tem chip próprio: entra em
-// "Em orçamento" para os números dos chips fecharem com o total de "Todas".
+// Um chip por status da OS, com o mesmo nome do selo da tabela (ver ROTULO_STATUS).
+// Status desconhecido (linha antiga) conta como "Entrada", igual ao selo.
 
 export type FiltroStatus =
-  | 'todas' | 'em_orcamento' | 'pendente_aprovacao' | 'aprovada'
+  | 'todas' | 'rascunho' | 'em_orcamento' | 'pendente_aprovacao' | 'aprovada'
   | 'em_execucao' | 'aguardando' | 'finalizada' | 'recusada';
 
 export const FILTROS: readonly FiltroStatus[] = [
-  'todas', 'em_orcamento', 'pendente_aprovacao', 'aprovada',
+  'todas', 'rascunho', 'em_orcamento', 'pendente_aprovacao', 'aprovada',
   'em_execucao', 'aguardando', 'finalizada', 'recusada',
 ];
 
 export const ROTULO_FILTRO: Record<FiltroStatus, string> = {
   todas: 'Todas',
+  rascunho: 'Entrada',
   em_orcamento: 'Em orçamento',
   pendente_aprovacao: 'Aguardando aprovação',
   aprovada: 'Aprovadas',
@@ -25,11 +27,10 @@ export const ROTULO_FILTRO: Record<FiltroStatus, string> = {
 };
 
 /** Status do banco -> chip em que ele conta. */
-function grupoDoStatus(status: string): Exclude<FiltroStatus, 'todas'> | null {
-  if (status === 'rascunho') return 'em_orcamento';
+function grupoDoStatus(status: string): Exclude<FiltroStatus, 'todas'> {
   return (FILTROS as readonly string[]).includes(status) && status !== 'todas'
     ? (status as Exclude<FiltroStatus, 'todas'>)
-    : null;
+    : 'rascunho';
 }
 
 export const noFiltro = (status: string, f: FiltroStatus) =>
@@ -37,16 +38,8 @@ export const noFiltro = (status: string, f: FiltroStatus) =>
 
 // ── Rótulos e visual do status (tabela e filtros) ────────────────────────────
 
-export const ROTULO_STATUS_OS: Record<string, string> = {
-  rascunho: 'Em andamento',
-  em_orcamento: 'Em orçamento',
-  pendente_aprovacao: 'Aguardando aprovação',
-  aprovada: 'Aprovada',
-  em_execucao: 'Em execução',
-  aguardando: 'Aguardando peça',
-  finalizada: 'Concluída',
-  recusada: 'Recusada',
-};
+/** Mesmos nomes em todas as telas (fonte: utils/ordem_status.ROTULO_STATUS). */
+export const ROTULO_STATUS_OS: Record<string, string> = ROTULO_STATUS;
 
 /** Classe de cor do selo (definidas em ordens.css). Desconhecido cai no neutro. */
 export function tomDoStatus(status: string): string {
@@ -78,8 +71,8 @@ export function veiculoDaOrdem(o: OrdemRow): string {
 
 // ── Contas da tela ───────────────────────────────────────────────────────────
 
-/** Carro parado na oficina agora: sendo consertado ou esperando peça. */
-export const noPatio = (o: OrdemRow) => o.status === 'em_execucao' || o.status === 'aguardando';
+/** Carro na oficina agora — a mesma regra da Visão Geral (utils/ordem_status.naOficina). */
+export const noPatio = (o: OrdemRow) => naOficina(o);
 
 /** "17/11 · 08:40" */
 export function formatarEntrada(iso: string): string {
@@ -108,17 +101,17 @@ export function noPeriodo(o: OrdemRow, periodo: PeriodoEntrada): boolean {
 export const ITENS_POR_PAGINA = 12;
 
 // ── Filtros da lista no celular ──────────────────────────────────────────────
-// Os quatro primeiros são os do Figma mobile; os demais completam os status que
-// ficariam sem chip ("No pátio" já cobre execução + aguardando peça).
+// "Todas" vem primeiro e é o padrão: abrir a lista nunca mostra uma tela vazia
+// enquanto há OS. "Na oficina" usa a mesma regra da Visão Geral.
 
 export type FiltroMobile = 'patio' | 'em_orcamento' | 'aguardando' | 'concluidas' | 'aprovadas' | 'recusadas' | 'todas';
 
 export const FILTROS_MOBILE: readonly FiltroMobile[] = [
-  'patio', 'em_orcamento', 'aguardando', 'concluidas', 'aprovadas', 'recusadas', 'todas',
+  'todas', 'patio', 'em_orcamento', 'aguardando', 'aprovadas', 'concluidas', 'recusadas',
 ];
 
 export const ROTULO_FILTRO_MOBILE: Record<FiltroMobile, string> = {
-  patio: 'No pátio',
+  patio: 'Na oficina',
   em_orcamento: 'Em orçamento',
   aguardando: 'Aguardando',
   concluidas: 'Concluídas',
@@ -127,9 +120,10 @@ export const ROTULO_FILTRO_MOBILE: Record<FiltroMobile, string> = {
   todas: 'Todas',
 };
 
-export function noFiltroMobile(status: string, f: FiltroMobile): boolean {
+export function noFiltroMobile(o: OrdemRow, f: FiltroMobile): boolean {
+  const status = o.status;
   switch (f) {
-    case 'patio': return status === 'em_execucao' || status === 'aguardando';
+    case 'patio': return naOficina(o);
     case 'em_orcamento': return status === 'rascunho' || status === 'em_orcamento';
     case 'aguardando': return status === 'pendente_aprovacao'; // aguardando aprovação do cliente
     case 'concluidas': return status === 'finalizada';

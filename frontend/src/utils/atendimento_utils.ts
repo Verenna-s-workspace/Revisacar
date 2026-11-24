@@ -124,14 +124,14 @@ export function derivarColunasKanban(ordens: OSAtendimento[], agendamentos: Agen
   );
 
   // Recusada fica de fora de todas as colunas: encerrada sem execução, não é trabalho pendente.
-  // `iniciadoEm` (overlay local) só vale antes da execução; 'em_execucao' já é execução por si.
-  const osFila = ordens.filter(o => statusAntesDaExecucao(o.status) && !o.iniciadoEm);
-  const emExecucao = ordens.filter(
-    o => statusEmExecucao(o.status) || (statusAntesDaExecucao(o.status) && !!o.iniciadoEm)
-  );
+  // As colunas saem SÓ do status gravado no banco — nunca do overlay deste navegador
+  // (`iniciadoEm` fica no localStorage: usá-lo aqui fazia cada aparelho mostrar um número
+  // diferente de "Em execução"). Abrir uma OS aprovada já grava `em_execucao` (garantirIniciado).
+  const osFila = ordens.filter(o => statusAntesDaExecucao(o.status));
+  const emExecucao = ordens.filter(o => statusEmExecucao(o.status));
   const bloqueado = ordens.filter(o => statusBloqueada(o.status));
   const concluidoHoje = ordens.filter(
-    o => statusConcluida(o.status) && isSameDay(new Date(o.updated_at), new Date())
+    o => statusConcluida(o.status) && isSameDay(new Date(momentoConclusao(o)), new Date())
   );
 
   const fila: ItemKanban[] = [

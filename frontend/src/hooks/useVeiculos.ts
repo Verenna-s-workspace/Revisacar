@@ -17,6 +17,9 @@ export interface VeiculoStats {
   naOficina: number;
   aguardandoAprovacao: number;
   prontoEntrega: number;
+  /** Carros na oficina pela regra única (utils/ordem_status.naOficina): em serviço +
+   *  esperando aprovação + prontos hoje. É o número do subtítulo e bate com a Visão Geral. */
+  naOficinaTotal: number;
 }
 
 export function useVeiculos() {
@@ -136,6 +139,7 @@ export function useVeiculos() {
     naOficina: veiculos.filter(v => v.status === 'na_oficina').length,
     aguardandoAprovacao: veiculos.filter(v => v.status === 'aguardando_aprovacao').length,
     prontoEntrega: veiculos.filter(v => v.status === 'pronto_entrega').length,
+    naOficinaTotal: veiculos.filter(v => ['na_oficina', 'aguardando_aprovacao', 'pronto_entrega'].includes(v.status)).length,
   }), [veiculos]);
 
   return {

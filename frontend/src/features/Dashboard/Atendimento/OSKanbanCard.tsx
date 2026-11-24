@@ -1,5 +1,5 @@
 import { Icons } from '../Icons';
-import { statusAntesDaExecucao, statusEmExecucao } from '../../../utils/ordem_status';
+import { statusEmExecucao } from '../../../utils/ordem_status';
 import { tokens } from '../../../constants';
 import { formatDuracaoDesde } from '../../../utils/atendimento_utils';
 import type { Agendamento } from '../../../types/agendamento';
@@ -111,7 +111,7 @@ export function OSKanbanCard({ item, qtdPecas, possivelRetorno, onAbrir, onInici
   // ── Item com OS de verdade ───────────────────────────────────────────────────
   const { ordem } = item;
   const prioridadeCfg = ordem.prioridade ? PRIORIDADE_CFG[ordem.prioridade] : null;
-  const emExecucao = statusEmExecucao(ordem.status) || (statusAntesDaExecucao(ordem.status) && !!ordem.iniciadoEm);
+  const emExecucao = statusEmExecucao(ordem.status); // mesma regra da coluna (só o status do banco)
 
   return (
     <CardShell onClick={() => onAbrir(ordem)}>
