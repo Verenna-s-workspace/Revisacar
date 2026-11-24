@@ -1,0 +1,344 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Agenda" no celular — redesign do Figma mobile, no mesmo padrão de
+ * Veículos (.vem-page), Estoque (.esm-page) e Ordens (.osm-page).
+ * Tudo vive sob .agm (nada vaza para outras telas nem para o desktop).
+ *
+ * O CSS exportado do Figma usa position:absolute em quase tudo; aqui só entraram
+ * as medidas pontuais (alvos de toque, espaçamentos, tamanhos de fonte). O layout
+ * é Flexbox/Grid: a grade de horários usa grid-row / grid-column, como AgendaGrade
+ * (desktop). Cores de status vêm das variáveis --st-* das classes os-status--*
+ * (Ordens/Status.css) — veja CLASSE_STATUS em agendamentosDesktopUtils.ts.
+ * Pesos 400/500/700 (o 600 do Figma vira 700, como no resto do redesign).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.agm-shell { background: #FFFFFF; }
+
+.agm {
+  /* Neutros (mesmos valores do desktop e de Veículos) */
+  --agm-bg: #FFFFFF;
+  --agm-surface: #FFFFFF;
+  --agm-surface-high: #EEF0F3;
+  --agm-borda: #E2E5EA;
+  --agm-borda-forte: #C9CED6;
+  --agm-linha-hora: rgba(226, 229, 234, 0.6);
+  --agm-texto: #1A1D22;
+  --agm-texto-2: #4F5661;
+  --agm-mudo: #666E7B;
+  --agm-sutil: #868D98;
+
+  /* Marca, foco e destaque de "hoje" */
+  --agm-marca: #E01500;
+  --agm-marca-hover: #C21200;
+  --agm-foco: #3469EC;
+  --agm-hoje-bg: #FFF1EE;
+  --agm-hoje-fg: #BA1100;
+  --agm-ativo-bg: #1A1D22;
+  --agm-ativo-fg: #FFFFFF;
+  --agm-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+
+  /* Grade: 4 linhas de 15 min por hora. 24 px/linha = 96 px/hora, para um bloco de 30 min ter 44 px de toque. */
+  --agm-linha: 24px;
+  --agm-hora-h: calc(var(--agm-linha) * 4);
+  --agm-gutter: 52px;
+
+  --agm-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+  --agm-mono: var(--font-mono, 'DM Mono', 'JetBrains Mono', ui-monospace, monospace);
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  background: var(--agm-bg);
+  color: var(--agm-texto);
+  font-family: var(--agm-fonte);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+body.dark .agm {
+  --agm-bg: var(--color-bg, #09090b);
+  --agm-surface: var(--color-surface, #151518);
+  --agm-surface-high: var(--color-surface-high, #1c1c21);
+  --agm-borda: rgba(255, 255, 255, 0.1);
+  --agm-borda-forte: rgba(255, 255, 255, 0.18);
+  --agm-linha-hora: rgba(255, 255, 255, 0.07);
+  --agm-texto: #f4f4f5;
+  --agm-texto-2: #d4d4d8;
+  --agm-mudo: #9ca3af;
+  --agm-sutil: #8b8b94;
+  --agm-foco: #7aa2ff;
+  --agm-hoje-bg: rgba(224, 21, 0, 0.16);
+  --agm-hoje-fg: #fda4af;
+  --agm-ativo-bg: #f4f4f5;
+  --agm-ativo-fg: #151518;
+  --agm-sombra-sm: none;
+}
+
+.agm *, .agm *::before, .agm *::after { box-sizing: border-box; }
+.agm h1, .agm h2, .agm p, .agm ul { margin: 0; }
+.agm button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.agm svg { flex: none; }
+.agm :is(button, [role='button'], input):focus-visible { outline: 2px solid var(--agm-foco); outline-offset: 2px; }
+
+/* ── Topo: título · ação ─────────────────────────────────────────────────── */
+.agm-topo { display: flex; flex-direction: column; background: var(--agm-surface); }
+
+.agm-barra { display: flex; align-items: center; gap: 4px; min-height: 52px; padding: 4px 4px 0 16px; }
+.agm-barra__titulos { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.agm-titulo { font-size: 18px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; color: var(--agm-texto); }
+.agm-subtitulo {
+  display: flex; align-items: center; min-height: 16px;
+  font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--agm-mudo);
+  font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.agm-acao {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; color: var(--agm-texto); cursor: pointer;
+}
+.agm-acao svg { width: 22px; height: 22px; }
+.agm-acao:active { background: var(--agm-surface-high); }
+
+/* ── Busca + Filtros ─────────────────────────────────────────────────────── */
+.agm-busca-linha { display: flex; align-items: center; gap: 8px; padding: 8px 16px 12px; }
+.agm-busca {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px;
+  background: var(--agm-surface); border: 1px solid var(--agm-borda); border-radius: 6px; color: var(--agm-sutil); cursor: text;
+}
+.agm-busca:focus-within { border-color: var(--agm-foco); box-shadow: 0 0 0 2px color-mix(in srgb, var(--agm-foco) 25%, transparent); }
+.agm-busca input {
+  flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent;
+  font-family: inherit; font-size: 16px; /* 16px evita o zoom automático do iOS */ line-height: 20px; font-weight: 400; color: var(--agm-texto);
+  -webkit-appearance: none; appearance: none;
+}
+.agm-busca input::placeholder { color: var(--agm-mudo); opacity: 1; }
+.agm-busca input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+.agm-filtros-btn {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px;
+  background: var(--agm-surface); border: 1px solid var(--agm-borda-forte); border-radius: 6px; box-shadow: var(--agm-sombra-sm);
+  color: var(--agm-texto); font-size: 13px; line-height: 16px; font-weight: 700; cursor: pointer;
+}
+.agm-filtros-btn:active { background: var(--agm-surface-high); }
+.agm-filtros-btn__contador {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--agm-ativo-bg); color: var(--agm-ativo-fg); font-size: 12px; line-height: 16px; font-weight: 500;
+}
+
+/* Filtros ativos: o botão tem 44 px de toque; o desenho da pílula tem 32 */
+.agm-ativos { display: flex; align-items: center; gap: 4px; padding: 0 16px 4px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.agm-ativos::-webkit-scrollbar { display: none; }
+.agm-pilula { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 6px 0; border: 0; background: transparent; cursor: pointer; }
+.agm-pilula__visual {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 12px;
+  border: 1px dashed var(--agm-borda-forte); border-radius: 6px; color: var(--agm-texto-2);
+  font-size: 13px; line-height: 16px; font-weight: 500; white-space: nowrap;
+}
+.agm-pilula:active .agm-pilula__visual { background: var(--agm-surface-high); }
+.agm-pilula__visual svg { color: var(--agm-sutil); }
+.agm-pilula--limpar .agm-pilula__visual { border-style: solid; border-color: transparent; padding: 0 12px; font-weight: 700; color: var(--agm-texto); }
+
+/* ── Controle segmentado: Dia | Semana | Mês ─────────────────────────────── */
+.agm-segmentado { display: flex; margin: 0 16px 12px; background: var(--agm-surface-high); border-radius: 8px; }
+.agm-segmentado__item { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 3px; border: 0; background: transparent; cursor: pointer; }
+.agm-segmentado__rotulo {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 6px;
+  font-size: 13px; line-height: 16px; font-weight: 500; color: var(--agm-texto-2); transition: background 0.13s ease, color 0.13s ease;
+}
+.agm-segmentado__item[aria-pressed='true'] .agm-segmentado__rotulo { background: var(--agm-surface); color: var(--agm-texto); font-weight: 700; box-shadow: var(--agm-sombra-sm); }
+body.dark .agm-segmentado__item[aria-pressed='true'] .agm-segmentado__rotulo { background: var(--agm-borda-forte); }
+
+/* ── Tira de dias (Seg 16 … Sáb 21) ──────────────────────────────────────── */
+.agm-tira { display: flex; gap: 4px; padding: 0 12px 12px; background: var(--agm-surface); }
+.agm-tira__dia {
+  flex: 1 1 0; min-width: 44px; min-height: 65px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0;
+  border: 0; border-radius: 10px; background: transparent; color: var(--agm-texto); cursor: pointer;
+}
+.agm-tira__nome { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--agm-mudo); }
+.agm-tira__num { font-size: 16px; line-height: 24px; font-weight: 700; letter-spacing: -0.005em; font-variant-numeric: tabular-nums; }
+.agm-tira__ponto { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.agm-tira__dia--tem .agm-tira__ponto { background: var(--agm-marca); }
+.agm-tira__dia--hoje { background: var(--agm-hoje-bg); }
+.agm-tira__dia--hoje .agm-tira__num { color: var(--agm-hoje-fg); }
+.agm-tira__dia[aria-pressed='true'] { background: var(--agm-ativo-bg); color: var(--agm-ativo-fg); }
+.agm-tira__dia[aria-pressed='true'] .agm-tira__nome,
+.agm-tira__dia[aria-pressed='true'] .agm-tira__num { color: var(--agm-ativo-fg); }
+.agm-tira__dia[aria-pressed='true'].agm-tira__dia--tem .agm-tira__ponto { background: var(--agm-ativo-fg); }
+
+/* ── Corpo ───────────────────────────────────────────────────────────────── */
+.agm-corpo { flex: 1 0 auto; display: flex; flex-direction: column; min-width: 0; padding-bottom: 24px; }
+.agm-troca, .agm-view { display: flex; flex-direction: column; min-width: 0; }
+.agm-troca { animation: agm-entra 0.16s ease-out; }
+@keyframes agm-entra { from { opacity: 0; } to { opacity: 1; } }
+
+.agm-aviso-wrap { padding: 12px 16px 0; }
+.agm-carregando { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+
+/* Linha de seção (Figma "seção"): título à esquerda, Hoje · ‹ › à direita */
+.agm-secao { display: flex; align-items: center; gap: 8px; padding: 12px 8px 4px 16px; background: var(--agm-surface); }
+.agm-secao__titulo { flex: 1 1 0; min-width: 0; font-size: 14px; line-height: 18px; font-weight: 700; color: var(--agm-texto-2); }
+.agm-secao__nav { flex: none; display: flex; align-items: center; gap: 0; }
+.agm-nav-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 44px; height: 44px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; color: var(--agm-texto); cursor: pointer;
+}
+.agm-nav-btn svg { width: 20px; height: 20px; }
+.agm-nav-btn--texto { padding: 0 10px; font-size: 13px; line-height: 16px; font-weight: 700; }
+.agm-nav-btn:active { background: var(--agm-surface-high); }
+
+/* ── Grade de horários (visão Dia) ───────────────────────────────────────── */
+.agm-grade-wrap { background: var(--agm-surface); border-block: 1px solid var(--agm-borda); margin-top: 8px; }
+.agm-grade { display: grid; grid-template-columns: var(--agm-gutter) minmax(0, 1fr); min-width: 0; }
+.agm-horas { display: grid; grid-template-rows: repeat(var(--agm-nhoras), var(--agm-hora-h)); }
+.agm-hora {
+  padding: 6px 0 0 12px; font-family: var(--agm-mono); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--agm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.agm-dia {
+  position: relative; /* só referência da linha "agora" */
+  display: grid;
+  grid-template-rows: repeat(var(--agm-nlinhas), var(--agm-linha));
+  grid-template-columns: repeat(var(--agm-subcolunas, 1), minmax(0, 1fr));
+  min-width: 0; border-left: 1px solid var(--agm-borda);
+  background-image: repeating-linear-gradient(
+    to bottom, transparent 0, transparent calc(var(--agm-hora-h) - 1px),
+    var(--agm-linha-hora) calc(var(--agm-hora-h) - 1px), var(--agm-linha-hora) var(--agm-hora-h)
+  );
+}
+
+/* Agendamento na grade: hora (mono) · serviço, "cliente · veículo · placa" e status — cores pelo --st-* */
+.agm-evento {
+  display: flex; align-items: flex-start; gap: 8px; min-width: 0; min-height: 0; margin: 2px 6px; padding: 8px 10px 8px 8px; overflow: hidden;
+  border: 0; border-left: 3px solid var(--st-ponto); border-radius: 6px; background: var(--st-bg);
+  font-family: inherit; text-align: left; color: var(--agm-texto); cursor: pointer;
+}
+.agm-evento:active { filter: brightness(0.97); }
+.agm-evento__hora {
+  flex: none; width: 40px; font-family: var(--agm-mono); font-size: 14px; line-height: 18px; font-weight: 500; color: var(--agm-texto);
+  font-variant-numeric: tabular-nums;
+}
+.agm-evento__corpo { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.agm-evento__titulo, .agm-evento__sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agm-evento__titulo { font-size: 14px; line-height: 18px; font-weight: 700; color: var(--agm-texto); }
+.agm-evento__sub { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--agm-texto-2); }
+.agm-evento__selo { margin-top: 4px; }
+
+/* Bloco de 30 min (2 linhas): uma linha só, como o bloco curto do desktop */
+.agm-evento--curto { align-items: center; padding-block: 3px; }
+.agm-evento--curto .agm-evento__corpo { flex-direction: row; align-items: center; gap: 8px; }
+.agm-evento--curto .agm-evento__titulo { flex: 0 1 auto; }
+.agm-evento--curto .agm-evento__sub { flex: 1 1 0; min-width: 0; }
+.agm-evento--medio { padding-block: 6px; }
+
+/* Simultâneos dividem a largura do dia: sobra pouco espaço, então só o essencial */
+.agm-dia--multi .agm-evento { margin-inline: 2px; padding-inline: 6px; }
+.agm-dia--multi .agm-evento__hora { display: none; }
+.agm-dia--multi .agm-evento--curto .agm-evento__sub,
+.agm-dia--multi .agm-evento__selo { display: none; }
+.agm-dia--multi .agm-evento__titulo { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* Linha do horário atual (ponto + linha desenhados com gradientes, sem posicionamento absoluto) */
+.agm-agora {
+  grid-column: 1 / -1; align-self: start; height: 8px; pointer-events: none; z-index: 2;
+  background:
+    radial-gradient(circle at 4px 50%, var(--agm-marca) 0 4px, transparent 4.5px),
+    linear-gradient(var(--agm-marca), var(--agm-marca)) center / 100% 2px no-repeat;
+}
+
+.agm-nota { padding: 10px 16px; border-bottom: 1px solid var(--agm-borda); font-size: 13px; line-height: 18px; color: var(--agm-texto-2); }
+
+/* Botão "Agendar neste dia" (Figma "livre": 44 px, secondary, ícone + texto) */
+.agm-livre { display: flex; padding: 16px 16px 0; }
+
+/* ── Botões ──────────────────────────────────────────────────────────────── */
+.agm-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px;
+  border: 1px solid transparent; border-radius: 6px; font-size: 13px; line-height: 16px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.agm-btn--bloco { flex: 1 1 auto; }
+.agm-btn--primario { background: var(--agm-marca); color: #FFFFFF; }
+.agm-btn--primario:active { background: var(--agm-marca-hover); }
+.agm-btn--secundario { background: var(--agm-surface); color: var(--agm-texto); border-color: var(--agm-borda-forte); box-shadow: var(--agm-sombra-sm); }
+.agm-btn--secundario:active { background: var(--agm-surface-high); }
+.agm-btn--secundario svg { color: var(--agm-texto-2); }
+
+/* ── Lista (busca/filtros ativos e visão Semana): linhas de 2 níveis ─────── */
+.agm-lista { display: flex; flex-direction: column; padding: 0; list-style: none; background: var(--agm-surface); border-block: 1px solid var(--agm-borda); }
+.agm-lista > li + li { border-top: 1px solid var(--agm-borda); }
+
+.agm-linha { display: flex; flex-direction: column; gap: 12px; min-height: 104px; padding: 14px 16px; background: var(--agm-surface); cursor: pointer; user-select: none; -webkit-user-select: none; }
+.agm-linha:active { background: var(--agm-surface-high); }
+.agm-linha:focus-visible { outline-offset: -2px; }
+
+.agm-linha__topo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+/* Moldura com o ícone de carro, como a miniatura de Estoque e Veículos */
+.agm-foto {
+  flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
+  border: 1px solid var(--agm-borda); border-radius: 6px; background: var(--agm-surface-high); color: var(--agm-sutil);
+}
+.agm-foto svg { width: 22px; height: 22px; }
+.agm-linha__principal { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.agm-linha__titulo, .agm-linha__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agm-linha__titulo { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--agm-texto); }
+.agm-linha__sub { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--agm-mudo); }
+.agm-linha__placa { flex: none; display: flex; align-items: center; }
+
+.agm-linha__base { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-width: 0; }
+.agm-meta {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 400; color: var(--agm-texto-2);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.agm-meta svg { color: var(--agm-sutil); }
+.agm-linha__selo { margin-left: auto; }
+
+/* Visão Semana: um bloco por dia */
+.agm-grupo { display: flex; flex-direction: column; }
+.agm-grupo__cab {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 12px 16px 0 16px;
+  border: 0; background: var(--agm-surface); color: var(--agm-texto-2); font-size: 14px; line-height: 18px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.agm-grupo__cab svg { color: var(--agm-sutil); }
+.agm-grupo__cab:active { background: var(--agm-surface-high); }
+.agm-grupo + .agm-grupo { margin-top: 4px; }
+
+/* ── Mês ─────────────────────────────────────────────────────────────────── */
+.agm-mes { margin-top: 8px; background: var(--agm-surface); border-block: 1px solid var(--agm-borda); }
+.agm-mes__nomes, .agm-mes__semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.agm-mes__nome { padding: 10px 0; text-align: center; font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--agm-mudo); }
+.agm-mes__dia {
+  min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; padding: 6px 0 4px;
+  border: 0; border-top: 1px solid var(--agm-borda); background: transparent; color: var(--agm-texto); cursor: pointer;
+}
+.agm-mes__dia:active { background: var(--agm-surface-high); }
+.agm-mes__num {
+  display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 4px; border-radius: 8px;
+  font-size: 14px; line-height: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.agm-mes__dia--hoje .agm-mes__num { background: var(--agm-hoje-bg); color: var(--agm-hoje-fg); }
+.agm-mes__dia--fora .agm-mes__num { color: var(--agm-sutil); font-weight: 500; }
+.agm-mes__pontos { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 6px; }
+.agm-mes__ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--st-ponto, #868D98); }
+.agm-mes__mais { font-size: 10px; line-height: 6px; font-weight: 700; color: var(--agm-mudo); }
+
+/* ── Estados vazios ──────────────────────────────────────────────────────── */
+.agm-vazio {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 48px 20px; text-align: center;
+  color: var(--agm-mudo); font-size: 14px; line-height: 20px;
+}
+.agm-vazio--borda { margin-top: 8px; padding-block: 36px; background: var(--agm-surface); border-block: 1px solid var(--agm-borda); }
+.agm-vazio strong { font-weight: 700; color: var(--agm-texto); }
+.agm-vazio__icone { display: inline-flex; margin-bottom: 6px; color: var(--agm-sutil); }
+.agm-vazio__icone svg { width: 24px; height: 24px; }
+.agm-vazio .agm-btn { margin-top: 10px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .agm-linha:hover, .agm-grupo__cab:hover, .agm-mes__dia:hover, .agm-nav-btn:hover, .agm-acao:hover { background: var(--agm-surface-high); }
+  .agm-evento:hover { filter: brightness(0.97); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agm-troca { animation: none; }
+  .agm-segmentado__rotulo { transition: none; }
+}

@@ -1,120 +1,80 @@
 import { useMemo } from 'react';
-import type { CSSProperties } from 'react';
-import { AgendaIcons } from '../icons';
-import { Icons } from '../../Icons';
-import { MOBILE_STATUS, DAY_STATUS_PRIORITY, statusVars } from './statusTheme';
-import { APPOINTMENT_STATUS_CONFIG } from '../StatusBadge';
-import {
-  getMonthMatrix, toISODate, addMonths, WEEKDAYS_SHORT, WEEKDAYS_LONG, MONTHS,
-} from '../../../../utils/agenda';
-import type { Agendamento, AppointmentStatus } from '../../../../types/agendamento';
+import { addMonths, toISODate } from '../../../../utils/agenda';
+import type { Agendamento } from '../../../../types/agendamento';
+import { CLASSE_STATUS, matrizDoMes, rotuloMes, SEMANA_CURTA_SEG } from '../agendamentosDesktopUtils';
+import { agruparPorDia, capitalizar, contagem } from './agendaMobileUtils';
+import { MobileSecao } from './MobileSecao';
+
+const MAX_PONTOS = 3;
 
 interface MobileMonthlyViewProps {
   date: Date;
   agendamentos: Agendamento[];
   onDateChange: (d: Date) => void;
-  /** Chamado ao tocar em um dia com agendamentos → o pai abre a visão Diária. */
+  /** Toque em qualquer dia: abre a visão Dia (como no desktop). */
   onDayClick: (d: Date) => void;
 }
 
-
-
+/**
+ * Visão Mês: grade de 7 colunas (segunda a domingo) em CSS Grid. Cada dia mostra o número e até 3
+ * pontos na cor do status; o resumo exato fica na visão Dia, que abre ao tocar.
+ */
 export function MobileMonthlyView({ date, agendamentos, onDateChange, onDayClick }: MobileMonthlyViewProps) {
-  const todayISO = toISODate(new Date());
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const matrix = useMemo(() => getMonthMatrix(year, month), [year, month]);
+  const ano = date.getFullYear();
+  const mes = date.getMonth();
+  const hojeISO = toISODate(new Date());
 
-  const byDay = useMemo(() => {
-    const map: Record<string, Agendamento[]> = {};
-    agendamentos.forEach(a => {
-      if (!map[a.data]) map[a.data] = [];
-      map[a.data].push(a);
-    });
-    return map;
-  }, [agendamentos]);
+  const semanas = useMemo(() => matrizDoMes(ano, mes), [ano, mes]);
+  const porDia = useMemo(() => agruparPorDia(agendamentos), [agendamentos]);
 
-  // Legenda: só as cores que realmente aparecem no mês exibido.
-  const legend = useMemo(() => {
-    const used = new Set<AppointmentStatus>();
-    matrix.flat().forEach(day => {
-      if (day.getMonth() !== month) return;
-      const items = byDay[toISODate(day)] ?? [];
-      if (items.length === 0) return;
-      const active = items.filter(a => a.status !== 'cancelado' && a.status !== 'recusado');
-      used.add(DAY_STATUS_PRIORITY.find(st => active.some(a => a.status === st)) ?? 'cancelado');
-    });
-    return [...DAY_STATUS_PRIORITY, 'cancelado' as AppointmentStatus].filter(st => used.has(st));
-  }, [matrix, byDay, month]);
+  const prefixo = `${ano}-${String(mes + 1).padStart(2, '0')}`;
+  const totalMes = agendamentos.filter(a => a.data.startsWith(prefixo)).length;
 
   return (
     <div className="agm-view">
-      <section className="agm-nav" aria-label="Navegação por mês">
-        <button type="button" className="agm-iconbtn agm-iconbtn--sm" aria-label="Mês anterior" onClick={() => onDateChange(addMonths(date, -1))}>
-          {Icons.chevL}
-        </button>
-        <div className="agm-nav__center">
-          <h2 className="agm-nav__title">{MONTHS[month]}<small>{year}</small></h2>
+      <MobileSecao
+        titulo={`${capitalizar(rotuloMes(date))} · ${contagem(totalMes)}`}
+        periodo="mês"
+        onHoje={() => onDateChange(new Date())}
+        onAnterior={() => onDateChange(addMonths(date, -1))}
+        onProximo={() => onDateChange(addMonths(date, 1))}
+      />
+
+      <div className="agm-mes" role="group" aria-label={`Agenda de ${rotuloMes(date)}`}>
+        <div className="agm-mes__nomes" aria-hidden="true">
+          {SEMANA_CURTA_SEG.map(nome => <div key={nome} className="agm-mes__nome">{nome}</div>)}
         </div>
-        <button type="button" className="agm-pill" onClick={() => onDateChange(new Date())}>Hoje</button>
-        <button type="button" className="agm-iconbtn agm-iconbtn--sm" aria-label="Próximo mês" onClick={() => onDateChange(addMonths(date, 1))}>
-          {AgendaIcons.chevR}
-        </button>
-      </section>
 
-      <section className="agm-cal" aria-label={`Calendário de ${MONTHS[month]} de ${year}`}>
-        <div className="agm-cal__head" aria-hidden="true">
-          {WEEKDAYS_SHORT.map((w, i) => (
-            <div key={w} className={`agm-cal__wd${i === 0 || i === 6 ? ' is-weekend' : ''}`}>{w}</div>
-          ))}
-        </div>
-        <div className="agm-cal__grid">
-          {matrix.flat().map(day => {
-            const iso = toISODate(day);
-            const inMonth = day.getMonth() === month;
-            const items = byDay[iso] ?? [];
-            const active = items.filter(a => a.status !== 'cancelado' && a.status !== 'recusado');
-            const hasItems = inMonth && items.length > 0;
-            const isToday = iso === todayISO;
-
-            // Cor dominante do dia (ou a de cancelado, se só houver cancelados).
-            const dominant = DAY_STATUS_PRIORITY.find(s => active.some(a => a.status === s)) ?? 'cancelado';
-            const count = active.length > 0 ? active.length : items.length;
-
-            const cls = ['agm-day', !inMonth ? 'is-out' : '', hasItems ? 'has-items' : '', isToday ? 'is-today' : '']
-              .filter(Boolean).join(' ');
-
-            return (
-              <button
-                key={iso}
-                type="button"
-                className={cls}
-                disabled={!hasItems}
-                aria-current={isToday ? 'date' : undefined}
-                aria-label={
-                  `${WEEKDAYS_LONG[day.getDay()]}, ${day.getDate()} de ${MONTHS[day.getMonth()]}` +
-                  (hasItems ? `, ${count} agendamento${count !== 1 ? 's' : ''}` : ', sem agendamentos')
-                }
-                onClick={() => hasItems && onDayClick(day)}
-              >
-                <span>{day.getDate()}</span>
-                {hasItems && (
-                  <span className="agm-day__badge" style={statusVars(dominant) as CSSProperties}>{count}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="agm-legend" aria-label="Legenda das cores">
-        {legend.map(st => (
-          <span key={st} className="agm-legend__item" style={{ '--dot': MOBILE_STATUS[st].stripe } as CSSProperties}>
-            {APPOINTMENT_STATUS_CONFIG[st].label}
-          </span>
+        {semanas.map(semana => (
+          <div key={toISODate(semana[0])} className="agm-mes__semana">
+            {semana.map(d => {
+              const iso = toISODate(d);
+              const lista = porDia.get(iso) ?? [];
+              const pontos = lista.slice(0, MAX_PONTOS);
+              const classe = [
+                'agm-mes__dia',
+                d.getMonth() !== mes ? 'agm-mes__dia--fora' : '',
+                iso === hojeISO ? 'agm-mes__dia--hoje' : '',
+              ].filter(Boolean).join(' ');
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  className={classe}
+                  aria-current={iso === hojeISO ? 'date' : undefined}
+                  aria-label={`Abrir dia ${d.getDate()} de ${rotuloMes(d).split(' de ')[0]}, ${lista.length === 0 ? 'sem agendamentos' : contagem(lista.length)}`}
+                  onClick={() => onDayClick(d)}
+                >
+                  <span className="agm-mes__num">{d.getDate()}</span>
+                  <span className="agm-mes__pontos" aria-hidden="true">
+                    {pontos.map(ag => <span key={ag.id} className={`agm-mes__ponto ${CLASSE_STATUS[ag.status]}`} />)}
+                    {lista.length > MAX_PONTOS && <span className="agm-mes__mais">+</span>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         ))}
-        <span className="agm-legend__item" style={{ '--dot': '#C82319' } as CSSProperties}>Hoje</span>
-        <span style={{ flexBasis: '100%' }}>O número indica os agendamentos do dia.</span>
       </div>
     </div>
   );
