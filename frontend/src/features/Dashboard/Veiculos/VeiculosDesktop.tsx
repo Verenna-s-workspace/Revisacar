@@ -40,7 +40,7 @@ const CLASSE_STATUS: Record<VeiculoStatus, string> = {
 
 const ROTULO_STATUS: Record<VeiculoStatus, string> = {
   disponivel: 'Disponível',
-  na_oficina: 'Na oficina',
+  na_oficina: 'Em serviço',
   aguardando_aprovacao: 'Aguardando aprovação',
   pronto_entrega: 'Pronto p/ entrega',
 };
@@ -209,7 +209,7 @@ export function VeiculosDesktop({
 
   const chips: { id: VeiculoStatus | 'todos'; rotulo: string; qtd: number }[] = [
     { id: 'todos', rotulo: 'Todos', qtd: stats.total },
-    { id: 'na_oficina', rotulo: 'Na oficina', qtd: stats.naOficina },
+    { id: 'na_oficina', rotulo: 'Em serviço', qtd: stats.naOficina },
     { id: 'aguardando_aprovacao', rotulo: 'Aguardando aprovação', qtd: stats.aguardandoAprovacao },
     { id: 'pronto_entrega', rotulo: 'Prontos p/ entrega', qtd: stats.prontoEntrega },
   ];
@@ -219,7 +219,7 @@ export function VeiculosDesktop({
     onFiltros({ ...filtros, status });
   };
 
-  const subtitulo = `${totalVeiculos} ${totalVeiculos === 1 ? 'veículo' : 'veículos'} · ${stats.naOficina} na oficina`;
+  const subtitulo = `${totalVeiculos} ${totalVeiculos === 1 ? 'veículo' : 'veículos'} · ${stats.naOficinaTotal} na oficina`;
 
   return (
     <div className="ve-page">

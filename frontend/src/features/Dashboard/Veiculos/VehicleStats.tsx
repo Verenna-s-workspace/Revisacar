@@ -17,7 +17,7 @@ interface StatDef {
 
 const STAT_DEFS: StatDef[] = [
   { key: 'total',                label: 'Total de Veículos',         icon: Icons.car,               color: tokens.color.ferrari, bg: tokens.color.ferrariMid },
-  { key: 'naOficina',             label: 'Na Oficina',                icon: Icons.wrench,             color: tokens.color.warn,    bg: tokens.color.warnBg },
+  { key: 'naOficina',             label: 'Em serviço',                icon: Icons.wrench,             color: tokens.color.warn,    bg: tokens.color.warnBg },
   { key: 'aguardandoAprovacao',   label: 'Aguardando Aprovação',      icon: Icons.clock,              color: '#1565C0',            bg: '#E3F2FD' },
   { key: 'prontoEntrega',         label: 'Prontos para Entrega',      icon: VeiculoIcons.swap,        color: '#2E7D32',            bg: '#E8F5E9', scale: 1.15 },
 ];

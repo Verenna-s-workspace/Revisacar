@@ -143,7 +143,7 @@ export function OrdensDesktop({
         <div className="os-header__titulos">
           <h1 className="os-titulo">Ordens de serviço</h1>
           <p className="os-subtitulo">
-            {ordens.length} {ordens.length === 1 ? 'ordem' : 'ordens'} · {noPatioAgora} no pátio agora
+            {ordens.length} {ordens.length === 1 ? 'ordem' : 'ordens'} · {noPatioAgora} na oficina agora
           </p>
         </div>
         <button type="button" className="os-btn os-btn--primario" onClick={onNewOS}>

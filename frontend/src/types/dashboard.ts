@@ -20,6 +20,9 @@ export interface OrdemRow {
   valor_total?: number | null;
   /** Cliente já foi avisado de que o serviço terminou (banco; só existe depois do script alertas.sql). */
   cliente_avisado?: boolean;
+  /** Vínculo real com a carteira (gravado no salvamento por os_vinculo); null em OS antigas sem vínculo. */
+  customer_id?: string | null;
+  vehicle_id?: string | null;
   cliente_avisado_em?: string | null;
   cliente_avisado_por_nome?: string | null;
   /** Quando o serviço foi concluído (só existe depois de ordens_execucao.sql; senão vale updated_at). */

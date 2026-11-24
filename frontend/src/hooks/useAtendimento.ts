@@ -112,27 +112,34 @@ export function useAtendimento() {
   // Idempotente por design: só grava iniciadoEm na 1ª vez. Chamar de novo em
   // cima de uma OS que já começou não faz nada — nunca existe um botão
   // dedicado "marcar como iniciado" (ver Seção 4 do prompt).
+  // OS APROVADA aberta para trabalhar vira `em_execucao` no banco: é o que põe o carro
+  // em "Em execução" para a equipe toda (o iniciadoEm local só marca a hora neste aparelho).
   const garantirIniciado = useCallback(
     (ordemId: string) => {
       const atual = lerTodosOverlays()[ordemId];
       if (!atual?.iniciadoEm) {
         atualizarOverlay(ordemId, { iniciadoEm: new Date().toISOString() });
       }
+      const ordem = ordensRaw.find(o => o.id === ordemId);
+      if (ordem?.status === 'aprovada') {
+        setOrdensRaw(prev => prev.map(o => (o.id === ordemId ? { ...o, status: 'em_execucao' } : o)));
+        api.definirStatusOrdem(ordemId, 'em_execucao').catch(() => carregarOrdens());
+      }
     },
-    [atualizarOverlay]
+    [atualizarOverlay, ordensRaw, carregarOrdens]
   );
 
-  // Tira a OS do estado 'aguardando', devolvendo pra 'rascunho' — reaparece em
-  // "Em Execução" se iniciadoEm já existia (retomando o trabalho), ou em
-  // "Fila" se nunca chegou a começar. Otimista: atualiza a lista local antes
+  // Tira a OS do estado 'aguardando' e volta para 'em_execucao' (aguardando só é
+  // alcançável a partir da execução — a peça chegou, o trabalho continua). Antes voltava
+  // para 'rascunho' e o carro caía na Fila. Otimista: atualiza a lista local antes
   // da resposta da API; se a chamada falhar, recarrega pra não deixar a tela
   // mentindo que desbloqueou quando não desbloqueou de verdade.
   const desbloquear = useCallback(
     async (ordemId: string) => {
-      setOrdensRaw(prev => prev.map(o => (o.id === ordemId ? { ...o, status: 'rascunho' } : o)));
+      setOrdensRaw(prev => prev.map(o => (o.id === ordemId ? { ...o, status: 'em_execucao' } : o)));
       atualizarOverlay(ordemId, { motivoBloqueio: undefined });
       try {
-        await api.definirStatusOrdem(ordemId, 'rascunho');
+        await api.definirStatusOrdem(ordemId, 'em_execucao');
       } catch {
         carregarOrdens();
       }

@@ -17,7 +17,9 @@ Convenções:
   - Entrar na carteira de uma conta do app só acontece por convite aceito pelo próprio cliente — a oficina
     nunca "puxa" uma conta do app pelo e-mail/CPF (isso revelaria quem tem conta).
 """
+import logging
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from rest_framework import status as http_status
 from rest_framework.decorators import api_view
@@ -26,6 +28,8 @@ from rest_framework.response import Response
 from . import carteira as cart
 from .estoque_views import _corpo_valido, _listar_todos, _negado, _nao_encontrado, _uuid_valido
 from .views import supabase, require_auth, _now, _oficina_doc_do_token
+
+log = logging.getLogger(__name__)
 
 CONVITES = "oficina_convites"
 CONVITE_DIAS_PADRAO = 7
@@ -54,6 +58,40 @@ def cliente_para_api(c: dict, v: dict) -> dict:
     return out
 
 
+def historico_por_cliente(oficina_doc: str, cliente_ids, com_gasto: bool) -> dict:
+    """{customer_id: {"totalOS": n, "gastoTotal": R$}} pelo vínculo REAL da OS (ordens.customer_id,
+    gravado no salvamento por os_vinculo) — não pelo nome digitado, que diverge à toa
+    ("[TESTE] Thiago Barbosa" × "Thiago Barbosa").
+
+    totalOS     = OS da oficina ligadas ao cliente (menos as recusadas).
+    gastoTotal  = soma das ENTRADAS PAGAS do Financeiro dessas OS (o que o cliente de fato pagou,
+                  bruto, sem a taxa da maquininha). Só vai quando `com_gasto` (financeiro.ver).
+    Melhor esforço: se a consulta falhar, a lista de clientes sai sem esses campos."""
+    try:
+        ordens = cart.buscar_por_ids(
+            "ordens", cliente_ids, coluna="customer_id",
+            extra=lambda q: q.eq("oficina_doc", oficina_doc))
+        dono_da_os = {str(o["id"]): str(o["customer_id"]) for o in ordens if o.get("status") != "recusada"}
+        out = {str(cid): {"totalOS": 0} for cid in cliente_ids}
+        for cid in dono_da_os.values():
+            out[cid]["totalOS"] += 1
+        if com_gasto:
+            gasto = {cid: Decimal("0") for cid in out}
+            entradas = cart.buscar_por_ids(
+                "financeiro_transacoes", dono_da_os.keys(), coluna="ordem_servico_id",
+                extra=lambda q: q.eq("oficina_doc", oficina_doc).eq("tipo", "entrada").eq("status", "pago"))
+            for t in entradas:
+                cid = dono_da_os.get(str(t.get("ordem_servico_id")))
+                if cid:
+                    gasto[cid] += Decimal(str(t.get("valor") or 0))
+            for cid, total in gasto.items():
+                out[cid]["gastoTotal"] = float(round(total, 2))
+        return out
+    except Exception:  # noqa: BLE001 — a lista de clientes não pode cair por causa do resumo
+        log.warning("Não foi possível montar o histórico dos clientes da oficina %s.", oficina_doc, exc_info=True)
+        return {}
+
+
 def _dono_do_cadastro(c: dict, oficina_doc: str) -> bool:
     return c.get("origem") == "oficina" and c.get("oficina_origem_doc") == oficina_doc
 
@@ -80,7 +118,10 @@ def clientes_list(request):
         return Response(cliente_para_api(criado, vinc),
                         status=http_status.HTTP_200_OK if reativado else http_status.HTTP_201_CREATED)
 
-    return Response([cliente_para_api(c, v) for c, v in cart.carteira_da_oficina(oficina_doc)])
+    carteira = cart.carteira_da_oficina(oficina_doc)
+    com_gasto = "financeiro.ver" in request.admin.get("permissoes", [])
+    historico = historico_por_cliente(oficina_doc, [c["id"] for c, _ in carteira], com_gasto)
+    return Response([{**cliente_para_api(c, v), **historico.get(str(c["id"]), {})} for c, v in carteira])
 
 
 @api_view(["GET", "PATCH", "DELETE"])

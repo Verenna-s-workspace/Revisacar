@@ -1,4 +1,4 @@
-import { statusAntesDaExecucao, statusEmExecucao } from '../../../../utils/ordem_status';
+import { statusEmExecucao } from '../../../../utils/ordem_status';
 import { momentoConclusao } from '../../../../utils/atendimento_utils';
 import type { ReactNode } from 'react';
 import type { Agendamento } from '../../../../types/agendamento';
@@ -76,7 +76,7 @@ export function CartaoOS({ item, coluna, agora, vinculado, qtdPecas, possivelRet
   // ── OS de verdade ────────────────────────────────────────────────────────────
   const { ordem } = item;
   const st = statusDoCartao(ordem.status);
-  const emExecucao = statusEmExecucao(ordem.status) || (statusAntesDaExecucao(ordem.status) && !!ordem.iniciadoEm);
+  const emExecucao = statusEmExecucao(ordem.status); // mesma regra da coluna (só o status do banco)
 
   let tempo: JSX.Element | null = null;
   let progresso: { pct: number; estourou: boolean; atual: number; previsto: number } | null = null;

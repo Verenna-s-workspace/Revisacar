@@ -3,6 +3,8 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { Skeleton } from '../Primitives';
 import { Placa } from '../Placa';
 import { formatPhoneBR } from '../../../components/inputs/masks';
+import { Valor } from '../../../components/Privacidade';
+import { formatBRL } from '../../../utils/dashboard';
 import { CLIENTE_STATUS_CONFIG } from './StatusBadge';
 import { filtrosAtivos, formatDataCurta } from '../../../utils/clientes_utils';
 import { ownerInitial } from '../../../utils/veiculos_utils';
@@ -346,11 +348,13 @@ export function ClientesDesktop({
                       </div>
 
                       <div role="cell" className="cl-cel cl-cel-num">
-                        {c.ordens.length}
+                        {c.totalOS ?? c.ordens.length}
                       </div>
 
                       <div role="cell" className="cl-cel cl-cel-num">
-                        <span className="cl-vazio">—</span>
+                        {c.gastoTotal !== undefined && c.gastoTotal > 0
+                          ? <Valor texto={formatBRL(c.gastoTotal)} />
+                          : <span className="cl-vazio">—</span>}
                       </div>
 
                       <div role="cell" className="cl-cel cl-cel-acoes">

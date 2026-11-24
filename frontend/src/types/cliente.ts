@@ -24,6 +24,10 @@ export interface Cliente {
   observacoes?: string;
   createdAt: string;
   updatedAt?: string;
+  /** OS da oficina ligadas a este cliente (ordens.customer_id), sem as recusadas. Vem de GET /clientes. */
+  totalOS?: number;
+  /** Soma das entradas PAGAS do Financeiro dessas OS. Só vem para quem tem `financeiro.ver`. */
+  gastoTotal?: number;
 }
 
 /** Payload utilizado para criar/editar um cliente a partir do modal de cadastro. */

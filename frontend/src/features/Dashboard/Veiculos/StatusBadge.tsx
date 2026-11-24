@@ -21,7 +21,7 @@ export const VEICULO_STATUS_CONFIG: Record<VeiculoStatus, VeiculoStatusConfig> =
     icon: Icons.check,
   },
   na_oficina: {
-    label: 'Na Oficina',
+    label: 'Em serviço',
     color: tokens.color.warn,
     bg: tokens.color.warnBg,
     border: tokens.color.warnBorder,

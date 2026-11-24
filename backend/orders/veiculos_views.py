@@ -18,7 +18,8 @@ Formato JSON: `VeiculoCadastrado` (frontend/src/types/veiculo.ts).
     do estoque. `fotoPrincipal: null` limpa; chave ausente não mexe. Sem foto, o card usa a imagem da categoria.
   • Excluir é "soft": o veículo some das listas mas continua no banco (histórico de OS e agendamentos).
 """
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from rest_framework import status as http_status
 from rest_framework.decorators import api_view
@@ -33,7 +34,11 @@ MAX_FOTOS_ADICIONAIS = 5  # manter em sincronia com a constraint da 0007 e com o
 CATEGORIAS = ("sedan", "hatch", "suv", "picape", "van", "utilitario", "esportivo")
 CAMBIOS = ("Manual", "Automático", "CVT", "Automatizado")
 
-# Status da OS → status do veículo na oficina. OS finalizada/recusada = sem pendência.
+# Status da OS → status do veículo na oficina. OS recusada = sem pendência; finalizada também,
+# EXCETO no dia da conclusão (pronta, esperando o cliente buscar → "pronto_entrega").
+# Mesma regra de "na oficina" do front (utils/ordem_status.naOficina): na_oficina +
+# aguardando_aprovacao + pronto_entrega = carros na oficina.
+FUSO_OFICINA = ZoneInfo("America/Sao_Paulo")
 STATUS_VEICULO = {
     "rascunho": "na_oficina", "em_orcamento": "na_oficina", "aprovada": "na_oficina",
     "em_execucao": "na_oficina", "aguardando": "na_oficina",
@@ -54,6 +59,28 @@ def proprietario_para_api(c: dict | None):
     return out
 
 
+def _dia_local(valor) -> date | None:
+    if not valor:
+        return None
+    try:
+        dt = valor if isinstance(valor, datetime) else datetime.fromisoformat(str(valor).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+    return dt.astimezone(FUSO_OFICINA).date()
+
+
+def status_do_veiculo(ultima_os: dict | None, hoje: date | None = None) -> str:
+    """Situação do veículo a partir da OS mais recente dele."""
+    status = (ultima_os or {}).get("status")
+    if status == "finalizada":
+        hoje = hoje or datetime.now(FUSO_OFICINA).date()
+        if _dia_local(ultima_os.get("concluida_em") or ultima_os.get("updated_at")) == hoje:
+            return "pronto_entrega"
+    return STATUS_VEICULO.get(status, "disponivel")
+
+
 def veiculo_para_api(v: dict, dono: dict | None, ultima_os: dict | None) -> dict:
     out = {
         "id": str(v["id"]),
@@ -69,7 +96,7 @@ def veiculo_para_api(v: dict, dono: dict | None, ultima_os: dict | None) -> dict
         "portas": v.get("portas") or 4,
         "fotosAdicionais": _fotos_adicionais_do_banco(v),
         "proprietario": proprietario_para_api(dono),
-        "status": STATUS_VEICULO.get((ultima_os or {}).get("status"), "disponivel"),
+        "status": status_do_veiculo(ultima_os),
         "createdAt": v["created_at"],
     }
     for chave, valor in (("motor", v.get("motor")), ("chassi", v.get("vin")), ("renavam", v.get("renavam")),
@@ -110,7 +137,10 @@ def _ultima_os_por_veiculo(oficina_doc: str, veiculo_ids):
         extra=lambda q: q.eq("oficina_doc", oficina_doc).order("created_at", desc=True))
     por_veiculo = {}
     for o in sorted(ordens, key=lambda o: o["created_at"] or "", reverse=True):
-        por_veiculo.setdefault(str(o["vehicle_id"]), {"id": o["id"], "status": o.get("status")})
+        por_veiculo.setdefault(str(o["vehicle_id"]), {
+            "id": o["id"], "status": o.get("status"),
+            "concluida_em": o.get("concluida_em"), "updated_at": o.get("updated_at"),
+        })
     return por_veiculo
 
 
