@@ -1,6 +1,7 @@
 import { tokens } from '../../../constants';
 import { Icons } from '../Icons';
-import { VeiculoIcons, VEHICLE_SILHOUETTES } from './icons';
+import { VeiculoIcons } from './icons';
+import { CarroCategoriaSvg } from './ilustracoes';
 import { StatusBadge } from './StatusBadge';
 import { CATEGORIA_LABEL, formatKm } from '../../../utils/veiculos_utils';
 import type { VeiculoCadastrado } from '../../../types/veiculo';
@@ -44,7 +45,7 @@ export function VehicleDetailsModal({ veiculo: v, onClose, onEdit, onDelete, onN
           {v.fotoPrincipal ? (
             <img src={v.fotoPrincipal} alt={`${v.marca} ${v.modelo}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <div style={{ width: '100%', height: '100%', padding: '28px 60px' }}>{VEHICLE_SILHOUETTES[v.categoria]}</div>
+            <CarroCategoriaSvg categoria={v.categoria} className="ve-hero__padrao" />
           )}
 
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(20,10,8,0.55) 100%)' }} />

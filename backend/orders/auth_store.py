@@ -25,6 +25,7 @@ RATE_TABLE = "auth_rate_limit"
 
 KIND_PIN = "pin"
 KIND_RESET_REQUEST = "reset_request"
+KIND_EXCLUIR_CONTA = "excluir_conta"
 
 
 def hash_token(token: str) -> str:
@@ -184,6 +185,22 @@ class SupabaseAuthStore:
 
     def clear_pin_attempts(self, funcionario_id):
         self._clear(funcionario_id, KIND_PIN)
+
+    # Confirmação de senha ao excluir a conta do dono. Sem limite, quem roubasse um token de acesso
+    # (15 min) poderia testar senhas neste endpoint; o contador é por conta (bucket "conta:<CNPJ>").
+    # Para o funcionário vale o contador do PIN (mesmo bucket do login).
+
+    def excluir_conta_attempt_allowed(self, bucket, *, max_attempts, window_seconds):
+        recent = self._recent(bucket, KIND_EXCLUIR_CONTA, window_seconds)
+        if recent is None:
+            return True  # fail-open: a exclusão em si já exige o banco
+        return len(recent) < max_attempts
+
+    def record_excluir_conta_attempt(self, bucket):
+        self._record(bucket, KIND_EXCLUIR_CONTA)
+
+    def clear_excluir_conta_attempts(self, bucket):
+        self._clear(bucket, KIND_EXCLUIR_CONTA)
 
     def can_request_password_reset(self, email, *, max_requests, window_seconds, min_interval_seconds):
         recent = self._recent(email, KIND_RESET_REQUEST, window_seconds)

@@ -77,6 +77,10 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
+      - name: ESLint
+        # Regras em frontend/eslint.config.js. Na Fase 0 todas são aviso (não derrubam o CI).
+        run: npm run lint
+
       - name: Build
         run: npm run build
         env:

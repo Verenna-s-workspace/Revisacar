@@ -54,31 +54,34 @@ def _paginas(conteudo: bytes) -> int:
 
 def test_cabecalho_com_os_e_hora_exata_de_emissao():
     texto = _texto(relatorio.gerar_pdf(_dados()))
-    assert "RELATÓRIO FINAL DA OS" in texto and "OS Nº 77" in texto
-    assert "Emitido em 05/11/2026 às 18:10:33" in texto  # 21:10:33 UTC = 18:10:33 em Brasília
+    assert "Relatório final" in texto and "Nº 77" in texto
+    assert "Relatório emitido em 05/11/2026 às 18:10:33" in texto  # 21:10:33 UTC = 18:10:33 em Brasília
     assert "CNPJ 12.345.678/0001-99" in texto and "(11) 3333-4444" in texto
+    assert "Serviço concluído em 05/11/2026 às 16:00 por Carlos" in texto
 
 
 def test_ficha_de_entrada_e_saida():
     texto = _texto(relatorio.gerar_pdf(_dados()))
-    assert "CLIENTE NOME Joao da Silva CPF / CNPJ 123.456.789-01 TELEFONE (11) 99999-9999" in texto
-    for esperado in ("CHASSI 9BWZZZ377VT004251", "COMBUSTÍVEL Flex", "NÍVEL DO TANQUE 1/2",
-                     "KM DE ENTRADA 87.000 km", "KM DE SAÍDA 87.012 km",
-                     "Carlos Mecanico · Reg. CRM-123", "04/11/2026 às 08:30", "05/11/2026 às 16:45"):
+    for esperado in ("Joao da Silva", "123.456.789-01", "(11) 99999-9999", "j@e.com", "Gol", "ABC1D23", "Prata", "2018",
+                     "9BWZZZ377VT004251", "Flex", "Nível do tanque 1/2", "Hodômetro em 87.000 km",
+                     "Hodômetro em 87.012 km", "Carlos Mecanico", "Registro CRM-123", "04/11/2026 às 08:30",
+                     "05/11/2026 às 16:45"):
         assert esperado in texto, esperado
 
 
 def test_fotos_completas_mostram_5_de_5_sem_lista_de_ausentes():
     texto = _texto(relatorio.gerar_pdf(_dados()))
-    assert "5/5" in texto and "Todas as 5 fotos obrigatórias foram anexadas." in texto
-    assert "AUSENTE" not in texto and "não anexada" not in texto
+    assert "5/5" in texto and "Todas as 5 fotos obrigatórias foram anexadas" in texto
+    assert "Não anexada" not in texto and "Nenhum motivo informado" not in texto
 
 
 def test_fotos_ausentes_listam_cada_uma_com_o_motivo():
     texto = _texto(relatorio.gerar_pdf(_dados(fotos=_fotos(3))))
-    assert "3/5" in texto and texto.count("AUSENTE") == 2
-    assert "Lateral direita — não anexada. Motivo informado pelo mecânico: “Carro trancado pelo cliente”." in texto
-    assert "Lateral esquerda — não anexada. Nenhum motivo foi informado." in texto  # pendente: sem motivo
+    assert "3/5" in texto and texto.count("Não anexada") == 2 and texto.count("Anexada") == 3
+    assert "Carro trancado pelo cliente" in texto
+    assert "Nenhum motivo informado" in texto  # pendente: sem motivo
+    assert "2 de 5 fotos obrigatórias não foram anexadas" in texto
+    assert "Nenhuma das 5 fotos obrigatórias foi anexada" in _texto(relatorio.gerar_pdf(_dados(fotos=_fotos(0, ""))))
 
 
 def test_motivo_da_foto_nao_injeta_marcacao():
@@ -90,25 +93,51 @@ def test_motivo_da_foto_nao_injeta_marcacao():
 def test_parecer_pecas_servicos_e_total():
     texto = _texto(relatorio.gerar_pdf(_dados()))
     assert "Troca de pastilhas realizada." in texto
-    assert texto.index("PEÇAS SUBSTITUÍDAS") < texto.index("Total de peças R$ 400,00") < texto.index(
-        "SERVIÇOS EXECUTADOS") < texto.index("Total de mão de obra R$ 160,00") < texto.index("TOTAL GERAL R$ 560,00")
-    assert "Peca0" in texto and "Servico1" in texto
+    assert texto.index("Peças substituídas") < texto.index("Peca0") < texto.index("Serviços executados") < texto.index(
+        "Servico1")
+    assert "R$ 200,00" in texto and "R$ 80,00" in texto and "Orçamento v2" in texto
+    assert "R$ 400,00" in texto and "R$ 160,00" in texto  # total de peças e de mão de obra
+    assert "R$ 560,00" in texto  # total geral = peças + serviços
 
 
 def test_sem_parecer_e_sem_itens():
     texto = _texto(relatorio.gerar_pdf(_dados(0, 0, parecer="")))
     assert "Nenhum parecer foi registrado." in texto
     assert "Nenhuma peça foi substituída." in texto and "Nenhum serviço registrado." in texto
-    assert "TOTAL GERAL R$ 0,00" in texto
+    assert "R$ 0,00" in texto
 
 
 def test_validacao_do_cliente_metodo_e_data():
-    assert "Aprovado via WhatsApp em 04/11/2026" in _texto(relatorio.gerar_pdf(_dados()))
+    assert "via WhatsApp em 04/11/2026" in _texto(relatorio.gerar_pdf(_dados()))
     # 02:00 UTC de 05/11 ainda é 04/11 à noite em Brasília: a data não pode vir "adiantada"
     tarde = _dados(aprovacao={"em": "2026-11-05T02:00:00+00:00", "canal": "presencial", "obs": "", "versao": 1})
-    assert "Aprovado via Presencial em 04/11/2026" in _texto(relatorio.gerar_pdf(tarde))
+    assert "via Presencial em 04/11/2026" in _texto(relatorio.gerar_pdf(tarde))
     sem = _texto(relatorio.gerar_pdf(_dados(aprovacao=None)))
     assert "Não há registro de aprovação do cliente para esta OS." in sem
+
+
+def _fontes_e_tamanhos(conteudo: bytes):
+    """Nomes de fonte e tamanhos (pt) de todo texto desenhado na página."""
+    achados = []
+    PdfReader(io.BytesIO(conteudo)).pages[0].extract_text(
+        visitor_text=lambda txt, cm, tm, fd, fs: achados.append((fd["/BaseFont"].split("+")[-1], round(fs, 2)))
+        if fd and txt.strip() else None)
+    return {f for f, _ in achados}, {t for _, t in achados}
+
+
+def test_so_dm_sans_com_6_tamanhos_e_3_pesos():
+    fontes, tamanhos = _fontes_e_tamanhos(relatorio.gerar_pdf(_dados(fotos=_fotos(2))))
+    assert fontes == {"DMSans-Regular", "DMSans-Medium", "DMSans-Bold"}
+    assert len(tamanhos) <= 6, sorted(tamanhos)
+
+
+def test_logo_e_placa_aparecem_no_pdf():
+    pdf = PdfReader(io.BytesIO(relatorio.gerar_pdf(_dados())))
+    imagens = [i.name for i in pdf.pages[0].images]
+    assert len(imagens) >= 2  # logo da RevisaCar + bandeira da placa Mercosul
+    antiga = _dados(veiculo={**_dados()["veiculo"], "placa": "ABC1234"})
+    assert "ABC1234" in _texto(relatorio.gerar_pdf(antiga)) and "BR-BRASIL" in _texto(relatorio.gerar_pdf(antiga))
+    assert "BRASIL" in _texto(relatorio.gerar_pdf(_dados())) and "ABC1D23" in _texto(relatorio.gerar_pdf(_dados()))
 
 
 @pytest.mark.parametrize("n_pecas,n_servicos", [(0, 0), (1, 1), (8, 6), (20, 15), (40, 30), (150, 100)])
@@ -120,7 +149,7 @@ def test_sempre_uma_unica_pagina(n_pecas, n_servicos):
 def test_excesso_de_itens_corta_a_lista_mas_o_total_continua_completo():
     texto = _texto(relatorio.gerar_pdf(_dados(150, 100)))
     assert "não listado(s) por falta de espaço" in texto
-    assert "TOTAL GERAL R$ 38.000,00" in texto  # 150 × 200 + 100 × 80
+    assert "Total geral R$ 38.000,00" in texto  # 150 × 200 + 100 × 80
 
 
 def test_assinatura_ilegivel_nao_derruba_o_relatorio():

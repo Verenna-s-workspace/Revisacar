@@ -3,11 +3,15 @@ import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge, Skeleton } from './Primitives';
-import { Sidebar, MobileNav, MobileTopbar } from './Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
+import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
 import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
 import type { OrdemRow, NavPage } from '../../types/dashboard';
+import { OrdensDesktop } from './Ordens/OrdensDesktop';
+import { OrdensMobile } from './Ordens/OrdensMobile';
+import type { FiltroStatus } from './Ordens/ordensUtils';
 
 // ── Date formatter ────────────────────────────────────────────────────────────
 
@@ -52,77 +56,6 @@ export function OSRow({ ordem, onClick }: { ordem: OrdemRow; onClick: () => void
       <div className="dashboard-order-row__status">
         <StatusBadge status={ordem.status} />
         <span style={{ fontSize: '0.75rem', color: tokens.color.muted }}>{formatDate(ordem.created_at)}</span>
-      </div>
-    </div>
-  );
-}
-
-// ── TableRow (desktop) ────────────────────────────────────────────────────────
-
-interface TableRowProps {
-  o: OrdemRow;
-  isLast: boolean;
-  onSelect: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  deleting: boolean;
-}
-
-function TableRow({ o, isLast, onSelect, onEdit, onDelete, deleting }: TableRowProps) {
-  const [hov, setHov] = useState(false);
-  const d = new Date(o.created_at);
-  return (
-    <div
-      className="ordens-tabela__linha"
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        padding: '13px 16px',
-        background: hov ? tokens.color.bg : 'white',
-        border: `1px solid ${tokens.color.border}`,
-        borderTop: 'none',
-        alignItems: 'center',
-        borderRadius: isLast ? '0 0 10px 10px' : 0,
-        transition: 'background 0.1s',
-      }}
-    >
-      <button
-        type="button"
-        onClick={onSelect}
-        aria-label={`Abrir OS ${o.os_num}`}
-        style={{ fontWeight: 700, fontSize: '0.875rem', color: '#CC1400', cursor: 'pointer', border: 'none', background: 'transparent', padding: 0, textAlign: 'left', fontFamily: 'inherit' }}
-      >
-        #{o.os_num}
-      </button>
-      {/* A placa embaixo do cliente só aparece quando a coluna Placa some (< 1280px) */}
-      <div onClick={onSelect} style={{ cursor: 'pointer', minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: '0.84rem', color: tokens.color.text, overflowWrap: 'anywhere' }}>{o.cliente}</div>
-        <div className="ordens-tabela__placa-sub" style={{ fontSize: '0.75rem', color: tokens.color.muted, fontFamily: "'DM Mono',monospace" }}>{o.placa}</div>
-      </div>
-      <span className="ordens-tabela__col-placa" style={{ fontSize: '0.82rem', color: tokens.color.muted, fontFamily: "'DM Mono',monospace" }}>{o.placa}</span>
-      <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond, minWidth: 0, overflowWrap: 'anywhere' }}>{o.modelo || '—'}</span>
-      <StatusBadge status={o.status} />
-      <div>
-        <div style={{ fontSize: '0.8rem', color: tokens.color.text }}>
-          {d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-        </div>
-        <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
-          {d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <button className="tap-area"
-          onClick={onEdit} title="Editar" aria-label={`Editar OS ${o.os_num}`}
-          style={{ width: 34, height: 34, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
-        >
-          {Icons.edit}
-        </button>
-        <button className="tap-area"
-          onClick={onDelete} disabled={deleting} title="Excluir" aria-label={`Excluir OS ${o.os_num}`}
-          style={{ width: 34, height: 34, borderRadius: 7, border: '1px solid rgba(204,20,0,0.2)', background: 'rgba(204,20,0,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CC1400', opacity: deleting ? 0.5 : 1 }}
-        >
-          {Icons.trash}
-        </button>
       </div>
     </div>
   );
@@ -234,26 +167,8 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
 }
 
 // ── OrdensPage ────────────────────────────────────────────────────────────────
-
-
-
-
-
-type FilterStatus = 'todas' | 'andamento' | 'aguardando' | 'finalizada' | 'recusada';
-
-const FILTER_LABELS: Record<FilterStatus, string> = {
-  todas: 'Todas', andamento: 'Em andamento', aguardando: 'Aguardando', finalizada: 'Concluídas', recusada: 'Recusadas',
-};
-
-// Cada filtro agrupa os status que fazem sentido juntos pra quem olha a lista.
-const FILTER_STATUS: Record<Exclude<FilterStatus, 'todas'>, readonly string[]> = {
-  andamento: ['rascunho', 'em_orcamento', 'aprovada', 'em_execucao'],
-  aguardando: ['aguardando', 'pendente_aprovacao'],
-  finalizada: ['finalizada'],
-  recusada: ['recusada'],
-};
-const FILTROS: FilterStatus[] = ['todas', 'andamento', 'aguardando', 'finalizada', 'recusada'];
-const noFiltro = (status: string, f: FilterStatus) => f === 'todas' || FILTER_STATUS[f].includes(status);
+// Desktop e celular: telas redesenhadas em ./Ordens (OrdensDesktop / OrdensMobile).
+// OSRow continua exportado porque outras telas ainda usam.
 
 interface OrdensPageProps {
   ordens: OrdemRow[];
@@ -265,22 +180,10 @@ interface OrdensPageProps {
 }
 
 export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile }: OrdensPageProps) {
-  const [filter, setFilter] = useState<FilterStatus>('todas');
+  const [filter, setFilter] = useState<FiltroStatus>('todas');
   const [search, setSearch] = useState('');
   const [sel, setSel] = useState<OrdemRow | null>(null);
   const [del, setDel] = useState<string | null>(null);
-
-  const filtered = ordens.filter(o => {
-    if (!noFiltro(o.status, filter)) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return o.os_num.includes(q) || o.cliente.toLowerCase().includes(q) ||
-      o.placa.toLowerCase().includes(q) || (o.modelo ?? '').toLowerCase().includes(q);
-  });
-
-  const counts = Object.fromEntries(
-    FILTROS.map(f => [f, ordens.filter(o => noFiltro(o.status, f)).length])
-  ) as Record<FilterStatus, number>;
 
   const handleDel = async (id: string) => {
     if (!window.confirm('Excluir esta OS permanentemente?')) return;
@@ -288,109 +191,49 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
     try { await api.deletarOrdem(id); window.location.reload(); } catch (e) { setDel(null); window.alert(mensagemDoErro(e, 'Não foi possível excluir a OS. Tente de novo.')); }
   };
 
-  const content = (
-    <div style={{ flex: 1, minWidth: 0, background: tokens.color.bg, display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '14px 16px' : '18px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {isMobile && (
-            <button onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button">
-              {Icons.chevL}
-            </button>
-          )}
-          <div>
-            <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.25rem', color: tokens.color.text, margin: 0 }}>Ordens de Serviço</h2>
-            <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>{ordens.length} ordens no total</p>
-          </div>
-        </div>
-        <button
-          onClick={onNewOS}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', minHeight: isMobile ? 44 : undefined, background: '#CC1400', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}
-        >
-          Nova OS
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', gap: 10, padding: isMobile ? '12px 14px' : '14px 28px', background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`, flexDirection: isMobile ? 'column' : 'row', flexWrap: isMobile ? 'nowrap' : 'wrap' }}>
-        {/* Celular: uma linha que desliza (antes quebrava em 3 linhas, ~150px).
-            minWidth 0 + coluna sem wrap: senão a faixa assume a largura de todos
-            os filtros e a página inteira fica mais larga que a tela. */}
-        <div className={isMobile ? 'faixa-rolavel' : undefined} style={{ display: 'flex', gap: 6, flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: 0 }}>
-          {FILTROS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              aria-pressed={filter === f}
-              style={{ padding: '6px 13px', minHeight: isMobile ? 44 : undefined, flexShrink: 0, whiteSpace: 'nowrap', borderRadius: 8, border: `1.5px solid ${filter === f ? '#CC1400' : tokens.color.border}`, background: filter === f ? 'rgba(204,20,0,0.06)' : 'transparent', color: filter === f ? '#CC1400' : tokens.color.muted, fontSize: '0.8rem', fontWeight: filter === f ? 600 : 400, cursor: 'pointer' }}
-            >
-              {FILTER_LABELS[f]} <span style={{ opacity: 0.55, fontSize: '0.75rem' }}>({counts[f]})</span>
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: isMobile ? 1 : undefined, minWidth: isMobile ? 0 : 220 }}>
-          <Input
-            name="busca_ordens"
-            type="search"
-            value={search}
-            onChangeValue={setSearch}
-            placeholder="Buscar OS, cliente, placa..."
-          />
-        </div>
-      </div>
-
-      {/* List */}
-      <div style={{ padding: isMobile ? '0 14px 20px' : '20px 28px', flex: 1 }}>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={68} r={10} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: tokens.color.muted }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 14, opacity: 0.25 }}>📋</div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhuma ordem encontrada</div>
-            <div style={{ fontSize: '0.84rem' }}>Ajuste os filtros ou crie uma nova OS</div>
-          </div>
-        ) : isMobile ? (
-          <div>{filtered.map(o => <OSRow key={o.id} ordem={o} onClick={() => setSel(o)} />)}</div>
-        ) : (
-          <div>
-            <div className="ordens-tabela__linha" style={{ padding: '9px 16px', background: tokens.color.surfaceHigh, borderRadius: '10px 10px 0 0', border: `1px solid ${tokens.color.border}`, borderBottom: 'none' }}>
-              {['Nº OS', 'Cliente', 'Placa', 'Modelo', 'Status', 'Data', ''].map(h => (
-                <span key={h} className={h === 'Placa' ? 'ordens-tabela__col-placa' : undefined} style={{ fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
-              ))}
-            </div>
-            {filtered.map((o, i) => (
-              <TableRow
-                key={o.id} o={o} isLast={i === filtered.length - 1}
-                onSelect={() => setSel(o)}
-                onEdit={() => onLoadOS?.(o.id)}
-                onDelete={() => handleDel(o.id)}
-                deleting={del === o.id}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
-    </div>
+  const modal = sel && (
+    <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />
   );
 
-  if (isMobile) {
+  if (!isMobile) {
     return (
-      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="ordens" onNav={onNav} />
-        {content}
-        <MobileNav active="ordens" onNav={onNav} onNewOS={onNewOS} />
+      <div style={{ display: 'flex', minHeight: '100dvh' }}>
+        <Sidebar active="ordens" onNav={onNav} onNewOS={onNewOS} />
+        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+          <DesktopTopBar page="ordens" onNav={onNav} />
+          <OrdensDesktop
+            ordens={ordens}
+            loading={loading}
+            filtro={filter}
+            onFiltro={setFilter}
+            busca={search}
+            onBusca={setSearch}
+            onNewOS={onNewOS}
+            onAbrir={setSel}
+            onEditar={id => onLoadOS?.(id)}
+            onExcluir={handleDel}
+            excluindoId={del}
+          />
+        </main>
+        {modal}
       </div>
     );
   }
 
+  // ── Celular: lista redesenhada em ./Ordens (OrdensMobile) ──
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="ordens" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>{content}</main>
+    <div style={{ background: 'var(--color-bg)', minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <MobileSafeTop />
+      <OrdensMobile
+        ordens={ordens}
+        loading={loading}
+        onAbrir={setSel}
+        onEditar={id => onLoadOS?.(id)}
+        onExcluir={handleDel}
+        excluindoId={del}
+      />
+      {modal}
+      <MobileNav active="ordens" onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
 }

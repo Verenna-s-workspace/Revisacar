@@ -17,7 +17,13 @@ export interface EstoqueItem {
   /** Reservado por OS com orçamento aprovado (ainda não baixou do estoque). Ausente = nada reservado. */
   reservado?: number;
   minimo: number;
+  /** Preço de venda por unidade (o que a oficina cobra). */
   preco: number;
+  /**
+   * Custo por unidade (o que a oficina pagou). Opcional: o backend ainda não
+   * grava esse campo — enquanto não vier, a coluna "Custo un." mostra "—".
+   */
+  custo?: number;
   localizacao: string;        // texto livre
   descricao?: string;
   /** Texto livre pesquisável, ex.: "Gol 1.6 2016-2019, Voyage 1.6 2015-2018". */

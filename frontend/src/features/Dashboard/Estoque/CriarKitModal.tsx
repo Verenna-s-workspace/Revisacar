@@ -156,10 +156,6 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
                   {erroFoto && <span style={{ fontSize: '0.75rem', color: tokens.color.crit }}>{erroFoto}</span>}
                 </div>
               </div>
-              <div className="dashboard-modal__remark" style={{ marginTop: 10 }}>
-                <div className="dashboard-modal__remark-label">AVISO</div>
-                <div className="dashboard-modal__remark-text">A foto fica salva só nesta sessão — ainda não há backend de armazenamento pra imagens.</div>
-              </div>
             </div>
 
             <div>

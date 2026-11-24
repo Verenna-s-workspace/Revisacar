@@ -1,3 +1,4 @@
+import type { CadastroInfo } from '../features/Checklist/Steps/Initial/CadastroExistente';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { SECTIONS } from '../constants';
 import {
@@ -48,6 +49,8 @@ export function useOrdemServico() {
   const [ordemStatus, setOrdemStatus] = useState<string | null>(null);
   const [savedAt, setSavedAt]       = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('');
+  // O que o servidor fez com cliente/veículo ao salvar (cadastrou, avisos). Só informativo.
+  const [cadastroInfo, setCadastroInfo] = useState<CadastroInfo | null>(null);
   const [errors, setErrors]         = useState<ValidationErrors>({});
   const [showErrors, setShowErrors] = useState(false);
 
@@ -376,6 +379,15 @@ export function useOrdemServico() {
       }
       if (typeof data?.status === 'string') setOrdemStatus(data.status);
 
+      const vinculo = data?.vinculo;
+      if (vinculo && (vinculo.cliente_criado || vinculo.veiculo_criado || vinculo.avisos?.length)) {
+        setCadastroInfo({
+          clienteCriado: !!vinculo.cliente_criado,
+          veiculoCriado: !!vinculo.veiculo_criado,
+          avisos: Array.isArray(vinculo.avisos) ? vinculo.avisos.filter((a: unknown) => typeof a === 'string') : [],
+        });
+      }
+
       if (newPhotos.length > 0) {
         const formData = new FormData();
         newPhotos.forEach((photo) => {
@@ -571,6 +583,7 @@ export function useOrdemServico() {
   return {
     // Core OS
     step, stepDir, orderId, ordemStatus, setOrdemStatus, savedAt, saveStatus,
+    cadastroInfo, setCadastroInfo,
     errors, showErrors, hasErr,
     osHeader, setOsHeader,
     cliente,  setCliente,

@@ -1,0 +1,680 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Catálogo de serviços" (mobile) — segue a paleta de servicos.css e os
+ * padrões de toque de OrdensMobile.css / AlertasMobile.css.
+ * Tudo vive sob .svm-page. Fontes do projeto: --font-sans.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.svm-page {
+  --svm-bg: #FFFFFF;
+  --svm-surface: #FFFFFF;
+  --svm-surface-high: #EEF0F3;
+  --svm-borda: #E2E5EA;
+  --svm-borda-forte: #C9CED6;
+  --svm-texto: #1A1D22;
+  --svm-texto-2: #4F5661;
+  --svm-mudo: #666E7B;
+  --svm-sutil: #868D98;
+  --svm-marca: #E01500;
+  --svm-marca-hover: #C21200;
+  --svm-foco: #3469EC;
+  --svm-chip-ativo-bg: #1A1D22;
+  --svm-chip-ativo-fg: #FFFFFF;
+  --svm-switch-off: #C9CED6;
+  --svm-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+
+  --svm-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  background: var(--svm-bg);
+  color: var(--svm-texto);
+  font-family: var(--svm-fonte);
+}
+
+body.dark .svm-page {
+  --svm-bg: var(--color-bg, #09090b);
+  --svm-surface: var(--color-surface, #151518);
+  --svm-surface-high: var(--color-surface-high, #1c1c21);
+  --svm-borda: rgba(255, 255, 255, 0.1);
+  --svm-borda-forte: rgba(255, 255, 255, 0.18);
+  --svm-texto: #f4f4f5;
+  --svm-texto-2: #d4d4d8;
+  --svm-mudo: #9ca3af;
+  --svm-sutil: #8b8b94;
+  --svm-foco: #7aa2ff;
+  --svm-chip-ativo-bg: #f4f4f5;
+  --svm-chip-ativo-fg: #151518;
+  --svm-switch-off: rgba(255, 255, 255, 0.24);
+  --svm-sombra-sm: none;
+}
+
+/* ── Topo ────────────────────────────────────────────────────────────────── */
+.svm-topo {
+  display: flex;
+  flex-direction: column;
+  background: var(--svm-surface);
+  border-bottom: 1px solid var(--svm-borda);
+}
+
+.svm-barra {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 8px 12px 4px 4px;
+}
+
+.svm-voltar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--svm-texto);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-barra__titulos {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.svm-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--svm-texto);
+}
+
+.svm-subtitulo {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--svm-mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.svm-novo-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--svm-texto);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-novo-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.svm-novo-btn:active {
+  background: var(--svm-surface-high);
+}
+
+/* ── Busca + Botão Filtros ───────────────────────────────────────────────── */
+.svm-busca-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 10px;
+}
+
+.svm-busca {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: var(--svm-surface);
+  border: 1px solid var(--svm-borda);
+  border-radius: 6px;
+  color: var(--svm-sutil);
+  cursor: text;
+}
+
+.svm-busca:focus-within {
+  border-color: var(--svm-foco);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--svm-foco) 25%, transparent);
+}
+
+.svm-busca svg {
+  flex: none;
+}
+
+.svm-busca input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--svm-texto);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.svm-busca input::placeholder {
+  color: var(--svm-mudo);
+  opacity: 1;
+}
+
+.svm-busca input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.svm-filtros-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--svm-borda-forte);
+  border-radius: 6px;
+  background: var(--svm-surface);
+  color: var(--svm-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--svm-sombra-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-filtros-btn:active {
+  background: var(--svm-surface-high);
+}
+
+.svm-filtros-btn__contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--svm-chip-ativo-bg);
+  color: var(--svm-chip-ativo-fg);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+/* ── Chips (somente Ativos / Inativos) ───────────────────────────────────── */
+.svm-filtros {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.svm-filtros::-webkit-scrollbar {
+  display: none;
+}
+
+.svm-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  background: var(--svm-surface);
+  border: 1px solid var(--svm-borda);
+  border-radius: 19px;
+  color: var(--svm-texto);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-chip__qtd {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--svm-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.svm-chip[aria-pressed='true'] {
+  background: var(--svm-chip-ativo-bg);
+  border-color: var(--svm-chip-ativo-bg);
+  color: var(--svm-chip-ativo-fg);
+}
+
+.svm-chip[aria-pressed='true'] .svm-chip__qtd {
+  color: var(--svm-chip-ativo-fg);
+}
+
+/* ── Avisos ──────────────────────────────────────────────────────────────── */
+.svm-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--color-crit-bg);
+  border: 1px solid var(--color-crit-border);
+  color: var(--color-crit);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.svm-aviso__fechar {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-crit-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Lista e cartões ─────────────────────────────────────────────────────── */
+.svm-lista {
+  display: flex;
+  flex-direction: column;
+  background: var(--svm-surface);
+}
+
+.svm-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.svm-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--svm-surface);
+  border-bottom: 1px solid var(--svm-borda);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-cartao:active {
+  background: var(--svm-surface-high);
+}
+
+.svm-cartao--inativo .svm-nome,
+.svm-cartao--inativo .svm-preco,
+.svm-cartao--inativo .svm-meta {
+  opacity: 0.6;
+}
+
+.svm-linha1 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.svm-titulo-bloco {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.svm-nome {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--svm-texto);
+  overflow-wrap: anywhere;
+}
+
+.svm-kit {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--svm-mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.svm-preco {
+  flex: none;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--svm-texto);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.svm-linha2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.svm-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--svm-mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.svm-controles {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.svm-situacao-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px;
+  margin: -8px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 32px;
+  height: 18px;
+  flex: none;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--svm-switch-off);
+  transition: background 0.15s ease;
+}
+
+.svm-situacao-btn[aria-checked='true'] .svm-switch {
+  background: var(--svm-chip-ativo-bg);
+}
+
+.svm-switch__thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  transform: translateX(0);
+  transition: transform 0.15s ease;
+}
+
+body.dark .svm-situacao-btn[aria-checked='true'] .svm-switch__thumb {
+  background: #151518;
+}
+
+.svm-situacao-btn[aria-checked='true'] .svm-switch__thumb {
+  transform: translateX(14px);
+}
+
+.svm-situacao-rotulo {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--svm-texto);
+}
+
+.svm-mais {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--svm-mudo);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svm-mais:active {
+  background: var(--svm-surface-high);
+}
+
+/* ── Estados e paginação ─────────────────────────────────────────────────── */
+.svm-carregando {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.svm-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--svm-mudo);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.svm-vazio strong {
+  font-weight: 700;
+  color: var(--svm-texto);
+}
+
+.svm-mais-pag {
+  display: block;
+  width: calc(100% - 32px);
+  height: 44px;
+  margin: 16px;
+  background: var(--svm-surface);
+  border: 1px solid var(--svm-borda-forte);
+  border-radius: 6px;
+  color: var(--svm-texto);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.svm-mais-pag:active {
+  background: var(--svm-surface-high);
+}
+
+/* ── Bottom Sheet (Filtros / Ações do item) ──────────────────────────────── */
+.svm-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer-backdrop, 2000);
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.svm-sheet {
+  width: 100%;
+  max-height: 85dvh;
+  overflow-y: auto;
+  background: var(--svm-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 -10px 25px -5px rgba(15, 23, 42, 0.16);
+  font-family: var(--svm-fonte);
+  color: var(--svm-texto);
+}
+
+.svm-sheet__grab {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--svm-borda-forte);
+  margin: 0 auto 2px;
+}
+
+.svm-sheet__titulo {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+  color: var(--svm-texto);
+}
+
+.svm-sheet__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.svm-sheet__campo > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--svm-texto-2);
+}
+
+.svm-sheet__campo select {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--svm-borda-forte);
+  border-radius: 8px;
+  background: var(--svm-surface);
+  color: var(--svm-texto);
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.svm-sheet__acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.svm-sheet__btn {
+  flex: 1 1 0;
+  min-height: 48px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.svm-sheet__btn--sec {
+  background: var(--svm-surface);
+  border: 1px solid var(--svm-borda-forte);
+  color: var(--svm-texto);
+}
+
+.svm-sheet__btn--pri {
+  background: var(--svm-chip-ativo-bg);
+  border: 0;
+  color: var(--svm-chip-ativo-fg);
+}
+
+.svm-sheet__opt {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--svm-borda);
+  border-radius: 8px;
+  background: var(--svm-surface);
+  color: var(--svm-texto);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.svm-sheet__opt:active {
+  background: var(--svm-surface-high);
+}
+
+.svm-sheet__opt--perigo {
+  background: #FFF0F3;
+  border-color: #FFC2CF;
+  color: #A50C34;
+}
+
+body.dark .svm-sheet__opt--perigo {
+  background: rgba(244, 63, 94, 0.14);
+  border-color: rgba(244, 63, 94, 0.32);
+  color: #fda4af;
+}
+
+.svm-sheet__cancel {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--svm-surface-high);
+  color: var(--svm-texto-2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.svm-page :is(.svm-voltar, .svm-novo-btn, .svm-filtros-btn, .svm-chip, .svm-situacao-btn, .svm-mais, .svm-mais-pag):focus-visible {
+  outline: 2px solid var(--svm-foco);
+  outline-offset: 2px;
+}

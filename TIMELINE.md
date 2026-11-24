@@ -28,8 +28,10 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Financeiro — taxa da maquininha | 🟡 SQL + API + front + testes prontos (976 testes; tsc + build ok). Falta: rodar `0009_taxa_maquininha.sql` (depois da 0008) e validar contra o Supabase real; ainda não testado no navegador |
 | Agenda — duração variável | 🟡 Front + testes prontos (980 testes backend; tsc + build ok). Sem migration nem mudança de API: o backend já aceitava `horaFim` livre. A oficina define a duração (30 min–12 h) ao agendar, remarcar, ajustar ("Ajustar horário") e confirmar pedido pendente ("Confirmar pedido"). Início a cada 30 min; conflito checado só no front. Ainda não testado no navegador |
 | Financeiro — "Ver mais" em contas a pagar/receber | 🟡 Só frontend (tsc + build ok; ordenação/limite verificados com dados de exemplo). O widget mostrava só 6 contas e sem ordem de urgência; agora ordena (vencidas primeiro) e, passando de 6, mostra "Ver mais · +N", que abre a tela com todas as contas (resumo total/vencido, filtros Todas/Vencidas/A vencer, busca, marcar como pago e editar). Sem migration nem mudança de API: o backend já devolvia todos os pendentes. Ainda não testado no navegador |
+| Minha conta — trocar o nome e excluir a conta | 🟡 SQL + API + front + testes prontos (1026 testes backend; tsc + build ok; navegador com API simulada, desktop dono e 390px funcionário). Falta: rodar `0010_excluir_conta.sql` no Supabase (depois da 0004 e das demais) e validar contra o Supabase/Storage reais |
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
+| Travas do frontend (Fase 0) | 🟡 Configs prontas (ESLint, Prettier, alias `@/`, passo no CI), todas as regras como aviso. Falta: instalar as dependências (`npm install -D …`), rodar `npm run lint`, `tsc` e `build`, e commitar o `package-lock.json` |
 
 ## Estoque — backend (2026-10-04)
 **Arquivos:** `backend/sql/estoque.sql`, `backend/orders/estoque_views.py`, seção "Estoque" em `serializers.py`, rotas em `urls.py`, `backend/tests/*`, `requirements-dev.txt`.
@@ -457,7 +459,7 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **Decisões e pendências**
 - Fotos ficam no próprio registro (como o estoque), então `GET /veiculos` e `GET /clientes` devolvem todas. Com a frota crescendo, vale migrar para o Storage (a coluna `foto_principal_path` da 0003 já está reservada para isso).
 - `foto_principal_path` não foi reaproveitada: é caminho de Storage lido pelo app do cliente.
-- `ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade. Não mexido.
+- ~~`ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade.~~ Resolvido em 2026-11-21: o aviso (que também existia no `CriarKitModal.tsx`) foi removido; o backend já gravava a foto em `estoque_itens`/`estoque_kits.foto_data_url` desde o módulo de Estoque.
 ## Auditoria UX/UI e responsividade do painel (2026-10-30, branch `feat/ux-responsivo`)
 **Auditoria:** 11 telas medidas por script e por print no build de produção ligado ao backend do Render, em 390×844, 768×1024, 844×390 (celular deitado), 1024×768 e 1366/1440. O pior caso era o notebook (980–1279 px): larguras fixas pensadas para 1440 px.
 
@@ -584,3 +586,120 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 2. Preencher a taxa em **%** (hoje só em R$), tabela de taxas por oficina que sugira o valor, e parcelamento (recebimento em datas diferentes) — ficaram de fora de propósito.
 3. Pendentes e entradas geradas pela OS (orçamento aprovado) nascem sem taxa; o dono edita ao receber.
 4. Resumo da OS (`/ordens/<id>/fechamento`) ainda lista só o bruto de cada lançamento.
+
+## Minha conta: trocar o nome e excluir a conta (2026-11-17, branch `feat/minha-conta-nome-excluir`, parte de `main`)
+
+**Pedido.** Só dava para mudar o nome da oficina; o nome de quem usa a conta (dono e funcionário) não. E não havia como excluir a conta.
+
+**O que entrou**
+- **Trocar o nome** (`PATCH /conta`): vale para dono (`admins.nome`) e funcionário (`funcionarios.nome`), qualquer cargo, sem permissão especial — cada um mexe só na **própria** conta (o alvo vem do token, nunca do corpo). **Não** mexe no nome da oficina (`config_oficina`). Devolve um **token novo** com o nome novo (o nome vai dentro do token e é usado em `criado_por_nome`), e o app atualiza o topo sem sair da sessão. Regras: 2–80 caracteres, espaços repetidos/quebras de linha viram um espaço, sem caracteres de controle. Funcionário desativado/removido recebe 404 (o token ainda vale por minutos).
+- **Excluir a conta** (`POST /conta/excluir`): exige a palavra **EXCLUIR** e a confirmação de identidade — **senha** para o dono, **PIN** para o funcionário. Errar a senha/PIN responde **403** (não 401, para o app não achar que a sessão caiu) e conta no limite de 5 tentativas em 15 min (dono: contador próprio `conta:<CNPJ>`; funcionário: o mesmo do PIN do login).
+  - **Funcionário:** remove só o cadastro e as sessões dele. Agendamentos em que era o mecânico ficam sem mecânico; ordens e lançamentos antigos guardam o nome como texto e continuam.
+  - **Dono: apaga a oficina inteira** (ordens, fotos, orçamentos e links, estoque, serviços, financeiro e reserva de caixa, agenda, convites, carteira, funcionários, sessões e a conta). Tudo no banco numa **transação só** — função `conta_excluir_oficina` (migração **0010**): ou apaga tudo ou nada (uma FK inesperada desfaz tudo e o app responde "nada foi apagado"). Só o `service_role` executa. Arquivos do Storage (`<ordem_id>/...`) saem **depois**, em segundo plano; falha ali só é registrada em log (não desfaz a exclusão).
+  - **Não é apagado:** conta do app do cliente (`customers.origem = 'app'`) e o veículo dela — só some o vínculo com a oficina (`oficina_clientes`) e a marca `oficina_origem_doc` do veículo. Cadastros de balcão (`origem = 'oficina'`) são apagados.
+- **Tela:** card "Minha conta" no fim de Configurações (todos os cargos veem): campo "Seu nome" + "Salvar nome" e zona de perigo com modal de confirmação (texto diferente para dono e funcionário). Ao concluir, sai da sessão e, no dono, apaga a cópia local da oficina (`oficina_config`, overlay do atendimento, aparelho lembrado); o tema fica.
+
+**Arquivos:** `backend/sql/migrations/0010_excluir_conta.sql`, `orders/conta_views.py` (novo), `orders/serializers.py` (`ContaNomeSerializer`), `orders/auth_store.py` (limite de tentativas), `orders/urls.py`, `tests/test_conta.py` (46 testes, Postgres real), `tests/conftest.py` (carrega a 0004/0010 e cria os papéis `anon`/`authenticated`); frontend: `Configuracoes/MinhaContaCard.tsx`, `utils/conta_utils.ts`, `utils/api.ts`, `context/AuthContext.tsx` (`atualizarNome`), `ConfiguracoesPage.tsx`.
+
+**Validado:** pytest 1026, flake8, `tsc`, `vite build`; navegador (Chromium, API simulada): dono no desktop e funcionário a 390px — renomear (espaços limpos, token trocado, topo atualizado), nome inválido bloqueado, modal com botão travado até senha/PIN + EXCLUIR, erro de senha/PIN mantém a sessão, sucesso sai e limpa a cópia local. **NÃO validado:** contra o Supabase/PostgREST/Storage reais (a função SQL foi testada em Postgres local, não no Supabase).
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0010_excluir_conta.sql` no SQL Editor do Supabase (idempotente). Sem ela, excluir a conta do dono responde 503 explicando; **trocar o nome e excluir funcionário funcionam sem a migração**.
+2. Se uma tabela nova passar a referenciar `admins(doc)`, incluí-la na função (senão a exclusão é barrada e desfeita — por desenho, nunca apaga pela metade).
+3. Exclusão "suave" (período para desfazer / exportar os dados antes) e avisar o dono por e-mail ficaram de fora.
+4. O dono pode excluir a conta mesmo com funcionários cadastrados: eles são apagados junto (o modal avisa).
+
+## Cadastro automático de cliente e veículo pelo checklist, sem duplicar (2026-11-18, branch `feat/checklist-cadastro-automatico`, parte de `main`)
+
+**Pedido.** Se no checklist de entrada o cliente ou o veículo ainda não existe no sistema, cadastrar sozinho pelo próprio checklist — sem duplicar. Veículo: a placa. Cliente: nome repete, telefone não é confiável e CPF é opcional, então não havia chave óbvia.
+
+**Regra adotada: só reaproveita por sinal forte; sinal fraco vira sugestão na tela, nunca fusão automática.** Tudo dentro da carteira da própria oficina.
+- **Veículo:** placa normalizada (sem hífen, maiúscula). Existe → reaproveita; senão cadastra. Se a placa está no nome de **outra pessoa** (carro vendido), a OS fica com a pessoa digitada, o dono do veículo **não** muda sozinho e a resposta avisa (trocar o dono é na tela Veículos).
+- **Cliente, nesta ordem:** (1) cadastro escolhido na sugestão da tela (`cliente.id`); (2) CPF/CNPJ; (3) e-mail; (4) dono da placa, se o digitado for compatível (mesmo nome **ou** mesmo telefone); (5) **telefone E nome** iguais (nome sem acento/caixa e sem "da/de/do"; telefone sem máscara, sem 55, com o 9); (6) o vínculo que a OS já tinha (corrigir digitação não cria outra pessoa); (7) nada bateu → cliente de balcão novo.
+- **Telefone sozinho e nome sozinho NÃO juntam cadastros** (família usa o mesmo número; existem homônimos; "João Silva" ≠ "João Silva Neto"). Nesses casos a tela mostra "Já existe um cadastro parecido. É a mesma pessoa?" e a pessoa confirma com um toque ou diz "É outra pessoa".
+- **Permissão:** só cadastra quem tem `clientes.editar` (dono, gerente, atendente). **Mecânico não tem**: a OS dele é salva e ligada ao que já existe, sem criar cadastro; a resposta avisa.
+
+**Marca e ano.** `customer_vehicles` exige `brand` e `year` no banco (compartilhado com o app do cliente) e o checklist não tem "Marca". O texto de "Modelo" vai inteiro para `model` e `brand` fica vazio. **Sem o ano o veículo NÃO é cadastrado** (nada é inventado): o cliente é cadastrado normalmente, a tela avisa "informe o ano" e o veículo entra no salvamento seguinte em que o ano estiver preenchido.
+
+**Corrida (dois salvamentos ao mesmo tempo).** Migração **0011**: índice único parcial `(oficina_origem_doc, plate_norm)` em veículos não excluídos. Se o INSERT cair em 23505, o backend usa o veículo que o outro salvamento acabou de criar. Cliente **não** tem trava no banco (nome+telefone não dá índice único confiável): a janela de corrida existe, mas é estreita; a tela Clientes é a rede de segurança para mesclar manualmente.
+
+**Marcas no cadastro:** cliente e veículo criados levam "Cadastrado automaticamente pelo checklist (OS …)" em `oficina_clientes.observacoes` / `customer_vehicles.notes`, para o dono achar e completar.
+
+**Tela (passo Identificação).** Painéis sob o bloco do cliente e do veículo: sugestões de cadastro existente (cliente: CPF, e-mail, nome+telefone, telefone, nome parecido; veículo: placa já cadastrada, com o dono) com "Usar este cadastro" / "Desfazer"; veículos do cliente escolhido para tocar em vez de digitar a placa; "Cliente novo / Veículo novo: será cadastrado ao salvar" (só para quem pode cadastrar e com a lista carregada). Depois de salvar, banner fechável "Cliente e veículo cadastrados automaticamente". Editar o **nome** para outra pessoa solta o vínculo com o cadastro escolhido; telefone/e-mail/CPF podem ser atualizados sem soltar (o checklist **não altera** o cadastro existente).
+
+**Contrato que mudou:** `os_vinculo.py` deixou de ser "só liga, nunca cria". Três testes de `test_carteira.py` foram atualizados para o novo contrato (um deles mudou de nome). A resposta de `POST/PUT /ordens` ganhou `vinculo` (`customer_id`, `vehicle_id`, `cliente_criado`, `veiculo_criado`, `avisos`).
+
+**Arquivos:** `backend/orders/cadastro_checklist.py` (novo), `os_vinculo.py`, `views.py`, `serializers.py` (`id` opcional em cliente/veículo da OS), `sql/migrations/0011_veiculo_placa_unica_oficina.sql`, `tests/test_cadastro_checklist.py` (41 testes, Postgres real), `tests/conftest.py`, `tests/test_carteira.py`; frontend: `utils/cadastro_existente.ts`, `hooks/useCadastrosExistentes.ts`, `Steps/Initial/CadastroExistente.tsx`, `StepIdentification.tsx`, `hooks/useOrdemServico.ts` (`cadastroInfo`), `pages/InitialChecklist.tsx`, `types/index.ts`.
+
+**Validado:** testes de backend (carteira + cadastro automático: 145; inclui duplicidade, família no mesmo telefone, homônimos, pai/filho, placa de outro dono, mecânico, isolamento entre oficinas, id de outra oficina, corrida), flake8, `vite build`, e a lógica de sugestão do front rodada no Node. **NÃO validado:** a tela no navegador (nem a 390px), nem contra o Supabase/PostgREST reais. O `tsc --noEmit` já falha na `main` por 4 erros em `components/system/Badge.tsx` e `icons.tsx` (`ordem_status` sem `estiloFase`/`infoStatusOS`/`FaseOS`/`IconeFase`); esta branch não acrescenta nenhum.
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0011_veiculo_placa_unica_oficina.sql` no SQL Editor do Supabase (idempotente). Se houver placa repetida na mesma oficina, ela avisa quais são e **não** cria o índice; resolva na tela Veículos e rode de novo. Sem ela o cadastro automático funciona, só sem a trava do banco.
+2. Decidir se **Ano** passa a ser obrigatório no checklist (hoje opcional): garantiria que todo veículo novo entre na frota. Hoje sem ano o veículo fica de fora.
+3. Tela de **mesclar clientes duplicados** (a rede de segurança para o que escapar).
+4. Mecânico não cadastra por falta de `clientes.editar`; se na prática for ele quem faz o checklist, avaliar uma permissão própria ou liberar cadastro rápido para o cargo.
+5. Os cadastros automáticos ficam sem CPF/endereço (marcados na observação); a OS não preenche marca.
+
+
+## Travas do frontend: ESLint, Prettier e alias `@/` (2026-11-20, branch `chore/travas-lint`, parte de `main`)
+
+**Pedido.** O frontend é mexido por mais de uma pessoa e por IAs em paralelo, e o problema mais comum é duplicação e componentes não reaproveitados. A análise de `src/` (297 arquivos) mostrou que nada barra isso automaticamente: sem ESLint, sem Prettier, sem alias, `noUnusedLocals` desligado. Esta é a Fase 0 do roteiro de reorganização: instalar as travas **sem mudar nenhum comportamento**.
+
+**Decisões**
+- Todas as regras começam como **aviso**: o CI roda `npm run lint`, mas não quebra. Sobem para erro conforme as fases de migração terminam.
+- **Não formatei o código com Prettier.** A configuração entra (aspas simples, `printWidth` 140), mas rodar em tudo reescreveria centenas de arquivos e conflitaria com todas as branches abertas (de pessoas e de IAs). Use `npm run format -- <arquivo>` só em arquivos novos ou que você já vai tocar.
+- **Alias `@/` criado, nenhum import convertido** (são 435 imports com 3 ou mais `../`). Arquivos novos podem usar `@/`; os antigos migram quando forem tocados.
+- `noUnusedLocals` continua `false`; quem acusa variável sem uso é o ESLint (aviso). `forceConsistentCasingInFileNames` ligado explicitamente: o build do Render roda em Linux, e um import com a caixa errada passa em macOS/Windows e quebra no deploy.
+- Plugin `react-hooks` carregado porque o código já tem 7 `eslint-disable-next-line react-hooks/exhaustive-deps` e nunca houve ESLint para checá-los.
+- Dependências **não** foram escritas à mão no `package.json`: o `npm install -D` atualiza `package.json` e `package-lock.json` juntos (o CI usa `npm ci`, que falha se o lock estiver fora de sincronia).
+
+**Arquivos:** `frontend/eslint.config.js`, `frontend/.prettierrc.json`, `frontend/.prettierignore` (novos); `frontend/package.json` (scripts `lint`, `lint:fix`, `format`, `format:check`), `frontend/tsconfig.json` (`paths`, `forceConsistentCasingInFileNames`), `frontend/vite.config.ts` (alias); `.github/workflows/ci.yml` (passo ESLint).
+
+**Validado:** sintaxe de `eslint.config.js`, de `vite.config.ts` (como ESM) e do `ci.yml`; `package.json` e `.prettierrc.json` são JSON válido; a função `comoAviso` (rebaixa erro para aviso, preserva `off` e opções) testada isolada; o patch aplica limpo sobre a `main` (`git apply --check`). **NÃO validado:** ESLint e Prettier **não foram executados** (o ambiente de trabalho não tinha rede para instalar os pacotes), então não se sabe quantos avisos o código gera hoje, nem se a configuração carrega sem erro com as versões que o npm resolver. `tsc` e `vite build` com o `paths` e o alias novos também não rodaram.
+
+**Pendências / ideias para depois**
+1. Rodar `npm install -D …`, `npm run lint`, `npx tsc --noEmit` e `npm run build`, e commitar `package.json` + `package-lock.json`.
+2. Decidir quais regras sobem para erro depois de ver a contagem de avisos.
+3. Fase 1 (remover código morto) com `knip` e `jscpd`; regras de fronteira e bloqueio de `<button>` cru só depois do kit de componentes.
+4. O `package.json` da raiz do repositório declara `typescript ^7.0.2`, enquanto o frontend usa `^5.5.3` (5.9.3 no lock). Não mexi; vale conferir se é intencional.
+
+## Financeiro redesign desktop (2026-11-22, branch `feat/financeiro-redesign-desktop`, parte de `main`)
+
+**Pedido (saJ):** refazer a tela Financeiro (só desktop) a partir do Figma, com filtro de período em modal, filtros dos lançamentos em modal, gráfico de barras de entradas × saídas e rosca de despesas. Sem `position: absolute` na estrutura.
+
+**Decisões**
+- Desktop usa `FinanceiroDesktop` (Grid/Flex, tokens `.fin-page` copiados do Estoque); mobile continua no layout antigo.
+- Período: Este mês, Mês passado, Esta semana, Última semana, Trimestre, Personalizado (máx. 800 dias, igual ao backend). Trimestre = trimestre civil; semana = domingo a sábado; "Última semana" = semana cheia anterior.
+- Filtros dos lançamentos (tipo, status, origem, categoria, forma de pagamento, data, valor) agem sobre os lançamentos já carregados; gráfico e KPIs seguem o período inteiro. "Pendente" = em aberto e no prazo; "Vencido" é calculado, nunca gravado.
+- Gráfico: barras por dia (≤8 dias), semana (≤45) ou mês; entradas pelo líquido. Cores #2F6FDE / #B35C00 validadas com `validate_palette.js`.
+- Reserva compacta; movimentos em modal ("Ver movimentos"). Cancelar lançamento usa `ConfirmDialog`.
+- Exportar = CSV dos lançamentos exibidos (`;`, vírgula decimal, BOM).
+- Sem migração SQL.
+
+**Arquivos:** `utils/financeiro_utils.ts`, `Financeiro/{FinanceiroDesktop,PeriodoModal,FiltrosLancamentosModal,FluxoCaixaBarras,ReservaDesktop,icones}.tsx`, `Financeiro/financeiroDesktop.css`, `FinanceiroPage.tsx`, `pages/Dashboard.tsx`.
+
+**Validado:** `tsc --noEmit`, `npm run build`, eslint sem erros; funções de período/fluxo/filtro/CSV com 26 checagens; captura de tela em 1440px com dados fictícios (tela e os dois modais).
+**NÃO validado:** com API real; modo escuro; telas < 1280px; leitor de tela; download do CSV no Excel; mobile (não alterado, exceto "Últimos 3 meses" mantido via período personalizado).
+
+**Pendências:** meta de faturamento (depende de dados da Visão Geral); agrupar lançamentos por OS; `ContasListaCompleta` e `RetiradaReservaModal` ainda no visual antigo.
+
+## Financeiro mobile (2026-11-23, branch feat/financeiro-mobile, parte de main)
+
+**Pedido:** versão mobile da tela de Financeiro a partir da desktop, usando Clientes Mobile como referência visual/estrutural; adaptação real (não encolher); manter todas as funcionalidades; "Novo lançamento" só com o ícone + preto. Só mobile.
+
+**Decisões**
+- Nova `Financeiro/FinanceiroMobile.tsx` + `FinanceiroMobile.css` (prefixo `finm-`, tokens e padrões do `ClientesMobile.css`). `FinanceiroPage` escolhe Mobile ou Desktop com as mesmas props/ações; modais de Novo/Editar e o ConfirmDialog de cancelar agora valem também no celular (antes `window.confirm`).
+- Hierarquia: topo (título, olhinho da privacidade, +) → chips de período (+ "Personalizado" abre o `PeriodoModal`) → KPIs (Faturamento em destaque, grade 2 colunas; `data-destaque-id` mantidos) → linha da Caixa de reserva (abre folha com retirar/movimentos/desfazer) → abas **Lançamentos · Contas · Gráficos**.
+- Lançamentos: busca + Filtros (`FiltrosLancamentosModal` reaproveitado), pílulas removíveis, Exportar CSV, cartões com deslize (Receber/Pagar, Editar, Cancelar) e folha de detalhes (taxa, líquido, forma, datas, cliente, origem), "Mostrar mais".
+- Contas: A receber / A pagar (totais e vencido), filtros Todas/Vencidas/A vencer, busca, botão Receber/Pagar. Substitui o "Ver todas" no celular (o desktop segue com `ContasListaCompleta`).
+- Gráficos: `FluxoCaixaBarras` ganhou prop opcional `compacto` (padrão intacto) e rosca de despesas com lista.
+- `ShellPage` (Dashboard.tsx) ganhou `mobileSemRecuo`: Financeiro mobile é borda a borda e traz o próprio olhinho.
+- Sem migração SQL, sem mudança de backend.
+
+**Arquivos:** `Financeiro/{FinanceiroMobile.tsx,.css,ReservaMobile.tsx,LancamentoSheet.tsx,lancamentoUtils.ts}`, `FluxoCaixaBarras.tsx`, `FinanceiroPage.tsx`, `pages/Dashboard.tsx`.
+
+**Validado:** `tsc --noEmit`, ESLint (0 erros), `npm run build`; renderizado em Chrome headless a 390px com dados fictícios (abas, folhas, filtros, vazio, erro, escuro, somente leitura, privacidade ligada/desligada): sem erro de JS e sem rolagem horizontal.
+
+**NÃO validado:** contra o backend/Supabase reais; em aparelho físico (iOS/Android); gesto de deslize por toque real (só renderização); download do CSV no iOS; retirada/desfazer da reserva ponta a ponta.
+
+**Pendências:** o layout antigo do Financeiro (KpiCards, ReservaCard, ContasWidget etc.) ficou sem uso no celular e, fora `ContasListaCompleta`, também no desktop — candidato a limpeza; `nomeDoLancamento/rotuloStatus/classeStatus` duplicam helpers de `FinanceiroDesktop` (unificar depois).

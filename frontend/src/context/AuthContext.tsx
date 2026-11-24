@@ -7,6 +7,8 @@ interface AuthContextProps {
   loading: boolean;
   login: (user: AuthResult) => void;
   logout: () => void;
+  /** Troca o nome de quem está logado (e o token, que leva o nome) sem sair da sessão. */
+  atualizarNome: (nome: string, accessToken?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -79,11 +81,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     api.clearAuthTokens();
   };
 
+  // Mesmo padrão da renovação de token: parte do estado mais recente (não de uma cópia velha), para
+  // não regravar um refresh token que uma renovação acabou de trocar.
+  const atualizarNome = (nome: string, accessToken?: string) => {
+    setUser(atual => {
+      if (!atual) return atual;
+      const novo = { ...atual, nome, accessToken: accessToken ?? atual.accessToken };
+      localStorage.setItem('revisacarUser', JSON.stringify(novo));
+      api.setAuthTokens(novo.accessToken, novo.refreshToken);
+      return novo;
+    });
+  };
+
   const value = {
     user,
     loading,
     login,
     logout,
+    atualizarNome,
   };
 
   return (

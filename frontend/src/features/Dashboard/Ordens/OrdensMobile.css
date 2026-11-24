@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Ordens" no celular — redesign do Figma (mobile).
+ * Tokens só valem dentro de .osm-page. Fontes do projeto: DM Sans / DM Mono.
+ * Pesos 400 / 500 / 700 (o 600 do Figma vira 700).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.osm-page {
+  --osm-bg: #FFFFFF;
+  --osm-surface: #FFFFFF;
+  --osm-surface-high: #EEF0F3;
+  --osm-borda: #E2E5EA;
+  --osm-texto: #1A1D22;
+  --osm-texto-2: #4F5661;
+  --osm-mudo: #666E7B;
+  --osm-sutil: #868D98;
+  --osm-foco: #3469EC;
+  --osm-chip-ativo-bg: #1A1D22;
+  --osm-chip-ativo-fg: #FFFFFF;
+
+  --osm-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+  --osm-mono: var(--font-mono, 'DM Mono', 'JetBrains Mono', monospace);
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  background: var(--osm-bg);
+  color: var(--osm-texto);
+  font-family: var(--osm-fonte);
+}
+
+body.dark .osm-page {
+  --osm-bg: var(--color-bg, #09090b);
+  --osm-surface: var(--color-surface, #151518);
+  --osm-surface-high: var(--color-surface-high, #1c1c21);
+  --osm-borda: rgba(255, 255, 255, 0.1);
+  --osm-texto: #f4f4f5;
+  --osm-texto-2: #d4d4d8;
+  --osm-mudo: #9ca3af;
+  --osm-sutil: #8b8b94;
+  --osm-foco: #7aa2ff;
+  --osm-chip-ativo-bg: #f4f4f5;
+  --osm-chip-ativo-fg: #151518;
+}
+
+/* ── Topo ────────────────────────────────────────────────────────────────── */
+.osm-topo { display: flex; flex-direction: column; background: var(--osm-surface); }
+.osm-barra { display: flex; align-items: center; gap: 4px; min-height: 52px; padding: 8px 4px 0 16px; }
+.osm-barra__titulos { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.osm-titulo { margin: 0; font-size: 18px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; color: var(--osm-texto); }
+.osm-subtitulo { margin: 0; font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--osm-mudo); }
+
+.osm-acao {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--osm-texto); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.osm-acao svg { width: 22px; height: 22px; }
+
+.osm-busca-linha { padding: 8px 16px 12px; }
+.osm-busca {
+  display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box;
+  background: var(--osm-surface); border: 1px solid var(--osm-borda); border-radius: 6px; color: var(--osm-sutil); cursor: text;
+}
+.osm-busca:focus-within { border-color: var(--osm-foco); box-shadow: 0 0 0 2px color-mix(in srgb, var(--osm-foco) 25%, transparent); }
+.osm-busca svg { flex: none; }
+.osm-busca input {
+  flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent;
+  /* 16px evita o zoom automático do iPhone ao focar o campo */
+  font-family: inherit; font-size: 16px; line-height: 20px; font-weight: 400; color: var(--osm-texto);
+  -webkit-appearance: none; appearance: none;
+}
+.osm-busca input::placeholder { color: var(--osm-mudo); opacity: 1; }
+.osm-busca input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+/* Chips: uma linha que desliza */
+.osm-filtros {
+  display: flex; gap: 8px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+}
+.osm-filtros::-webkit-scrollbar { display: none; }
+.osm-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; box-sizing: border-box;
+  background: var(--osm-surface); border: 1px solid var(--osm-borda); border-radius: 18px; color: var(--osm-texto);
+  font-family: inherit; font-size: 14px; line-height: 18px; font-weight: 500; white-space: nowrap; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.osm-chip__qtd { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--osm-mudo); font-variant-numeric: tabular-nums; }
+.osm-chip[aria-pressed='true'] { background: var(--osm-chip-ativo-bg); border-color: var(--osm-chip-ativo-bg); color: var(--osm-chip-ativo-fg); }
+.osm-chip[aria-pressed='true'] .osm-chip__qtd { color: var(--osm-chip-ativo-fg); }
+
+.osm-page :is(.osm-chip, .osm-acao, .osm-mais, .osm-acoes__btn):focus-visible,
+.osm-page .osm-cartao:focus-visible { outline: 2px solid var(--osm-foco); outline-offset: -2px; }
+
+/* ── Lista ───────────────────────────────────────────────────────────────── */
+.osm-lista { background: var(--osm-surface); border-top: 1px solid var(--osm-borda); }
+.osm-secao { margin: 0; padding: 16px 16px 8px; font-size: 14px; line-height: 18px; font-weight: 700; color: var(--osm-texto-2); }
+.osm-itens { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--osm-borda); }
+
+.osm-item { position: relative; overflow: hidden; border-bottom: 1px solid var(--osm-borda); background: var(--osm-surface-high); }
+
+.osm-cartao {
+  position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; min-height: 64px;
+  padding: 12px 16px; box-sizing: border-box; background: var(--osm-surface); cursor: pointer;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease;
+}
+.osm-cartao:active { background: var(--osm-surface-high); }
+
+.osm-linha1 { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.osm-os { font-family: var(--osm-mono); font-size: 14px; line-height: 20px; font-weight: 500; color: var(--osm-mudo); font-variant-numeric: tabular-nums; }
+
+.osm-linha2 { display: flex; align-items: center; gap: 12px; min-height: 36px; min-width: 0; }
+.osm-cliente { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.osm-cliente__nome, .osm-cliente__detalhe { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.osm-cliente__nome { font-size: 14px; line-height: 18px; font-weight: 700; color: var(--osm-texto); }
+.osm-cliente__detalhe { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--osm-mudo); }
+.osm-valor { flex: none; font-size: 15px; line-height: 22px; font-weight: 500; color: var(--osm-texto); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Ações reveladas ao deslizar (ficam atrás da linha, à direita) */
+.osm-acoes { position: absolute; top: 0; right: 0; bottom: 0; display: flex; }
+.osm-acoes__btn {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: 44px; border: 0; background: var(--osm-surface-high); color: var(--osm-texto);
+  font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 700; cursor: pointer;
+}
+.osm-acoes__btn svg { width: 20px; height: 20px; }
+.osm-acoes__btn--perigo { background: #FFF0F3; color: #A50C34; }
+.osm-acoes__btn:disabled { opacity: 0.5; }
+body.dark .osm-acoes__btn { background: rgba(255, 255, 255, 0.08); }
+body.dark .osm-acoes__btn--perigo { background: rgba(244, 63, 94, 0.18); color: #fda4af; }
+
+/* Estados */
+.osm-carregando { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+.osm-vazio { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 56px 24px; text-align: center; color: var(--osm-mudo); font-size: 14px; line-height: 20px; }
+.osm-vazio strong { font-weight: 700; color: var(--osm-texto); }
+.osm-mais {
+  display: block; width: calc(100% - 32px); height: 44px; margin: 16px; background: var(--osm-surface);
+  border: 1px solid var(--osm-borda); border-radius: 6px; color: var(--osm-texto);
+  font-family: inherit; font-size: 14px; line-height: 18px; font-weight: 700; cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) { .osm-cartao { transition: none; } }

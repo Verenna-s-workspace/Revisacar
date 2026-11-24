@@ -4,7 +4,7 @@ import "../styles/apptopbar.css";
 /**
  * Barra superior global do RevisaCar (layout compacto/mobile).
  *
- * Usada pelos checklists (via <Topbar>) e pelo app geral (<MobileTopbar>).
+ * Usada pelos checklists (via <Topbar>) (o painel no celular não usa mais barra superior).
  *
  * Regras de layout:
  *  - A logo (SÓ o símbolo do carro, sem texto) fica ESTRITAMENTE no centro da

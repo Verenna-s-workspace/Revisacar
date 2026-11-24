@@ -1,0 +1,702 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Catálogo de serviços" (desktop) — redesign do Figma.
+ * Tudo vive sob .sv-page: tokens locais sem afetar o restante do sistema.
+ * Fontes do projeto: --font-sans. Pesos 400 / 500 / 700.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.sv-page {
+  --sv-bg: #FFFFFF;
+  --sv-surface: #FFFFFF;
+  --sv-surface-high: #EEF0F3;
+  --sv-borda: #E2E5EA;
+  --sv-borda-forte: #C9CED6;
+  --sv-texto: #1A1D22;
+  --sv-texto-2: #4F5661;
+  --sv-mudo: #666E7B;
+  --sv-sutil: #868D98;
+
+  --sv-marca: #E01500;
+  --sv-marca-hover: #C21200;
+  --sv-foco: #3469EC;
+
+  --sv-chip-ativo-bg: #1A1D22;
+  --sv-chip-ativo-fg: #FFFFFF;
+  --sv-switch-off: #C9CED6;
+  --sv-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+  --sv-sombra-menu: 0 8px 24px rgba(17, 19, 23, 0.14), 0 2px 6px rgba(17, 19, 23, 0.08);
+
+  --sv-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  padding: 28px 32px 40px;
+  flex: 1 0 auto;
+  min-height: 100%;
+  background: var(--sv-bg);
+  color: var(--sv-texto);
+  font-family: var(--sv-fonte);
+}
+
+body.dark .sv-page {
+  --sv-bg: var(--color-bg, #09090b);
+  --sv-surface: var(--color-surface, #151518);
+  --sv-surface-high: var(--color-surface-high, #1c1c21);
+  --sv-borda: rgba(255, 255, 255, 0.1);
+  --sv-borda-forte: rgba(255, 255, 255, 0.18);
+  --sv-texto: #f4f4f5;
+  --sv-texto-2: #d4d4d8;
+  --sv-mudo: #9ca3af;
+  --sv-sutil: #8b8b94;
+  --sv-foco: #7aa2ff;
+  --sv-chip-ativo-bg: #f4f4f5;
+  --sv-chip-ativo-fg: #151518;
+  --sv-switch-off: rgba(255, 255, 255, 0.24);
+  --sv-sombra-sm: none;
+  --sv-sombra-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.sv-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
+.sv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 60px;
+}
+
+.sv-header__titulos {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sv-titulo {
+  margin: 0;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--sv-texto);
+}
+
+.sv-subtitulo {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--sv-texto-2);
+}
+
+/* ── Botões ──────────────────────────────────────────────────────────────── */
+.sv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  flex: none;
+  transition: background 0.13s ease, border-color 0.13s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sv-btn svg {
+  flex: none;
+}
+
+.sv-btn--primario {
+  background: var(--sv-marca);
+  color: #FFFFFF;
+}
+
+.sv-btn--primario:hover {
+  background: var(--sv-marca-hover);
+}
+
+.sv-btn--secundario {
+  background: var(--sv-surface);
+  color: var(--sv-texto);
+  border-color: var(--sv-borda-forte);
+  box-shadow: var(--sv-sombra-sm);
+}
+
+.sv-btn--secundario:hover:not(:disabled) {
+  background: var(--sv-surface-high);
+}
+
+.sv-btn--sm {
+  height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+}
+
+.sv-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sv-btn__contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--sv-chip-ativo-bg);
+  color: var(--sv-chip-ativo-fg);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.sv-page :is(.sv-btn, .sv-chip, .sv-mais, .sv-menu__item, .sv-switch):focus-visible,
+.sv-page .sv-linha:focus-visible {
+  outline: 2px solid var(--sv-foco);
+  outline-offset: 2px;
+}
+
+/* ── Avisos de erro ──────────────────────────────────────────────────────── */
+.sv-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--color-crit-bg);
+  border: 1px solid var(--color-crit-border);
+  color: var(--color-crit);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+/* ── Barra de filtros ────────────────────────────────────────────────────── */
+.sv-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sv-chips {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 6px 10px;
+  border: 1px solid var(--sv-borda);
+  border-radius: 6px;
+  background: var(--sv-surface);
+  color: var(--sv-texto);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.13s ease, border-color 0.13s ease;
+}
+
+.sv-chip:hover {
+  background: var(--sv-surface-high);
+}
+
+.sv-chip__qtd {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--sv-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.sv-chip[aria-pressed='true'] {
+  background: var(--sv-chip-ativo-bg);
+  border-color: var(--sv-chip-ativo-bg);
+  color: var(--sv-chip-ativo-fg);
+}
+
+.sv-chip[aria-pressed='true'] .sv-chip__qtd {
+  color: var(--sv-chip-ativo-fg);
+}
+
+.sv-toolbar__ferramentas {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sv-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--sv-borda);
+  border-radius: 6px;
+  background: var(--sv-surface);
+  color: var(--sv-sutil);
+  cursor: text;
+}
+
+.sv-busca:focus-within {
+  border-color: var(--sv-foco);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sv-foco) 25%, transparent);
+}
+
+.sv-busca svg {
+  flex: none;
+}
+
+.sv-busca input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--sv-texto);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sv-busca input::placeholder {
+  color: var(--sv-mudo);
+  opacity: 1;
+}
+
+.sv-busca input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+/* Popover de filtros */
+.sv-filtros {
+  position: relative;
+}
+
+.sv-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 248px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-borda);
+  border-radius: 8px;
+  box-shadow: var(--sv-sombra-menu);
+}
+
+.sv-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sv-campo > span {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--sv-texto);
+}
+
+.sv-campo select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--sv-borda-forte);
+  border-radius: 6px;
+  background: var(--sv-surface);
+  color: var(--sv-texto);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sv-campo select:focus-visible {
+  outline: 2px solid var(--sv-foco);
+  outline-offset: 1px;
+}
+
+.sv-popover__rodape {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Cartão da tabela ────────────────────────────────────────────────────── */
+.sv-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-borda);
+  border-radius: 8px;
+}
+
+.sv-card__rolagem {
+  overflow-x: auto;
+  border-radius: 8px 8px 0 0;
+}
+
+.sv-tabela {
+  width: 100%;
+  min-width: 780px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.sv-tabela thead th {
+  height: 36px;
+  padding: 0 8px;
+  background: var(--sv-surface-high);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  color: var(--sv-texto-2);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sv-tabela th:first-child,
+.sv-tabela td:first-child {
+  padding-left: 16px;
+}
+
+.sv-tabela th:last-child,
+.sv-tabela td:last-child {
+  padding-right: 16px;
+}
+
+.sv-tabela .sv-num {
+  text-align: right;
+}
+
+.sv-tabela tbody td {
+  height: 52px;
+  padding: 0 8px;
+  border-top: 1px solid var(--sv-borda);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sv-texto-2);
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.sv-tabela tbody tr:first-child td {
+  border-top: 0;
+}
+
+.sv-linha {
+  background: var(--sv-surface);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.sv-linha:hover,
+.sv-linha--menu {
+  background: var(--sv-surface-high);
+}
+
+.sv-linha--inativo .sv-servico-nome,
+.sv-linha--inativo .sv-cel-categoria,
+.sv-linha--inativo .sv-cel-num {
+  opacity: 0.6;
+}
+
+.sv-linha:focus-visible {
+  outline-offset: -2px;
+}
+
+.sv-servico-nome {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--sv-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-servico-kit {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sv-mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.sv-cel-categoria {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sv-cel-num {
+  font-weight: 500;
+  color: var(--sv-texto-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Controle de Situação (Switch grafite + rótulo) */
+.sv-situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sv-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 32px;
+  height: 18px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sv-switch-off);
+  cursor: pointer;
+  flex: none;
+  transition: background 0.15s ease;
+}
+
+/* O index.css força min 44×44 em todo <button> (celular/toque): sem isto o switch vira
+ * um círculo. Tamanho fixo (especificidade maior que a regra global); o alvo de toque
+ * de 44px vem do ::before invisível. */
+button.sv-switch.sv-switch {
+  min-width: 32px;
+  min-height: 18px;
+  flex-shrink: 0;
+}
+
+.sv-switch::before {
+  content: '';
+  position: absolute;
+  inset: -13px -6px;
+}
+
+.sv-switch[aria-checked='true'] {
+  background: var(--sv-chip-ativo-bg);
+}
+
+.sv-switch__thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  transform: translateX(0);
+  transition: transform 0.15s ease;
+}
+
+body.dark .sv-switch[aria-checked='true'] .sv-switch__thumb {
+  background: #151518;
+}
+
+.sv-switch[aria-checked='true'] .sv-switch__thumb {
+  transform: translateX(14px);
+}
+
+.sv-situacao__rotulo {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--sv-texto);
+  white-space: nowrap;
+}
+
+/* Botão ⋯ da linha */
+.sv-cel-acoes {
+  text-align: center;
+}
+
+.sv-mais {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sv-sutil);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+
+.sv-linha:hover .sv-mais,
+.sv-linha:focus-within .sv-mais,
+.sv-linha--menu .sv-mais {
+  opacity: 1;
+}
+
+.sv-mais:hover {
+  background: var(--sv-borda);
+  color: var(--sv-texto);
+}
+
+@media (hover: none) {
+  .sv-mais {
+    opacity: 1;
+  }
+}
+
+/* Menu flutuante da linha */
+.sv-menu {
+  position: fixed;
+  z-index: var(--z-modal, 9999);
+  min-width: 176px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-borda);
+  border-radius: 8px;
+  box-shadow: var(--sv-sombra-menu);
+  font-family: var(--sv-fonte);
+}
+
+.sv-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sv-texto);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sv-menu__item svg {
+  flex: none;
+  color: var(--sv-mudo);
+}
+
+.sv-menu__item:hover:not(:disabled) {
+  background: var(--sv-surface-high);
+}
+
+.sv-menu__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sv-menu__sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--sv-borda);
+}
+
+.sv-menu__item--perigo,
+.sv-menu__item--perigo svg {
+  color: #A50C34;
+}
+
+.sv-menu__item--perigo:hover:not(:disabled) {
+  background: #FFF0F3;
+}
+
+body.dark .sv-menu__item--perigo,
+body.dark .sv-menu__item--perigo svg {
+  color: #fda4af;
+}
+
+body.dark .sv-menu__item--perigo:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.15);
+}
+
+/* Estados da lista */
+.sv-carregando {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 16px;
+}
+
+.sv-vazio-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 56px 20px;
+  text-align: center;
+  color: var(--sv-mudo);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sv-vazio-estado strong {
+  font-weight: 700;
+  color: var(--sv-texto);
+}
+
+/* Paginação */
+.sv-paginacao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--sv-borda);
+}
+
+.sv-paginacao__resumo {
+  flex: 1 1 auto;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--sv-texto-2);
+  font-variant-numeric: tabular-nums;
+}

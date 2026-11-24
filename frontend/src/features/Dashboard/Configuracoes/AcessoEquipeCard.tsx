@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
-import { Card } from '../Primitives';
+import { Button } from '../../../components/system';
+import { Aviso, EstadoMensagem, RodapeAcoes } from './cfgUi';
+import { IcCheck } from './icones';
 import { api } from '../../../utils/api';
 import { mensagemDoErro } from '../../../utils/api_erro';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -11,28 +11,12 @@ import {
 
 type Copiado = 'link' | 'codigo' | null;
 
-const botaoSecundario = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-  padding: '8px 14px',
-  background: 'transparent',
-  color: tokens.color.text,
-  border: `1px solid ${tokens.color.border}`,
-  borderRadius: 8,
-  fontSize: '0.8rem',
-  fontWeight: 700,
-  cursor: 'pointer',
-  textDecoration: 'none',
-} as const;
-
 /**
  * Acesso da equipe: o dono gera um código curto e um link (/f/<código>). Quem abre o link em
  * qualquer computador já cai na lista de nomes da oficina e só digita o PIN — sem precisar saber
  * o CNPJ. Renovar troca o código (o link antigo para de funcionar); desativar apaga o link.
  */
-export function AcessoEquipeCard({ isMobile, nomeOficina }: { isMobile: boolean; nomeOficina?: string }) {
+export function AcessoEquipeCard({ nomeOficina }: { nomeOficina?: string }) {
   const { can } = usePermissions();
   const podeGerenciar = can('funcionarios.gerenciar');
 
@@ -86,140 +70,87 @@ export function AcessoEquipeCard({ isMobile, nomeOficina }: { isMobile: boolean;
   };
 
   return (
-    <Card style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${tokens.color.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ color: 'var(--color-ferrari)', display: 'flex' }}>{Icons.user}</span>
-          <div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: tokens.color.text }}>Acesso da equipe</div>
-            <div style={{ fontSize: '0.75rem', color: tokens.color.muted }}>
-              Link para o funcionário entrar com o PIN em qualquer computador
-            </div>
-          </div>
+    <>
+      {erro && <Aviso tom="crit">{erro}</Aviso>}
+
+      {loading ? (
+        <EstadoMensagem>Carregando…</EstadoMensagem>
+      ) : !codigo ? (
+        <div className="cfg-bloco">
+          <p className="cfg-texto">
+            Gere o link e mande para a equipe (WhatsApp, por exemplo). Quem abrir já vê a lista de nomes
+            da oficina e só digita o PIN, sem precisar saber o CNPJ.
+          </p>
+          <Button
+            variant="primary"
+            loading={ocupado}
+            onClick={() => agir(() => api.gerarAcessoEquipe(false))}
+          >
+            {ocupado ? 'Gerando…' : 'Gerar link de acesso'}
+          </Button>
         </div>
-      </div>
-
-      <div style={{ padding: 20 }}>
-        {erro && (
-          <div style={{
-            marginBottom: 14, padding: '10px 14px', background: 'var(--color-crit-bg)',
-            color: 'var(--color-crit)', border: '1px solid var(--color-crit-border)',
-            borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-          }}>
-            {erro}
+      ) : (
+        <>
+          <div className="cfg-bloco">
+            <span className="cfg-rotulo">Código da oficina</span>
+            <div className="cfg-linha">
+              <span className="cfg-codigo">{formatarCodigo(codigo)}</span>
+              <Button size="sm" onClick={() => copiar('codigo', formatarCodigo(codigo))}>
+                {copiado === 'codigo' ? <>{IcCheck} Copiado</> : 'Copiar código'}
+              </Button>
+            </div>
           </div>
-        )}
 
-        {loading ? (
-          <div style={{ color: tokens.color.muted, fontSize: '0.85rem' }}>Carregando…</div>
-        ) : !codigo ? (
-          <div>
-            <p style={{ margin: '0 0 14px', fontSize: '0.84rem', color: tokens.color.muted, lineHeight: 1.45 }}>
-              Gere o link e mande para a equipe (WhatsApp, por exemplo). Quem abrir já vê a lista de nomes
-              da oficina e só digita o PIN, sem precisar saber o CNPJ.
-            </p>
-            <button
-              type="button"
-              disabled={ocupado}
-              onClick={() => agir(() => api.gerarAcessoEquipe(false))}
-              style={{
-                padding: '9px 16px', background: 'var(--color-ferrari)', color: 'white', border: 'none',
-                borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)', width: isMobile ? '100%' : 'auto',
-                opacity: ocupado ? 0.7 : 1,
-              }}
-            >
-              {ocupado ? 'Gerando…' : 'Gerar link de acesso'}
-            </button>
+          <div className="cfg-bloco" style={{ alignItems: 'stretch' }}>
+            <span className="cfg-rotulo">Link</span>
+            <div className="cfg-caixa-link">{url}</div>
+            <div className="cfg-linha">
+              <Button size="sm" onClick={() => copiar('link', url)}>
+                {copiado === 'link' ? <>{IcCheck} Copiado</> : 'Copiar link'}
+              </Button>
+              <a
+                className="sys-btn sys-btn--secondary sys-btn--sm"
+                href={linkDoWhatsApp(mensagemDoWhatsApp({ url, oficina: nomeOficina }))}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Enviar por WhatsApp
+              </a>
+            </div>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, marginBottom: 6, letterSpacing: '0.04em' }}>
-                CÓDIGO DA OFICINA
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '1.5rem',
-                  fontWeight: 800, letterSpacing: '0.12em', color: tokens.color.text,
-                }}>
-                  {formatarCodigo(codigo)}
+
+          <RodapeAcoes>
+            {confirmando ? (
+              <>
+                <span className="cfg-texto" style={{ flex: '1 1 auto', textAlign: 'left', color: 'var(--cfg-texto)', fontWeight: 500 }}>
+                  {confirmando === 'renovar'
+                    ? 'O link e o código atuais deixam de funcionar. Continuar?'
+                    : 'O link deixa de funcionar. Quem já entrou neste aparelho continua entrando. Continuar?'}
                 </span>
-                <button type="button" style={botaoSecundario} onClick={() => copiar('codigo', formatarCodigo(codigo))}>
-                  {copiado === 'codigo' ? <>{Icons.check} Copiado</> : 'Copiar código'}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: tokens.color.muted, marginBottom: 6, letterSpacing: '0.04em' }}>
-                LINK
-              </div>
-              <div style={{
-                padding: '10px 12px', border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-                background: tokens.color.surfaceHigh, fontSize: '0.8rem', color: tokens.color.text,
-                wordBreak: 'break-all', userSelect: 'all',
-              }}>
-                {url}
-              </div>
-              <div style={{
-                display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap',
-                flexDirection: isMobile ? 'column' : 'row',
-              }}>
-                <button type="button" style={botaoSecundario} onClick={() => copiar('link', url)}>
-                  {copiado === 'link' ? <>{Icons.check} Copiado</> : 'Copiar link'}
-                </button>
-                <a
-                  className="tap-min"
-                  style={botaoSecundario}
-                  href={linkDoWhatsApp(mensagemDoWhatsApp({ url, oficina: nomeOficina }))}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Button onClick={() => setConfirmando(null)}>Cancelar</Button>
+                <Button
+                  variant={confirmando === 'desativar' ? 'danger' : 'primary'}
+                  loading={ocupado}
+                  onClick={() => agir(() => (confirmando === 'renovar'
+                    ? api.gerarAcessoEquipe(true)
+                    : api.desativarAcessoEquipe().then(() => ({ codigo: null }))))}
                 >
-                  Enviar por WhatsApp
-                </a>
-              </div>
-            </div>
-
-            <div style={{
-              paddingTop: 14, borderTop: `1px solid ${tokens.color.border}`,
-              display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
-            }}>
-              {confirmando ? (
-                <>
-                  <span style={{ fontSize: '0.8rem', color: tokens.color.text, fontWeight: 600 }}>
-                    {confirmando === 'renovar'
-                      ? 'O link e o código atuais deixam de funcionar. Continuar?'
-                      : 'O link deixa de funcionar. Quem já entrou neste aparelho continua entrando. Continuar?'}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={ocupado}
-                    style={{ ...botaoSecundario, background: 'var(--color-ferrari)', color: 'white', border: 'none' }}
-                    onClick={() => agir(() => (confirmando === 'renovar'
-                      ? api.gerarAcessoEquipe(true)
-                      : api.desativarAcessoEquipe().then(() => ({ codigo: null }))))}
-                  >
-                    Sim, continuar
-                  </button>
-                  <button type="button" style={botaoSecundario} onClick={() => setConfirmando(null)}>
-                    Cancelar
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button type="button" style={botaoSecundario} disabled={ocupado} onClick={() => setConfirmando('renovar')}>
-                    Gerar novo código
-                  </button>
-                  <button type="button" style={botaoSecundario} disabled={ocupado} onClick={() => setConfirmando('desativar')}>
-                    Desativar link
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </Card>
+                  Sim, continuar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button className="cfg-btn--risco" disabled={ocupado} onClick={() => setConfirmando('desativar')}>
+                  Desativar link
+                </Button>
+                <Button disabled={ocupado} onClick={() => setConfirmando('renovar')}>
+                  Gerar novo código
+                </Button>
+              </>
+            )}
+          </RodapeAcoes>
+        </>
+      )}
+    </>
   );
 }

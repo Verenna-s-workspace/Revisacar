@@ -6,61 +6,22 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlertasResumo } from '../../hooks/useAlertasResumo';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { rotuloDoCargo } from '../../utils/cargo';
 import { BotaoPrivacidade } from '../../components/Privacidade';
 import { AppTopBar } from '../../components/AppTopBar';
+import { useNomeOficina } from '../../hooks/UseNomeOficina';
+import { semAnimacaoDeLargura, useSidebarColapsada } from '../../hooks/useSidebarColapsada';
+import '../../styles/sidebar.css';
+import { ICONES_PAGINA, ICONES_SIDEBAR } from './SidebarIcons';
 
 /** Telas que mostram valores financeiros — só nelas aparece o botão do Modo Privacidade. */
 export const TELAS_COM_PRIVACIDADE: readonly NavPage[] = ['dashboard', 'financeiro', 'relatorios'];
-// ── Acessibilidade de diálogos (drawer) ──────────────────────────────────────
-// Foco entra no painel, Tab fica preso dentro dele, Esc fecha, o fundo não rola
-// e o foco volta pro botão que abriu. Antes o drawer tinha role="dialog" mas
-// nada disso — quem usa teclado/leitor de tela "saía" do menu sem querer.
-function useDialogA11y(open: boolean, ref: React.RefObject<HTMLElement>, onClose: () => void) {
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const node = ref.current;
-    const focusables = (): HTMLElement[] => {
-      if (!node) return [];
-      const found: HTMLElement[] = Array.from(
-        node.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
-      );
-      return found.filter((el: HTMLElement) => !el.hasAttribute('disabled'));
-    };
-    focusables()[0]?.focus();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { closeRef.current(); return; }
-      if (e.key !== 'Tab') return;
-      const els = focusables();
-      if (!els.length) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-      previous?.focus?.();
-    };
-  }, [open, ref]);
-}
 
 const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
   { id: 'dashboard',    icon: Icons.home,            label: 'Visão Geral' },
   { id: 'ordens',       icon: Icons.orders,          label: 'Ordens de Serviço' },
   { id: 'atendimento',  icon: Icons.clipboardCheck,  label: 'Atendimento' },
-  { id: 'agendamentos', icon: Icons.cal,             label: 'Agendamentos' },
+  { id: 'agendamentos', icon: Icons.cal,             label: 'Agenda' },
   { id: 'clientes',     icon: Icons.user,            label: 'Clientes' },
   { id: 'veiculos',     icon: Icons.car,             label: 'Veículos' },
   { id: 'estoque',      icon: Icons.box,             label: 'Estoque' },
@@ -69,6 +30,13 @@ const NAV_ITEMS: { id: NavPage; icon: JSX.Element; label: string }[] = [
 export { NAV_ITEMS };
 
 // ── Sidebar (desktop) ─────────────────────────────────────────────────────────
+//
+// Encostada na lateral, em altura total, com versão expandida e compacta (botão no
+// cabeçalho). Estilos em styles/sidebar.css; ícones em ./SidebarIcons; o estado
+// expandida/compacta fica em hooks/useSidebarColapsada (sobrevive à navegação,
+// porque cada página monta a sua própria <Sidebar>). A assinatura é a mesma de
+// antes — as páginas não mudam. É a própria <aside> que anima a largura, e o
+// <main> ao lado se expande junto.
 
 function iniciaisDe(nome?: string): string {
   if (!nome) return 'OF';
@@ -77,159 +45,216 @@ function iniciaisDe(nome?: string): string {
   return nome.slice(0, 2).toUpperCase();
 }
 
+interface ItemMenu { id: NavPage; icon: JSX.Element; label: string }
+
+/** O login ainda não devolve foto do funcionário; quando devolver (`foto` = URL), ela aparece
+ *  no rodapé sem mexer aqui. Enquanto isso, o círculo mostra as iniciais. */
+type UsuarioLogado = NonNullable<ReturnType<typeof useAuth>['user']> & { foto?: string | null };
+
 export function Sidebar({ active, onNav, onNewOS }: { active: NavPage; onNav: (p: NavPage) => void; onNewOS?: () => void }) {
   const { user, logout } = useAuth();
-  const { total: totalAlertas, loading: carregandoAlertas } = useAlertasResumo();
   const { can } = usePermissions();
+  const nomeOficina = useNomeOficina();
+  const [colapsada, alternar] = useSidebarColapsada();
+  const [semAnimacao] = useState(semAnimacaoDeLargura);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [dica, setDica] = useState<{ texto: string; top: number } | null>(null);
+  const [fotoFalhou, setFotoFalhou] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  const corpoRef = useRef<HTMLElement>(null);
+  const rodapeRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const usuario = user as UsuarioLogado | null;
+  const nomeFuncionario = usuario?.nome ?? 'Usuário';
+  const foto = !fotoFalhou && usuario?.foto ? usuario.foto : null;
+
+  // Grupo "Menu": os itens de navegação + Catálogo de Serviços, Relatórios e Financeiro (antes no dock).
+  const itensMenu: ItemMenu[] = [
+    ...NAV_ITEMS.map(item => ({ ...item, icon: ICONES_PAGINA[item.id] ?? item.icon })),
+    { id: 'servicos',   icon: ICONES_PAGINA.servicos ?? Icons.wrench, label: 'Catálogo de Serviços' },
+    { id: 'relatorios', icon: ICONES_PAGINA.relatorios ?? Icons.chart, label: 'Relatórios' },
+    ...(can('financeiro.ver') ? [{ id: 'financeiro' as NavPage, icon: ICONES_PAGINA.financeiro ?? Icons.money, label: 'Financeiro' }] : []),
+  ];
+
+  // Grupo inferior: o que sobrou do antigo dock.
+  const itensAtalhos: ItemMenu[] = [
+    { id: 'dicas',         icon: ICONES_PAGINA.dicas ?? Icons.help, label: 'Dicas' },
+    { id: 'configuracoes', icon: ICONES_PAGINA.configuracoes ?? Icons.cog, label: 'Configurações' },
+  ];
+
+  // Cada página monta a sua própria sidebar, então a lista volta ao topo a cada navegação.
+  // Em janela baixa (a lista rola) isso esconderia o item ativo: traz ele pra vista.
+  useEffect(() => {
+    const corpo = corpoRef.current;
+    const ativo = corpo?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!corpo || !ativo) return;
+    const c = corpo.getBoundingClientRect();
+    const a = ativo.getBoundingClientRect();
+    if (a.bottom > c.bottom) corpo.scrollTop += a.bottom - c.bottom + 8;
+    else if (a.top < c.top) corpo.scrollTop -= c.top - a.top + 8;
+  }, [active]);
+
+  // Menu da sessão (Sair): fecha com clique fora ou Esc.
+  useEffect(() => {
+    if (!menuAberto) return;
+    const fora = (e: MouseEvent) => {
+      const alvo = e.target as Node;
+      if (menuRef.current?.contains(alvo) || rodapeRef.current?.contains(alvo)) return;
+      setMenuAberto(false);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setMenuAberto(false); rodapeRef.current?.focus(); }
+    };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', tecla);
+    return () => {
+      document.removeEventListener('mousedown', fora);
+      document.removeEventListener('keydown', tecla);
+    };
+  }, [menuAberto]);
+
+  // Balão com o nome do item — só na versão compacta (onde não há texto).
+  function mostrarDica(el: HTMLElement, texto: string) {
+    if (!colapsada) return;
+    const base = asideRef.current?.getBoundingClientRect();
+    if (!base) return;
+    const r = el.getBoundingClientRect();
+    setDica({ texto, top: r.top - base.top + r.height / 2 });
+  }
+  const esconderDica = () => setDica(null);
+
+  function alternarSidebar() {
+    setDica(null);
+    setMenuAberto(false);
+    alternar();
+  }
+
+  function renderItem({ id, icon, label }: ItemMenu) {
+    const ativo = active === id;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => { esconderDica(); onNav(id); }}
+        onMouseEnter={e => mostrarDica(e.currentTarget, label)}
+        onMouseLeave={esconderDica}
+        onFocus={e => mostrarDica(e.currentTarget, label)}
+        onBlur={esconderDica}
+        aria-current={ativo ? 'page' : undefined}
+        className={`rv-sb__item${ativo ? ' rv-sb__item--ativo' : ''}`}
+      >
+        <span className="rv-sb__icone" aria-hidden="true">{icon}</span>
+        <span className="rv-sb__rotulo">{label}</span>
+      </button>
+    );
+  }
 
   return (
-    <aside className="dashboard-sidebar">
-      <div className="dashboard-sidebar__brand">
-        <div className="dashboard-sidebar__brand-logo">
-          <img
-            src="/Logorevisavermelha.svg"
-            alt=""
-            className="dashboard-sidebar__brand-logo-image"
-            style={{ width: 56, height: 56 }}
-          />
+    <aside
+      ref={asideRef}
+      className={`rv-sb${semAnimacao ? ' rv-sb--sem-anim' : ''}`}
+      data-colapsada={colapsada}
+      aria-label="Barra lateral"
+    >
+      <div className="rv-sb__painel">
+        {/* Cabeçalho: logo + nome + botão de colapsar. Compacta: só a logo; ao passar o mouse
+            nela, o botão de expandir aparece no lugar (ele fica ancorado à direita do painel,
+            então termina exatamente em cima da logo). */}
+        <div className="rv-sb__topo">
+          <img className="rv-sb__marca-img" src="/Logorevisavermelha.svg" alt="" width={40} height={40} />
+          <span className="rv-sb__marca-nome">Revisacar</span>
+          <button
+            type="button"
+            className="rv-sb__toggle"
+            onClick={alternarSidebar}
+            aria-label={colapsada ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+            aria-expanded={!colapsada}
+          >
+            {ICONES_SIDEBAR.painel}
+          </button>
         </div>
-        <div className="dashboard-sidebar__brand-copy">
-          <div className="dashboard-sidebar__brand-inner">
-            Revisa<span>car</span>
-          </div>
-          <div className="dashboard-sidebar__brand-subtitle">
-            sistema de gestão automotiva
-          </div>
-        </div>
-      </div>
 
-      {/* Cartão de Identidade — mostra só o dado real disponível hoje (user.nome
-          como nome da oficina). A seta abre um menu com a sessão atual e sair;
-          "trocar de usuário" fica pra quando existir modelo de funcionário/cargo
-          (ver documento de arquitetura, seção de multi-tenancy) — não é
-          fabricado aqui. */}
-      <div className="dashboard-sidebar__identity">
-        <div className="dashboard-sidebar__identity-avatar">{iniciaisDe(user?.nome)}</div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="dashboard-sidebar__identity-label">Oficina</div>
-          <div className="dashboard-sidebar__identity-nome">{user?.nome ?? 'Oficina'}</div>
-        </div>
-        <button
-          className="dashboard-sidebar__identity-chevron tap-area"
-          onClick={() => setMenuAberto(v => !v)}
-          title="Sessão"
-          aria-label="Menu da sessão"
-          aria-expanded={menuAberto}
-        >
-          {Icons.chevD}
-        </button>
+        <div className="rv-sb__sep" />
 
-        {menuAberto && (
-          <div className="dashboard-sidebar__identity-dropdown">
-            <button
-              className="dashboard-sidebar__identity-dropdown-item"
-              onClick={() => { logout(); setMenuAberto(false); }}
-              style={{ color: '#CC1400', fontWeight: 700 }}
-            >
-              Sair
-            </button>
-            <div className="dashboard-sidebar__identity-dropdown-hint">
-              Mantenha seus dados seguros. Não compartilhe suas credenciais.
+        <nav ref={corpoRef} className="rv-sb__corpo" aria-label="Navegação principal" onScroll={esconderDica}>
+          <div className="rv-sb__secao">Menu</div>
+          {itensMenu.map(renderItem)}
+        </nav>
+
+        {/* Ação principal: cartão na expandida; só o círculo na compacta. */}
+        {onNewOS && (
+          <div className="rv-sb__acao">
+            <div className="rv-sb__card">
+              <div className="rv-sb__card-topo">
+                <span className="rv-sb__card-circ" aria-hidden="true">{ICONES_SIDEBAR.plus}</span>
+                <span className="rv-sb__card-tit">
+                  <span className="rv-sb__card-sub">Ordem de serviço</span>
+                  <strong>Nova ordem</strong>
+                </span>
+              </div>
+              <p className="rv-sb__card-desc">Registre o veículo e o serviço para dar início ao atendimento.</p>
+              <button
+                type="button"
+                className="rv-sb__card-btn"
+                onClick={() => { esconderDica(); onNewOS(); }}
+                onMouseEnter={e => mostrarDica(e.currentTarget, 'Criar OS')}
+                onMouseLeave={esconderDica}
+                aria-label="Criar OS"
+              >
+                {ICONES_SIDEBAR.plus}
+                <span className="rv-sb__card-txt">Criar OS</span>
+              </button>
             </div>
           </div>
         )}
-      </div>
 
-      <nav className="dashboard-sidebar-nav">
-        {NAV_ITEMS.filter(({ id }) => id !== 'configuracoes').map(({ id, icon, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onNav(id)}
-            aria-current={active === id ? 'page' : undefined}
-            className={`dashboard-sidebar-link${active === id ? ' dashboard-sidebar-link--active' : ''}`}
-          >
-            <span style={{ flexShrink: 0, display: 'flex'}}>
-              {icon}
-            </span>
-            {label}
-          </button>
-        ))}
-      </nav>
+        <div className="rv-sb__sep" />
 
-      {/* Bloco de Alertas — total de alertas (ver utils/alertas.ts). Só aparece
-          quando há algo pra mostrar; o clique abre a tela de Alertas. */}
-      {!carregandoAlertas && totalAlertas > 0 && (
-        <button className="dashboard-sidebar__alertas" onClick={() => onNav('alertas')}>
-          <div className="dashboard-sidebar__alertas-titulo">           
-         <h1>Alertas</h1>   
-          </div>
-          <div className="dashboard-sidebar__alertas-numero">{totalAlertas}</div>
-          <div className="dashboard-sidebar__alertas-legenda">
-            Você tem {totalAlertas} {totalAlertas === 1 ? 'alerta' : 'alertas'}, toque pra visualizar
-          </div>
-        </button>
-      )}
+        <nav className="rv-sb__grupo" aria-label="Atalhos">
+          {itensAtalhos.map(renderItem)}
+        </nav>
 
-      {/* Dock — Catálogo / Dicas / Configurações. Dicas ainda não tem tela própria
-          (cai no PlaceholderPage genérico até existir uma). */}
-      <div className="dashboard-sidebar__dock">
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('servicos')} title="Catálogo" aria-label="Catálogo de serviços">
-          {Icons.wrench}
-        </button>     
-        <button className="dashboard-sidebar__dock-item" onClick={() => onNav('relatorios')} title="Relatórios" aria-label="Relatórios">
-          {Icons.chart}
-        </button>
-        {can('financeiro.ver') && (
-          <button className="dashboard-sidebar__dock-item" onClick={() => onNav('financeiro')} title="Financeiro" aria-label="Financeiro">
-            {Icons.money}
-          </button>
-        )}   
-         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('dicas')} title="Dicas" aria-label="Dicas">
-          {Icons.help}
-        </button>
-         <button className="dashboard-sidebar__dock-item" onClick={() => onNav('configuracoes')} title="Configurações" aria-label="Configurações">
-          {Icons.cog}
-        </button>
-      </div>
+        <div className="rv-sb__sep" />
 
-      {onNewOS && (
+        {/* Rodapé: foto do funcionário + (em cima) oficina, mais suave; (embaixo) funcionário. */}
         <button
-          onClick={onNewOS}
-          style={{
-            // Era 56px de padding vertical: sozinho ocupava ~190px e empurrava a
-            // sidebar pra além de 768px de altura.
-            margin: '0 16px 18px',
-            padding: '44px 10px',
-            borderRadius: 16,
-            border: `2px dashed rgba(204, 20, 0, 0.64)`,
-            background: 'var(--color-bg-alt)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 8,
-            cursor: 'pointer',
-          }}
+          ref={rodapeRef}
+          type="button"
+          className="rv-sb__rodape"
+          onClick={() => { esconderDica(); setMenuAberto(v => !v); }}
+          onMouseEnter={e => mostrarDica(e.currentTarget, nomeFuncionario)}
+          onMouseLeave={esconderDica}
+          aria-haspopup="true"
+          aria-expanded={menuAberto}
         >
-          <span
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              background: '#CC1400',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {Icons.plus}
+          <span className="rv-sb__avatar" aria-hidden="true">
+            {foto
+              ? <img src={foto} alt="" onError={() => setFotoFalhou(true)} />
+              : iniciaisDe(nomeFuncionario)}
           </span>
-          <span style={{ fontSize: '0.76rem', fontWeight: 700, color: tokens.color.textSecond, textAlign: 'center' }}>
-            Criar Nova Solicitação
+          <span className="rv-sb__rodape-textos">
+            <span className="rv-sb__oficina">{nomeOficina || 'Oficina'}</span>
+            <span className="rv-sb__funcionario">{nomeFuncionario}</span>
           </span>
+          <span className="rv-sb__seletor" aria-hidden="true">{ICONES_SIDEBAR.seletor}</span>
         </button>
+      </div>
+
+      {dica && <div className="rv-sb__dica" style={{ top: dica.top }}>{dica.texto}</div>}
+
+      {menuAberto && (
+        <div className="rv-sb__menu" ref={menuRef}>
+          <div className="rv-sb__menu-id">
+            <div className="rv-sb__menu-nome">{nomeFuncionario}</div>
+            {rotuloDoCargo(user) && <div className="rv-sb__menu-cargo">{rotuloDoCargo(user)}</div>}
+          </div>
+          <button type="button" className="rv-sb__menu-sair" onClick={() => { setMenuAberto(false); logout(); }}>
+            {ICONES_SIDEBAR.sair}
+            Sair
+          </button>
+          <div className="rv-sb__menu-aviso">Mantenha seus dados seguros. Não compartilhe suas credenciais.</div>
+        </div>
       )}
     </aside>
   );
@@ -271,152 +296,19 @@ export function DesktopHeader({ onNav, active }: { onNav?: (p: NavPage) => void;
             <div className="dashboard-header__role">{rotuloDoCargo(user)}</div>
           </div>
         </div>
-        
-          </div>
-        
       </div>
-   
+    </div>
   );
 }
 
-// ── Mobile Topbar ─────────────────────────────────────────────────────────────
+// ── Mobile: sem top-bar ───────────────────────────────────────────────────────
+// O celular não tem mais barra superior no painel. Resta só este respiro para o entalhe /
+// barra de status (viewport-fit=cover). Nome da oficina, olhinho e sino moram na própria
+// tela "Hoje" (VisaoGeralMobile); o resto do painel chega aos alertas pela aba "Mais".
+// (Os checklists têm o próprio AppTopBar, com o "Voltar" — esse continua.)
 
-interface MobileTopbarProps {
-  onNav?: (p: NavPage) => void;
-  /** Página atual, pra destacar o item certo dentro do menu. */
-  active?: NavPage;
-}
-
-export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
-
-  const { user, logout } = useAuth();
-  const { total: totalAlertas } = useAlertasResumo();
-  const { can } = usePermissions();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const drawerRef = useRef<HTMLDivElement>(null);
-  useDialogA11y(menuOpen, drawerRef, () => setMenuOpen(false));
-
-  function navegar(p: NavPage) {
-    setMenuOpen(false);
-    onNav?.(p);
-  }
-
-  return (
-    <>
-      {/* Barra global (mesmo componente dos checklists): logo só com o símbolo,
-          estritamente centralizada, levando à Visão Geral. Aqui não há etapas, então
-          o slot esquerdo é o menu (em vez de "Voltar"). */}
-      <AppTopBar
-        className="dashboard-mobile-topbar"
-        onLogoClick={() => onNav?.('dashboard')}
-        logoLabel="Ir para a Visão Geral"
-        start={
-          <button
-            className="dashboard-mobile-topbar__button"
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Abrir menu"
-            aria-haspopup="dialog"
-            aria-expanded={menuOpen}
-          >
-            {Icons.menu}
-          </button>
-        }
-        end={
-          /* Só o sino fica no topo (com badge). Dicas e Configurações já estão no
-             menu lateral. Cada ícone tem alvo de 44px. */
-          <>
-            {active && TELAS_COM_PRIVACIDADE.includes(active) && <BotaoPrivacidade variante="mobile" />}
-            <button
-              type="button"
-              className="dashboard-mobile-topbar__button dashboard-mobile-topbar__button--end"
-              onClick={() => onNav?.('alertas')}
-              style={{ position: 'relative' }}
-              aria-label={totalAlertas > 0 ? `Ver alertas (${totalAlertas})` : 'Ver alertas'}
-            >
-              <span style={{ display: 'flex' }}>{Icons.bell}</span>
-              {totalAlertas > 0 && (
-                <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 18, height: 18, padding: '0 4px', boxSizing: 'border-box', background: '#CC1400', color: 'white', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {totalAlertas > 99 ? '99+' : totalAlertas}
-                </span>
-              )}
-            </button>
-          </>
-        }
-      />
-
-      {menuOpen && createPortal(
-        <>
-          <div className="dashboard-mobile-drawer-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />
-          <div className="dashboard-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" ref={drawerRef}>
-            <div className="dashboard-mobile-drawer__header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <img src="/Logorevisavermelha.svg" alt="" width={30} height={30} />
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '1rem', color: tokens.color.text }}>
-                  Revisa<span style={{ color: '#CC1400' }}>car</span>
-                </span>
-              </div>
-              <button type="button" className="dashboard-button--close" onClick={() => setMenuOpen(false)} aria-label="Fechar menu">×</button>
-            </div>
-
-            <div className="dashboard-mobile-drawer__identity">
-              <div className="dashboard-sidebar__identity-avatar">{iniciaisDe(user?.nome)}</div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="dashboard-sidebar__identity-label">Oficina</div>
-                <div className="dashboard-sidebar__identity-nome">{user?.nome ?? 'Oficina'}</div>
-              </div>
-            </div>
-
-            <nav className="dashboard-mobile-drawer__nav">
-              {NAV_ITEMS.filter(({ id }) => id !== 'configuracoes').map(({ id, icon, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => navegar(id)}
-                  aria-current={active === id ? 'page' : undefined}
-                  className={`dashboard-mobile-drawer__link${active === id ? ' dashboard-mobile-drawer__link--active' : ''}`}
-                >
-                  <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
-                  {label}
-                </button>
-              ))}
-
-              <div className="dashboard-mobile-drawer__divider" />
-
-              <button onClick={() => navegar('servicos')} className={`dashboard-mobile-drawer__link${active === 'servicos' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
-                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.wrench}</span>
-                Catálogo de Serviços
-              </button>
-              <button onClick={() => navegar('relatorios')} className={`dashboard-mobile-drawer__link${active === 'relatorios' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
-                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.chart}</span>
-                Relatórios
-              </button>
-              {can('financeiro.ver') && (
-                <button onClick={() => navegar('financeiro')} className={`dashboard-mobile-drawer__link${active === 'financeiro' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
-                  <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.money}</span>
-                  Financeiro
-                </button>
-              )}
-              <button onClick={() => navegar('dicas')} className={`dashboard-mobile-drawer__link${active === 'dicas' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
-                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.help}</span>
-                Dicas
-              </button>
-              <button onClick={() => navegar('configuracoes')} className={`dashboard-mobile-drawer__link${active === 'configuracoes' ? ' dashboard-mobile-drawer__link--active' : ''}`}>
-                <span style={{ flexShrink: 0, display: 'flex' }}>{Icons.cog}</span>
-                Configurações
-              </button>
-            </nav>
-
-            <button className="dashboard-mobile-drawer__logout" onClick={() => { setMenuOpen(false); logout(); }}>
-              {Icons.logout}
-              Sair
-            </button>
-          </div>
-        </>,
-        document.body
-      )}
-    </>
-  );
+export function MobileSafeTop() {
+  return <div className="rv-safe-top" aria-hidden="true" />;
 }
 
 // ── Mobile Bottom Nav ─────────────────────────────────────────────────────────
@@ -424,52 +316,37 @@ export function MobileTopbar({ onNav, active }: MobileTopbarProps) {
 interface MobileNavProps {
   active: NavPage;
   onNav: (p: NavPage) => void;
-  onNewOS: () => void;
+  onNewOS?: () => void;
 }
 
-export function MobileNav({ active, onNav, onNewOS }: MobileNavProps) {
-  const left = [
-    { icon: Icons.home,   label: 'Início',    p: 'dashboard' as NavPage },
-    { icon: Icons.orders, label: 'Ordens',    p: 'ordens' as NavPage },
-  ];
-  const right = [
-    { icon: Icons.box,   label: 'Estoque',   p: 'estoque' as NavPage },
-    { icon: Icons.chart, label: 'Relatórios', p: 'relatorios' as NavPage },
+export function MobileNav({ active, onNav }: MobileNavProps) {
+  const items: { key: string; label: string; icon: JSX.Element; page: NavPage }[] = [
+    { key: 'dashboard',    label: 'Hoje',      icon: ICONES_PAGINA.dashboard ?? Icons.home,   page: 'dashboard' },
+    { key: 'ordens',       label: 'Ordens',   icon: ICONES_PAGINA.ordens ?? Icons.orders,    page: 'ordens' },
+    { key: 'agendamentos', label: 'Agenda',   icon: ICONES_PAGINA.agendamentos ?? Icons.cal, page: 'agendamentos' },
+    { key: 'clientes',     label: 'Clientes', icon: ICONES_PAGINA.clientes ?? Icons.user,    page: 'clientes' },
+    { key: 'mais',         label: 'Mais',     icon: ICONES_SIDEBAR.mais,                     page: 'mais' },
   ];
 
   return (
     <nav className="dashboard-mobile-bottom-nav" aria-label="Navegação principal">
-      {left.map(x => (
-        <button
-          key={x.p}
-          type="button"
-          onClick={() => onNav(x.p)}
-          aria-current={active === x.p ? 'page' : undefined}
-          className={`dashboard-mobile-bottom-nav__item${active === x.p ? ' dashboard-mobile-bottom-nav__item--active' : ''}`}
-        >
-          {x.icon} {x.label}
-        </button>
-      ))}
-      <button
-        type="button"
-        className="dashboard-mobile-bottom-nav__fab"
-        onClick={onNewOS}
-        aria-label="Nova ordem de serviço"
-      >
-        {Icons.plus}
-      </button>
-      {right.map(x => (
-        <button
-          key={x.p}
-          type="button"
-          onClick={() => onNav(x.p)}
-          aria-current={active === x.p ? 'page' : undefined}
-          className={`dashboard-mobile-bottom-nav__item${active === x.p ? ' dashboard-mobile-bottom-nav__item--active' : ''}`}
-        >
-          {x.icon} {x.label}
-        </button>
-      ))}
+      {items.map(item => {
+        const isActive = active === item.page;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => onNav(item.page)}
+            aria-current={isActive ? 'page' : undefined}
+            className={`dashboard-mobile-bottom-nav__item${isActive ? ' dashboard-mobile-bottom-nav__item--active' : ''}`}
+          >
+            <span className="dashboard-mobile-bottom-nav__icon" aria-hidden="true">
+              {item.icon}
+            </span>
+            <span className="dashboard-mobile-bottom-nav__label">{item.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
-
 }

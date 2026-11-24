@@ -1,53 +1,44 @@
 """
-Liga a OS ao cliente e ao veículo da carteira (ordens.customer_id / ordens.vehicle_id).
+Liga a OS ao cliente e ao veículo da carteira (ordens.customer_id / ordens.vehicle_id) e, quando o cargo
+pode, cadastra na hora o que ainda não existe — sem duplicar (regras em cadastro_checklist.py).
 
 A tela de OS é de texto livre (nome, documento, e-mail, placa), então a ligação é feita no salvamento
-por correspondência DENTRO da carteira da própria oficina: documento ou e-mail do cliente, placa do veículo.
-É isso que permite ao cliente do app ver orçamentos/OS da oficina onde ele está vinculado.
+por correspondência DENTRO da carteira da própria oficina. É isso que permite ao cliente do app ver
+orçamentos/OS da oficina onde ele está vinculado.
 
 Regras:
-  - nunca cria cliente nem veículo (salvar uma OS não tem efeito colateral na carteira);
+  - só cadastra quem tem `clientes.editar` (mesma permissão da tela Clientes); os demais cargos só ligam;
   - nunca procura fora da carteira (não revela contas do app por e-mail/CPF);
   - melhor esforço: qualquer falha (migração pendente, rede) é registrada e a OS segue salva sem vínculo.
 """
 import logging
 
+from . import cadastro_checklist as cadastro
 from . import carteira as cart
-from . import veiculos_views as veic
 
 log = logging.getLogger(__name__)
 
-
-def resolver(oficina_doc: str, ordem: dict):
-    """(customer_id | None, vehicle_id | None) para os dados de uma OS."""
-    cli, ve = ordem.get("cliente") or {}, ordem.get("veiculo") or {}
-    carteira = cart.carteira_da_oficina(oficina_doc)
-
-    doc = cart.so_digitos(cli.get("doc"))
-    email = (cli.get("email") or "").strip().lower()
-    dono = None
-    if doc and cart.documento_valido(doc):
-        dono = next((c for c, _ in carteira if cart.so_digitos(c.get("cpf")) == doc), None)
-    if dono is None and email:
-        dono = next((c for c, _ in carteira if (c.get("email") or "").lower() == email), None)
-
-    placa = cart.normalizar_placa(ve.get("placa"))
-    veiculo = None
-    if placa:
-        candidatos = [v for v in veic._veiculos_visiveis(oficina_doc, carteira)
-                      if cart.normalizar_placa(v.get("plate")) == placa]
-        if dono is not None:  # mesma placa em mais de um cadastro: fica o do cliente da OS
-            veiculo = next((v for v in candidatos if str(v.get("customer_id")) == str(dono["id"])), None)
-        veiculo = veiculo or (candidatos[0] if candidatos else None)
-        if dono is None and veiculo and veiculo.get("customer_id"):
-            dono = next((c for c, _ in carteira if str(c["id"]) == str(veiculo["customer_id"])), None)
-    return (str(dono["id"]) if dono else None, str(veiculo["id"]) if veiculo else None)
+SEM_VINCULO = {"customer_id": None, "vehicle_id": None, "cliente_criado": False, "veiculo_criado": False, "avisos": []}
 
 
-def vincular(oficina_doc: str, ordem_id: str, ordem: dict) -> None:
+def _vinculo_atual(oficina_doc: str, ordem_id: str) -> dict:
+    """O que a OS já tem gravado (vazio na primeira vez). Falha aqui não impede o resto."""
     try:
-        customer_id, vehicle_id = resolver(oficina_doc, ordem)
-        cart.supabase.table("ordens").update({"customer_id": customer_id, "vehicle_id": vehicle_id}) \
+        r = (cart.supabase.table("ordens").select("customer_id,vehicle_id")
+             .eq("id", ordem_id).eq("oficina_doc", oficina_doc).limit(1).execute().data)
+        return r[0] if r else {}
+    except Exception:  # noqa: BLE001
+        log.warning("Não foi possível ler o vínculo atual da OS %s.", ordem_id, exc_info=True)
+        return {}
+
+
+def vincular(oficina_doc: str, ordem_id: str, ordem: dict, pode_cadastrar: bool = False) -> dict:
+    """Resolve, cadastra (se permitido) e grava o vínculo. Devolve o resultado para a resposta da API."""
+    try:
+        res = cadastro.resolver_e_cadastrar(oficina_doc, ordem, pode_cadastrar, _vinculo_atual(oficina_doc, ordem_id))
+        cart.supabase.table("ordens").update({"customer_id": res["customer_id"], "vehicle_id": res["vehicle_id"]}) \
             .eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
+        return res
     except Exception:  # noqa: BLE001 — a OS já está salva; o vínculo é complemento
         log.warning("Não foi possível ligar a OS %s à carteira.", ordem_id, exc_info=True)
+        return dict(SEM_VINCULO, avisos=[])

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
-import { Icons } from '../Icons';
-import { Sidebar, MobileNav, MobileTopbar } from '../Navigation';
+import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -15,10 +15,9 @@ import type { VeiculoCadastrado, NovoVeiculoInput } from '../../../types/veiculo
 import type { OrdemRow } from '../../../types/dashboard';
 import type { NovoAgendamentoInput } from '../../../types/agendamento';
 
-import { ClientStats } from './ClientStats';
-import { ClientFilters } from './ClientFilters';
+import { ClientesDesktop } from './ClientesDesktop';
+import { ClientesMobile } from './ClientesMobile';
 import { ClientFilterModal } from './ClientFilterModal';
-import { ClientGrid } from './ClientGrid';
 import { ClientDetailsModal } from './ClientDetailsModal';
 import { ClientFormModal } from './ClientFormModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -64,15 +63,12 @@ function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros
 }
 
 export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLoadOS, onGoToAgendamentos }: ClientesPageProps) {
-  const { clientes, loading: clientesLoading, usingApi: clientesUsingApi, erro: clientesErro, addCliente, updateCliente, deleteCliente } = useClientes();
-  const { veiculos, loading: veiculosLoading, usingApi: veiculosUsingApi, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
-  const { agendamentos, loading: agendamentosLoading, usingApi: agendamentosUsingApi, addAgendamento, getOcupados } = useAgendamentos();
+  const { clientes, loading: clientesLoading, erro: clientesErro, reload, addCliente, updateCliente, deleteCliente } = useClientes();
+  const { veiculos, loading: veiculosLoading, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
+  const { agendamentos, loading: agendamentosLoading, addAgendamento, getOcupados } = useAgendamentos();
   const { loading: ordensLoading, ordens } = useOrdens();
 
   const loading = clientesLoading || veiculosLoading || agendamentosLoading || ordensLoading;
-  // As três fontes desta tela (clientes/veículos/agendamentos) seguem o
-  // mesmo padrão dev-only de demonstração — se qualquer uma caiu pra dados
-  // de demo, ou se a principal (clientes) falhou de verdade, sinaliza aqui.
   const erro = clientesErro;
 
   const clientesEnriquecidos = useMemo(
@@ -95,8 +91,7 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   const [deletingVeiculo, setDeletingVeiculo] = useState<VeiculoCadastrado | null>(null);
   const [viewingOrdem,    setViewingOrdem]    = useState<OrdemRow | null>(null);
 
-  const filtered         = useMemo(() => applyFilters(clientesEnriquecidos, search, filtros), [clientesEnriquecidos, search, filtros]);
-  const hasActiveFilters = filtrosAtivos(filtros) || search.length > 0;
+  const filtered = useMemo(() => applyFilters(clientesEnriquecidos, search, filtros), [clientesEnriquecidos, search, filtros]);
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
 
@@ -107,40 +102,39 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
 
   const handleSaveForm = async (input: NovoClienteInput, veiculosNovos: NovoVeiculoClienteInput[]) => {
     try {
-    const clienteAlvo = editing
-      ? { ...editing, ...input }
-      : await addCliente(input);
+      const clienteAlvo = editing
+        ? { ...editing, ...input }
+        : await addCliente(input);
 
-    if (editing) await updateCliente(editing.id, input);
+      if (editing) await updateCliente(editing.id, input);
 
-    for (const v of veiculosNovos) {
-      const novoVeiculo: NovoVeiculoInput = {
-        placa: v.placa.trim().toUpperCase(),
-        marca: v.marca.trim(),
-        modelo: v.modelo.trim(),
-        ano: Number(v.ano) || new Date().getFullYear(),
-        cor: v.cor.trim(),
-        categoria: v.categoria,
-        quilometragem: Number(v.quilometragem) || 0,
-        combustivel: v.combustivel,
-        cambio: 'Manual',
-        portas: 4,
-        motor: v.motor.trim() || undefined,
-        observacoes: v.observacoes.trim() || undefined,
-        fotosAdicionais: [],
-        proprietario: {
-          clienteId: clienteAlvo.id,
-          nome: clienteAlvo.nome,
-          docCpfCnpj: clienteAlvo.cpfCnpj,
-          telefone: clienteAlvo.telefone,
-          email: clienteAlvo.email,
-        },
-      };
-      await addVeiculo(novoVeiculo);
-    }
+      for (const v of veiculosNovos) {
+        const novoVeiculo: NovoVeiculoInput = {
+          placa: v.placa.trim().toUpperCase(),
+          marca: v.marca.trim(),
+          modelo: v.modelo.trim(),
+          ano: Number(v.ano) || new Date().getFullYear(),
+          cor: v.cor.trim(),
+          categoria: v.categoria,
+          quilometragem: Number(v.quilometragem) || 0,
+          combustivel: v.combustivel,
+          cambio: 'Manual',
+          portas: 4,
+          motor: v.motor.trim() || undefined,
+          observacoes: v.observacoes.trim() || undefined,
+          fotosAdicionais: [],
+          proprietario: {
+            clienteId: clienteAlvo.id,
+            nome: clienteAlvo.nome,
+            docCpfCnpj: clienteAlvo.cpfCnpj,
+            telefone: clienteAlvo.telefone,
+            email: clienteAlvo.email,
+          },
+        };
+        await addVeiculo(novoVeiculo);
+      }
     } catch (e) { avisarErro(e); }
   };
-
 
   const handleConfirmDelete = () => {
     if (deleteTarget) deleteCliente(deleteTarget.id).catch(avisarErro);
@@ -155,10 +149,6 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
     } catch (e) { avisarErro(e); }
   };
 
-  const goToAgendamentoBadge = (c: ClienteComDados) => {
-    if (c.proximoAgendamento) onGoToAgendamentos({ search: c.nome, highlightId: c.proximoAgendamento.id });
-  };
-
   // ── handlers: veículo (dentro do perfil do cliente) ───────────────────────────
 
   const handleSaveVeiculoEdit = async (input: NovoVeiculoInput) => {
@@ -169,98 +159,6 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
     if (onNewOSComPrefill) onNewOSComPrefill(veiculoParaPrefill(v));
     else onNewOS?.();
   };
-
-  // ── conteúdo ────────────────────────────────────────────────────────────────
-
-  const content = (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
-
-      {/* header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: isMobile ? '14px 16px' : '16px 28px',
-        background: 'var(--color-surface)', borderBottom: `1px solid ${tokens.color.border}`,
-        flexShrink: 0, flexWrap: 'wrap', gap: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {isMobile && (
-            <button
-              onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
-            >
-              {Icons.chevL}
-            </button>
-          )}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontWeight: 800, fontSize: isMobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
-                Clientes
-              </h2>
-            </div>
-            <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
-              Gerencie a carteira de clientes da oficina.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={openCreate}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            padding: isMobile ? '8px 14px' : '9px 18px',
-            background: tokens.color.ferrari, color: 'white',
-            border: 'none', borderRadius: 10, cursor: 'pointer',
-            fontSize: '0.84rem', fontWeight: 700, boxShadow: tokens.shadow.sm,
-            fontFamily: tokens.fontSans,
-          }}
-        >
-          <span style={{ display: 'flex' }}>{Icons.plus}</span>
-          {isMobile ? 'Cadastrar' : 'Cadastrar Cliente'}
-        </button>
-      </div>
-
-      {erro && (
-        <div style={{
-          margin: isMobile ? '12px 16px 0' : '14px 28px 0',
-          padding: '10px 16px', background: tokens.color.critBg, color: tokens.color.crit,
-          border: `1px solid ${tokens.color.critBorder}`, borderRadius: 10, fontSize: '0.82rem', fontWeight: 600,
-        }}>
-          {erro}
-        </div>
-      )}
-
-      {/* busca + filtros */}
-      <ClientFilters
-        search={search}
-        filtros={filtros}
-        onSearch={setSearch}
-        onOpenFilters={() => setFilterModalOpen(true)}
-        onClear={() => { setFiltros(emptyFiltros()); setSearch(''); }}
-      />
-
-      {/* corpo */}
-      <div style={{
-        flex: 1, minHeight: 0, overflowY: 'auto',
-        padding: isMobile ? '12px 12px 32px' : '18px 28px 36px',
-        display: 'flex', flexDirection: 'column', gap: 16,
-      }}>
-        <ClientStats stats={stats} loading={loading} />
-
-        <ClientGrid
-          clientes={filtered}
-          loading={loading}
-          hasAnyCliente={clientes.length > 0}
-          hasActiveFilters={hasActiveFilters}
-          onView={setSelected}
-          onEdit={openEdit}
-          onSchedule={openAgendar}
-          onDelete={c => { setSelected(null); setDeleteTarget(c); }}
-          onGoToAgendamento={goToAgendamentoBadge}
-          onClearFilters={() => { setFiltros(emptyFiltros()); setSearch(''); }}
-          onNovoCliente={openCreate}
-        />
-      </div>
-    </div>
-  );
 
   // ── modais ──────────────────────────────────────────────────────────────────
 
@@ -350,24 +248,63 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
     </>
   );
 
-  // ── layout ──────────────────────────────────────────────────────────────────
+  // ── layout mobile ───────────────────────────────────────────────────────────
 
   if (isMobile) {
     return (
       <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
-        <MobileTopbar active="clientes" onNav={onNav} />
-        {content}
+        <MobileSafeTop />
+        <ClientesMobile
+          clientes={filtered}
+          totalClientes={clientes.length}
+          stats={stats}
+          loading={loading}
+          erro={erro}
+          search={search}
+          filtros={filtros}
+          onSearch={setSearch}
+          onFiltros={setFiltros}
+          onOpenFilters={() => setFilterModalOpen(true)}
+          onClearFilters={() => { setFiltros(emptyFiltros()); setSearch(''); }}
+          onRecarregar={reload}
+          onNovoCliente={openCreate}
+          onView={setSelected}
+          onEdit={openEdit}
+          onSchedule={openAgendar}
+          onDelete={c => { setSelected(null); setDeleteTarget(c); }}
+        />
         <MobileNav active="clientes" onNav={onNav} onNewOS={onNewOS ?? openCreate} />
         {modals}
       </div>
     );
   }
 
+  // ── layout desktop ──────────────────────────────────────────────────────────
+
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active="clientes" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {content}
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page="clientes" onNav={onNav} />
+        <ClientesDesktop
+          clientes={filtered}
+          totalClientes={clientes.length}
+          stats={stats}
+          loading={loading}
+          erro={erro}
+          search={search}
+          filtros={filtros}
+          onSearch={setSearch}
+          onFiltros={setFiltros}
+          onOpenFilters={() => setFilterModalOpen(true)}
+          onClearFilters={() => { setFiltros(emptyFiltros()); setSearch(''); }}
+          onRecarregar={reload}
+          onNovoCliente={openCreate}
+          onView={setSelected}
+          onEdit={openEdit}
+          onSchedule={openAgendar}
+          onDelete={c => { setSelected(null); setDeleteTarget(c); }}
+        />
       </main>
       {modals}
     </div>

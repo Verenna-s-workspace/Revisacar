@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
+import { fileURLToPath, URL } from 'node:url';
 
 // "/" é a landing (index.html, estática pro Google). O app mora em /app/ (app/index.html).
 // Links que o app abre direto também vão pro app: orçamento do cliente (/o/<token>),
@@ -26,6 +27,10 @@ function rotasDoApp(): Plugin {
 
 export default defineConfig({
   plugins: [react(), rotasDoApp()],
+  resolve: {
+    // Alias `@/` -> `src/` (mesmo mapeamento do `paths` no tsconfig.json).
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   server: {
     port: 5173,
     allowedHosts: ['revisacar-1-qmmv.onrender.com', 'revisacarapp.com', 'www.revisacarapp.com'],

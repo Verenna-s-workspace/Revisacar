@@ -1,0 +1,340 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Financeiro" (desktop) — redesign do Figma.
+ * Tudo vive sob .fin-page: os tokens abaixo valem só aqui e não mudam as outras
+ * telas. Mesma identidade de Estoque/Ordens: DM Sans, pesos 400 / 500 / 700
+ * (o 600 do Figma vira 700, como no resto do sistema), cinzas frios, raio 6 em
+ * botões/campos e 8 em cartões.
+ *
+ * Layout: Grid nas fileiras de cartões e nas linhas da tabela, Flexbox no
+ * resto — sem `position: absolute` na estrutura e sem larguras fixas de página
+ * (só a coluna lateral da reserva e as colunas numéricas da tabela).
+ * Cores de estado NÃO são definidas aqui: selos e avisos leem as variáveis
+ * --st-* das classes os-status--* (Ordens/Status.css).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.fin-page {
+  --fin-bg: #FFFFFF;
+  --fin-surface: #FFFFFF;
+  --fin-surface-high: #EEF0F3;
+  --fin-borda: #E2E5EA;
+  --fin-borda-forte: #C9CED6;
+  --fin-texto: #1A1D22;
+  --fin-texto-2: #4F5661;
+  --fin-mudo: #666E7B;
+  --fin-sutil: #868D98;
+  --fin-perigo: #A50C34;
+  --fin-ok: #12673D;
+
+  --fin-marca: #E01500;
+  --fin-marca-hover: #C21200;
+  --fin-foco: #3469EC;
+
+  /* Gráfico de fluxo de caixa (validadas pelo validate_palette: ΔE ≥ 26 p/ daltonismo, contraste ≥ 3:1) */
+  --fin-entradas: #2F6FDE;
+  --fin-saidas: #B35C00;
+
+  --fin-chip-ativo-bg: #1A1D22;
+  --fin-chip-ativo-fg: #FFFFFF;
+  --fin-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+  --fin-sombra-menu: 0 8px 24px rgba(17, 19, 23, 0.14), 0 2px 6px rgba(17, 19, 23, 0.08);
+  --fin-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+  padding: 28px 32px 40px;
+  /* flex: 1 já preenche a altura do <main> (coluna flex). NÃO usar min-height: 100% aqui:
+   * somado à topbar sticky de 56px, o conteúdo passa 56px do <main> (overflow-y: auto do
+   * ShellPage) e ele vira um scroller escondido que "come" o primeiro gesto da roda. */
+  flex: 1 0 auto;
+  background: var(--fin-bg);
+  color: var(--fin-texto);
+  font-family: var(--fin-fonte);
+}
+
+body.dark .fin-page {
+  --fin-bg: var(--color-bg, #09090b);
+  --fin-surface: var(--color-surface, #151518);
+  --fin-surface-high: var(--color-surface-high, #1c1c21);
+  --fin-borda: rgba(255, 255, 255, 0.1);
+  --fin-borda-forte: rgba(255, 255, 255, 0.18);
+  --fin-texto: #f4f4f5;
+  --fin-texto-2: #d4d4d8;
+  --fin-mudo: #9ca3af;
+  --fin-sutil: #8b8b94;
+  --fin-perigo: #fda4af;
+  --fin-ok: #6ee7b7;
+  --fin-foco: #7aa2ff;
+  --fin-entradas: #5b93f0;
+  --fin-saidas: #e0860b;
+  --fin-chip-ativo-bg: #f4f4f5;
+  --fin-chip-ativo-fg: #151518;
+  --fin-sombra-sm: none;
+  --fin-sombra-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.fin-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
+.fin-header { display: flex; align-items: center; gap: 8px; min-height: 60px; }
+.fin-header__titulos { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.fin-titulo { margin: 0; font-size: 28px; line-height: 36px; font-weight: 700; letter-spacing: -0.015em; color: var(--fin-texto); }
+.fin-subtitulo {
+  margin: 0; min-height: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px;
+  font-size: 14px; line-height: 20px; color: var(--fin-texto-2); font-variant-numeric: tabular-nums;
+}
+.fin-header__acoes { flex: none; display: flex; align-items: center; gap: 8px; }
+
+/* ── Botões ──────────────────────────────────────────────────────────────── */
+.fin-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 36px; padding: 0 16px;
+  border: 1px solid transparent; border-radius: 6px;
+  font-family: inherit; font-size: 13px; line-height: 16px; font-weight: 700;
+  white-space: nowrap; cursor: pointer; flex: none;
+  transition: background 0.13s ease, border-color 0.13s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.fin-btn svg { flex: none; }
+.fin-btn--primario { background: var(--fin-marca); color: #fff; }
+.fin-btn--primario:hover:not(:disabled) { background: var(--fin-marca-hover); }
+.fin-btn--secundario { background: var(--fin-surface); color: var(--fin-texto); border-color: var(--fin-borda-forte); box-shadow: var(--fin-sombra-sm); }
+.fin-btn--secundario:hover:not(:disabled) { background: var(--fin-surface-high); }
+.fin-btn--ghost { background: transparent; color: var(--fin-texto); }
+.fin-btn--ghost:hover:not(:disabled) { background: var(--fin-surface-high); }
+.fin-btn--sm { height: 32px; padding: 0 12px; gap: 6px; }
+.fin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.fin-btn__contador {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--fin-chip-ativo-bg); color: var(--fin-chip-ativo-fg);
+  font-size: 12px; line-height: 16px; font-weight: 500;
+}
+
+.fin-page :is(.fin-btn, .fin-chip, .fin-pilula, .fin-acao, .fin-link):focus-visible { outline: 2px solid var(--fin-foco); outline-offset: 2px; }
+
+/* ── Aviso ───────────────────────────────────────────────────────────────── */
+.fin-aviso {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  background: var(--st-bg); border: 1px solid var(--st-borda); border-radius: 8px; color: var(--st-texto);
+  font-size: 14px; line-height: 20px;
+}
+.fin-aviso p { margin: 0; flex: 1 1 auto; min-width: 0; }
+
+/* ── KPIs ────────────────────────────────────────────────────────────────── */
+/* auto-fit: 5 cartões numa linha em telas largas, quebram sozinhos (3+2) em telas estreitas */
+.fin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(188px, 1fr)); gap: 16px; }
+.fin-kpi {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0;
+  padding: 16px; background: var(--fin-surface); border: 1px solid var(--fin-borda); border-radius: 8px;
+}
+.fin-kpi__rotulo { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--fin-texto-2); }
+.fin-kpi__valor {
+  max-width: 100%; font-size: 26px; line-height: 32px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--fin-texto); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fin-kpi__valor--negativo { color: var(--fin-perigo); }
+.fin-kpi__contexto { font-size: 13px; line-height: 18px; color: var(--fin-mudo); font-variant-numeric: tabular-nums; }
+.fin-kpi__contexto--alerta { color: var(--fin-perigo); font-weight: 500; }
+
+/* ── Fileiras de cartões ─────────────────────────────────────────────────── */
+.fin-fileira { display: grid; gap: 16px; align-items: stretch; grid-template-columns: minmax(0, 1fr); }
+.fin-fileira--com-lateral { grid-template-columns: minmax(0, 1fr) 360px; }
+.fin-fileira--dupla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.fin-card { display: flex; flex-direction: column; min-width: 0; background: var(--fin-surface); border: 1px solid var(--fin-borda); border-radius: 8px; }
+.fin-card__cab { display: flex; align-items: center; gap: 8px; min-height: 57px; padding: 12px 16px; border-bottom: 1px solid var(--fin-borda); }
+.fin-card__titulos { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-card__titulo { margin: 0; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--fin-texto); }
+.fin-card__sub { margin: 0; font-size: 13px; line-height: 18px; color: var(--fin-mudo); font-variant-numeric: tabular-nums; }
+.fin-card__sub--alerta { color: var(--fin-perigo); font-weight: 500; }
+.fin-card__corpo { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.fin-card__vazio { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 24px 16px; text-align: center; font-size: 14px; line-height: 20px; color: var(--fin-mudo); }
+
+/* ── Fluxo de caixa ──────────────────────────────────────────────────────── */
+.fin-legenda { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.fin-legenda__item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 16px; font-weight: 500; color: var(--fin-texto-2); }
+.fin-legenda__marca { flex: none; width: 10px; height: 10px; border-radius: 2px; }
+.fin-grafico { flex: 1 1 auto; min-height: 220px; height: 220px; }
+.fin-tooltip {
+  display: flex; flex-direction: column; gap: 4px; min-width: 150px; padding: 10px 12px;
+  background: var(--fin-surface); border: 1px solid var(--fin-borda); border-radius: 8px; box-shadow: var(--fin-sombra-menu);
+  font-family: var(--fin-fonte); font-size: 13px; line-height: 16px; color: var(--fin-texto);
+}
+.fin-tooltip__titulo { font-weight: 700; margin-bottom: 2px; }
+.fin-tooltip__linha { display: flex; align-items: center; gap: 6px; color: var(--fin-texto-2); }
+.fin-tooltip__linha strong { margin-left: auto; padding-left: 12px; font-weight: 700; color: var(--fin-texto); font-variant-numeric: tabular-nums; }
+
+/* ── Caixa de reserva ────────────────────────────────────────────────────── */
+.fin-reserva__saldo { font-size: 26px; line-height: 32px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--fin-texto); }
+.fin-reserva__saldo--negativo { color: var(--fin-perigo); }
+.fin-reserva__texto { margin: 0; font-size: 13px; line-height: 18px; color: var(--fin-texto-2); }
+.fin-reserva__texto--alerta { color: var(--fin-perigo); }
+.fin-resumo { display: flex; flex-direction: column; margin: 0; }
+.fin-resumo__linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; font-size: 14px; line-height: 20px; color: var(--fin-texto-2); }
+.fin-resumo__linha dd { margin: 0; font-weight: 500; color: var(--fin-texto); font-variant-numeric: tabular-nums; }
+.fin-resumo__linha--ok dd { color: var(--fin-ok); }
+.fin-link {
+  align-self: flex-start; padding: 0; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--fin-texto); text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ── Contas a receber / pagar ────────────────────────────────────────────── */
+.fin-contas { list-style: none; margin: 0; padding: 0 16px; display: flex; flex-direction: column; }
+.fin-conta { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--fin-borda); }
+.fin-conta:first-child { border-top: 0; }
+.fin-conta__texto { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-conta__nome { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--fin-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-conta__venc { font-size: 13px; line-height: 18px; color: var(--fin-mudo); font-variant-numeric: tabular-nums; }
+.fin-conta__venc--vencida { color: var(--fin-perigo); font-weight: 500; }
+.fin-conta__valor { flex: none; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fin-texto); font-variant-numeric: tabular-nums; }
+.fin-card--contas .fin-card__vazio { padding: 32px 16px; }
+
+/* ── Despesas por categoria ──────────────────────────────────────────────── */
+.fin-despesas { display: flex; align-items: center; gap: 32px; }
+.fin-despesas__rosca { display: grid; flex: none; width: 168px; height: 168px; }
+.fin-despesas__rosca > * { grid-area: 1 / 1; min-width: 0; min-height: 0; }
+.fin-despesas__total {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; pointer-events: none;
+}
+.fin-despesas__total span { font-size: 12px; line-height: 16px; color: var(--fin-mudo); }
+.fin-despesas__total strong { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--fin-texto); font-variant-numeric: tabular-nums; }
+.fin-despesas__lista { flex: 1 1 auto; min-width: 0; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 4px 40px; }
+.fin-despesas__item { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 0; font-size: 14px; line-height: 20px; }
+.fin-despesas__ponto { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.fin-despesas__nome { flex: 1 1 auto; min-width: 0; color: var(--fin-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-despesas__pct { flex: none; width: 44px; text-align: right; font-size: 13px; color: var(--fin-mudo); font-variant-numeric: tabular-nums; }
+.fin-despesas__valor { flex: none; min-width: 88px; text-align: right; font-weight: 500; color: var(--fin-texto); font-variant-numeric: tabular-nums; }
+
+/* ── Lançamentos do período ──────────────────────────────────────────────── */
+.fin-lancamentos { gap: 0; }
+.fin-barra { display: flex; align-items: center; gap: 8px; padding: 12px 16px; flex-wrap: wrap; border-bottom: 1px solid var(--fin-borda); }
+.fin-barra__titulos { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-barra__chips { flex: 1 1 100%; order: 3; display: flex; flex-wrap: wrap; gap: 6px; }
+.fin-busca {
+  display: flex; align-items: center; gap: 8px; width: 260px; height: 36px; padding: 0 12px;
+  border: 1px solid var(--fin-borda); border-radius: 6px; background: var(--fin-surface); color: var(--fin-sutil); cursor: text;
+}
+.fin-busca:focus-within { border-color: var(--fin-foco); box-shadow: 0 0 0 2px color-mix(in srgb, var(--fin-foco) 25%, transparent); }
+.fin-busca svg { flex: none; }
+.fin-busca input {
+  flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent;
+  font-family: inherit; font-size: 14px; line-height: 20px; color: var(--fin-texto); -webkit-appearance: none; appearance: none;
+}
+.fin-busca input::placeholder { color: var(--fin-mudo); opacity: 1; }
+.fin-busca input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+/* Critério ligado nos Filtros: aparece como pílula e se remove com um clique */
+.fin-pilula {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 10px;
+  border: 1px dashed var(--fin-borda-forte); border-radius: 6px; background: transparent; color: var(--fin-texto-2);
+  font-family: inherit; font-size: 13px; line-height: 16px; font-weight: 500; cursor: pointer;
+}
+.fin-pilula:hover { background: var(--fin-surface-high); color: var(--fin-texto); }
+.fin-pilula svg { flex: none; color: var(--fin-sutil); }
+
+.fin-tabela-rolagem { overflow-x: auto; }
+.fin-tabela { --fin-cols: minmax(0, 1fr) 150px 96px 120px 140px 96px; display: flex; flex-direction: column; min-width: 860px; }
+.fin-tabela--leitura { --fin-cols: minmax(0, 1fr) 150px 96px 120px 140px; }
+.fin-thead, .fin-linha { display: grid; grid-template-columns: var(--fin-cols); align-items: center; column-gap: 16px; padding: 0 16px; }
+.fin-thead { height: 36px; background: var(--fin-surface-high); }
+.fin-thead [role='columnheader'] { font-size: 13px; line-height: 16px; font-weight: 700; color: var(--fin-texto-2); white-space: nowrap; }
+.fin-thead .fin-num { text-align: right; }
+.fin-linha { min-height: 56px; padding-block: 8px; border-top: 1px solid var(--fin-borda); background: var(--fin-surface); transition: background 0.1s ease; }
+.fin-linha:hover { background: var(--fin-surface-high); }
+.fin-cel { min-width: 0; font-size: 14px; line-height: 20px; color: var(--fin-texto-2); font-variant-numeric: tabular-nums; }
+.fin-cel--descricao { display: flex; flex-direction: column; gap: 2px; }
+.fin-cel__principal { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--fin-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-cel__secundaria { font-size: 13px; line-height: 18px; color: var(--fin-mudo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-cel--categoria { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-cel--valor { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-weight: 500; color: var(--fin-texto); white-space: nowrap; }
+.fin-cel--entrada { color: var(--fin-ok); }
+.fin-cel__liquido { font-size: 12px; line-height: 16px; font-weight: 400; color: var(--fin-mudo); }
+.fin-cel--acoes { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+
+/* Selo de status (ponto + texto) — cores por classe os-status--* */
+.fin-selo {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 22px; padding: 2px 8px; box-sizing: border-box;
+  background: var(--st-bg, #EEF0F3); border: 1px solid var(--st-borda, #E2E5EA); border-radius: 4px;
+  font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--st-texto, #3B4049); white-space: nowrap;
+}
+.fin-selo__ponto { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--st-ponto, #868D98); }
+
+/* Ações da linha: aparecem no hover/foco; no toque ficam sempre visíveis */
+.fin-acao {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px;
+  background: transparent; color: var(--fin-sutil); cursor: pointer; opacity: 0; transition: opacity 0.1s ease, background 0.1s ease;
+}
+.fin-linha:hover .fin-acao, .fin-linha:focus-within .fin-acao { opacity: 1; }
+.fin-acao:hover { background: var(--fin-borda); color: var(--fin-texto); }
+.fin-acao--ok:hover { color: var(--fin-ok); }
+.fin-acao--perigo:hover { color: var(--fin-perigo); }
+@media (hover: none) { .fin-acao { opacity: 1; } }
+
+.fin-vazio {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 56px 20px; text-align: center;
+  color: var(--fin-mudo); font-size: 14px; line-height: 20px;
+}
+.fin-vazio strong { font-weight: 700; color: var(--fin-texto); }
+.fin-vazio__icone { display: inline-flex; margin-bottom: 8px; color: var(--fin-sutil); }
+.fin-vazio__icone svg { width: 24px; height: 24px; }
+
+.fin-paginacao { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--fin-borda); }
+.fin-paginacao__resumo { flex: 1 1 auto; font-size: 13px; line-height: 18px; color: var(--fin-texto-2); font-variant-numeric: tabular-nums; }
+
+/* Estado de carga: o conteúdo antigo fica em tela, mais claro, até chegar o novo */
+.fin-conteudo { display: flex; flex-direction: column; gap: 20px; transition: opacity 0.15s ease; }
+.fin-conteudo--carregando { opacity: 0.6; }
+
+/* ═══ Modais (Período e Filtros dos lançamentos) ═════════════════════════════
+ * Renderizados dentro de .sys-modal-backdrop: usam os tokens --sm-* do padrão de modal. */
+
+.fin-opcoes { display: flex; flex-direction: column; gap: 8px; }
+.fin-opcao {
+  display: flex; flex-direction: column; padding: 0;
+  background: var(--sm-surface); border: 1px solid var(--sm-borda); border-radius: 8px;
+  transition: background 0.13s ease, border-color 0.13s ease;
+}
+.fin-opcao:hover { background: var(--sm-surface-alta); }
+.fin-opcao:has(input:checked) { border-color: var(--sm-ativo); box-shadow: inset 0 0 0 1px var(--sm-ativo); }
+.fin-opcao:has(input:focus-visible) { outline: 2px solid #3469EC; outline-offset: 2px; }
+.fin-opcao__rotulo { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; }
+.fin-opcao__radio { flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--sm-ativo); cursor: pointer; }
+.fin-opcao__texto { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-opcao__titulo { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--sm-texto); }
+.fin-opcao__dica { font-size: 13px; line-height: 18px; color: var(--sm-mudo); font-variant-numeric: tabular-nums; }
+.fin-opcao__datas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 0 14px 14px; }
+
+.fin-grupo { display: flex; flex-direction: column; gap: 8px; }
+.fin-grupo + .fin-grupo { margin-top: 4px; }
+.fin-grupo__titulo { margin: 0; font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-texto); }
+.fin-grupo__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fin-seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--sm-surface-alta); border-radius: 8px; align-self: flex-start; }
+.fin-seg button {
+  height: 28px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 13px; line-height: 16px; font-weight: 500; color: var(--sm-texto-2);
+}
+.fin-seg button[aria-pressed='true'] { background: var(--sm-surface); color: var(--sm-texto); box-shadow: var(--sm-sombra-sm); }
+.fin-seg button:focus-visible, .fin-chip:focus-visible { outline: 2px solid #3469EC; outline-offset: 2px; }
+.fin-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 6px 10px;
+  border: 1px solid var(--sm-borda); border-radius: 6px; background: var(--sm-surface); color: var(--sm-texto);
+  font-family: inherit; font-size: 13px; line-height: 16px; font-weight: 500; cursor: pointer;
+  transition: background 0.13s ease, border-color 0.13s ease;
+}
+.fin-chip:hover { background: var(--sm-surface-alta); }
+.fin-chip[aria-pressed='true'] { background: var(--sm-ativo); border-color: var(--sm-ativo); color: var(--sm-surface); }
+
+/* Movimentos da reserva (modal) */
+.fin-movimentos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.fin-movimento { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--sm-borda); }
+.fin-movimento:first-child { border-top: 0; }
+.fin-movimento__texto { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-movimento__titulo { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--sm-texto); overflow-wrap: anywhere; }
+.fin-movimento__data { font-size: 13px; line-height: 18px; color: var(--sm-mudo); }
+.fin-movimento__valor { flex: none; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--sm-texto); font-variant-numeric: tabular-nums; }
+.fin-movimento__valor--deposito { color: #12673D; }

@@ -5,6 +5,7 @@ import { useResponsive } from '../components/ui';
 import { useOrdens } from '../hooks/useOrdens';
 import { useVisaoGeral } from '../hooks/useVisaoGeral';
 import { useAlertas } from '../hooks/useAlertas';
+
 import { formatBRL, formatBRLCompacto, HEAT_DAYS_INICIAIS, HEAT_DAYS_COMPLETO } from '../utils/dashboard';
 import { calcularVariacao } from '../utils/relatorios';
 import {
@@ -16,17 +17,20 @@ import { useAuth } from '../context/AuthContext';
 import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/oficina_config';
 import { preCarregarQuandoOcioso, telaSobDemanda } from '../utils/telaSobDemanda';
 import { PrivacidadeProvider } from '../context/PrivacidadeContext';
-import { Valor, GraficoPrivado, MASCARA_NUMERO, MASCARA_PERCENTUAL } from '../components/Privacidade';
+import { Valor, GraficoPrivado, BotaoPrivacidade, MASCARA_NUMERO, MASCARA_PERCENTUAL } from '../components/Privacidade';
 import { DESTINOS_VISAO_GERAL, DESTINOS_ALERTAS } from '../utils/destaque';
 import type { Destaque, DestinoCard } from '../utils/destaque';
 
 // Components
-import { Sidebar, DesktopHeader, MobileTopbar, MobileNav, NAV_ITEMS } from '../features/Dashboard/Navigation';
+import { Sidebar, MobileSafeTop, MobileNav, NAV_ITEMS, TELAS_COM_PRIVACIDADE } from '../features/Dashboard/Navigation';
+import { DesktopTopBar } from '../components/DesktopTopBar';
 import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../features/Dashboard/Primitives';
 import { Icons, SVC_ICON } from '../features/Dashboard/Icons';
 import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
 import { Select } from '../components/inputs/select';
 import { OSRow, OSModal, OrdensPage } from '../features/Dashboard/OrdensPage';
+import { VisaoGeralDesktop } from '../features/Dashboard/VisaoGeral/VisaoGeralDesktop';
+import { VisaoGeralMobile } from '../features/Dashboard/VisaoGeral/VisaoGeralMobile';
 
 // High-fidelity Sub-pages — cada uma num arquivo à parte, baixado quando abre ou em segundo plano
 // depois que a Visão Geral aparece (ver utils/telaSobDemanda.ts).
@@ -40,8 +44,9 @@ const ServicosPage = telaSobDemanda(() => import('../features/Dashboard/Servicos
 const RelatoriosPage = telaSobDemanda(() => import('../features/Dashboard/Relatorios/RelatoriosPage').then((m) => m.RelatoriosPage));
 const AtendimentoPage = telaSobDemanda(() => import('../features/Dashboard/Atendimento/AtendimentoPage').then((m) => m.AtendimentoPage));
 const AlertasPage = telaSobDemanda(() => import('../features/Dashboard/Alertas/AlertasPage').then((m) => m.AlertasPage));
+const MaisPage = telaSobDemanda(() => import('../features/Dashboard/Mais/MaisPage').then((m) => m.MaisPage));
 const SUBPAGINAS = [AtendimentoPage, AgendamentosPage, AlertasPage, ClientesPage, VeiculosPage, EstoquePage,
-  ServicosPage, FinanceiroPage, RelatoriosPage, ConfiguracoesPage];
+  ServicosPage, FinanceiroPage, RelatoriosPage, ConfiguracoesPage, MaisPage];
 
 // Types
 import type { NavPage, OrdemRow } from '../types/dashboard';
@@ -68,13 +73,16 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
   );
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <MobileTopbar active={page} onNav={onNav} />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
+      <MobileSafeTop />{content}<MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{content}</main>
+      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <DesktopTopBar page={page} onNav={onNav} />
+        {content}
+      </main>
     </div>
   );
 }
@@ -84,20 +92,33 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 // devolvem o conteúdo interno, sem Sidebar/topbar). Reaproveita a mesma casca
 // da PlaceholderPage, mas com o conteúdo real no lugar do placeholder.
 
-function ShellPage({ page, onNav, isMobile, onNewOS, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; children: React.ReactNode }) {
+function ShellPage({ page, onNav, isMobile, onNewOS, semCabecalho = false, mobileSemRecuo = false, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; /** Desktop: a tela traz o próprio cabeçalho (sem o "Olá, …" nem o respiro padrão). */ semCabecalho?: boolean; /** Celular: a tela é de borda a borda e traz o próprio topo (incluindo o olhinho da privacidade), como Clientes. */ mobileSemRecuo?: boolean; children: React.ReactNode }) {
+  if (isMobile && mobileSemRecuo) return (
+    <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <MobileSafeTop />
+      {children}
+      <MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
+    </div>
+  );
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
-      <MobileTopbar active={page} onNav={onNav} />
-      <div style={{ padding: '16px 14px 32px' }}>{children}</div>
+      <MobileSafeTop />
+      {TELAS_COM_PRIVACIDADE.includes(page) && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 4px 0' }}><BotaoPrivacidade variante="mobile" /></div>
+      )}
+      <div style={{ padding: '8px 14px 32px' }}>{children}</div>
       <MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
     </div>
   );
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
       <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader onNav={onNav} active={page} />
-        <div style={{ padding: '18px 28px 32px' }}>{children}</div>
+      <main style={semCabecalho
+        ? { flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }
+        : { flex: 1, minWidth: 0, overflowY: 'auto' }}
+      >
+        <DesktopTopBar page={page} onNav={onNav} />
+        {semCabecalho ? children : <div style={{ padding: '18px 28px 32px' }}>{children}</div>}
       </main>
     </div>
   );
@@ -152,6 +173,8 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   // `handleNav` e limpa esse foco, para que ele nunca "vaze" para uma visita
   // posterior e não relacionada à tela de Agendamentos.
   const [agendaFocus, setAgendaFocus] = useState<{ search?: string; highlightId?: string } | null>(null);
+  // "Agendar" na Visão Geral: abre a Agenda já com o modal de novo agendamento.
+  const [agendaNovo, setAgendaNovo] = useState(false);
   // Mesmo mecanismo, agora para o Estoque — usado pelo card "Destaque do Período"
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
@@ -178,8 +201,9 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
 
   const handleNav = (p: NavPage) => {
     if (p === 'dicas') { onOpenLearningCenter?.(); return; }
-    setAgendaFocus(null); setEstoqueFocus(null); setDestaque(null); setPage(p);
+    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null); setPage(p);
   };
+  const handleAgendar = () => { setAgendaFocus(null); setAgendaNovo(true); setPage('agendamentos'); };
   // Clique num card da Visão Geral: vai pra tela certa e marca o que deve pulsar lá.
   const irParaDestino = (d: DestinoCard) => {
     setAgendaFocus(null); setEstoqueFocus(null);
@@ -203,6 +227,21 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     handleNav(d.page);
   };
 
+  if (page === 'mais') {
+    if (!isMobile) {
+      return (
+        <ShellPage page={page} onNav={handleNav} isMobile={false} onNewOS={onNewOS} semCabecalho>
+          <MaisPage onNav={handleNav} />
+        </ShellPage>
+      );
+    }
+    return (
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+        <MaisPage onNav={handleNav} />
+        <MobileNav active="mais" onNav={handleNav} onNewOS={onNewOS} />
+      </div>
+    );
+  }
   if (page === 'alertas') {
     return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} destaque={destaque} onDestaqueConcluido={concluirDestaque} />;
   }
@@ -229,6 +268,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
         onNewOS={onNewOS}
         initialSearch={agendaFocus?.search}
         initialHighlightId={agendaFocus?.highlightId}
+        initialNovo={agendaNovo}
       />
     );
   }
@@ -274,14 +314,14 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   }
   if (page === 'financeiro') {
     return (
-      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} semCabecalho mobileSemRecuo>
         <FinanceiroPage isMobile={isMobile} destaque={destaque} onDestaqueConcluido={concluirDestaque} />
       </ShellPage>
     );
   }
   if (page === 'configuracoes') {
     return (
-      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS}>
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} semCabecalho>
         <ConfiguracoesPage isMobile={isMobile} />
       </ShellPage>
     );
@@ -771,60 +811,58 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   );
 
   // ── MOBILE ─────────────────────────────────────────────────────────────────
+  // ── MOBILE ─────────────────────────────────────────────────────────────────
+  // Redesign "Hoje" (VisaoGeral/VisaoGeralMobile), sem top-bar. Os blocos antigos (KPIs,
+  // gráfico, Top serviços, Acessos rápidos, Ordens recentes, alertas) seguem definidos acima,
+  // INATIVOS, para serem recolocados em outras telas. O arranjo antigo está no git.
   if (isMobile) return (
-    <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
-      <MobileTopbar active={page} onNav={handleNav} />
-      <div style={{ padding: '16px 14px 0' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: tokens.color.text, margin: '0 0 2px' }}>
-          Olá{user?.nome ? `, ${user.nome}` : ''} 👋
-        </h2>
-        <p style={{ fontSize: '0.82rem', color: tokens.color.muted, margin: '0 0 16px' }}>Aqui está o desempenho da sua oficina hoje.</p>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '0 14px' }}>
-        {erroCard}
-        {kpiRow}
-        {chartSection}
-        {/* No tablet (≥ 720px) cada par fica lado a lado em vez de uma coluna esticada */}
-        <div className="visao-geral__dupla">
-          {topServicosSection}
-          {acessosRapidos}
-        </div>
-        <div className="visao-geral__dupla">
-          {ordensRecentes}
-          {alertasSection}
-        </div>
-      </div>
+    <>
+      <MobileSafeTop />
+      <VisaoGeralMobile
+        vg={vg}
+        vgLoading={loading}
+        vgErro={vgErro}
+        onRecarregarVg={recarregarVg}
+        alertas={alertasResumo}
+        onNav={handleNav}
+        onNewOS={onNewOS}
+        onAbrirOS={setSel}
+        onAcaoAlerta={handleAcaoAlerta}
+        onIrParaDestino={irParaDestino}
+      />
       <MobileNav active={page} onNav={handleNav} onNewOS={onNewOS} />
       {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
-    </div>
+    </>
   );
 
   // ── DESKTOP ────────────────────────────────────────────────────────────────
+  // Redesign "Hoje" (VisaoGeral/VisaoGeralDesktop). Os blocos antigos — gráfico de faturamento,
+  // Top serviços, Resumo financeiro e Ordens recentes (`chartSection`, `topServicosSection`,
+  // `resumoFinanceiro`, `ordensRecentes`) — continuam definidos acima, INATIVOS no desktop
+  // (o mobile ainda usa os três primeiros e as Ordens recentes), até serem recolocados nas
+  // telas de Relatórios / Financeiro / Ordens. O arranjo antigo do desktop está no git.
   return (
     <div style={{ display: 'flex', minHeight: '100dvh', background: tokens.color.bg }}>
       <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
-        <DesktopHeader onNav={handleNav} active={page} />
-        <div style={{ padding: '18px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {erroCard}
-          {kpiRow}
-          {/* Larguras em dashboard.css (.visao-geral__grafico / __rodape): antes eram
-              fixas (1fr 420px / 320px 1fr 310px) e, num notebook de 1024px, o
-              card de Ordens Recentes ficava com ~20px. */}
-          {(chartSection || topServicosSection) && (
-            <div className={`visao-geral__grafico${chartSection && topServicosSection ? '' : ' visao-geral__grafico--unico'}`}>
-              {chartSection}
-              {topServicosSection}
-            </div>
-          )}
-          <div className={`visao-geral__rodape${resumoFinanceiro ? '' : ' visao-geral__rodape--sem-financeiro'}`}>
-            {resumoFinanceiro}
-            {ordensRecentes}
-            {alertasSection}
-          </div>
-        </div>
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
+        <DesktopTopBar page={page} onNav={handleNav} />
+        <VisaoGeralDesktop
+          vg={vg}
+          vgLoading={loading}
+          vgErro={vgErro}
+          onRecarregarVg={recarregarVg}
+          onSalvarMeta={salvarMeta}
+          alertas={alertasResumo}
+          onNav={handleNav}
+          onNewOS={onNewOS}
+          onAgendar={handleAgendar}
+          onAbrirOS={setSel}
+          onAcaoAlerta={handleAcaoAlerta}
+          onIrParaDestino={irParaDestino}
+        />
       </main>
       {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
     </div>
   );
 }
+
