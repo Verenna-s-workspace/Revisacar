@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import { Input } from '../../../components/inputs/input';
-import { formatarIntervalo } from '../../../utils/relatorios';
+import { useMemo, useState } from 'react';
+import { formatarIntervalo, resolverIntervalo } from '../../../utils/relatorios';
 import type { FiltroPeriodo, IntervaloDatas, PeriodoPreset } from '../../../types/relatorios';
+import { PeriodoModal } from '../Financeiro/PeriodoModal';
+import type { OpcaoPeriodoModal, PeriodoModalValor } from '../Financeiro/PeriodoModal';
 import { IcCalendario } from './relatoriosIcones';
 
-const OPCOES_PERIODO: { valor: PeriodoPreset; rotulo: string }[] = [
-  { valor: 'hoje', rotulo: 'Hoje' },
-  { valor: 'ultimos_7_dias', rotulo: '7 dias' },
-  { valor: 'ultimos_30_dias', rotulo: '30 dias' },
-  { valor: 'este_mes', rotulo: 'Este mês' },
-  { valor: 'mes_passado', rotulo: 'Mês passado' },
-  { valor: 'personalizado', rotulo: 'Personalizado' },
+const PRESETS: { id: PeriodoPreset; titulo: string }[] = [
+  { id: 'hoje', titulo: 'Hoje' },
+  { id: 'ultimos_7_dias', titulo: 'Últimos 7 dias' },
+  { id: 'ultimos_30_dias', titulo: 'Últimos 30 dias' },
+  { id: 'este_mes', titulo: 'Este mês' },
+  { id: 'mes_passado', titulo: 'Mês passado' },
+  { id: 'personalizado', titulo: 'Período personalizado' },
 ];
 
 function paraInputDate(data: Date): string {
@@ -27,39 +28,38 @@ interface RelatoriosHeaderProps {
 }
 
 export function RelatoriosHeader({ filtro, intervaloAtual, onChange }: RelatoriosHeaderProps) {
-  const [range, setRange] = useState(() => ({
-    inicio: paraInputDate(filtro.personalizado?.inicio ?? intervaloAtual.inicio),
-    fim: paraInputDate(filtro.personalizado?.fim ?? intervaloAtual.fim),
-  }));
+  const [modalPeriodo, setModalPeriodo] = useState(false);
 
-  function selecionarPreset(preset: PeriodoPreset) {
-    if (preset === 'personalizado') {
-      const inicioAtual = paraInputDate(intervaloAtual.inicio);
-      const fimAtual = paraInputDate(intervaloAtual.fim);
-      setRange({ inicio: inicioAtual, fim: fimAtual });
+  const opcoes = useMemo<OpcaoPeriodoModal[]>(() => {
+    return PRESETS.map((p) => ({
+      id: p.id,
+      titulo: p.titulo,
+      dica:
+        p.id === 'personalizado'
+          ? 'Escolha a data inicial e a final'
+          : formatarIntervalo(resolverIntervalo(p.id)),
+    }));
+  }, []);
+
+  const atualModal: PeriodoModalValor<PeriodoPreset> = {
+    id: filtro.preset,
+    de: filtro.personalizado ? paraInputDate(filtro.personalizado.inicio) : undefined,
+    ate: filtro.personalizado ? paraInputDate(filtro.personalizado.fim) : undefined,
+  };
+
+  function aplicarPeriodo(sel: PeriodoModalValor<PeriodoPreset>) {
+    if (sel.id === 'personalizado' && sel.de && sel.ate) {
       onChange({
-        preset,
+        preset: 'personalizado',
         personalizado: {
-          inicio: new Date(`${inicioAtual}T00:00:00`),
-          fim: new Date(`${fimAtual}T00:00:00`),
+          inicio: new Date(`${sel.de}T00:00:00`),
+          fim: new Date(`${sel.ate}T00:00:00`),
         },
       });
-      return;
+    } else {
+      onChange({ preset: sel.id });
     }
-    onChange({ preset });
-  }
-
-  function aplicarData(campo: 'inicio' | 'fim', valor: string) {
-    if (!valor) return;
-    const novoRange = { ...range, [campo]: valor };
-    setRange(novoRange);
-    onChange({
-      preset: 'personalizado',
-      personalizado: {
-        inicio: new Date(`${novoRange.inicio}T00:00:00`),
-        fim: new Date(`${novoRange.fim}T00:00:00`),
-      },
-    });
+    setModalPeriodo(false);
   }
 
   return (
@@ -75,46 +75,26 @@ export function RelatoriosHeader({ filtro, intervaloAtual, onChange }: Relatorio
         </div>
 
         <div className='rel-header__acoes'>
-          <div className='rel-seg' role='group' aria-label='Período do relatório'>
-            {OPCOES_PERIODO.map((op) => (
-              <button
-                key={op.valor}
-                type='button'
-                className='rel-seg__btn'
-                aria-pressed={filtro.preset === op.valor}
-                onClick={() => selecionarPreset(op.valor)}
-              >
-                {op.rotulo}
-              </button>
-            ))}
-          </div>
+          <button
+            type='button'
+            className='rel-btn rel-btn--secundario'
+            onClick={() => setModalPeriodo(true)}
+            aria-haspopup='dialog'
+          >
+            {IcCalendario} Filtros
+          </button>
         </div>
       </header>
 
-      {filtro.preset === 'personalizado' && (
-        <div className='rel-periodo-custom'>
-          <span className='rel-periodo-custom__rotulo'>
-            {IcCalendario} Intervalo personalizado
-          </span>
-          <div className='rel-periodo-custom__campos'>
-            <Input
-              name='relatorios_desktop_data_inicio'
-              type='date'
-              value={range.inicio}
-              max={range.fim}
-              onChangeValue={(v) => aplicarData('inicio', v)}
-            />
-            <span className='rel-periodo-custom__ate'>até</span>
-            <Input
-              name='relatorios_desktop_data_fim'
-              type='date'
-              value={range.fim}
-              min={range.inicio}
-              max={paraInputDate(new Date())}
-              onChangeValue={(v) => aplicarData('fim', v)}
-            />
-          </div>
-        </div>
+      {modalPeriodo && (
+        <PeriodoModal
+          atual={atualModal}
+          opcoes={opcoes}
+          descricao='Escolha o intervalo que os Relatórios vão mostrar.'
+          maxData={paraInputDate(new Date())}
+          onFechar={() => setModalPeriodo(false)}
+          onAplicar={aplicarPeriodo}
+        />
       )}
     </div>
   );

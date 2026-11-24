@@ -1,0 +1,411 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela 'Relatórios' no celular — segue o layout e os padrões de FinanceiroMobile.css
+ * e a identidade visual de relatoriosDesktop.css.
+ * Tudo vive sob .relm-page: tokens locais que não vazam para outras telas.
+ * Layout construído exclusivamente com Flexbox e Grid fluidos.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.relm-page {
+  --rel-bg: #FFFFFF;
+  --rel-surface: #FFFFFF;
+  --rel-surface-high: #EEF0F3;
+  --rel-borda: #E2E5EA;
+  --rel-borda-forte: #C9CED6;
+  --rel-texto: #1A1D22;
+  --rel-texto-2: #4F5661;
+  --rel-mudo: #666E7B;
+  --rel-sutil: #868D98;
+  --rel-perigo: #A50C34;
+  --rel-ok: #12673D;
+
+  --rel-marca: #E01500;
+  --rel-marca-hover: #C21200;
+  --rel-foco: #3469EC;
+
+  /* Mesma paleta dos gráficos de Relatórios Desktop e Financeiro */
+  --rel-serie-atual: #2F6FDE;
+  --rel-serie-anterior: #B35C00;
+
+  /* Barras de progresso de serviços e peças */
+  --rel-barra-fundo: #EEF0F3;
+  --rel-barra-fill: #4F5661;
+  --rel-barra-destaque: #1A1D22;
+
+  --rel-chip-ativo-bg: #1A1D22;
+  --rel-chip-ativo-fg: #FFFFFF;
+  --rel-sombra-sm: 0 1px 2px rgba(17, 19, 23, 0.06);
+  --rel-sombra-menu: 0 8px 24px rgba(17, 19, 23, 0.14), 0 2px 6px rgba(17, 19, 23, 0.08);
+  --rel-fonte: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  background: var(--rel-bg);
+  color: var(--rel-texto);
+  font-family: var(--rel-fonte);
+}
+
+body.dark .relm-page {
+  --rel-bg: var(--color-bg, #09090b);
+  --rel-surface: var(--color-surface, #151518);
+  --rel-surface-high: var(--color-surface-high, #1c1c21);
+  --rel-borda: rgba(255, 255, 255, 0.1);
+  --rel-borda-forte: rgba(255, 255, 255, 0.18);
+  --rel-texto: #f4f4f5;
+  --rel-texto-2: #d4d4d8;
+  --rel-mudo: #9ca3af;
+  --rel-sutil: #8b8b94;
+  --rel-perigo: #fda4af;
+  --rel-ok: #6ee7b7;
+  --rel-foco: #7aa2ff;
+  --rel-serie-atual: #5b93f0;
+  --rel-serie-anterior: #e0860b;
+  --rel-barra-fundo: rgba(255, 255, 255, 0.08);
+  --rel-barra-fill: #9ca3af;
+  --rel-barra-destaque: #f4f4f5;
+  --rel-chip-ativo-bg: #f4f4f5;
+  --rel-chip-ativo-fg: #151518;
+  --rel-sombra-sm: none;
+  --rel-sombra-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Topo ────────────────────────────────────────────────────────────────── */
+
+.relm-topo {
+  display: flex;
+  flex-direction: column;
+  background: var(--rel-surface);
+  border-bottom: 1px solid var(--rel-borda);
+}
+
+.relm-barra {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 8px 16px 8px 4px;
+}
+
+.relm-voltar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rel-mudo);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.relm-voltar:active {
+  background: var(--rel-surface-high);
+}
+
+.relm-barra__titulos {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.relm-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--rel-texto);
+}
+
+.relm-subtitulo {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--rel-mudo);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relm-barra .dashboard-mobile-topbar__button {
+  color: var(--rel-texto);
+  border-radius: 6px;
+}
+
+.relm-barra .privacidade-botao--ativo {
+  color: var(--rel-marca);
+}
+
+.relm-filtros-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--rel-borda-forte);
+  border-radius: 6px;
+  background: var(--rel-surface);
+  color: var(--rel-texto);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  box-shadow: var(--rel-sombra-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.relm-filtros-btn svg {
+  flex: none;
+}
+
+.relm-filtros-btn:active {
+  background: var(--rel-surface-high);
+}
+
+/* ── Aviso de erro e vazio ───────────────────────────────────────────────── */
+
+.relm-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--st-bg);
+  border: 1px solid var(--st-borda);
+  color: var(--st-texto);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.relm-aviso__btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--st-borda);
+  border-radius: 6px;
+  background: var(--rel-surface);
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.relm-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--rel-mudo);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.relm-vazio strong {
+  font-weight: 700;
+  color: var(--rel-texto);
+}
+
+.relm-vazio__icone {
+  display: inline-flex;
+  margin-bottom: 4px;
+  color: var(--rel-sutil);
+}
+
+.relm-vazio__icone svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ── Corpo e conteúdo ────────────────────────────────────────────────────── */
+
+.relm-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 24px;
+  transition: opacity 0.15s ease;
+}
+
+.relm-conteudo--carregando {
+  opacity: 0.65;
+}
+
+/* ── KPIs (mesma lógica do FinanceiroMobile) ─────────────────────────────── */
+
+.relm-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.relm-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  background: var(--rel-surface);
+  border: 1px solid var(--rel-borda);
+  border-radius: 8px;
+}
+
+.relm-kpi--destaque,
+.relm-kpis > .relm-kpi:last-child:nth-child(even) {
+  grid-column: 1 / -1;
+}
+
+.relm-kpi--destaque {
+  padding: 14px 16px;
+}
+
+.relm-kpi__rotulo {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--rel-texto-2);
+}
+
+.relm-kpi__corpo {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.relm-kpi__dados {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.relm-kpi__valor {
+  max-width: 100%;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--rel-texto);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.relm-kpi--destaque .relm-kpi__valor {
+  font-size: 28px;
+  line-height: 34px;
+}
+
+.relm-kpi__contexto {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--rel-mudo);
+  font-variant-numeric: tabular-nums;
+}
+
+.relm-kpi__delta--ok {
+  color: var(--rel-ok);
+  font-weight: 500;
+}
+
+.relm-kpi__delta--perigo {
+  color: var(--rel-perigo);
+  font-weight: 500;
+}
+
+.relm-kpi__spark {
+  flex: 0 1 76px;
+  min-width: 52px;
+  height: 38px;
+  transition: filter 0.25s ease, opacity 0.25s ease;
+}
+
+/* ── Ajustes mobile para cartões, listas e DestaquesPeriodo compartilhados ── */
+
+.relm-page .rel-card__cab {
+  padding: 12px 14px;
+  min-height: 52px;
+}
+
+.relm-page .rel-card__corpo {
+  padding: 14px;
+}
+
+.relm-page .rel-destaque__principal {
+  padding: 14px;
+}
+
+.relm-page .rel-destaque__moldura--lg {
+  width: 84px;
+  height: 84px;
+}
+
+.relm-page .rel-destaque__info {
+  flex: 1 1 160px;
+}
+
+.relm-page .rel-destaque__link {
+  font-size: 16px;
+  line-height: 22px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.relm-page .rel-destaque__item-btn {
+  padding: 10px 12px;
+  min-height: 60px;
+}
+
+.relm-page .rel-destaque__item-nome {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.relm-page .rel-btn {
+  min-height: 44px;
+}
+
+/* ── Foco, modal de período em telas estreitas e movimento ──────────────── */
+
+.relm-page :is(.relm-voltar, .relm-filtros-btn, .relm-aviso__btn, .rel-btn, .rel-destaque__link, .rel-destaque__item-btn):focus-visible {
+  outline: 2px solid var(--rel-foco);
+  outline-offset: -2px;
+}
+
+@media (max-width: 480px) {
+  .fin-opcao__datas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relm-conteudo {
+    transition: none;
+  }
+}

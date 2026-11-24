@@ -24,6 +24,11 @@ const EIXO_BRL = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
 });
 
+const EIXO_BRL_COMPACTO = new Intl.NumberFormat('pt-BR', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
 function TooltipComparativo({
   active,
   label,
@@ -54,10 +59,14 @@ function TooltipComparativo({
 export function FaturamentoGraficoDesktop({
   dados,
   height = 224,
+  compacto = false,
 }: {
   dados: PontoSerieTemporal[];
   height?: number;
+  compacto?: boolean;
 }) {
+  const altura = compacto && height === 224 ? 200 : height;
+
   return (
     <>
       <div className='rel-legenda' aria-hidden='true'>
@@ -69,10 +78,15 @@ export function FaturamentoGraficoDesktop({
           <i className='rel-legenda__marca' style={{ background: COR_ANTERIOR }} />
           Período anterior
         </span>
+        {compacto && (
+          <span className='rel-legenda__item' style={{ marginLeft: 'auto' }}>
+            Valores em R$
+          </span>
+        )}
       </div>
-      <div className='rel-grafico' style={{ height }}>
+      <div className='rel-grafico' style={{ height: altura }}>
         <ResponsiveContainer width='100%' height='100%'>
-          <LineChart data={dados} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <LineChart data={dados} margin={{ top: 8, right: compacto ? 4 : 8, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke='var(--rel-borda)' strokeDasharray='3 3' />
             <XAxis
               dataKey='rotulo'
@@ -80,14 +94,14 @@ export function FaturamentoGraficoDesktop({
               axisLine={{ stroke: 'var(--rel-borda)' }}
               tick={{ fontSize: 12, fill: 'var(--rel-mudo)' }}
               interval='preserveStartEnd'
-              minTickGap={12}
+              minTickGap={compacto ? 16 : 12}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
-              width={72}
+              width={compacto ? 44 : 72}
               tick={{ fontSize: 12, fill: 'var(--rel-mudo)' }}
-              tickFormatter={(v: number) => EIXO_BRL.format(v).replace(/\s/g, ' ')}
+              tickFormatter={(v: number) => (compacto ? EIXO_BRL_COMPACTO : EIXO_BRL).format(v).replace(/\s/g, ' ')}
             />
             <Tooltip
               content={<TooltipComparativo formatar={formatBRL} />}
@@ -125,10 +139,14 @@ export function FaturamentoGraficoDesktop({
 export function OrdensGraficoDesktop({
   dados,
   height = 224,
+  compacto = false,
 }: {
   dados: PontoSerieTemporal[];
   height?: number;
+  compacto?: boolean;
 }) {
+  const altura = compacto && height === 224 ? 200 : height;
+
   return (
     <>
       <div className='rel-legenda' aria-hidden='true'>
@@ -141,9 +159,9 @@ export function OrdensGraficoDesktop({
           Período anterior
         </span>
       </div>
-      <div className='rel-grafico' style={{ height }}>
+      <div className='rel-grafico' style={{ height: altura }}>
         <ResponsiveContainer width='100%' height='100%'>
-          <BarChart data={dados} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap='28%'>
+          <BarChart data={dados} margin={{ top: 8, right: compacto ? 4 : 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap='28%'>
             <CartesianGrid vertical={false} stroke='var(--rel-borda)' strokeDasharray='3 3' />
             <XAxis
               dataKey='rotulo'
@@ -151,13 +169,13 @@ export function OrdensGraficoDesktop({
               axisLine={{ stroke: 'var(--rel-borda)' }}
               tick={{ fontSize: 12, fill: 'var(--rel-mudo)' }}
               interval='preserveStartEnd'
-              minTickGap={12}
+              minTickGap={compacto ? 16 : 12}
             />
             <YAxis
               allowDecimals={false}
               tickLine={false}
               axisLine={false}
-              width={36}
+              width={compacto ? 28 : 36}
               tick={{ fontSize: 12, fill: 'var(--rel-mudo)' }}
             />
             <Tooltip
