@@ -27,6 +27,8 @@ import { VehicleFormModal } from '../Veiculos/VehicleFormModal';
 import { DeleteConfirmModal as VehicleDeleteConfirmModal } from '../Veiculos/DeleteConfirmModal';
 import { NewAppointmentModal } from '../Agendamentos/NewAppointmentModal';
 import { OSModal } from '../OrdensPage';
+import { useAbrirRegistro } from '../../../hooks/useAbrirRegistro';
+import type { AbrirRegistro } from '../../../types/busca';
 
 interface ClientesPageProps {
   onNav: (p: NavPage) => void;
@@ -37,6 +39,9 @@ interface ClientesPageProps {
   onLoadOS?: (id: string) => void;
   /** Navega para a tela de Agendamentos já filtrada/focada em um agendamento específico. */
   onGoToAgendamentos: (focus: { search?: string; highlightId?: string }) => void;
+  /** Busca global (⌘K): abre o perfil deste cliente assim que a lista carregar. */
+  abrirRegistro?: AbrirRegistro | null;
+  onRegistroAberto?: () => void;
 }
 
 function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros): ClienteComDados[] {
@@ -62,7 +67,7 @@ function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros
   });
 }
 
-export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLoadOS, onGoToAgendamentos }: ClientesPageProps) {
+export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLoadOS, onGoToAgendamentos, abrirRegistro, onRegistroAberto }: ClientesPageProps) {
   const { clientes, loading: clientesLoading, erro: clientesErro, reload, addCliente, updateCliente, deleteCliente } = useClientes();
   const { veiculos, loading: veiculosLoading, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
   const { agendamentos, loading: agendamentosLoading, addAgendamento, getOcupados } = useAgendamentos();
@@ -92,6 +97,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   const [viewingOrdem,    setViewingOrdem]    = useState<OrdemRow | null>(null);
 
   const filtered = useMemo(() => applyFilters(clientesEnriquecidos, search, filtros), [clientesEnriquecidos, search, filtros]);
+
+  useAbrirRegistro({ pedido: abrirRegistro, tipo: 'cliente', pronto: !loading, itens: clientesEnriquecidos, idDe: c => c.id, abrir: setSelected, consumido: onRegistroAberto });
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
 

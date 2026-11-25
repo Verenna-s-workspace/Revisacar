@@ -5,6 +5,8 @@ import { DesktopShell } from '../../../components/DesktopShell';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useClientes } from '../../../hooks/useClientes';
 import { useOrdens } from '../../../hooks/useOrdens';
+import { useAbrirRegistro } from '../../../hooks/useAbrirRegistro';
+import type { AbrirRegistro } from '../../../types/busca';
 import { emptyFiltros, veiculoParaPrefill } from '../../../utils/veiculos_utils';
 import type { NavPage } from '../../../types/dashboard';
 import type { OSPrefillInput } from '../../../types/atendimento';
@@ -24,6 +26,9 @@ interface VeiculosPageProps {
   onNewOS?: () => void;
   /** "Nova OS" a partir de um veículo: abre o checklist já com os dados dele (e do cliente, se houver). */
   onNewOSComPrefill?: (prefill: OSPrefillInput) => void;
+  /** Busca global (⌘K): abre o detalhe deste veículo assim que a lista carregar. */
+  abrirRegistro?: AbrirRegistro | null;
+  onRegistroAberto?: () => void;
 }
 
 function applyFilters(list: VeiculoCadastrado[], search: string, f: VeiculoFiltros): VeiculoCadastrado[] {
@@ -56,7 +61,7 @@ function applyFilters(list: VeiculoCadastrado[], search: string, f: VeiculoFiltr
   });
 }
 
-export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: VeiculosPageProps) {
+export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, abrirRegistro, onRegistroAberto }: VeiculosPageProps) {
   const { veiculos, loading, erro, stats, reload, addVeiculo, updateVeiculo, deleteVeiculo, changeOwner } = useVeiculos();
   // Clientes da carteira: é entre eles que o proprietário do veículo é escolhido (vínculo veículo ↔ cliente).
   const { clientes } = useClientes();
@@ -71,6 +76,8 @@ export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: Ve
   const [editing,         setEditing]         = useState<VeiculoCadastrado | null>(null);
   const [ownerTarget,     setOwnerTarget]     = useState<VeiculoCadastrado | null>(null);
   const [deleteTarget,    setDeleteTarget]    = useState<VeiculoCadastrado | null>(null);
+
+  useAbrirRegistro({ pedido: abrirRegistro, tipo: 'veiculo', pronto: !loading, itens: veiculos, idDe: v => v.id, abrir: setSelected, consumido: onRegistroAberto });
 
   const filtered = useMemo(() => applyFilters(veiculos, search, filtros), [veiculos, search, filtros]);
 

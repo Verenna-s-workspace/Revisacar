@@ -17,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/oficina_config';
 import { preCarregarQuandoOcioso, telaSobDemanda } from '../utils/telaSobDemanda';
 import { PrivacidadeProvider } from '../context/PrivacidadeContext';
+import { BuscaGlobalProvider, useAoEscolherResultadoDaBusca } from '../context/BuscaGlobalContext';
+import type { AbrirRegistro } from '../types/busca';
 import { Valor, GraficoPrivado, BotaoPrivacidade, MASCARA_NUMERO, MASCARA_PERCENTUAL } from '../components/Privacidade';
 import { DESTINOS_VISAO_GERAL, DESTINOS_ALERTAS } from '../utils/destaque';
 import type { Destaque, DestinoCard } from '../utils/destaque';
@@ -120,7 +122,13 @@ interface DashboardProps { onNewOS: () => void; onLoadOS?: (id: string) => void;
 // O Modo Privacidade vale pro painel todo (Visão Geral, Financeiro e Relatórios),
 // por isso o Provider fica aqui, acima das telas.
 export function Dashboard(props: DashboardProps) {
-  return <PrivacidadeProvider><DashboardConteudo {...props} /></PrivacidadeProvider>;
+  return (
+    <PrivacidadeProvider>
+      <BuscaGlobalProvider>
+        <DashboardConteudo {...props} />
+      </BuscaGlobalProvider>
+    </PrivacidadeProvider>
+  );
 }
 
 function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: DashboardProps) {
@@ -167,6 +175,10 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   // Mesmo mecanismo, agora para o Estoque — usado pelo card "Destaque do Período"
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
+  // Resultado da busca global (⌘K): a tela de destino abre esse registro assim que a lista dela carrega.
+  // Limpo por `handleNav` e consumido pela própria tela (useAbrirRegistro).
+  const [abrirRegistro, setAbrirRegistro] = useState<AbrirRegistro | null>(null);
+  const registroAberto = () => setAbrirRegistro(null);
   // Destaque de chegada: elemento(s) da tela de destino que pulsam ~4s depois de
   // clicar num card da Visão Geral. Limpo por qualquer navegação "normal".
   const [destaque, setDestaque] = useState<Destaque | null>(null);
@@ -190,7 +202,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
 
   const handleNav = (p: NavPage) => {
     if (p === 'dicas') { onOpenLearningCenter?.(); return; }
-    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null); setPage(p);
+    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null); setAbrirRegistro(null); setPage(p);
   };
   const handleAgendar = () => { setAgendaFocus(null); setAgendaNovo(true); setPage('agendamentos'); };
   // Clique num card da Visão Geral: vai pra tela certa e marca o que deve pulsar lá.
@@ -207,6 +219,14 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     setEstoqueFocus(focus);
     setPage('estoque');
   };
+
+  // Resultado da busca global: vai para a tela do registro e pede para abri-lo (cliente → Clientes, veículo → Veículos,
+  // OS → Ordens, no modal de resumo). Fica ANTES dos retornos antecipados abaixo (regra dos hooks).
+  useAoEscolherResultadoDaBusca(r => {
+    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null);
+    setAbrirRegistro({ tipo: r.tipo, id: r.id, nonce: Date.now() });
+    setPage(r.tipo === 'cliente' ? 'clientes' : r.tipo === 'veiculo' ? 'veiculos' : 'ordens');
+  });
 
   // Clique num alerta: abre a tela de destino (Estoque já com a busca no item) ou a OS.
   const handleAcaoAlerta = (acao: AcaoAlerta) => {
@@ -235,7 +255,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} destaque={destaque} onDestaqueConcluido={concluirDestaque} />;
   }
   if (page === 'ordens') {
-    return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
+    return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} abrirRegistro={abrirRegistro} onRegistroAberto={registroAberto} />;
   }
   if (page === 'atendimento') {
     return (
@@ -262,7 +282,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     );
   }
   if (page === 'veiculos') {
-    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onNewOSComPrefill={onNewOSComPrefill} />;
+    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onNewOSComPrefill={onNewOSComPrefill} abrirRegistro={abrirRegistro} onRegistroAberto={registroAberto} />;
   }
   if (page === 'estoque') {
     return (
@@ -283,6 +303,8 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
         onNewOSComPrefill={onNewOSComPrefill}
         onLoadOS={onLoadOS}
         onGoToAgendamentos={handleGoToAgendamentos}
+        abrirRegistro={abrirRegistro}
+        onRegistroAberto={registroAberto}
       />
     );
   }

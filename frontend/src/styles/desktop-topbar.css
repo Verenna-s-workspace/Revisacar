@@ -46,13 +46,17 @@ body.dark .rv-tb {
 .rv-tb__crumb-atual { font-size: 13px; line-height: 16px; font-weight: 700; color: var(--tb-texto); }
 .rv-tb__esp { flex: 1 1 0; min-width: 0; }
 
-/* ── Busca (ainda sem função: só o desenho) ── */
+/* ── Busca (botão que abre a paleta; atalho ⌘K / Ctrl+K) ── */
 .rv-tb__busca {
   flex: none; display: flex; align-items: center; gap: 8px;
   width: 360px; max-width: 40vw; height: 36px; padding: 0 12px; box-sizing: border-box;
   background: var(--tb-bg); border: 1px solid var(--tb-borda); border-radius: 6px;
-  color: var(--tb-sutil); cursor: default;
+  color: var(--tb-sutil); cursor: pointer; font: inherit; text-align: left;
+  transition: border-color 0.13s ease, background 0.13s ease;
+  -webkit-tap-highlight-color: transparent;
 }
+.rv-tb__busca:hover { background: var(--tb-surface-high); }
+.rv-tb__busca:focus-visible { outline: 2px solid var(--tb-foco); outline-offset: 2px; }
 .rv-tb__busca svg { flex: none; }
 .rv-tb__busca-txt { flex: 1 1 auto; min-width: 0; font-size: 14px; line-height: 20px; color: var(--tb-mudo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rv-tb__kbd {
