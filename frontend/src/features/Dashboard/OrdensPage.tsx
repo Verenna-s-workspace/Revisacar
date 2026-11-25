@@ -5,6 +5,14 @@ import { Icons } from './Icons';
 import { StatusBadge, Skeleton, OS_STATUS_TOM, rotuloStatusOS } from './Primitives';
 import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
+import { useAbrirRegistro } from '../../hooks/useAbrirRegistro';
+import type { AbrirRegistro } from '../../types/busca';
+import { useState, useEffect } from 'react';
+import { tokens } from '../../constants';
+import { Icons } from './Icons';
+import { StatusBadge, Skeleton } from './Primitives';
+import { MobileNav, MobileSafeTop } from './Navigation';
+import { DesktopShell } from '../../components/DesktopShell';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
 import {
@@ -148,13 +156,18 @@ interface OrdensPageProps {
   onLoadOS?: (id: string) => void;
   onNav: (p: NavPage) => void;
   isMobile: boolean;
+  /** Busca global (⌘K): abre o modal de resumo desta OS assim que a lista carregar. */
+  abrirRegistro?: AbrirRegistro | null;
+  onRegistroAberto?: () => void;
 }
 
-export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile }: OrdensPageProps) {
+export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile, abrirRegistro, onRegistroAberto }: OrdensPageProps) {
   const [filter, setFilter] = useState<FiltroStatus>('todas');
   const [search, setSearch] = useState('');
   const [sel, setSel] = useState<OrdemRow | null>(null);
   const [del, setDel] = useState<string | null>(null);
+
+  useAbrirRegistro({ pedido: abrirRegistro, tipo: 'ordem', pronto: !loading, itens: ordens, idDe: o => o.id, abrir: setSel, consumido: onRegistroAberto });
 
   const handleDel = async (id: string) => {
     if (!window.confirm('Excluir esta OS permanentemente?')) return;
@@ -168,10 +181,8 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
 
   if (!isMobile) {
     return (
-      <div style={{ display: 'flex', minHeight: '100dvh' }}>
-        <Sidebar active="ordens" onNav={onNav} onNewOS={onNewOS} />
-        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-          <DesktopTopBar page="ordens" onNav={onNav} />
+      <>
+        <DesktopShell page="ordens" onNav={onNav} onNewOS={onNewOS}>
           <OrdensDesktop
             ordens={ordens}
             loading={loading}
@@ -185,9 +196,9 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
             onExcluir={handleDel}
             excluindoId={del}
           />
-        </main>
+        </DesktopShell>
         {modal}
-      </div>
+      </>
     );
   }
 

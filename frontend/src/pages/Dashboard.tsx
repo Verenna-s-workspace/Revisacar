@@ -17,13 +17,15 @@ import { useAuth } from '../context/AuthContext';
 import { podeEditarConfiguracoes, sincronizarOficinaConfig } from '../utils/oficina_config';
 import { preCarregarQuandoOcioso, telaSobDemanda } from '../utils/telaSobDemanda';
 import { PrivacidadeProvider } from '../context/PrivacidadeContext';
+import { BuscaGlobalProvider, useAoEscolherResultadoDaBusca } from '../context/BuscaGlobalContext';
+import type { AbrirRegistro } from '../types/busca';
 import { Valor, GraficoPrivado, BotaoPrivacidade, MASCARA_NUMERO, MASCARA_PERCENTUAL } from '../components/Privacidade';
 import { DESTINOS_VISAO_GERAL, DESTINOS_ALERTAS } from '../utils/destaque';
 import type { Destaque, DestinoCard } from '../utils/destaque';
 
 // Components
-import { Sidebar, MobileSafeTop, MobileNav, NAV_ITEMS, TELAS_COM_PRIVACIDADE } from '../features/Dashboard/Navigation';
-import { DesktopTopBar } from '../components/DesktopTopBar';
+import { MobileSafeTop, MobileNav, NAV_ITEMS, TELAS_COM_PRIVACIDADE } from '../features/Dashboard/Navigation';
+import { DesktopShell } from '../components/DesktopShell';
 import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../features/Dashboard/Primitives';
 import { Icons, SVC_ICON } from '../features/Dashboard/Icons';
 import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
@@ -77,13 +79,9 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
     </div>
   );
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <DesktopTopBar page={page} onNav={onNav} />
-        {content}
-      </main>
-    </div>
+    <DesktopShell page={page} onNav={onNav} onNewOS={onNewOS}>
+      {content}
+    </DesktopShell>
   );
 }
 
@@ -104,16 +102,9 @@ function ShellPage({ page, onNav, isMobile, onNewOS, semCabecalho = false, child
     </div>
   );
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={semCabecalho
-        ? { flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }
-        : { flex: 1, minWidth: 0, overflowY: 'auto' }}
-      >
-        <DesktopTopBar page={page} onNav={onNav} />
-        {semCabecalho ? children : <div style={{ padding: '18px 28px 32px' }}>{children}</div>}
-      </main>
-    </div>
+    <DesktopShell page={page} onNav={onNav} onNewOS={onNewOS} recuo={!semCabecalho}>
+      {children}
+    </DesktopShell>
   );
 }
 
@@ -124,7 +115,13 @@ interface DashboardProps { onNewOS: () => void; onLoadOS?: (id: string) => void;
 // O Modo Privacidade vale pro painel todo (Visão Geral, Financeiro e Relatórios),
 // por isso o Provider fica aqui, acima das telas.
 export function Dashboard(props: DashboardProps) {
-  return <PrivacidadeProvider><DashboardConteudo {...props} /></PrivacidadeProvider>;
+  return (
+    <PrivacidadeProvider>
+      <BuscaGlobalProvider>
+        <DashboardConteudo {...props} />
+      </BuscaGlobalProvider>
+    </PrivacidadeProvider>
+  );
 }
 
 function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearningCenter }: DashboardProps) {
@@ -171,6 +168,10 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   // Mesmo mecanismo, agora para o Estoque — usado pelo card "Destaque do Período"
   // em Relatórios pra abrir o Estoque já com a busca preenchida no item clicado.
   const [estoqueFocus, setEstoqueFocus] = useState<{ search?: string } | null>(null);
+  // Resultado da busca global (⌘K): a tela de destino abre esse registro assim que a lista dela carrega.
+  // Limpo por `handleNav` e consumido pela própria tela (useAbrirRegistro).
+  const [abrirRegistro, setAbrirRegistro] = useState<AbrirRegistro | null>(null);
+  const registroAberto = () => setAbrirRegistro(null);
   // Destaque de chegada: elemento(s) da tela de destino que pulsam ~4s depois de
   // clicar num card da Visão Geral. Limpo por qualquer navegação "normal".
   const [destaque, setDestaque] = useState<Destaque | null>(null);
@@ -194,7 +195,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
 
   const handleNav = (p: NavPage) => {
     if (p === 'dicas') { onOpenLearningCenter?.(); return; }
-    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null); setPage(p);
+    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null); setAbrirRegistro(null); setPage(p);
   };
   const handleAgendar = () => { setAgendaFocus(null); setAgendaNovo(true); setPage('agendamentos'); };
   // Clique num card da Visão Geral: vai pra tela certa e marca o que deve pulsar lá.
@@ -211,6 +212,14 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     setEstoqueFocus(focus);
     setPage('estoque');
   };
+
+  // Resultado da busca global: vai para a tela do registro e pede para abri-lo (cliente → Clientes, veículo → Veículos,
+  // OS → Ordens, no modal de resumo). Fica ANTES dos retornos antecipados abaixo (regra dos hooks).
+  useAoEscolherResultadoDaBusca(r => {
+    setAgendaFocus(null); setAgendaNovo(false); setEstoqueFocus(null); setDestaque(null);
+    setAbrirRegistro({ tipo: r.tipo, id: r.id, nonce: Date.now() });
+    setPage(r.tipo === 'cliente' ? 'clientes' : r.tipo === 'veiculo' ? 'veiculos' : 'ordens');
+  });
 
   // Clique num alerta: abre a tela de destino (Estoque já com a busca no item) ou a OS.
   const handleAcaoAlerta = (acao: AcaoAlerta) => {
@@ -239,7 +248,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     return <AlertasPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onAcao={handleAcaoAlerta} destaque={destaque} onDestaqueConcluido={concluirDestaque} />;
   }
   if (page === 'ordens') {
-    return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} />;
+    return <OrdensPage ordens={ordens} loading={ordensLoading} onNewOS={onNewOS} onLoadOS={onLoadOS} onNav={handleNav} isMobile={isMobile} abrirRegistro={abrirRegistro} onRegistroAberto={registroAberto} />;
   }
   if (page === 'atendimento') {
     return (
@@ -266,7 +275,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
     );
   }
   if (page === 'veiculos') {
-    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onNewOSComPrefill={onNewOSComPrefill} />;
+    return <VeiculosPage onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} onNewOSComPrefill={onNewOSComPrefill} abrirRegistro={abrirRegistro} onRegistroAberto={registroAberto} />;
   }
   if (page === 'estoque') {
     return (
@@ -287,6 +296,8 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
         onNewOSComPrefill={onNewOSComPrefill}
         onLoadOS={onLoadOS}
         onGoToAgendamentos={handleGoToAgendamentos}
+        abrirRegistro={abrirRegistro}
+        onRegistroAberto={registroAberto}
       />
     );
   }
@@ -835,10 +846,8 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   // (o mobile ainda usa os três primeiros e as Ordens recentes), até serem recolocados nas
   // telas de Relatórios / Financeiro / Ordens. O arranjo antigo do desktop está no git.
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh', background: tokens.color.bg }}>
-      <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page={page} onNav={handleNav} />
+    <>
+      <DesktopShell page={page} onNav={handleNav} onNewOS={onNewOS}>
         <VisaoGeralDesktop
           vg={vg}
           vgLoading={loading}
@@ -853,9 +862,9 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
           onAcaoAlerta={handleAcaoAlerta}
           onIrParaDestino={irParaDestino}
         />
-      </main>
+      </DesktopShell>
       {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
-    </div>
+    </>
   );
 }
 

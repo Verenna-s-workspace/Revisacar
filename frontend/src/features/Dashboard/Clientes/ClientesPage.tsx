@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
-import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
-import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -26,6 +26,8 @@ import { VehicleDetailsModal } from '../Veiculos/VehicleDetailsModal';
 import { VehicleFormModal } from '../Veiculos/VehicleFormModal';
 import { NewAppointmentModal } from '../Agendamentos/NewAppointmentModal';
 import { OSModal } from '../OrdensPage';
+import { useAbrirRegistro } from '../../../hooks/useAbrirRegistro';
+import type { AbrirRegistro } from '../../../types/busca';
 
 interface ClientesPageProps {
   onNav: (p: NavPage) => void;
@@ -36,6 +38,9 @@ interface ClientesPageProps {
   onLoadOS?: (id: string) => void;
   /** Navega para a tela de Agendamentos já filtrada/focada em um agendamento específico. */
   onGoToAgendamentos: (focus: { search?: string; highlightId?: string }) => void;
+  /** Busca global (⌘K): abre o perfil deste cliente assim que a lista carregar. */
+  abrirRegistro?: AbrirRegistro | null;
+  onRegistroAberto?: () => void;
 }
 
 function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros): ClienteComDados[] {
@@ -61,7 +66,7 @@ function applyFilters(list: ClienteComDados[], search: string, f: ClienteFiltros
   });
 }
 
-export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLoadOS, onGoToAgendamentos }: ClientesPageProps) {
+export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLoadOS, onGoToAgendamentos, abrirRegistro, onRegistroAberto }: ClientesPageProps) {
   const { clientes, loading: clientesLoading, erro: clientesErro, reload, addCliente, updateCliente, deleteCliente } = useClientes();
   const { veiculos, loading: veiculosLoading, addVeiculo, updateVeiculo, deleteVeiculo } = useVeiculos();
   const { agendamentos, loading: agendamentosLoading, addAgendamento, getOcupados } = useAgendamentos();
@@ -91,6 +96,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   const [viewingOrdem,    setViewingOrdem]    = useState<OrdemRow | null>(null);
 
   const filtered = useMemo(() => applyFilters(clientesEnriquecidos, search, filtros), [clientesEnriquecidos, search, filtros]);
+
+  useAbrirRegistro({ pedido: abrirRegistro, tipo: 'cliente', pronto: !loading, itens: clientesEnriquecidos, idDe: c => c.id, abrir: setSelected, consumido: onRegistroAberto });
 
   // ── handlers: cliente ─────────────────────────────────────────────────────────
 
@@ -286,10 +293,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   // ── layout desktop ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="clientes" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="clientes" onNav={onNav} />
+    <>
+      <DesktopShell page="clientes" onNav={onNav} onNewOS={onNewOS}>
         <ClientesDesktop
           clientes={filtered}
           totalClientes={clientes.length}
@@ -309,8 +314,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
           onSchedule={openAgendar}
           onDelete={c => { setSelected(null); setDeleteTarget(c); }}
         />
-      </main>
+      </DesktopShell>
       {modals}
-    </div>
+    </>
   );
 }

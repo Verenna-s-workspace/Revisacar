@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../constants';
-import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
-import { DesktopTopBar } from '../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from './Navigation';
+import { DesktopShell } from '../../components/DesktopShell';
 import { useServicos } from '../../hooks/useServicos';
 import { useEstoque } from '../../hooks/useEstoque';
 import type { ServicoItem } from '../../types/servico';
@@ -125,10 +125,8 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="servicos" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="servicos" onNav={onNav} />
+    <>
+      <DesktopShell page="servicos" onNav={onNav} onNewOS={onNewOS}>
         <ServicosDesktop
           servicos={servicos}
           loading={loading}
@@ -141,8 +139,8 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
           onToggleAtivo={id => executarAcao(() => toggleAtivo(id))}
           onExcluir={setExcluindo}
         />
-      </main>
+      </DesktopShell>
       {modals}
-    </div>
+    </>
   );
 }

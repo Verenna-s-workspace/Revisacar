@@ -4,6 +4,7 @@ import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
 import { BotaoPrivacidade, GraficoPrivado } from '../../../components/Privacidade';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import { ALVO } from '../../../utils/destaque';
 import type { Destaque } from '../../../utils/destaque';
@@ -319,12 +320,25 @@ export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="relatorios" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        <DesktopTopBar page="relatorios" onNav={onNav} />
-        {content}
-      </main>
-    </div>
+    <DesktopShell page='relatorios' onNav={onNav} onNewOS={onNewOS}>
+      <RelatoriosDesktop
+        carregando={carregando}
+        carregandoEstoque={carregandoEstoque}
+        erro={erro}
+        filtro={filtro}
+        onFiltroChange={setFiltro}
+        intervaloAtual={intervaloAtual}
+        kpis={kpis}
+        serieFaturamento={serieFaturamento}
+        serieOrdens={serieOrdens}
+        servicosMaisRealizados={servicosMaisRealizados}
+        itensEstoqueMovimentados={itensEstoqueMovimentados}
+        mediaDiaria={mediaDiaria}
+        faturamentoOrigem={faturamentoOrigem}
+        temDadosNoPeriodo={temDadosNoPeriodo}
+        onRecarregar={recarregar}
+        onGoToEstoque={onGoToEstoque}
+      />
+    </DesktopShell>
   );
 }

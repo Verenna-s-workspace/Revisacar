@@ -303,6 +303,10 @@ export const api = {
 
   deletarVeiculo: (id: string) => authFetch(`${API_BASE}/veiculos/${id}`, { method: 'DELETE' }),
 
+  // ── Busca global (⌘K) ────────────────────────────────────────────────────────
+
+  buscaGlobal: (q: string) => authFetch(`${API_BASE}/busca?q=${encodeURIComponent(q)}`),
+
   // ── Clientes ─────────────────────────────────────────────────────────────────
 
   listarClientes: () => authFetch(`${API_BASE}/clientes`),
