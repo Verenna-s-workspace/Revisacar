@@ -32,6 +32,7 @@ Fluxo: analisar → planejar → backend → banco → APIs → frontend → int
 | Veículos, Agendamentos | 🔴 não iniciados |
 | Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
 | Travas do frontend (Fase 0) | 🟡 Configs prontas (ESLint, Prettier, alias `@/`, passo no CI), todas as regras como aviso. Falta: instalar as dependências (`npm install -D …`), rodar `npm run lint`, `tsc` e `build`, e commitar o `package-lock.json` |
+| Busca global (⌘K / Ctrl+K) | 🟡 Backend + front + testes prontos (1092 testes; tsc + build ok; paleta exercitada no navegador com API simulada, 44 verificações em Windows/Linux e Mac). Sem migração. Falta: validar contra o Supabase real e conferir à mão a abertura do registro em cada tela |
 
 ## Estoque — backend (2026-10-04)
 **Arquivos:** `backend/sql/estoque.sql`, `backend/orders/estoque_views.py`, seção "Estoque" em `serializers.py`, rotas em `urls.py`, `backend/tests/*`, `requirements-dev.txt`.
@@ -703,3 +704,27 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **NÃO validado:** contra o backend/Supabase reais; em aparelho físico (iOS/Android); gesto de deslize por toque real (só renderização); download do CSV no iOS; retirada/desfazer da reserva ponta a ponta.
 
 **Pendências:** o layout antigo do Financeiro (KpiCards, ReservaCard, ContasWidget etc.) ficou sem uso no celular e, fora `ContasListaCompleta`, também no desktop — candidato a limpeza; `nomeDoLancamento/rotuloStatus/classeStatus` duplicam helpers de `FinanceiroDesktop` (unificar depois).
+
+## Busca global na top-bar, ⌘K / Ctrl+K (2026-11-25, branch `feat/busca-global`, parte de `refactor/shell-desktop-unico`)
+
+**Pedido (saJ):** a busca da top-bar era só desenho e não funcionava; quer que procure no sistema e que clicar num resultado abra o registro direto.
+
+**Decisões**
+- Primeira versão com **Clientes, Veículos e Ordens de Serviço**. A OS abre o **modal de resumo** (o mesmo da lista de Ordens); cliente e veículo abrem o detalhe da própria tela.
+- `GET /busca?q=` no backend, sem migração: traz só as colunas leves (sem fotos em data URL) e filtra em Python, ignorando acento e caixa. Se a oficina crescer a ponto de pesar, o próximo passo é uma função SQL com `unaccent`/`pg_trgm` (migração 0012).
+- Relevância: código exato (placa/telefone/CPF/nº da OS) > prefixo de código > nome exato > prefixo do nome > trecho; empate vai para o mais novo. Telefone, CPF e placa casam em qualquer formatação (só dígitos/letras).
+- Permissão por grupo, conferida no servidor: `clientes.ver` libera Clientes e Veículos (veículo é dado do cliente, mesma regra de `veiculos_views`); `ordens.ver` libera OS. Sem nenhuma das duas, 403. Cliente arquivado e veículo excluído não aparecem; oficina vem do token.
+- Falha do banco em um grupo não derruba a busca: a resposta traz `indisponiveis` e a paleta avisa.
+- Frontend: botão na top-bar abre a paleta; **o atalho e a paleta vivem no `BuscaGlobalProvider` (Dashboard)**, não na top-bar, que remonta a cada troca de tela. ⌘K no Mac, **Ctrl+K** no Windows/Linux (a tecla Windows/Super é do sistema e não chega à página); o rótulo se adapta. `preventDefault` evita o Ctrl+K do Firefox.
+- Paleta: espera 250 ms, 2+ caracteres, resposta velha nunca sobrescreve a nova, setas/Enter/Esc, foco volta ao campo anterior, ARIA de combobox/listbox.
+- "Abrir direto": o Dashboard guarda `abrirRegistro {tipo, id, nonce}` (mesmo molde de `agendaFocus`/`estoqueFocus`, limpo por `handleNav`); a tela de destino espera a **própria lista** carregar e abre o item pelo id com o hook `useAbrirRegistro`. O pedido é consumido mesmo se o registro não existir mais.
+- O cache de GET de 5 s do `authFetch` vale para a busca; é limpo a cada escrita.
+
+**Arquivos:** `backend/orders/{busca_views.py,carteira.py,urls.py}`, `backend/tests/test_busca.py`; `frontend/src/{components/BuscaGlobal.tsx,components/DesktopTopBar.tsx,context/BuscaGlobalContext.tsx,hooks/useAbrirRegistro.ts,styles/busca-global.css,styles/desktop-topbar.css,types/busca.ts,utils/api.ts,pages/Dashboard.tsx}`, `Dashboard/{OrdensPage,Veiculos/VeiculosPage,Clientes/ClientesPage}.tsx`.
+
+**Rotas:** `GET /busca?q=` (mín. 2 caracteres; máx. 80).
+
+**Validado:** `pytest` completo (1092, 16 novos em `test_busca.py`: acento/caixa, telefone/CPF/e-mail/placa, relevância, limite e total, arquivados, isolamento entre oficinas, permissão por grupo, falha de um grupo); `flake8`; `tsc --noEmit`, `npm run build`, eslint sem erros nos arquivos novos. Paleta no navegador (Chromium) com API simulada: atalho nas duas plataformas, alternar, foco, debounce, teclado, clique, vazio, erro sem texto técnico, corrida de respostas.
+**NÃO validado:** contra o Supabase/PostgREST reais (a leitura usa as mesmas tabelas das telas); a **abertura do registro dentro de Clientes/Veículos/Ordens** (o hook compila e a lógica foi lida, mas o app completo não foi rodado); desempenho com oficina grande; 390px/mobile (a top-bar é só desktop; Ctrl+K funciona em tela larga com teclado); modo escuro; leitor de tela.
+
+**Pendências/ideias:** Agendamentos, Estoque e Serviços na busca; "itens recentes" e "ir para" ao abrir sem texto; ícone de lupa no topo do celular; função SQL com `unaccent` se a lista crescer; realce do trecho que casou.

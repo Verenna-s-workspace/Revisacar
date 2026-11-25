@@ -3,16 +3,18 @@ import { useAuth } from '../context/AuthContext';
 import { useAlertasResumo } from '../hooks/useAlertasResumo';
 import { rotuloDoCargo } from '../utils/cargo';
 import { BotaoPrivacidade } from './Privacidade';
+import { rotuloDoAtalho, useBuscaGlobal } from '../context/BuscaGlobalContext';
 import type { NavPage } from '../types/dashboard';
 import '../styles/desktop-topbar.css';
 
 /**
  * Top-bar do desktop (56px): breadcrumb, busca global (⌘K), privacidade (ocultar valores),
- * notificações e usuário. Sem saudação. Cada página do painel a coloca no topo do seu <main>
- * (as páginas montam a própria sidebar), então ela aparece em todas as telas.
+ * notificações e usuário. Sem saudação. Montada uma vez por <DesktopShell>, então aparece em todas
+ * as telas do painel.
  *
- * A busca ainda NÃO funciona: é só o desenho (sem foco, sem atalho ⌘K). Quando ela existir,
- * troque o <div> por um botão que abre a paleta de comandos.
+ * A busca é um botão que abre a paleta (components/BuscaGlobal). O atalho de teclado (⌘K no Mac,
+ * Ctrl+K no Windows/Linux) vive no BuscaGlobalProvider, no Dashboard — não aqui, porque esta
+ * barra é remontada a cada troca de tela.
  */
 
 /** Grupo + nome da tela no breadcrumb. É a única lista a mexer para renomear/regrupar. */
@@ -51,6 +53,8 @@ function iniciaisDe(nome?: string): string {
 export function DesktopTopBar({ page, onNav }: { page: NavPage; onNav: (p: NavPage) => void }) {
   const { user, logout } = useAuth();
   const { total } = useAlertasResumo();
+  const { abrir: abrirBusca } = useBuscaGlobal();
+  const atalho = rotuloDoAtalho();
   const [menuAberto, setMenuAberto] = useState(false);
   const raizRef = useRef<HTMLDivElement>(null);
 
@@ -78,11 +82,18 @@ export function DesktopTopBar({ page, onNav }: { page: NavPage; onNav: (p: NavPa
 
       <div className="rv-tb__esp" />
 
-      <div className="rv-tb__busca" aria-disabled="true" title="Busca global — em breve">
+      <button
+        type="button"
+        className="rv-tb__busca"
+        onClick={abrirBusca}
+        aria-label="Buscar OS, cliente ou placa"
+        aria-haspopup="dialog"
+        aria-keyshortcuts={atalho === '⌘K' ? 'Meta+K' : 'Control+K'}
+      >
         {IcBusca}
         <span className="rv-tb__busca-txt">Buscar OS, cliente ou placa</span>
-        <kbd className="rv-tb__kbd">⌘K</kbd>
-      </div>
+        <kbd className="rv-tb__kbd">{atalho}</kbd>
+      </button>
 
       <BotaoPrivacidade variante="topbar" />
 

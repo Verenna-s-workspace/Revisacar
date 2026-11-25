@@ -1,4 +1,6 @@
 import { mensagemDoErro } from '../../utils/api_erro';
+import { useAbrirRegistro } from '../../hooks/useAbrirRegistro';
+import type { AbrirRegistro } from '../../types/busca';
 import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
@@ -177,13 +179,18 @@ interface OrdensPageProps {
   onLoadOS?: (id: string) => void;
   onNav: (p: NavPage) => void;
   isMobile: boolean;
+  /** Busca global (⌘K): abre o modal de resumo desta OS assim que a lista carregar. */
+  abrirRegistro?: AbrirRegistro | null;
+  onRegistroAberto?: () => void;
 }
 
-export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile }: OrdensPageProps) {
+export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile, abrirRegistro, onRegistroAberto }: OrdensPageProps) {
   const [filter, setFilter] = useState<FiltroStatus>('todas');
   const [search, setSearch] = useState('');
   const [sel, setSel] = useState<OrdemRow | null>(null);
   const [del, setDel] = useState<string | null>(null);
+
+  useAbrirRegistro({ pedido: abrirRegistro, tipo: 'ordem', pronto: !loading, itens: ordens, idDe: o => o.id, abrir: setSel, consumido: onRegistroAberto });
 
   const handleDel = async (id: string) => {
     if (!window.confirm('Excluir esta OS permanentemente?')) return;
