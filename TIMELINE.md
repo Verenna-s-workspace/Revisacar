@@ -728,3 +728,13 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **NÃO validado:** contra o Supabase/PostgREST reais (a leitura usa as mesmas tabelas das telas); a **abertura do registro dentro de Clientes/Veículos/Ordens** (o hook compila e a lógica foi lida, mas o app completo não foi rodado); desempenho com oficina grande; 390px/mobile (a top-bar é só desktop; Ctrl+K funciona em tela larga com teclado); modo escuro; leitor de tela.
 
 **Pendências/ideias:** Agendamentos, Estoque e Serviços na busca; "itens recentes" e "ir para" ao abrir sem texto; ícone de lupa no topo do celular; função SQL com `unaccent` se a lista crescer; realce do trecho que casou.
+
+## Regressão do merge do redesign dos modais (2026-11-25, branch fix/regressao-merge-modal, parte de main)
+
+**Problema:** depois do PR #80 (`feat/modal-redesign`), telas mobile voltaram ao design antigo. Os commits do redesign traziam cópias antigas de arquivos, que sobrescreveram trabalho mais novo sem gerar conflito.
+
+**Arquivos:** 15 restaurados para a versão de `aee2b577` (main antes do PR #80): Agenda mobile (componentes, CSS, ícones, página), Financeiro mobile (página, fluxo de caixa, `pages/Dashboard.tsx`), Relatórios (desktop e mobile, `PeriodoModal`), `estoqueMobile.css` e ícones de veículo. Correções de tipo em `Modal.tsx` e import de `RodapeAcoes` em `MinhaContaCard.tsx`. Imports sem uso removidos de `OrdensPage.tsx`. Sem migração.
+
+**Validado:** `tsc --noEmit` e `npm run build`; Agenda, Financeiro e Relatórios a 390px (API simulada, listas vazias/erro 503) idênticos pixel a pixel à versão anterior ao merge; filtros e novo agendamento da Agenda e o modal de período abrem sem erro.
+
+**NÃO validado:** nada contra o backend real; telas com dados preenchidos; demais modais no navegador; desktop no navegador; Estoque e Veículos no navegador.
