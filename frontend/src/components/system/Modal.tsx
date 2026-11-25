@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useId, useRef } from 'react';
-import type { FormEvent, KeyboardEvent, ReactNode, RefObject } from 'react';
+import type { CSSProperties, FormEvent, KeyboardEvent, ReactNode, RefObject } from 'react';
 import './modal.css';
 
 /**
@@ -74,12 +74,18 @@ export function Modal({ onClose, size = 'lg', onSubmit, closeOnBackdrop = true, 
   const janelaRef = useRef<HTMLElement | null>(null);
   const fecharRef = useRef(onClose);
   fecharRef.current = onClose;
+  // Quem tinha o foco (o botão que abriu o modal) é lido na 1ª renderização, antes de qualquer filho montar:
+  // um campo com `autoFocus` já teria tomado o foco quando o efeito roda.
+  const origemRef = useRef<HTMLElement | null>(typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null);
 
   useEffect(() => {
-    const origem = document.activeElement as HTMLElement | null;
+    const origem = origemRef.current;
     const eu = {};
     pilhaDeModais.push(eu);
-    (initialFocusRef?.current ?? janelaRef.current)?.focus({ preventScroll: true });
+    // Foco inicial: o alvo pedido; senão a janela — a menos que um campo (autoFocus) já esteja com o foco.
+    const janela = janelaRef.current;
+    if (initialFocusRef?.current) initialFocusRef.current.focus({ preventScroll: true });
+    else if (janela && !janela.contains(document.activeElement)) janela.focus({ preventScroll: true });
 
     const aoTeclar = (e: KeyboardEvent) => {
       if (pilhaDeModais[pilhaDeModais.length - 1] !== eu) return;
@@ -361,6 +367,10 @@ export interface ModalTabsProps<T extends string> {
 /** Abas entre o cabeçalho e o corpo. Setas, Home e End trocam de aba. */
 export function ModalTabs<T extends string>({ label, value, tabs, onChange }: ModalTabsProps<T>) {
   const base = useId();
+  // A aba ativa nunca fica fora da tela (ex.: ao avançar por botões "Próximo" fora das abas).
+  useEffect(() => {
+    document.getElementById(`${base}-${value}`)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [base, value]);
   const aoTeclar = (e: KeyboardEvent<HTMLDivElement>) => {
     const i = tabs.findIndex(t => t.value === value);
     let n = i;
@@ -448,7 +458,8 @@ export interface ModalChoicesProps<T extends string> {
   /** Rótulo visível do grupo (ex.: "Categoria"). */
   label: string;
   value: T;
-  options: { value: T; label: string }[];
+  /** `dot`: cor (CSS) de uma bolinha antes do rótulo — ex.: a cor do status. */
+  options: { value: T; label: string; dot?: string }[];
   onChange: (value: T) => void;
   /** Alvos de toque maiores (48px) — para telas usadas com uma mão, como o checklist. */
   touch?: boolean;
@@ -467,7 +478,8 @@ export function ModalChoices<T extends string>({ label, value, options, onChange
           <button
             key={o.value}
             type="button"
-            className="sys-modal__choice"
+            className={`sys-modal__choice${o.dot ? ' sys-modal__choice--dot' : ''}`}
+            style={o.dot ? ({ '--dot': o.dot } as CSSProperties) : undefined}
             aria-pressed={value === o.value}
             disabled={disabled}
             onClick={() => onChange(o.value)}
@@ -483,7 +495,8 @@ export function ModalChoices<T extends string>({ label, value, options, onChange
 // ── Rodapé ───────────────────────────────────────────────────────────────────
 
 export interface ModalFooterProps {
-  /** Texto discreto à esquerda (ex.: "* Campos obrigatórios"). */
+  /** À esquerda dos botões. Texto simples ("* Campos obrigatórios") some no celular; um elemento
+   *  (botão "Limpar filtros", progresso, PDF) aparece sempre, numa linha acima das ações. */
   hint?: ReactNode;
   /** Aviso/erro acima dos botões — use <ModalNotice tone="error" role="alert">. */
   notice?: ReactNode;
@@ -496,7 +509,9 @@ export function ModalFooter({ hint, notice, children }: ModalFooterProps) {
     <footer className="sys-modal__footer">
       {notice && <div className="sys-modal__footer-notice">{notice}</div>}
       <div className="sys-modal__footer-row">
-        <div className="sys-modal__footer-hint">{hint}</div>
+        {typeof hint === 'string' || hint == null || hint === false
+          ? <div className="sys-modal__footer-hint">{hint}</div>
+          : <div className="sys-modal__footer-extra">{hint}</div>}
         <div className="sys-modal__actions">{children}</div>
       </div>
     </footer>

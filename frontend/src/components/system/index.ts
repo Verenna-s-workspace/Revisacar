@@ -13,8 +13,8 @@ export {
   ModalHighlights, ModalHighlight, ModalValue, ModalDetails, ModalDetail, ModalRows, ModalRow,
   ModalNotice, ModalBadge, ModalSwitch, ModalChoices, ModalSubsection, ModalTabs, ModalFooter,
 } from './Modal';
-export { ModalFotoCampo } from './ModalFoto';
-export type { ModalFotoCampoProps } from './ModalFoto';
+export { ModalFotoCampo, ModalFotoGrade } from './ModalFoto';
+export type { ModalFotoCampoProps, ModalFotoGradeProps } from './ModalFoto';
 export type {
   ModalProps, ModalHeaderProps, ModalSectionProps, ModalHighlightProps,
   ModalNoticeProps, ModalSwitchProps, ModalChoicesProps, ModalTabsProps, ModalFooterProps, ModalRowProps,

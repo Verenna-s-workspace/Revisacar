@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { tokens, COMBUSTIVEL_OPTIONS } from '../../../constants';
-import { PhotoGrid, Lightbox } from '../../../components/ui';
+import { Lightbox } from '../../../components/ui';
 import { CATEGORIA_OPTIONS, CAMBIO_OPTIONS, PORTAS_OPTIONS } from '../../../utils/veiculos_utils';
 import { comprimirImagem } from '../../../utils/estoque_utils';
 import { VeiculoIcons } from './icons';
@@ -11,7 +11,7 @@ import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
 import { Textarea } from '../../../components/inputs/textarea';
 import {
-  Button, Modal, ModalBody, ModalColumns, ModalFields, ModalFooter, ModalFotoCampo, ModalHeader,
+  Button, Modal, ModalBody, ModalColumns, ModalFields, ModalFooter, ModalFotoCampo, ModalFotoGrade, ModalHeader,
   ModalNotice, ModalSection,
 } from '../../../components/system';
 import { MAX_FOTOS_ADICIONAIS } from '../../../types/veiculo';
@@ -189,7 +189,7 @@ export function VehicleFormModal({ veiculo, clientes = [], onSave, onClose }: Ve
                   title="Fotos adicionais"
                   aside={<span style={{ fontSize: 13, color: tokens.color.muted }}>{fotos.length}/{MAX_FOTOS_ADICIONAIS}</span>}
                 >
-                  <PhotoGrid photos={fotos} handlePhotos={handleFotosAdicionais} onRemove={removeFoto} onPreview={setPreview} />
+                  <ModalFotoGrade fotos={fotos} max={MAX_FOTOS_ADICIONAIS} comprimindo={comprimindo} onAdicionar={handleFotosAdicionais} onRemover={removeFoto} onAmpliar={setPreview} />
                   {erroFoto && <ModalNotice tone="error" role="alert">{erroFoto}</ModalNotice>}
                 </ModalSection>
               </>

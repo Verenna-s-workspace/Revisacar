@@ -1,44 +1,16 @@
 import { useState } from 'react';
-import { tokens } from '../../constants';
-import { btnAccent, btnGhost } from '../../components/ui';
+import type { FormEvent } from 'react';
 import { AssinaturaPad } from '../../components/AssinaturaPad';
+import { Select } from '../../components/inputs/select';
+import { Textarea } from '../../components/inputs/textarea';
+import {
+  Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../components/system';
+import { Icons } from '../Dashboard/Icons';
 import { CANAIS, ROTULO_CANAL, LIMITES } from '../../utils/orcamento_utils';
 import type { CanalAprovacao } from '../../types/orcamento';
 
-const rotulo: React.CSSProperties = {
-  display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5,
-};
-const campo: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box', padding: '10px 12px', fontFamily: tokens.fontSans, fontSize: '0.88rem',
-  color: tokens.color.text, background: tokens.color.surface, border: `1px solid ${tokens.color.border}`,
-  borderRadius: tokens.radius.md, outline: 'none',
-};
-
-function Casca({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: React.ReactNode }) {
-  return (
-    <div
-      role="dialog" aria-modal="true" aria-label={titulo}
-      className="sheet-backdrop"
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
-      }}
-    >
-      <div className="sheet-panel" style={{
-        background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 440, maxHeight: '90dvh',
-        border: `1px solid ${tokens.color.border}`, boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ padding: '16px 22px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>{titulo}</h3>
-          <button type="button" onClick={onFechar} aria-label="Fechar"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: tokens.color.muted, width: 44, height: 44, margin: '-10px -10px -10px 0' }}>×</button>
-        </div>
-        <div style={{ padding: 22, overflowY: 'auto' }}>{children}</div>
-      </div>
-    </div>
-  );
-}
+const OPCOES_CANAL = CANAIS.map(c => ({ value: c, label: ROTULO_CANAL[c] }));
 
 interface AprovarProps {
   versao: number;
@@ -54,37 +26,56 @@ export function AprovarModal({ versao, total, ocupado, erro, onFechar, onConfirm
   const [canal, setCanal] = useState<CanalAprovacao>('whatsapp');
   const [obs, setObs] = useState('');
   const [assinatura, setAssinatura] = useState<string | null>(null);
+
+  const enviar = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!ocupado) onConfirmar(canal, obs, assinatura);
+  };
+
   return (
-    <Casca titulo="Registrar aprovação do cliente" onFechar={onFechar}>
-      <form
-        onSubmit={e => { e.preventDefault(); if (!ocupado) onConfirmar(canal, obs, assinatura); }}
-        style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-      >
-        <p style={{ margin: 0, fontSize: '0.86rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
+    <Modal size="md" onClose={onFechar} onSubmit={enviar} closeOnBackdrop={!ocupado}>
+      <ModalHeader
+        icon={Icons.check}
+        title="Registrar aprovação do cliente"
+        description={`Orçamento v${versao} · ${total}`}
+      />
+
+      <ModalBody>
+        <ModalNotice tone="info">
           O cliente aprovou o orçamento v{versao} ({total}). Depois disso a OS fica pronta para execução.
-        </p>
-        <div>
-          <label style={rotulo} htmlFor="aprov-canal">COMO O CLIENTE APROVOU</label>
-          <select id="aprov-canal" value={canal} onChange={e => setCanal(e.target.value as CanalAprovacao)} style={campo}>
-            {CANAIS.map(c => <option key={c} value={c}>{ROTULO_CANAL[c]}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={rotulo} htmlFor="aprov-obs">OBSERVAÇÃO (OPCIONAL)</label>
-          <textarea id="aprov-obs" value={obs} maxLength={500} rows={3} onChange={e => setObs(e.target.value)}
-            placeholder="Ex.: respondeu 'pode fazer' às 14h12" style={{ ...campo, resize: 'vertical' }} />
-        </div>
-        <div>
-          <span style={rotulo}>ASSINATURA DO CLIENTE (OPCIONAL)</span>
+        </ModalNotice>
+
+        <ModalSection title="Aprovação">
+          <Select
+            name="aprov-canal"
+            label="Como o cliente aprovou"
+            value={canal}
+            options={OPCOES_CANAL}
+            onChangeValue={v => setCanal(v as CanalAprovacao)}
+          />
+          <Textarea
+            name="aprov-obs"
+            label="Observação (opcional)"
+            value={obs}
+            maxLength={500}
+            rows={3}
+            onChangeValue={setObs}
+            placeholder="Ex.: respondeu 'pode fazer' às 14h12"
+          />
+        </ModalSection>
+
+        <ModalSection title="Assinatura do cliente (opcional)">
           <AssinaturaPad onChange={setAssinatura} disabled={ocupado} />
-        </div>
-        {erro && <div role="alert" style={{ fontSize: '0.82rem', color: tokens.color.crit }}>{erro}</div>}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" onClick={onFechar} style={btnGhost} disabled={ocupado}>Cancelar</button>
-          <button type="submit" style={btnAccent} disabled={ocupado}>{ocupado ? 'Registrando…' : 'Registrar aprovação'}</button>
-        </div>
-      </form>
-    </Casca>
+        </ModalSection>
+      </ModalBody>
+
+      <ModalFooter notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}>
+        <Button variant="ghost" onClick={onFechar} disabled={ocupado}>Cancelar</Button>
+        <Button type="submit" variant="primary" loading={ocupado}>
+          {ocupado ? 'Registrando…' : 'Registrar aprovação'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -99,27 +90,46 @@ interface RecusarProps {
 
 export function RecusarModal({ versao, aprovado, ocupado, erro, onFechar, onConfirmar }: RecusarProps) {
   const [motivo, setMotivo] = useState('');
+
+  const enviar = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!ocupado) onConfirmar(motivo);
+  };
+
   return (
-    <Casca titulo={aprovado ? 'Cancelar orçamento aprovado' : 'Registrar recusa do cliente'} onFechar={onFechar}>
-      <form
-        onSubmit={e => { e.preventDefault(); if (!ocupado) onConfirmar(motivo); }}
-        style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-      >
-        <p style={{ margin: 0, fontSize: '0.86rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
+    <Modal size="md" onClose={onFechar} onSubmit={enviar} closeOnBackdrop={!ocupado}>
+      <ModalHeader
+        icon={Icons.alert}
+        iconTone="error"
+        title={aprovado ? 'Cancelar orçamento aprovado' : 'Registrar recusa do cliente'}
+        description={`Orçamento v${versao}`}
+      />
+
+      <ModalBody>
+        <ModalNotice tone="attention">
           O orçamento v{versao} será encerrado e a OS ficará como recusada. Se o cliente quiser refazer,
           é só criar uma nova versão.
-        </p>
-        <div>
-          <label style={rotulo} htmlFor="rec-motivo">MOTIVO (OPCIONAL)</label>
-          <textarea id="rec-motivo" value={motivo} maxLength={LIMITES.motivo} rows={3} onChange={e => setMotivo(e.target.value)}
-            placeholder="Ex.: achou o valor alto / vai resolver por conta própria" style={{ ...campo, resize: 'vertical' }} />
-        </div>
-        {erro && <div role="alert" style={{ fontSize: '0.82rem', color: tokens.color.crit }}>{erro}</div>}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" onClick={onFechar} style={btnGhost} disabled={ocupado}>Voltar</button>
-          <button type="submit" style={btnAccent} disabled={ocupado}>{ocupado ? 'Registrando…' : 'Registrar recusa'}</button>
-        </div>
-      </form>
-    </Casca>
+        </ModalNotice>
+
+        <ModalSection title="Motivo">
+          <Textarea
+            name="rec-motivo"
+            label="Motivo (opcional)"
+            value={motivo}
+            maxLength={LIMITES.motivo}
+            rows={3}
+            onChangeValue={setMotivo}
+            placeholder="Ex.: achou o valor alto / vai resolver por conta própria"
+          />
+        </ModalSection>
+      </ModalBody>
+
+      <ModalFooter notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}>
+        <Button variant="ghost" onClick={onFechar} disabled={ocupado}>Voltar</Button>
+        <Button type="submit" variant="danger" className="sys-btn--solid" loading={ocupado}>
+          {ocupado ? 'Registrando…' : 'Registrar recusa'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

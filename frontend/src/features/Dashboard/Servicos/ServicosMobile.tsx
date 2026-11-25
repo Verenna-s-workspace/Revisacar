@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { Skeleton } from '../Primitives';
 import { formatPreco } from '../../../utils/servicos_utils';
 import type { ServicoItem } from '../../../types/servico';
-import { ActionSheet } from '../../../components/system';
+import {
+  ActionSheet, Button, Modal, ModalBody, ModalChoices, ModalFooter, ModalHeader, ModalSection,
+} from '../../../components/system';
+import { Select } from '../../../components/inputs/select';
 import { IcBuscar, IcEditar, IcFiltros, IcLigar, IcLixeira, IcMais, IcReticencias, IcSetaEsq } from './icones';
 import './ServicosMobile.css';
 
@@ -284,67 +287,56 @@ export function ServicosMobile({
         )}
       </section>
 
-      {/* Bottom Sheet: Filtros */}
-      {filtrosSheetAberto &&
-        createPortal(
-          <div className="svm-sheet-backdrop" onClick={() => setFiltrosSheetAberto(false)}>
-            <div
-              className="svm-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Filtros do catálogo"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="svm-sheet__grab" aria-hidden="true" />
-              <h2 className="svm-sheet__titulo">Filtros</h2>
+      {/* Sheet de filtros */}
+      {filtrosSheetAberto && createPortal(
+        <Modal size="sm" onClose={() => setFiltrosSheetAberto(false)}>
+          <ModalHeader icon={IcFiltros} title="Filtros" description="Refine o catálogo de serviços." />
 
-              <label className="svm-sheet__campo">
-                <span>Situação</span>
-                <select
-                  value={statusFiltro}
-                  onChange={e => setStatusFiltro(e.target.value as StatusFiltro)}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="ativos">Somente ativos</option>
-                  <option value="inativos">Somente inativos</option>
-                </select>
-              </label>
+          <ModalBody>
+            <ModalSection title="Situação">
+              <ModalChoices
+                label="Situação do serviço"
+                value={statusFiltro}
+                options={[
+                  { value: 'todos', label: 'Todos' },
+                  { value: 'ativos', label: 'Somente ativos' },
+                  { value: 'inativos', label: 'Somente inativos' },
+                ]}
+                onChange={setStatusFiltro}
+              />
+            </ModalSection>
 
-              <label className="svm-sheet__campo">
-                <span>Categoria</span>
-                <select value={categoria} onChange={e => setCategoria(e.target.value)}>
-                  <option value="todas">Todas as categorias</option>
-                  {categoriasOrdenadas.map(c => (
-                    <option key={c.nome} value={c.nome}>
-                      {c.nome} ({c.qtd})
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <ModalSection title="Categoria">
+              <Select
+                name="servicos_categoria_filtro"
+                label="Categoria"
+                value={categoria}
+                onChangeValue={setCategoria}
+                options={[
+                  { value: 'todas', label: 'Todas as categorias' },
+                  ...categoriasOrdenadas.map(c => ({ value: c.nome, label: `${c.nome} (${c.qtd})` })),
+                ]}
+              />
+            </ModalSection>
+          </ModalBody>
 
-              <div className="svm-sheet__acoes">
-                <button
-                  type="button"
-                  className="svm-sheet__btn svm-sheet__btn--sec"
-                  onClick={() => {
-                    setStatusFiltro('todos');
-                    setCategoria('todas');
-                  }}
-                >
-                  Limpar
-                </button>
-                <button
-                  type="button"
-                  className="svm-sheet__btn svm-sheet__btn--pri"
-                  onClick={() => setFiltrosSheetAberto(false)}
-                >
-                  Aplicar
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+          <ModalFooter
+            hint={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setStatusFiltro('todos'); setCategoria('todas'); }}
+                disabled={statusFiltro === 'todos' && categoria === 'todas'}
+              >
+                Limpar filtros
+              </Button>
+            }
+          >
+            <Button variant="primary" onClick={() => setFiltrosSheetAberto(false)}>Aplicar</Button>
+          </ModalFooter>
+        </Modal>,
+        document.body,
+      )}
 
       {/* Sheet de ações do serviço */}
       {acaoItem && (

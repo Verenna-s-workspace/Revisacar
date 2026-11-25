@@ -1,8 +1,9 @@
 /* --- START OF FILE src/features/Dashboard/Alertas/AlertasMobile.tsx --- */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Skeleton } from '../Primitives';
+import { Icons } from '../Icons';
+import { ActionSheet } from '../../../components/system';
 import { ProdutoModal } from '../Estoque/ProdutoModal';
 import { TransacaoModal } from '../Financeiro/TransacaoModal';
 import { api } from '../../../utils/api';
@@ -216,15 +217,6 @@ export function AlertasMobile({
 
     return () => { ativo = false; };
   }, [alertas]);
-
-  useEffect(() => {
-    if (!sheetAlerta) return;
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSheetAlerta(null);
-    };
-    document.addEventListener('keydown', aoTeclar);
-    return () => document.removeEventListener('keydown', aoTeclar);
-  }, [sheetAlerta]);
 
   const qtd = useMemo(() => ({
     todos: alertas.length,
@@ -639,42 +631,21 @@ export function AlertasMobile({
         )}
       </div>
 
-      {/* Bottom sheet: Adiar ou dispensar */}
-      {sheetAlerta && createPortal(
-        <div className="alm-sheet-backdrop" onClick={() => setSheetAlerta(null)}>
-          <div
-            className="alm-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Adiar ou dispensar: ${sheetAlerta.titulo}`}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="alm-sheet__grab" aria-hidden="true" />
-            <h3 className="alm-sheet__titulo">{sheetAlerta.titulo}</h3>
-            <p className="alm-sheet__sub">Escolha por quanto tempo esconder este alerta</p>
-            {OPCOES_ADIAR.map(o => (
-              <button
-                key={o.dias}
-                type="button"
-                className="alm-sheet__opt"
-                onClick={() => void handleAdiar(sheetAlerta.id, o.dias)}
-              >
-                Adiar por {o.rotulo}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="alm-sheet__opt alm-sheet__opt--perigo"
-              onClick={() => void handleDispensar(sheetAlerta.id)}
-            >
-              Dispensar até resolver
-            </button>
-            <button type="button" className="alm-sheet__cancel" onClick={() => setSheetAlerta(null)}>
-              Cancelar
-            </button>
-          </div>
-        </div>,
-        document.body,
+      {/* Sheet: adiar ou dispensar */}
+      {sheetAlerta && (
+        <ActionSheet
+          title={sheetAlerta.titulo}
+          description="Escolha por quanto tempo esconder este alerta"
+          onClose={() => setSheetAlerta(null)}
+          actions={[
+            ...OPCOES_ADIAR.map(o => ({
+              label: `Adiar por ${o.rotulo}`,
+              icon: Icons.clock,
+              onSelect: () => { void handleAdiar(sheetAlerta.id, o.dias); },
+            })),
+            { label: 'Dispensar até resolver', icon: Icons.eyeOff, tone: 'danger' as const, onSelect: () => { void handleDispensar(sheetAlerta.id); } },
+          ]}
+        />
       )}
 
       {/* Toast desfazer */}
