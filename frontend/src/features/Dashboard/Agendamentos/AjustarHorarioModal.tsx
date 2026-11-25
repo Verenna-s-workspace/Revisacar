@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { tokens } from '../../../constants';
-import { useResponsive } from '../../../components/ui';
+import { Input } from '../../../components/inputs/input';
+import {
+  Button, Modal, ModalBody, ModalFields, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../../components/system';
+import { Icons } from '../Icons';
 import { lerHorarioFuncionamento } from '../../../utils/horario_funcionamento';
 import {
   toISODate,
@@ -29,7 +32,6 @@ interface AjustarHorarioModalProps {
 /** Ajuste de data, início e duração de um agendamento existente. Quem define o tempo de
  * trabalho é sempre a oficina; o pedido do cliente só traz o horário de chegada. */
 export function AjustarHorarioModal({ agendamento: ag, modo, getOcupados, onSave, onClose }: AjustarHorarioModalProps) {
-  const { isMobile } = useResponsive();
   const [data, setData] = useState(ag.data);
   const [inicio, setInicio] = useState(ag.horaInicio);
   const [duracao, setDuracao] = useState(() => {
@@ -77,85 +79,47 @@ export function AjustarHorarioModal({ agendamento: ag, modo, getOcupados, onSave
     }
   };
 
-  const rotulo: React.CSSProperties = {
-    fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-    color: tokens.color.muted, marginBottom: 6,
-  };
-  const campo: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${tokens.color.border}`,
-    fontSize: '0.9rem', boxSizing: 'border-box',
-  };
   const confirmar = modo === 'confirmar';
 
   return (
-    <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">{confirmar ? 'Confirmar pedido' : 'Ajustar horário'}</div>
-            <div className="dashboard-modal__subtitle">{ag.cliente} · {ag.veiculo}</div>
-          </div>
-          <button onClick={onClose} className="dashboard-button--close">×</button>
-        </div>
+    <Modal size="md" onClose={onClose} closeOnBackdrop={!salvando}>
+      <ModalHeader
+        icon={Icons.clock}
+        title={confirmar ? 'Confirmar pedido' : 'Ajustar horário'}
+        description={`${ag.cliente} · ${ag.veiculo}`}
+      />
 
-        <div className="dashboard-modal__body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {confirmar && (
-            <div style={{ padding: '10px 14px', borderRadius: 10, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}`, fontSize: '0.82rem', color: tokens.color.textSecond }}>
-              O cliente pediu {formatDateBR(ag.data)} às {ag.horaInicio}. Defina quanto tempo o serviço vai levar
-              e confirme — o cliente será avisado.
-            </div>
-          )}
+      <ModalBody>
+        {confirmar && (
+          <ModalNotice tone="info">
+            O cliente pediu {formatDateBR(ag.data)} às {ag.horaInicio}. Defina quanto tempo o serviço vai levar
+            e confirme — o cliente será avisado.
+          </ModalNotice>
+        )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
-            <div>
-              <div style={rotulo}>Data</div>
-              <input type="date" value={data} min={hoje} onChange={e => setData(e.target.value)} style={campo} />
-            </div>
-            <div>
-              <div style={rotulo}>Início</div>
-              <input type="time" step={900} value={inicio} onChange={e => setInicio(e.target.value)} style={campo} />
-            </div>
-          </div>
+        <ModalSection title="Data e horário">
+          <ModalFields>
+            <Input name="ajuste_data" type="date" label="Data" min={hoje} value={data} onChangeValue={setData} />
+            <Input name="ajuste_inicio" type="time" step={900} label="Início" value={inicio} onChangeValue={setInicio} />
+          </ModalFields>
+        </ModalSection>
 
-          <div>
-            <div style={rotulo}>Duração do serviço</div>
-            <DuracaoSelector value={duracao} onChange={setDuracao} />
-          </div>
+        <ModalSection
+          title="Duração do serviço"
+          description={inicioOk && duracaoOk ? `Termina às ${fim} (${formatDuracao(duracao)}).` : undefined}
+        >
+          <DuracaoSelector value={duracao} onChange={setDuracao} />
+        </ModalSection>
+      </ModalBody>
 
-          {inicioOk && duracaoOk && (
-            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: tokens.color.text }}>
-              Termina às <span style={{ fontFamily: tokens.fontMono }}>{fim}</span> ({formatDuracao(duracao)})
-            </div>
-          )}
-
-          {(erro || erroSalvar) && (
-            <div style={{ padding: '9px 12px', borderRadius: 9, background: tokens.color.critBg, border: `1px solid ${tokens.color.critBorder}`, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
-              {erroSalvar ?? erro}
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
-          <button
-            onClick={onClose}
-            style={{ padding: '9px 18px', borderRadius: 10, border: `1px solid ${tokens.color.border}`, background: 'transparent', color: tokens.color.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600 }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSalvar}
-            disabled={!!erro || salvando}
-            style={{
-              padding: '9px 22px', borderRadius: 10, border: 'none',
-              background: erro ? tokens.color.border : tokens.color.ferrari,
-              color: erro ? tokens.color.muted : 'white',
-              cursor: erro ? 'not-allowed' : 'pointer', fontSize: '0.84rem', fontWeight: 700,
-            }}
-          >
-            {salvando ? 'Salvando…' : confirmar ? 'Confirmar pedido' : 'Salvar horário'}
-          </button>
-        </div>
-      </div>
-    </div>
+      <ModalFooter
+        notice={(erro || erroSalvar) ? <ModalNotice tone="error" role="alert">{erroSalvar ?? erro}</ModalNotice> : undefined}
+      >
+        <Button variant="ghost" onClick={onClose} disabled={salvando}>Cancelar</Button>
+        <Button variant="primary" onClick={handleSalvar} loading={salvando} disabled={!!erro}>
+          {salvando ? 'Salvando…' : confirmar ? 'Confirmar pedido' : 'Salvar horário'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

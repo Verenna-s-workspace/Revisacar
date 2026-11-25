@@ -1,17 +1,19 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from './Button';
 import { IconeAlerta } from './icons';
-import './system.css';
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalNotice } from './Modal';
 
 export interface ConfirmDialogProps {
   open: boolean;
   title: string;
   /** O que acontece / o que será perdido. Aceita quebras de linha. */
   description?: ReactNode;
+  /** Aviso extra abaixo do texto (ex.: "Os veículos vinculados continuam cadastrados"). */
+  notice?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  /** danger = ação destrutiva (#9F1239 com ícone); primary = confirmação comum. */
+  /** danger = ação destrutiva (ícone crítico + botão sólido); primary = confirmação comum. */
   tone?: 'danger' | 'primary';
   loading?: boolean;
   onConfirm: () => void;
@@ -19,40 +21,98 @@ export interface ConfirmDialogProps {
 }
 
 /**
- * Diálogo de confirmação único do app (substitui window.confirm e os 4 modais de exclusão).
- * Padrão: ícone crítico · título “Excluir a OS #…?” · o que será perdido · Cancelar + ação.
- * Foco inicial em “Cancelar”; Esc e clique fora cancelam.
+ * Diálogo de confirmação único do app. É o `Modal` do sistema em tamanho `sm`, então tem o mesmo visual
+ * do modal de produto (cabeçalho com ícone · corpo · rodapé) e o mesmo comportamento: foco preso,
+ * Esc e clique fora cancelam, vira bottom sheet no celular.
+ * Foco inicial em “Cancelar” (evita confirmar uma exclusão sem querer com Enter).
  */
-export function ConfirmDialog({
-  open, title, description, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar',
+export function ConfirmDialog(props: ConfirmDialogProps) {
+  if (!props.open) return null;
+  return <ConfirmJanela {...props} />;
+}
+
+function ConfirmJanela({
+  title, description, notice, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar',
   tone = 'primary', loading, onConfirm, onCancel,
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    cancelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onCancel]);
-
-  if (!open) return null;
+  const descId = useId();
   const perigo = tone === 'danger';
 
   return (
-    <div className="sys-dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="sys-dialog" role="alertdialog" aria-modal="true" aria-labelledby="sys-dialog-title"
-           aria-describedby={description ? 'sys-dialog-text' : undefined}>
-        {perigo && <div className="sys-dialog__icon">{IconeAlerta}</div>}
-        <h2 id="sys-dialog-title" className="sys-dialog__title">{title}</h2>
-        {description && <p id="sys-dialog-text" className="sys-dialog__text">{description}</p>}
-        <div className="sys-dialog__actions">
-          <Button ref={cancelRef} variant="ghost" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>
-          <Button variant={perigo ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>{confirmLabel}</Button>
-        </div>
-      </div>
-    </div>
+    <Modal
+      size="sm"
+      role="alertdialog"
+      initialFocusRef={cancelRef}
+      describedBy={description ? descId : undefined}
+      closeOnBackdrop={!loading}
+      onClose={() => { if (!loading) onCancel(); }}
+    >
+      <ModalHeader
+        title={title}
+        icon={perigo ? IconeAlerta : undefined}
+        iconTone={perigo ? 'error' : 'default'}
+      />
+      {(description || notice) && (
+        <ModalBody>
+          <div className="sys-modal__confirm">
+            {description && <p id={descId} className="sys-modal__confirm-text">{description}</p>}
+            {notice && <ModalNotice tone="info">{notice}</ModalNotice>}
+          </div>
+        </ModalBody>
+      )}
+      <ModalFooter>
+        <Button ref={cancelRef} variant="ghost" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>
+        <Button
+          variant={perigo ? 'danger' : 'primary'}
+          className={perigo ? 'sys-btn--solid' : undefined}
+          onClick={onConfirm}
+          loading={loading}
+        >
+          {confirmLabel}
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+}
+
+// ── ConfirmDeleteDialog: confirmar exclusão de qualquer cadastro ────────────
+// Substitui os DeleteConfirmModal de Veículos, Clientes e Serviços e o ConfirmDeleteModal do Estoque.
+// <ConfirmDeleteDialog entidade="cliente" nome={c.nome} onConfirm={() => excluir(c.id)} onClose={() => setAlvo(null)} />
+
+export interface ConfirmDeleteDialogProps {
+  /** Encaixa em "excluir o <entidade>": use substantivo masculino, minúsculo (cliente, veículo, serviço, produto, kit). */
+  entidade: string;
+  /** O que está sendo excluído, em destaque na pergunta. */
+  nome: ReactNode;
+  /** Aviso extra (ex.: o que NÃO será apagado junto). */
+  notice?: ReactNode;
+  /** Pode ser assíncrono. O diálogo fecha ao terminar; erros devem ser tratados por quem passa a função. */
+  onConfirm: () => void | Promise<unknown>;
+  onClose: () => void;
+}
+
+export function ConfirmDeleteDialog({ entidade, nome, notice, onConfirm, onClose }: ConfirmDeleteDialogProps) {
+  const [excluindo, setExcluindo] = useState(false);
+
+  async function confirmar() {
+    if (excluindo) return;
+    setExcluindo(true);
+    try { await onConfirm(); } finally { onClose(); }
+  }
+
+  return (
+    <ConfirmDialog
+      open
+      tone="danger"
+      title={`Excluir ${entidade}?`}
+      description={<>Tem certeza que deseja excluir o {entidade} <strong>{nome}</strong>? Esta ação não pode ser desfeita.</>}
+      notice={notice}
+      confirmLabel="Excluir"
+      loading={excluindo}
+      onConfirm={confirmar}
+      onCancel={onClose}
+    />
   );
 }
 

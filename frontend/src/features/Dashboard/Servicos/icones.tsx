@@ -68,3 +68,10 @@ export const IcCheck: ReactNode = (
     <path d="M20 6 9 17l-5-5" />
   </svg>
 );
+
+/** Liga/desliga (ativar ou desativar um serviço do catálogo). */
+export const IcLigar: ReactNode = (
+  <svg {...base}>
+    <path d="M12 2v10M18.36 6.64a9 9 0 1 1-12.73 0" />
+  </svg>
+);

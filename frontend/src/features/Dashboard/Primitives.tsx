@@ -86,6 +86,23 @@ const STATUS_MAP: Record<string, { l: string; cls: string }> = {
   recusada:           { l: ROTULO_STATUS.recusada,          cls: 'status-badge--recusada' },
 };
 
+/** Tom do selo dos modais (ModalBadge) para cada status de OS; status desconhecido fica neutro. */
+export const OS_STATUS_TOM: Record<string, 'info' | 'attention' | 'error' | 'success'> = {
+  rascunho: 'info',
+  em_orcamento: 'info',
+  pendente_aprovacao: 'attention',
+  aprovada: 'success',
+  em_execucao: 'info',
+  aguardando: 'attention',
+  finalizada: 'success',
+  recusada: 'error',
+};
+
+/** Rótulo de um status de OS (o mesmo do StatusBadge). */
+export function rotuloStatusOS(status: string): string {
+  return (STATUS_MAP[status] ?? STATUS_MAP.rascunho).l;
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const s = STATUS_MAP[status] ?? STATUS_MAP.rascunho;
   return <span className={`status-badge ${s.cls}`}>{s.l}</span>;

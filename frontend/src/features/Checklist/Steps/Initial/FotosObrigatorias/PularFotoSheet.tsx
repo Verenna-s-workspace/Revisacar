@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
-import { tokens } from '../../../../../constants';
-import { btnAccent, btnGhost } from '../../../../../components/ui';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { Input } from '../../../../../components/inputs/input';
+import {
+  Button, Modal, ModalBody, ModalChoices, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../../../../components/system';
 import {
   MOTIVO_MAX, MOTIVOS_PADRAO, validarMotivo,
 } from '../../../../../utils/fotos_obrigatorias';
@@ -24,119 +27,48 @@ export function PularFotoSheet({ rotulo, motivoAtual, ocupado, erro, onConfirmar
   const [escolha, setEscolha] = useState<string>(inicialPadrao || (motivoAtual ? OUTRO : ''));
   const [texto, setTexto] = useState(inicialPadrao ? '' : motivoAtual ?? '');
 
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancelar(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onCancelar]);
-
   const motivoFinal = escolha === OUTRO ? texto : escolha;
   const validacao = validarMotivo(motivoFinal);
   const podeConfirmar = !!escolha && validacao.ok && !ocupado;
 
-  const chip = (ativo: boolean): React.CSSProperties => ({
-    minHeight: 48,
-    padding: '10px 16px',
-    borderRadius: tokens.radius.lg,
-    border: `1.5px solid ${ativo ? tokens.color.ferrari : tokens.color.borderMd}`,
-    background: ativo ? tokens.color.accentDim : tokens.color.surface,
-    color: ativo ? tokens.color.ferrari : tokens.color.text,
-    fontFamily: tokens.fontSans,
-    fontSize: '0.95rem',
-    fontWeight: ativo ? 600 : 500,
-    cursor: 'pointer',
-  });
+  const opcoes = [
+    ...MOTIVOS_PADRAO.map(m => ({ value: m, label: m })),
+    { value: OUTRO, label: 'Outro motivo' },
+  ];
+
+  const confirmar = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (podeConfirmar && validacao.ok) onConfirmar(validacao.motivo);
+  };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Não consigo tirar a foto: ${rotulo}`}
-      onClick={onCancelar}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1500,
-        background: 'rgba(26,26,26,0.55)',
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 560,
-          background: tokens.color.surface,
-          borderRadius: `${tokens.radius.xl} ${tokens.radius.xl} 0 0`,
-          padding: '18px 16px calc(16px + env(safe-area-inset-bottom, 0px))',
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.2)',
-          maxHeight: '90dvh', overflowY: 'auto',
-        }}
-      >
-        <div style={{ fontFamily: tokens.fontSans, fontSize: '1.05rem', fontWeight: 700, color: tokens.color.text }}>
-          Não consigo tirar esta foto
-        </div>
-        <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.muted, margin: '2px 0 14px' }}>
-          {rotulo} — escolha o motivo
-        </div>
+    <Modal size="sm" onClose={onCancelar} onSubmit={confirmar} closeOnBackdrop={!ocupado}>
+      <ModalHeader title="Não consigo tirar esta foto" description={`${rotulo} — escolha o motivo.`} />
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {MOTIVOS_PADRAO.map((m) => (
-            <button key={m} type="button" style={chip(escolha === m)} onClick={() => setEscolha(m)} aria-pressed={escolha === m}>
-              {m}
-            </button>
-          ))}
-          <button type="button" style={chip(escolha === OUTRO)} onClick={() => setEscolha(OUTRO)} aria-pressed={escolha === OUTRO}>
-            Outro motivo
-          </button>
-        </div>
-
-        {escolha === OUTRO && (
-          <div style={{ marginTop: 12 }}>
-            <input
+      <ModalBody>
+        <ModalSection title="Motivo">
+          <ModalChoices touch label="Motivo" value={escolha} options={opcoes} onChange={setEscolha} />
+          {escolha === OUTRO && (
+            <Input
+              name="pular_foto_motivo"
+              label="Escreva o motivo"
               autoFocus
-              value={texto}
               maxLength={MOTIVO_MAX}
-              onChange={(e) => setTexto(e.target.value)}
-              placeholder="Escreva o motivo (curto)"
-              aria-label="Motivo"
-              style={{
-                width: '100%', minHeight: 48, boxSizing: 'border-box',
-                padding: '10px 14px',
-                fontSize: '1rem',            // 16px: o iPhone não dá zoom ao focar
-                fontFamily: tokens.fontSans,
-                color: tokens.color.text,
-                background: tokens.color.bgAlt,
-                border: `1.5px solid ${tokens.color.borderMd}`,
-                borderRadius: tokens.radius.md,
-              }}
+              value={texto}
+              onChangeValue={setTexto}
+              placeholder="Motivo curto"
+              hint={`Até ${MOTIVO_MAX} caracteres`}
             />
-            <div style={{ fontFamily: tokens.fontMono, fontSize: '0.75rem', color: tokens.color.subtle, marginTop: 4, textAlign: 'right' }}>
-              {texto.trim().length}/{MOTIVO_MAX}
-            </div>
-          </div>
-        )}
+          )}
+        </ModalSection>
+      </ModalBody>
 
-        {erro && (
-          <div role="alert" style={{ marginTop: 10, color: tokens.color.crit, fontSize: '0.85rem', fontFamily: tokens.fontSans }}>
-            {erro}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
-          <button
-            type="button"
-            disabled={!podeConfirmar}
-            onClick={() => validacao.ok && onConfirmar(validacao.motivo)}
-            style={{
-              ...btnAccent, justifyContent: 'center', minHeight: 48, fontSize: '0.8rem',
-              opacity: podeConfirmar ? 1 : 0.45, cursor: podeConfirmar ? 'pointer' : 'not-allowed',
-            }}
-          >
-            {ocupado ? 'Registrando…' : 'Confirmar motivo'}
-          </button>
-          <button type="button" onClick={onCancelar} style={{ ...btnGhost, justifyContent: 'center', minHeight: 48, fontSize: '0.8rem' }}>
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
+      <ModalFooter notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}>
+        <Button variant="ghost" onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
+        <Button variant="primary" type="submit" loading={ocupado} disabled={!podeConfirmar}>
+          {ocupado ? 'Registrando…' : 'Confirmar motivo'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

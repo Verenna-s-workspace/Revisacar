@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { ActionSheet } from '../../../components/system';
 import { Skeleton } from '../Primitives';
 import { Placa } from '../Placa';
 import { formatPhoneBR } from '../../../components/inputs/masks';
@@ -420,67 +420,20 @@ export function ClientesMobile({
         )}
       </section>
 
-      {/* Bottom Sheet: ações completas do cliente */}
-      {acaoItem &&
-        createPortal(
-          <div className="clm-sheet-backdrop" onClick={() => setAcaoItem(null)}>
-            <div
-              className="clm-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label={`Ações para ${acaoItem.nome}`}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="clm-sheet__grab" aria-hidden="true" />
-              <h2 className="clm-sheet__titulo">{acaoItem.nome}</h2>
-              <p className="clm-sheet__sub">
-                {formatarTelefone(acaoItem.telefone) ?? 'Sem telefone'}
-                {acaoItem.veiculoPrincipal ? ` · ${acaoItem.veiculoPrincipal.placa}` : ''}
-              </p>
-
-              <button
-                type="button"
-                className="clm-sheet__opt"
-                onClick={() => { const c = acaoItem; setAcaoItem(null); onView(c); }}
-              >
-                {IcOlho}
-                Visualizar detalhes
-              </button>
-
-              <button
-                type="button"
-                className="clm-sheet__opt"
-                onClick={() => { const c = acaoItem; setAcaoItem(null); onEdit(c); }}
-              >
-                {IcEditar}
-                Editar cliente
-              </button>
-
-              <button
-                type="button"
-                className="clm-sheet__opt"
-                onClick={() => { const c = acaoItem; setAcaoItem(null); onSchedule(c); }}
-              >
-                {IcCalendario}
-                Agendar
-              </button>
-
-              <button
-                type="button"
-                className="clm-sheet__opt clm-sheet__opt--perigo"
-                onClick={() => { const c = acaoItem; setAcaoItem(null); onDelete(c); }}
-              >
-                {IcLixeira}
-                Excluir cliente
-              </button>
-
-              <button type="button" className="clm-sheet__cancel" onClick={() => setAcaoItem(null)}>
-                Cancelar
-              </button>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* Sheet de ações do cliente */}
+      {acaoItem && (
+        <ActionSheet
+          title={acaoItem.nome}
+          description={`${formatarTelefone(acaoItem.telefone) ?? 'Sem telefone'}${acaoItem.veiculoPrincipal ? ` · ${acaoItem.veiculoPrincipal.placa}` : ''}`}
+          onClose={() => setAcaoItem(null)}
+          actions={[
+            { label: 'Visualizar detalhes', icon: IcOlho, onSelect: () => { const c = acaoItem; setAcaoItem(null); onView(c); } },
+            { label: 'Editar cliente', icon: IcEditar, onSelect: () => { const c = acaoItem; setAcaoItem(null); onEdit(c); } },
+            { label: 'Agendar', icon: IcCalendario, onSelect: () => { const c = acaoItem; setAcaoItem(null); onSchedule(c); } },
+            { label: 'Excluir cliente', icon: IcLixeira, tone: 'danger', onSelect: () => { const c = acaoItem; setAcaoItem(null); onDelete(c); } },
+          ]}
+        />
+      )}
     </div>
   );
 }

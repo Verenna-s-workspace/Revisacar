@@ -10,6 +10,11 @@ import { ROTULO_STATUS } from '../../utils/ordem_status';
 import type { StatusOrdem } from '../../utils/ordem_status';
 import { dataBR } from '../../utils/orcamento_utils';
 import { ItensLeitura } from '../Orcamento/ItensLeitura';
+import { Textarea } from '../../components/inputs/textarea';
+import {
+  Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../components/system';
+import { Icons } from '../Dashboard/Icons';
 import { BotaoPdfOsConcluida } from './BotaoPdfOsConcluida';
 import type { FaltaAoConcluir, Fechamento } from '../../types/fechamento';
 
@@ -26,11 +31,6 @@ const cartao: React.CSSProperties = {
 const tituloBloco: React.CSSProperties = {
   fontFamily: tokens.fontMono, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase',
   color: tokens.color.subtle, margin: 0,
-};
-const campo: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box', padding: '9px 11px', fontFamily: tokens.fontSans, fontSize: '0.86rem',
-  color: tokens.color.text, background: tokens.color.surface, border: `1px solid ${tokens.color.border}`,
-  borderRadius: tokens.radius.md, outline: 'none', resize: 'vertical',
 };
 
 function Aviso({ tom, children }: { tom: 'info' | 'ok' | 'warn' | 'crit'; children: React.ReactNode }) {
@@ -301,47 +301,53 @@ export default function FechamentoPage({ os, onBackToStart, onGoOrcamento }: Pro
       )}
 
       {modal && (
-        <div role="dialog" aria-modal="true" aria-label="Concluir serviço" className="sheet-backdrop" style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
-        }}>
-          <div className="sheet-panel" style={{ background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 460, maxHeight: '90dvh', overflowY: 'auto', border: `1px solid ${tokens.color.border}`, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>Concluir serviço</h3>
-            <p style={{ margin: 0, fontSize: '0.86rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
+        <Modal size="md" onClose={() => { if (!ocupado) setModal(false); }} closeOnBackdrop={!ocupado}>
+          <ModalHeader icon={Icons.check} title="Concluir serviço" description="Encerra a OS e dá baixa nas peças reservadas." />
+
+          <ModalBody>
+            <ModalNotice tone="attention">
               A OS passa para “Concluída” e as peças reservadas saem do estoque. Isso não pode ser desfeito por aqui.
-            </p>
-            <div>
-              <label htmlFor="fech-obs" style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>OBSERVAÇÃO (OPCIONAL)</label>
-              <textarea id="fech-obs" rows={3} maxLength={1000} value={obs} onChange={e => setObs(e.target.value)}
-                placeholder="Ex.: cliente retirou o veículo às 17h; peças antigas devolvidas" style={campo} disabled={ocupado} />
-            </div>
+            </ModalNotice>
+
+            <ModalSection title="Observação">
+              <Textarea
+                name="fech-obs"
+                label="Observação (opcional)"
+                rows={3}
+                maxLength={1000}
+                value={obs}
+                onChangeValue={setObs}
+                placeholder="Ex.: cliente retirou o veículo às 17h; peças antigas devolvidas"
+                disabled={ocupado}
+              />
+            </ModalSection>
+
             {faltas && (
-              <Aviso tom="warn">
-                <div>Estoque insuficiente — nada foi alterado:</div>
+              <ModalNotice tone="attention" title="Estoque insuficiente — nada foi alterado">
                 {faltas.map(f => (
                   <div key={f.itemId}>• {f.nome}: precisa de {unidades(f.necessario)}, há {unidades(f.disponivel)}.</div>
                 ))}
                 <div style={{ marginTop: 4 }}>Dê entrada das peças no Estoque e tente de novo, ou conclua mesmo assim (baixa só o que existe).</div>
-              </Aviso>
+              </ModalNotice>
             )}
-            {erroModal && <Aviso tom="crit">{erroModal}</Aviso>}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setModal(false)} style={btnGhost} disabled={ocupado}>Voltar</button>
-              {faltas ? (
-                <>
-                  <button type="button" onClick={() => { void concluir(false); }} style={btnSolid} disabled={ocupado}>Tentar de novo</button>
-                  <button type="button" onClick={() => { void concluir(true); }} style={ocupado ? btnDisabled : btnAccent} disabled={ocupado}>
-                    {acao === 'concluindo' ? 'Concluindo…' : 'Concluir mesmo assim'}
-                  </button>
-                </>
-              ) : (
-                <button type="button" onClick={() => { void concluir(false); }} style={ocupado ? btnDisabled : btnAccent} disabled={ocupado}>
-                  {acao === 'concluindo' ? 'Concluindo…' : 'Concluir serviço'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+          </ModalBody>
+
+          <ModalFooter notice={erroModal ? <ModalNotice tone="error" role="alert">{erroModal}</ModalNotice> : undefined}>
+            <Button variant="ghost" onClick={() => setModal(false)} disabled={ocupado}>Voltar</Button>
+            {faltas ? (
+              <>
+                <Button variant="secondary" onClick={() => { void concluir(false); }} disabled={ocupado}>Tentar de novo</Button>
+                <Button variant="primary" onClick={() => { void concluir(true); }} loading={ocupado}>
+                  {acao === 'concluindo' ? 'Concluindo…' : 'Concluir mesmo assim'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={() => { void concluir(false); }} loading={ocupado}>
+                {acao === 'concluindo' ? 'Concluindo…' : 'Concluir serviço'}
+              </Button>
+            )}
+          </ModalFooter>
+        </Modal>
       )}
     </>,
   );

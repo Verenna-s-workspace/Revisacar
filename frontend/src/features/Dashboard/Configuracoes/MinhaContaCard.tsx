@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Button } from '../../../components/system';
-import { Aviso, ModalCfg, RodapeAcoes } from './cfgUi';
-import { IcCheck } from './icones';
+import type { FormEvent } from 'react';
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalNotice, ModalSection } from '../../../components/system';
+import { Aviso } from './cfgUi';
+import { IcAlerta, IcCheck } from './icones';
 import { Input } from '../../../components/inputs/input';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../utils/api';
@@ -130,7 +131,7 @@ function ExcluirContaModal({ ehDono, onCancelar, onExcluida }: {
   const segredoOk = ehDono ? segredo.length > 0 : /^\d{6}$/.test(segredo);
   const pode = segredoOk && confirmacaoCorreta(palavra) && !ocupado;
 
-  const confirmar = async (e: React.FormEvent) => {
+  const confirmar = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!pode) return;
     setOcupado(true);
@@ -147,61 +148,70 @@ function ExcluirContaModal({ ehDono, onCancelar, onExcluida }: {
     }
   };
 
-  // Esc e clique fora fecham (ModalCfg) — menos no meio do envio, quando a exclusão já está a caminho.
+  // Esc e clique fora cancelam — menos no meio do envio, quando a exclusão já está a caminho.
   return (
-    <ModalCfg
-      titulo={ehDono ? 'Excluir a oficina e a sua conta?' : 'Excluir a sua conta?'}
-      tom="crit"
-      bloqueado={ocupado}
-      onFechar={onCancelar}
+    <Modal
+      size="md"
+      role="alertdialog"
+      onClose={() => { if (!ocupado) onCancelar(); }}
+      onSubmit={confirmar}
+      closeOnBackdrop={!ocupado}
     >
-      <form className="cfg-form" onSubmit={confirmar}>
-        {ehDono ? (
-          <div className="cfg-modal__corpo">
-            Isto apaga <strong>tudo</strong> da oficina, para sempre:
-            <ul>
-              <li>ordens de serviço, fotos e orçamentos;</li>
-              <li>estoque, catálogo de serviços e financeiro;</li>
-              <li>agenda, clientes e veículos cadastrados pela oficina;</li>
-              <li>todos os funcionários (eles perdem o acesso).</li>
-            </ul>
-            <p style={{ margin: '10px 0 0' }}>
-              A conta de cliente que usa o aplicativo não é apagada — só deixa de estar ligada à oficina.
-            </p>
-          </div>
-        ) : (
-          <div className="cfg-modal__corpo">
-            O seu cadastro e o seu acesso à oficina serão removidos. Os registros que você já fez
-            (ordens, lançamentos) continuam, com o seu nome. A oficina e os outros funcionários não são afetados.
-          </div>
-        )}
+      <ModalHeader
+        icon={IcAlerta}
+        iconTone="error"
+        title={ehDono ? 'Excluir a oficina e a sua conta?' : 'Excluir a sua conta?'}
+        description="Esta ação não pode ser desfeita."
+      />
 
-        {erro && <Aviso tom="crit">{erro}</Aviso>}
+      <ModalBody>
+        <ModalNotice tone="error" title={ehDono ? 'Isto apaga tudo da oficina, para sempre:' : undefined}>
+          {ehDono ? (
+            <>
+              <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                <li>ordens de serviço, fotos e orçamentos;</li>
+                <li>estoque, catálogo de serviços e financeiro;</li>
+                <li>agenda, clientes e veículos cadastrados pela oficina;</li>
+                <li>todos os funcionários (eles perdem o acesso).</li>
+              </ul>
+              <p style={{ margin: '10px 0 0' }}>
+                A conta de cliente que usa o aplicativo não é apagada — só deixa de estar ligada à oficina.
+              </p>
+            </>
+          ) : (
+            <>
+              O seu cadastro e o seu acesso à oficina serão removidos. Os registros que você já fez
+              (ordens, lançamentos) continuam, com o seu nome. A oficina e os outros funcionários não são afetados.
+            </>
+          )}
+        </ModalNotice>
 
-        <Input
-          name="excluir-segredo"
-          type={ehDono ? 'password' : 'digits'}
-          label={ehDono ? 'Sua senha' : 'Seu PIN (6 números)'}
-          maxLength={ehDono ? undefined : 6}
-          autoFocus
-          value={segredo}
-          onChangeValue={v => { setSegredo(v); setErro(''); }}
-        />
-        <Input
-          name="excluir-palavra"
-          label={`Para confirmar, digite ${PALAVRA_CONFIRMACAO}`}
-          placeholder={PALAVRA_CONFIRMACAO}
-          value={palavra}
-          onChangeValue={setPalavra}
-        />
+        <ModalSection title="Confirmação" description="Confirme que é você mesmo antes de excluir.">
+          <Input
+            name="excluir-segredo"
+            type={ehDono ? 'password' : 'digits'}
+            label={ehDono ? 'Sua senha' : 'Seu PIN (6 números)'}
+            maxLength={ehDono ? undefined : 6}
+            autoFocus
+            value={segredo}
+            onChangeValue={v => { setSegredo(v); setErro(''); }}
+          />
+          <Input
+            name="excluir-palavra"
+            label={`Para confirmar, digite ${PALAVRA_CONFIRMACAO}`}
+            placeholder={PALAVRA_CONFIRMACAO}
+            value={palavra}
+            onChangeValue={setPalavra}
+          />
+        </ModalSection>
+      </ModalBody>
 
-        <RodapeAcoes>
-          <Button onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
-          <Button type="submit" variant="danger" disabled={!pode} loading={ocupado}>
-            {ocupado ? 'Excluindo…' : ehDono ? 'Excluir tudo definitivamente' : 'Excluir minha conta'}
-          </Button>
-        </RodapeAcoes>
-      </form>
-    </ModalCfg>
+      <ModalFooter notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}>
+        <Button variant="ghost" onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
+        <Button type="submit" variant="danger" className="sys-btn--solid" disabled={!pode} loading={ocupado}>
+          {ocupado ? 'Excluindo…' : ehDono ? 'Excluir tudo definitivamente' : 'Excluir minha conta'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { tokens } from '../../../constants';
 import { Input } from '../../../components/inputs/input';
 import { Textarea } from '../../../components/inputs/textarea';
+import {
+  Button, Modal, ModalBody, ModalFields, ModalFooter, ModalHeader, ModalHighlight, ModalHighlights,
+  ModalNotice, ModalSection, ModalSwitch,
+} from '../../../components/system';
+import { Icons } from '../Icons';
 import type { NovoServicoInput, ServicoItem } from '../../../types/servico';
 
 const FORM_VAZIO: NovoServicoInput = { nome: '', categoria: '', preco: 0, duracao: '', descricao: '', ativo: true };
@@ -41,104 +45,86 @@ export function ServicoFormModal({ servico, categoriasDisponiveis, onSave, erro,
   }
 
   return (
-    <div className="dashboard-modal-backdrop" onClick={onClose}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">{editando ? 'Editar Serviço' : 'Adicionar Serviço'}</div>
-            <div className="dashboard-modal__subtitle">
-              {editando ? 'Atualize os dados do serviço no catálogo.' : 'Cadastre um novo serviço oferecido pela oficina.'}
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
-        </div>
+    <Modal size="md" onClose={onClose} onSubmit={handleSubmit}>
+      <ModalHeader
+        icon={Icons.wrench}
+        title={editando ? 'Editar Serviço' : 'Adicionar Serviço'}
+        description={editando ? 'Atualize os dados do serviço no catálogo.' : 'Cadastre um novo serviço oferecido pela oficina.'}
+      />
 
-        <form onSubmit={handleSubmit}>
-          <div className="dashboard-modal__body">
+      <ModalBody>
+        <ModalSection title="Informações básicas">
+          <Input
+            name="servico_nome"
+            label="Nome do Serviço"
+            required
+            value={form.nome}
+            onChangeValue={v => setForm({ ...form, nome: v })}
+            placeholder="Ex: Troca de Óleo e Filtro"
+          />
+          <ModalFields>
             <Input
-              name="servico_nome"
-              label="Nome do Serviço"
+              name="servico_categoria"
+              label="Categoria"
               required
-              value={form.nome}
-              onChangeValue={v => setForm({ ...form, nome: v })}
-              placeholder="Ex: Troca de Óleo e Filtro"
+              value={form.categoria}
+              onChangeValue={v => setForm({ ...form, categoria: v })}
+              placeholder="Ex: Freios"
+              datalistOptions={categoriasDisponiveis}
             />
+            <Input
+              name="servico_duracao"
+              label="Duração Estimada"
+              required
+              value={form.duracao}
+              onChangeValue={v => setForm({ ...form, duracao: v })}
+              placeholder="Ex: 1h 30min"
+            />
+          </ModalFields>
+        </ModalSection>
 
-            <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
-              <Input
-                name="servico_categoria"
-                label="Categoria"
-                required
-                value={form.categoria}
-                onChangeValue={v => setForm({ ...form, categoria: v })}
-                placeholder="Ex: Freios"
-                datalistOptions={categoriasDisponiveis}
-              />
-              <Input
-                name="servico_duracao"
-                label="Duração Estimada"
-                required
-                value={form.duracao}
-                onChangeValue={v => setForm({ ...form, duracao: v })}
-                placeholder="Ex: 1h 30min"
-              />
-            </div>
-
+        <ModalHighlights>
+          <ModalHighlight label="Preço Cobrado" htmlFor="servico_preco" icon={Icons.dollar} required hint="Valor cobrado do cliente pelo serviço">
             <Input
               name="servico_preco"
               type="currency"
-              label="Preço Cobrado"
               required
               value={form.preco ? String(form.preco) : ''}
               onChangeValue={v => setForm({ ...form, preco: Number(v) || 0 })}
               placeholder="R$ 0,00"
             />
+          </ModalHighlight>
+        </ModalHighlights>
 
-            <Textarea
-              name="servico_descricao"
-              label="Descrição Detalhada"
-              value={form.descricao}
-              onChangeValue={v => setForm({ ...form, descricao: v })}
-              rows={3}
-            />
+        <ModalSection title="Detalhes">
+          <Textarea
+            name="servico_descricao"
+            label="Descrição Detalhada"
+            value={form.descricao}
+            onChangeValue={v => setForm({ ...form, descricao: v })}
+            rows={3}
+          />
+        </ModalSection>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={form.ativo ?? true}
-                onChange={e => setForm({ ...form, ativo: e.target.checked })}
-                style={{ width: 16, height: 16, accentColor: tokens.color.ferrari }}
-              />
-              <span style={{ fontSize: '0.82rem', color: tokens.color.textSecond }}>
-                Serviço ativo (visível como opção oferecida pela oficina)
-              </span>
-            </label>
-          </div>
+        <ModalSection title="Disponibilidade">
+          <ModalSwitch
+            label="Serviço ativo"
+            description="Visível como opção oferecida pela oficina"
+            checked={form.ativo ?? true}
+            onChange={v => setForm({ ...form, ativo: v })}
+          />
+        </ModalSection>
+      </ModalBody>
 
-          {erro && (
-            <div role="alert" style={{ margin: '0 24px 12px', padding: '10px 12px', borderRadius: 8, background: tokens.color.critBg, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
-              {erro}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${tokens.color.border}` }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.textSecond, fontSize: '0.85rem', cursor: 'pointer' }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={salvando}
-              style={{ padding: '10px 20px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: salvando ? 'wait' : 'pointer', opacity: salvando ? 0.7 : 1 }}
-            >
-              {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Salvar Serviço'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      <ModalFooter
+        hint="* Campos obrigatórios"
+        notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}
+      >
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" variant="primary" loading={salvando}>
+          {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Salvar Serviço'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

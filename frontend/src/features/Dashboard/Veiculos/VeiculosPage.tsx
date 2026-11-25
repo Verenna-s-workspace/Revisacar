@@ -18,7 +18,7 @@ import { VehicleFilterModal } from './VehicleFilterModal';
 import { VehicleDetailsModal } from './VehicleDetailsModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import { ChangeOwnerModal } from './ChangeOwnerModal';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { ConfirmDeleteDialog } from '../../../components/system';
 
 interface VeiculosPageProps {
   onNav: (p: NavPage) => void;
@@ -154,8 +154,9 @@ export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, abri
         />
       )}
       {deleteTarget && (
-        <DeleteConfirmModal
-          veiculo={deleteTarget}
+        <ConfirmDeleteDialog
+          entidade="veículo"
+          nome={`${deleteTarget.marca} ${deleteTarget.modelo} (${deleteTarget.placa})`}
           onConfirm={handleConfirmDelete}
           onClose={() => setDeleteTarget(null)}
         />

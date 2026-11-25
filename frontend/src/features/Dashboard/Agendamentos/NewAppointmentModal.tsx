@@ -1,11 +1,14 @@
 import { useState, useMemo } from 'react';
-import { tokens } from '../../../constants';
+import type { FormEvent } from 'react';
 import { Icons } from '../Icons';
 import { AgendaIcons } from './icons';
 import { Input } from '../../../components/inputs/input';
 import { Textarea } from '../../../components/inputs/textarea';
+import {
+  Button, Modal, ModalBody, ModalChoices, ModalColumns, ModalFields, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../../components/system';
+import './novoAgendamento.css';
 import { useHorarioFuncionamento } from '../../../hooks/useHorarioFuncionamento';
-import { useResponsive } from '../../../components/ui';
 import { DuracaoSelector } from './DuracaoSelector';
 import {
   getMonthMatrix,
@@ -53,7 +56,6 @@ interface NewAppointmentModalProps {
 
 export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClose, initialCliente, initialVeiculos, reagendando }: NewAppointmentModalProps) {
   const { horaAbertura, horaFechamento } = useHorarioFuncionamento();
-  const { isMobile } = useResponsive();
   const [step, setStep] = useState<1 | 2>(1);
   const todayISO = toISODate(new Date());
   // Ao reagendar, o calendário abre na data atual do agendamento (ou em hoje,
@@ -127,281 +129,174 @@ export function NewAppointmentModal({ initialDate, getOcupados, onConfirm, onClo
 
   // Placa é opcional: só cliente e veículo travam o botão de confirmar.
   const formValid = form.cliente.trim() && form.veiculo.trim();
+  const horarioOk = !!selectedDate && slotEscolhidoValido;
+
+  // Reagendando, não há etapa 2: confirma direto com os dados originais.
+  const handleSubmitForm = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (step === 2) { if (formValid) handleSubmit(); return; }
+    if (reagendando) handleSubmit(); else handleContinue();
+  };
+
+  const descricao = reagendando
+    ? 'Escolha a nova data e o horário.'
+    : step === 1 ? 'Etapa 1 de 2 · Escolha a data e o horário.' : 'Etapa 2 de 2 · Dados do agendamento.';
 
   return (
-    <div className="dashboard-modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: isMobile ? 420 : 680 }}>
-        {/* Header */}
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">{reagendando ? 'Reagendar Agendamento' : 'Novo Agendamento'}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-              {(reagendando ? [1] : [1, 2]).map(n => (
-                <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{
-                    width: 60, height: 5, borderRadius: 99,
-                    background: step >= n ? tokens.color.ferrari : tokens.color.border,
-                    transition: 'background 0.25s',
-                  }} />
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: step >= n ? tokens.color.ferrari : tokens.color.muted }}>
-                    {n === 1 ? 'Data e Horário' : 'Dados do Agendamento'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <button onClick={onClose} className="dashboard-button--close">×</button>
-        </div>
+    <Modal size="lg" onClose={onClose} onSubmit={handleSubmitForm}>
+      <ModalHeader icon={Icons.cal} title={reagendando ? 'Reagendar Agendamento' : 'Novo Agendamento'} description={descricao} />
 
-        {/* ── Step 1: Date + Slot picker ── */}
+      <ModalBody>
+        {/* ── Etapa 1: data + horário ── */}
         {step === 1 && (
-          <div className="dashboard-modal__body" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 20 : 24 }}>
+          <>
             {/* Reagendamento: resumo do que será mantido (nada a digitar de novo) */}
             {reagendando && (
-              <div style={{ gridColumn: '1 / -1', padding: '10px 14px', borderRadius: 10, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}`, display: 'flex', flexWrap: 'wrap', gap: '4px 14px', alignItems: 'center' }}>
-                <span style={{ display: 'flex', color: tokens.color.ferrari }}>{Icons.user}</span>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: tokens.color.text }}>{reagendando.cliente}</span>
-                <span style={{ fontSize: '0.78rem', color: tokens.color.textSecond }}>{reagendando.veiculo} · {reagendando.placa}</span>
-                <span style={{ fontSize: '0.75rem', color: tokens.color.muted, marginLeft: 'auto' }}>
-                  Atual: {formatDateBR(reagendando.data)} · {reagendando.horaInicio}
-                </span>
-              </div>
+              <ModalNotice tone="info">
+                <strong>{reagendando.cliente}</strong> · {reagendando.veiculo} · {reagendando.placa}
+                {' '}— atual: {formatDateBR(reagendando.data)} às {reagendando.horaInicio}
+              </ModalNotice>
             )}
-            {/* Calendar */}
-            <div>
-              {/* Month nav */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <button className="tap-area"
-                  onClick={() => setCalDate(d => addMonths(d, -1))}
-                  style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
-                >
-                  {AgendaIcons.chevsL}
-                </button>
-                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.color.text }}>
-                  {MONTHS[month]} {year}
-                </span>
-                <button className="tap-area"
-                  onClick={() => setCalDate(d => addMonths(d, 1))}
-                  style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${tokens.color.border}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.muted }}
-                >
-                  {AgendaIcons.chevsR}
-                </button>
-              </div>
 
-              {/* Weekday headers */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
-                {WEEKDAYS_SHORT.map(d => (
-                  <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: tokens.color.muted, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0' }}>
-                    {d}
+            <ModalColumns
+              asideFirst
+              aside={
+                <ModalSection icon={Icons.cal} title="Data">
+                  <div className="na-cal__head">
+                    <button type="button" className="na-cal__nav" onClick={() => setCalDate(d => addMonths(d, -1))} aria-label="Mês anterior">
+                      {AgendaIcons.chevsL}
+                    </button>
+                    <span className="na-cal__mes">{MONTHS[month]} {year}</span>
+                    <button type="button" className="na-cal__nav" onClick={() => setCalDate(d => addMonths(d, 1))} aria-label="Próximo mês">
+                      {AgendaIcons.chevsR}
+                    </button>
                   </div>
-                ))}
-              </div>
 
-              {/* Calendar grid */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {matrix.map((week, wi) => (
-                  <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2 }}>
-                    {week.map((day, di) => {
-                      const iso = toISODate(day);
-                      const isCurrentM = day.getMonth() === month;
-                      const isT = iso === todayISO;
-                      const isSel = iso === selectedDate;
-                      const isPast = iso < todayISO;
-
-                      return (
-                        <button className="tap-area"
-                          key={di}
-                          disabled={!isCurrentM || isPast}
-                          onClick={() => { setSelectedDate(iso); setSelectedSlot(null); }}
-                          style={{
-                            width: 34, height: 34, borderRadius: 8, border: 'none',
-                            background: isSel ? tokens.color.ferrari : isT ? tokens.color.ferrariMid : 'transparent',
-                            color: isSel ? 'white' : isT ? tokens.color.ferrari : !isCurrentM || isPast ? tokens.color.subtle : tokens.color.text,
-                            fontWeight: isSel || isT ? 700 : 500,
-                            fontSize: '0.82rem',
-                            cursor: (!isCurrentM || isPast) ? 'default' : 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.12s',
-                          }}
-                        >
-                          {day.getDate()}
-                        </button>
-                      );
-                    })}
+                  <div>
+                    <div className="na-cal__semana" aria-hidden="true">
+                      {WEEKDAYS_SHORT.map(d => <div key={d} className="na-cal__dow">{d}</div>)}
+                    </div>
+                    <div className="na-cal__grade">
+                      {matrix.map((week, wi) => (
+                        <div key={wi} className="na-cal__semana">
+                          {week.map((day, di) => {
+                            const iso = toISODate(day);
+                            const doMes = day.getMonth() === month;
+                            const passado = iso < todayISO;
+                            return (
+                              <button
+                                key={di}
+                                type="button"
+                                className={`na-dia${iso === todayISO ? ' na-dia--hoje' : ''}`}
+                                aria-pressed={iso === selectedDate}
+                                aria-label={doMes ? formatDateBR(iso) : undefined}
+                                disabled={!doMes || passado}
+                                onClick={() => { setSelectedDate(iso); setSelectedSlot(null); }}
+                              >
+                                {day.getDate()}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Time slots */}
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 10 }}>
-                Horários disponíveis
-                {selectedDate && <span style={{ color: tokens.color.text, marginLeft: 6 }}>· {formatDayMonth(parseISODate(selectedDate))}</span>}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: tokens.color.subtle, marginBottom: 8 }}>
-                Funcionamento: {horaAbertura} – {horaFechamento}
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted, marginBottom: 6 }}>
-                  Duração do serviço
-                </div>
-                <DuracaoSelector value={duracao} onChange={setDuracao} />
-              </div>
-              {slots.length === 0 ? (
-                <div style={{ fontSize: '0.78rem', color: tokens.color.muted, padding: '10px 0' }}>
-                  Nenhum horário disponível — confira a duração e o horário de funcionamento em Configurações.
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
-                  {slots.map(slot => {
-                    const occupied = !!acharConflito(slot, fimDoSlot(slot), ocupados);
-                    const isSel = selectedSlot === slot;
-                    return (
-                      <button
-                        key={slot}
-                        disabled={occupied}
-                        onClick={() => !occupied && setSelectedSlot(slot)}
-                        style={{
-                          padding: '9px 10px', borderRadius: 9, border: `1.5px solid`,
-                          borderColor: isSel ? tokens.color.ferrari : occupied ? tokens.color.border : tokens.color.border,
-                          background: isSel ? tokens.color.ferrariMid : occupied ? tokens.color.bg : 'white',
-                          color: isSel ? tokens.color.ferrari : occupied ? tokens.color.subtle : tokens.color.text,
-                          fontWeight: isSel ? 700 : 500,
-                          fontSize: '0.82rem', fontFamily: tokens.fontMono,
-                          cursor: occupied ? 'not-allowed' : 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          transition: 'all 0.12s',
-                          textDecoration: occupied ? 'line-through' : 'none',
-                          opacity: occupied ? 0.55 : 1,
-                        }}
-                      >
-                        {slot}
-                        {isSel && <span style={{ display: 'flex', color: tokens.color.ferrari }}>{AgendaIcons.checkCircle}</span>}
-                        {occupied && !isSel && <span style={{ fontSize: '0.75rem', fontFamily: tokens.fontSans }}>ocupado</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 2: Client form ── */}
-        {step === 2 && (
-          <div className="dashboard-modal__body">
-            <div style={{ padding: '10px 14px', borderRadius: 10, background: tokens.color.ferrariMid, border: `1px solid ${tokens.color.ferrariGlow}`, display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ display: 'flex', color: tokens.color.ferrari }}>{Icons.cal}</span>
-              <span style={{ fontSize: '0.84rem', fontWeight: 600, color: tokens.color.ferrari }}>
-                {formatDateBR(selectedDate)} · {selectedSlot} – {fimDoSlot(selectedSlot!)} ({formatDuracao(duracao)})
-              </span>
-              <button
-                onClick={() => setStep(1)}
-                style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600, color: tokens.color.ferrari, background: 'transparent', border: 'none', cursor: 'pointer' }}
+                </ModalSection>
+              }
+            >
+              <ModalSection
+                icon={Icons.clock}
+                title="Horários disponíveis"
+                description={`${selectedDate ? `${formatDayMonth(parseISODate(selectedDate))} · ` : ''}Funcionamento: ${horaAbertura} – ${horaFechamento}`}
               >
-                alterar
-              </button>
-            </div>
-
-            {initialCliente && (
-              <div style={{ padding: '10px 14px', borderRadius: 10, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}`, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ display: 'flex', color: tokens.color.ferrari }}>{Icons.user}</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: tokens.color.text }}>
-                  Agendando para <strong>{initialCliente}</strong>
-                </span>
-                {initialVeiculos && initialVeiculos.length > 1 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', width: '100%' }}>
-                    {initialVeiculos.map(v => {
-                      const active = form.veiculo === v.veiculo && form.placa === v.placa;
+                <DuracaoSelector value={duracao} onChange={setDuracao} />
+                {slots.length === 0 ? (
+                  <p className="na-vazio">Nenhum horário disponível — confira a duração e o horário de funcionamento em Configurações.</p>
+                ) : (
+                  <div className="na-slots">
+                    {slots.map(slot => {
+                      const ocupado = !!acharConflito(slot, fimDoSlot(slot), ocupados);
                       return (
                         <button
-                          key={v.placa}
-                          onClick={() => setForm(prev => ({ ...prev, veiculo: v.veiculo, placa: v.placa }))}
-                          style={{
-                            padding: '5px 10px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                            border: `1.5px solid ${active ? tokens.color.ferrari : tokens.color.border}`,
-                            background: active ? tokens.color.ferrariMid : 'white',
-                            color: active ? tokens.color.ferrari : tokens.color.text,
-                          }}
+                          key={slot}
+                          type="button"
+                          className="na-slot"
+                          aria-pressed={selectedSlot === slot}
+                          disabled={ocupado}
+                          onClick={() => setSelectedSlot(slot)}
                         >
-                          {v.veiculo} · {v.placa}
+                          {slot}
+                          {ocupado && <span className="na-slot__tag">ocupado</span>}
                         </button>
                       );
                     })}
                   </div>
                 )}
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 20px' }}>
-              <Input name="ag_cliente" label="Nome do Cliente" required placeholder="Carlos Eduardo Oliveira" value={form.cliente} onChangeValue={setField('cliente')} />
-              <Input name="ag_veiculo" label="Veículo" required placeholder="BMW 320i M-Sport" value={form.veiculo} onChangeValue={setField('veiculo')} />
-              <Input name="ag_placa" type="placa" label="Placa" placeholder="BRA2E19" value={form.placa} onChangeValue={setField('placa')} />
-              <Input name="ag_titulo" label="Título do Serviço" placeholder="Revisão de 40.000km" value={form.titulo} onChangeValue={setField('titulo')} />
-              <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}>
-                <Textarea
-                  name="ag_descricao"
-                  label="Descrição"
-                  placeholder="Descreva o serviço a ser realizado..."
-                  value={form.descricao}
-                  onChangeValue={setField('descricao')}
-                  rows={3}
-                />
-              </div>
-            </div>
-          </div>
+              </ModalSection>
+            </ModalColumns>
+          </>
         )}
 
-        {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--color-surface)', borderRadius: '0 0 20px 20px' }}>
-          {step === 2 ? (
-            <button
-              onClick={() => setStep(1)}
-              style={{ padding: '9px 18px', borderRadius: 10, border: `1px solid ${tokens.color.border}`, background: 'transparent', color: tokens.color.text, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600 }}
+        {/* ── Etapa 2: dados do agendamento ── */}
+        {step === 2 && selectedSlot && (
+          <>
+            <ModalSection
+              icon={Icons.cal}
+              title="Data e horário"
+              aside={<Button variant="ghost" size="sm" onClick={() => setStep(1)}>Alterar</Button>}
             >
-              ← Voltar
-            </button>
-          ) : (
-            <button
-              onClick={onClose}
-              style={{ padding: '9px 18px', borderRadius: 10, border: `1px solid ${tokens.color.border}`, background: 'transparent', color: tokens.color.muted, cursor: 'pointer', fontSize: '0.84rem', fontWeight: 600 }}
+              <p className="na-resumo">
+                {formatDateBR(selectedDate)} · {selectedSlot} – {fimDoSlot(selectedSlot)} ({formatDuracao(duracao)})
+              </p>
+            </ModalSection>
+
+            <ModalSection
+              icon={Icons.user}
+              title="Dados do agendamento"
+              description={initialCliente ? `Agendando para ${initialCliente}.` : undefined}
             >
-              Cancelar
-            </button>
-          )}
-          {step === 1 ? (
-            <button
-              // Reagendando, não há etapa 2: confirma direto com os dados originais.
-              onClick={reagendando ? handleSubmit : handleContinue}
-              disabled={!selectedDate || !slotEscolhidoValido}
-              style={{
-                padding: '9px 22px', borderRadius: 10, border: 'none',
-                background: (!selectedDate || !slotEscolhidoValido) ? tokens.color.border : tokens.color.ferrari,
-                color: (!selectedDate || !slotEscolhidoValido) ? tokens.color.muted : 'white',
-                cursor: (!selectedDate || !slotEscolhidoValido) ? 'not-allowed' : 'pointer',
-                fontSize: '0.84rem', fontWeight: 700, transition: 'background 0.15s',
-              }}
-            >
-              {reagendando ? 'Confirmar Reagendamento' : 'Continuar →'}
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!formValid}
-              style={{
-                padding: '9px 22px', borderRadius: 10, border: 'none',
-                background: formValid ? tokens.color.ferrari : tokens.color.border,
-                color: formValid ? 'white' : tokens.color.muted,
-                cursor: formValid ? 'pointer' : 'not-allowed',
-                fontSize: '0.84rem', fontWeight: 700, transition: 'background 0.15s',
-              }}
-            >
-              Confirmar Agendamento
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+              {initialVeiculos && initialVeiculos.length > 1 && (
+                <ModalChoices
+                  label="Veículo do cliente"
+                  value={initialVeiculos.find(v => form.veiculo === v.veiculo && form.placa === v.placa)?.placa ?? ''}
+                  options={initialVeiculos.map(v => ({ value: v.placa, label: `${v.veiculo} · ${v.placa}` }))}
+                  onChange={placa => {
+                    const v = initialVeiculos.find(x => x.placa === placa);
+                    if (v) setForm(prev => ({ ...prev, veiculo: v.veiculo, placa: v.placa }));
+                  }}
+                />
+              )}
+              <ModalFields>
+                <Input name="ag_cliente" label="Nome do Cliente" required placeholder="Carlos Eduardo Oliveira" value={form.cliente} onChangeValue={setField('cliente')} />
+                <Input name="ag_veiculo" label="Veículo" required placeholder="BMW 320i M-Sport" value={form.veiculo} onChangeValue={setField('veiculo')} />
+                <Input name="ag_placa" type="placa" label="Placa" placeholder="BRA2E19" value={form.placa} onChangeValue={setField('placa')} />
+                <Input name="ag_titulo" label="Título do Serviço" placeholder="Revisão de 40.000km" value={form.titulo} onChangeValue={setField('titulo')} />
+              </ModalFields>
+              <Textarea
+                name="ag_descricao"
+                label="Descrição"
+                placeholder="Descreva o serviço a ser realizado..."
+                value={form.descricao}
+                onChangeValue={setField('descricao')}
+                rows={3}
+              />
+            </ModalSection>
+          </>
+        )}
+      </ModalBody>
+
+      <ModalFooter hint={step === 2 ? '* Campos obrigatórios' : undefined}>
+        {step === 2
+          ? <Button variant="ghost" onClick={() => setStep(1)}>Voltar</Button>
+          : <Button variant="ghost" onClick={onClose}>Cancelar</Button>}
+        {step === 1 ? (
+          <Button type="submit" variant="primary" disabled={!horarioOk}>
+            {reagendando ? 'Confirmar Reagendamento' : 'Continuar'}
+          </Button>
+        ) : (
+          <Button type="submit" variant="primary" disabled={!formValid}>Confirmar Agendamento</Button>
+        )}
+      </ModalFooter>
+    </Modal>
   );
 }

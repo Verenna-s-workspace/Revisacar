@@ -1,4 +1,3 @@
-import { useEffect, useId } from 'react';
 import type { ReactNode } from 'react';
 import { IcAlerta, IcCheck } from './icones';
 import './configuracoes.css';
@@ -110,32 +109,3 @@ export function Interruptor({ ligado, onAlternar, rotulo }: {
 }
 
 // ── Modal ────────────────────────────────────────────────────────────────────
-
-/** Janela de formulário. Esc e clique fora fecham, menos enquanto `bloqueado` (envio em andamento). */
-export function ModalCfg({ titulo, tom, bloqueado = false, onFechar, children }: {
-  titulo: string;
-  tom?: 'crit';
-  bloqueado?: boolean;
-  onFechar: () => void;
-  children: ReactNode;
-}) {
-  const tituloId = useId();
-
-  useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape' && !bloqueado) onFechar(); };
-    window.addEventListener('keydown', aoTeclar);
-    return () => window.removeEventListener('keydown', aoTeclar);
-  }, [bloqueado, onFechar]);
-
-  return (
-    <div
-      className="cfg-modal-fundo"
-      onMouseDown={e => { if (e.target === e.currentTarget && !bloqueado) onFechar(); }}
-    >
-      <div className="cfg-modal" role="dialog" aria-modal="true" aria-labelledby={tituloId}>
-        <h3 id={tituloId} className={`cfg-modal__titulo${tom === 'crit' ? ' cfg-modal__titulo--crit' : ''}`}>{titulo}</h3>
-        {children}
-      </div>
-    </div>
-  );
-}

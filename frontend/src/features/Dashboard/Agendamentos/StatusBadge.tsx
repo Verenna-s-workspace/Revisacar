@@ -83,6 +83,18 @@ export const APPOINTMENT_STATUS_CONFIG: Record<AppointmentStatus, AppointmentSta
 };
 
 /** Ordem padrão usada em filtros, listas de seleção e cards de resumo. */
+/** Tom do selo dos modais (ModalBadge) para cada status. */
+export const APPOINTMENT_STATUS_TOM: Record<AppointmentStatus, 'info' | 'attention' | 'error' | 'success'> = {
+  pendente: 'attention',
+  recusado: 'error',
+  agendado: 'info',
+  em_andamento: 'attention',
+  aguardando_pagamento: 'attention',
+  pronto_retirada: 'success',
+  concluido: 'success',
+  cancelado: 'error',
+};
+
 export const APPOINTMENT_STATUS_ORDER: AppointmentStatus[] = [
   'pendente',
   'agendado',

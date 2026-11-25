@@ -20,11 +20,10 @@ import { ClientesMobile } from './ClientesMobile';
 import { ClientFilterModal } from './ClientFilterModal';
 import { ClientDetailsModal } from './ClientDetailsModal';
 import { ClientFormModal } from './ClientFormModal';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { ConfirmDeleteDialog } from '../../../components/system';
 
 import { VehicleDetailsModal } from '../Veiculos/VehicleDetailsModal';
 import { VehicleFormModal } from '../Veiculos/VehicleFormModal';
-import { DeleteConfirmModal as VehicleDeleteConfirmModal } from '../Veiculos/DeleteConfirmModal';
 import { NewAppointmentModal } from '../Agendamentos/NewAppointmentModal';
 import { OSModal } from '../OrdensPage';
 import { useAbrirRegistro } from '../../../hooks/useAbrirRegistro';
@@ -201,8 +200,12 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
       )}
 
       {deleteTarget && (
-        <DeleteConfirmModal
-          cliente={deleteTarget}
+        <ConfirmDeleteDialog
+          entidade="cliente"
+          nome={deleteTarget.nome}
+          notice={deleteTarget.veiculos.length > 0
+            ? `Os ${deleteTarget.veiculos.length} veículo${deleteTarget.veiculos.length > 1 ? 's' : ''} vinculado${deleteTarget.veiculos.length > 1 ? 's' : ''} continuam cadastrados na tela de Veículos — apenas o registro de cliente é removido.`
+            : undefined}
           onConfirm={handleConfirmDelete}
           onClose={() => setDeleteTarget(null)}
         />
@@ -237,8 +240,9 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
         />
       )}
       {deletingVeiculo && (
-        <VehicleDeleteConfirmModal
-          veiculo={deletingVeiculo}
+        <ConfirmDeleteDialog
+          entidade="veículo"
+          nome={`${deletingVeiculo.marca} ${deletingVeiculo.modelo} (${deletingVeiculo.placa})`}
           onConfirm={() => deleteVeiculo(deletingVeiculo.id).catch(avisarErro)}
           onClose={() => setDeletingVeiculo(null)}
         />

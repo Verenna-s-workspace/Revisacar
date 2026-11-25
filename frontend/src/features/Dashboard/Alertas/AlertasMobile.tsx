@@ -1,12 +1,11 @@
 /* --- START OF FILE src/features/Dashboard/Alertas/AlertasMobile.tsx --- */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { tokens } from '../../../constants';
 import { Skeleton } from '../Primitives';
+import { Icons } from '../Icons';
+import { ActionSheet } from '../../../components/system';
 import { ProdutoModal } from '../Estoque/ProdutoModal';
 import { TransacaoModal } from '../Financeiro/TransacaoModal';
-import { Input } from '../../../components/inputs/input';
 import { api } from '../../../utils/api';
 import { limparOpcionais, mensagemDoErro } from '../../../utils/api_erro';
 import { telefoneParaWhatsApp } from '../../../utils/orcamento_link_utils';
@@ -16,6 +15,7 @@ import type { EstoqueItem, NovoEstoqueItemInput } from '../../../types/estoque';
 import type { OrdemRow } from '../../../types/dashboard';
 import type { Categorias, Transacao } from '../Financeiro/types';
 import { ALVO } from '../../../utils/destaque';
+import { RegistrarCompraModal } from './RegistrarCompraModal';
 import './AlertasMobile.css';
 
 type Filtro = 'todos' | SeveridadeAlerta;
@@ -146,110 +146,6 @@ function telefoneDaOrdem(ordem?: OrdemRow): string | null {
   return typeof tel === 'string' ? telefoneParaWhatsApp(tel) : null;
 }
 
-interface RegistrarCompraModalProps {
-  item: EstoqueItem;
-  salvando: boolean;
-  erro: string | null;
-  onConfirmar: (quantidadeComprada: number, novoPreco?: number) => Promise<void>;
-  onClose: () => void;
-}
-
-function RegistrarCompraModal({ item, salvando, erro, onConfirmar, onClose }: RegistrarCompraModalProps) {
-  const sugerida = Math.max(1, item.minimo - item.quantidade);
-  const [quantidade, setQuantidade] = useState(String(sugerida));
-  const [preco, setPreco] = useState(item.preco ? String(item.preco) : '');
-
-  const qtdNum = Number(quantidade);
-  const precoNum = Number(preco);
-  const valido = Number.isFinite(qtdNum) && qtdNum > 0;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!valido || salvando) return;
-    void onConfirmar(qtdNum, Number.isFinite(precoNum) && precoNum > 0 ? precoNum : undefined);
-  };
-
-  return (
-    <div className="dashboard-modal-backdrop sheet-backdrop" onClick={onClose}>
-      <div className="dashboard-modal sheet-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">Registrar compra</div>
-            <div className="dashboard-modal__subtitle">{item.nome}</div>
-          </div>
-          <button type="button" onClick={onClose} className="dashboard-button--close" aria-label="Fechar">×</button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="dashboard-modal__body">
-            <div style={{ fontSize: '0.84rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
-              Estoque atual: <strong style={{ color: tokens.color.text }}>{item.quantidade} un.</strong> (mínimo: {item.minimo} un.)
-            </div>
-
-            <Input
-              name="compra_quantidade_mobile"
-              type="number"
-              label="Quantidade comprada"
-              required
-              autoFocus
-              min={1}
-              value={quantidade}
-              onChangeValue={setQuantidade}
-            />
-
-            <Input
-              name="compra_preco_mobile"
-              type="currency"
-              label="Preço unitário (opcional)"
-              value={preco}
-              onChangeValue={setPreco}
-              placeholder="R$ 0,00"
-            />
-
-            <div style={{ fontSize: '0.82rem', color: tokens.color.muted }}>
-              Novo estoque após entrada: <strong style={{ color: tokens.color.text }}>{item.quantidade + (valido ? qtdNum : 0)} un.</strong>
-            </div>
-
-            {erro && (
-              <div role="alert" style={{ padding: '10px 12px', borderRadius: 8, background: tokens.color.critBg, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
-                {erro}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px', borderTop: `1px solid ${tokens.color.border}` }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ flex: 1, minHeight: 44, padding: '10px 16px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.textSecond, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={!valido || salvando}
-              style={{
-                flex: 1,
-                minHeight: 44,
-                padding: '10px 16px',
-                background: !valido ? tokens.color.surfaceHigh : tokens.color.ferrari,
-                color: !valido ? tokens.color.subtle : 'white',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                cursor: !valido || salvando ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {salvando ? 'Salvando…' : 'Confirmar entrada'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 export interface AlertasMobileProps {
   grupos: GrupoAlertas[];
   alertas: AlertaItem[];
@@ -321,15 +217,6 @@ export function AlertasMobile({
 
     return () => { ativo = false; };
   }, [alertas]);
-
-  useEffect(() => {
-    if (!sheetAlerta) return;
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSheetAlerta(null);
-    };
-    document.addEventListener('keydown', aoTeclar);
-    return () => document.removeEventListener('keydown', aoTeclar);
-  }, [sheetAlerta]);
 
   const qtd = useMemo(() => ({
     todos: alertas.length,
@@ -744,42 +631,21 @@ export function AlertasMobile({
         )}
       </div>
 
-      {/* Bottom sheet: Adiar ou dispensar */}
-      {sheetAlerta && createPortal(
-        <div className="alm-sheet-backdrop" onClick={() => setSheetAlerta(null)}>
-          <div
-            className="alm-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Adiar ou dispensar: ${sheetAlerta.titulo}`}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="alm-sheet__grab" aria-hidden="true" />
-            <h3 className="alm-sheet__titulo">{sheetAlerta.titulo}</h3>
-            <p className="alm-sheet__sub">Escolha por quanto tempo esconder este alerta</p>
-            {OPCOES_ADIAR.map(o => (
-              <button
-                key={o.dias}
-                type="button"
-                className="alm-sheet__opt"
-                onClick={() => void handleAdiar(sheetAlerta.id, o.dias)}
-              >
-                Adiar por {o.rotulo}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="alm-sheet__opt alm-sheet__opt--perigo"
-              onClick={() => void handleDispensar(sheetAlerta.id)}
-            >
-              Dispensar até resolver
-            </button>
-            <button type="button" className="alm-sheet__cancel" onClick={() => setSheetAlerta(null)}>
-              Cancelar
-            </button>
-          </div>
-        </div>,
-        document.body,
+      {/* Sheet: adiar ou dispensar */}
+      {sheetAlerta && (
+        <ActionSheet
+          title={sheetAlerta.titulo}
+          description="Escolha por quanto tempo esconder este alerta"
+          onClose={() => setSheetAlerta(null)}
+          actions={[
+            ...OPCOES_ADIAR.map(o => ({
+              label: `Adiar por ${o.rotulo}`,
+              icon: Icons.clock,
+              onSelect: () => { void handleAdiar(sheetAlerta.id, o.dias); },
+            })),
+            { label: 'Dispensar até resolver', icon: Icons.eyeOff, tone: 'danger' as const, onSelect: () => { void handleDispensar(sheetAlerta.id); } },
+          ]}
+        />
       )}
 
       {/* Toast desfazer */}

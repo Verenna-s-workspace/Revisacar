@@ -13,6 +13,16 @@ import type { ClienteStatus } from '../../../types/cliente';
 // "Disponível" fica neutro para não competir visualmente com os estados que
 // realmente pedem atenção.
 
+/** Tom do selo dos modais (ModalBadge) para cada status. */
+export const CLIENTE_STATUS_TOM: Record<ClienteStatus, 'info' | 'attention' | 'error' | 'success'> = {
+  em_atendimento: 'attention',
+  pronto_retirada: 'success',
+  aguardando_aprovacao: 'info',
+  pagamento_pendente: 'error',
+  agendado: 'info',
+  disponivel: 'info',
+};
+
 export interface ClienteStatusConfig {
   label: string;
   color: string;

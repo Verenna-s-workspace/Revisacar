@@ -1,36 +1,33 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Skeleton } from '../../Primitives';
-import type { Agendamento, AgendaFiltros, AgendaViewMode } from '../../../../types/agendamento';
-import { toISODate } from '../../../../utils/agenda';
-import { AgendamentoFiltrosModal, contarFiltros, FILTROS_PADRAO, PERIODOS } from '../AgendamentoFiltrosModal';
-import { APPOINTMENT_STATUS_CONFIG } from '../StatusBadge';
-import { ordenarParaLista, plural, rotuloMes } from '../agendamentosDesktopUtils';
-import { IcAlerta, IcBuscar, IcCalendario, IcCalendarioPlus, IcFechar, IcFiltros } from '../icones';
-import { capitalizar } from './agendaMobileUtils';
-import { MobileAppointmentCard } from './MobileAppointmentCard';
-import { MobileDailyView } from './MobileDailyView';
-import { MobileMonthlyView } from './MobileMonthlyView';
-import { MobileWeeklyView } from './MobileWeeklyView';
-// Paleta dos selos/avisos (os-status--*) e peças compartilhadas com o desktop (.ag-selo, .ag-aviso, .ag-opcao).
-import '../../Ordens/Status.css';
-import '../agendamentosDesktop.css';
+import { useCallback, useMemo, useState } from 'react';
 import './agendaMobile.css';
+import { Icons } from '../../Icons';
+import { AgendaIcons } from '../icons';
+import { Skeleton } from '../../Primitives';
+import { MobileStatsRail } from './MobileStatsRail';
+import { MobileDailyView } from './MobileDailyView';
+import { MobileWeeklyView } from './MobileWeeklyView';
+import { MobileMonthlyView } from './MobileMonthlyView';
+import { MobileAppointmentCard } from './MobileAppointmentCard';
+import { MobileFiltersSheet } from './MobileFiltersSheet';
+import { toISODate, parseISODate, WEEKDAYS_LONG, MONTHS } from '../../../../utils/agenda';
+import type { AgendamentoStats } from '../../../../hooks/useAgendamentos';
+import type {
+  Agendamento,
+  AgendaFiltros,
+  AgendaPeriodo,
+  AgendaViewMode,
+} from '../../../../types/agendamento';
 
-const POR_PAGINA = 20;
-
-const VISOES: { modo: AgendaViewMode; rotulo: string }[] = [
-  { modo: 'diario', rotulo: 'Dia' },
-  { modo: 'semanal', rotulo: 'Semana' },
-  { modo: 'mensal', rotulo: 'Mês' },
-];
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface AgendaMobileProps {
-  /** Já com busca e filtros aplicados. */
+  /** Lista já filtrada (busca + período + status). */
   agendamentos: Agendamento[];
-  /** Total sem busca/filtros — separa "nada cadastrado" de "nada encontrado". */
+  /** Total sem filtros — usado só no subtítulo do cabeçalho. */
   total: number;
   loading: boolean;
   erro: string | null;
+  stats: AgendamentoStats;
   viewMode: AgendaViewMode;
   onViewModeChange: (m: AgendaViewMode) => void;
   viewDate: Date;
@@ -39,168 +36,241 @@ interface AgendaMobileProps {
   onSearchChange: (v: string) => void;
   filtros: AgendaFiltros;
   onFiltrosChange: (f: AgendaFiltros) => void;
+  onBack: () => void;
   onCardClick: (ag: Agendamento) => void;
-  /** Abre o modal de novo agendamento (data ISO opcional). */
+  /** Abre o modal de novo agendamento (data opcional, ISO). */
   onNew: (isoDate?: string) => void;
-  /** Mês/Semana → toque em um dia: abre a visão Dia. */
+  /** Mensal → toque em um dia com agendamentos. */
   onDayClick: (d: Date) => void;
 }
 
-/**
- * Agenda no celular. Mesma lógica do desktop (AgendamentosDesktop): com busca ou filtros ativos a tela
- * mostra a lista; sem eles, o calendário nas visões Dia, Semana e Mês. Filtros abrem no `Modal` do sistema,
- * que no celular sobe de baixo como bottom sheet (o mesmo padrão de Estoque e Veículos).
- */
+const PERIOD_OPTS: { val: AgendaPeriodo; label: string }[] = [
+  { val: 'todos',  label: 'Todos' },
+  { val: 'hoje',   label: 'Hoje' },
+  { val: 'semana', label: 'Esta semana' },
+  { val: 'mes',    label: 'Este mês' },
+];
+
+const VIEW_OPTS: { mode: AgendaViewMode; label: string; icon: JSX.Element }[] = [
+  { mode: 'diario',  label: 'Diário',  icon: AgendaIcons.viewDay },
+  { mode: 'semanal', label: 'Semanal', icon: AgendaIcons.viewWeek },
+  { mode: 'mensal',  label: 'Mensal',  icon: AgendaIcons.viewMonth },
+];
+
+// ── Componente ────────────────────────────────────────────────────────────────
+
 export function AgendaMobile({
-  agendamentos, total, loading, erro,
+  agendamentos, total, loading, erro, stats,
   viewMode, onViewModeChange, viewDate, onViewDateChange,
   search, onSearchChange, filtros, onFiltrosChange,
-  onCardClick, onNew, onDayClick,
+  onBack, onCardClick, onNew, onDayClick,
 }: AgendaMobileProps) {
-  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
-  const [limite, setLimite] = useState(POR_PAGINA);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
 
-  // A lista volta às primeiras 20 linhas quando busca/filtros mudam o resultado.
-  useEffect(() => { setLimite(POR_PAGINA); }, [agendamentos]);
+  const query = search.trim();
+  const searching = query.length > 0;
+  const hasFilters = filtros.status !== 'todos' || filtros.periodo !== 'todos';
 
-  const qtdFiltros = contarFiltros(filtros);
-  const temFiltros = qtdFiltros > 0 || search.trim().length > 0;
-  const periodo = PERIODOS.find(p => p.val === filtros.periodo);
-  const limparTudo = () => { onFiltrosChange(FILTROS_PADRAO); onSearchChange(''); };
+  const setPeriodo = (periodo: AgendaPeriodo) => {
+    onFiltrosChange({ ...filtros, periodo });
+    // O período é relativo a hoje: leva a visão para hoje para o resultado aparecer.
+    if (periodo !== 'todos') onViewDateChange(new Date());
+  };
 
-  const ordenados = useMemo(() => (temFiltros ? ordenarParaLista(agendamentos) : []), [temFiltros, agendamentos]);
-  const visiveis = ordenados.slice(0, limite);
-  const restantes = ordenados.length - visiveis.length;
+  const clearFilters = () => onFiltrosChange({ status: 'todos', periodo: 'todos' });
 
-  // Ação do cabeçalho: usa o dia que a pessoa está olhando, desde que não seja passado.
-  const novoAgendamento = () => {
+  // FAB: usa o dia que a pessoa está olhando, desde que não seja passado.
+  const handleFab = () => {
     const iso = toISODate(viewDate);
     onNew(viewMode !== 'mensal' && iso >= toISODate(new Date()) ? iso : undefined);
   };
 
-  const subtitulo = temFiltros
-    ? `${agendamentos.length} de ${total} ${plural(total, 'agendamento', 'agendamentos')}`
-    : capitalizar(rotuloMes(viewDate));
+  // Resultados da busca: todos os dias, agrupados por data.
+  const groups = useMemo(() => {
+    if (!searching) return [];
+    const sorted = [...agendamentos].sort((a, b) =>
+      a.data === b.data ? a.horaInicio.localeCompare(b.horaInicio) : a.data < b.data ? -1 : 1);
+    const map = new Map<string, Agendamento[]>();
+    sorted.forEach(a => map.set(a.data, [...(map.get(a.data) ?? []), a]));
+    return [...map.entries()];
+  }, [agendamentos, searching]);
 
   return (
     <div className="agm">
-      <header className="agm-topo">
-        <div className="agm-barra">
-          <div className="agm-barra__titulos">
-            <h1 className="agm-titulo">Agenda</h1>
-            <div className="agm-subtitulo">{loading ? <Skeleton w={120} h={12} r={4} /> : subtitulo}</div>
-          </div>
-          <button type="button" className="agm-acao" aria-label="Novo agendamento" onClick={novoAgendamento}>
-            {IcCalendarioPlus}
+      {/* ── Cabeçalho: título, busca, filtros, períodos ─── */}
+      <header className="agm-header">
+        <div className="agm-header__row">
+          <button type="button" className="agm-back" onClick={onBack} aria-label="Voltar ao início">
+            {Icons.chevL}
           </button>
+          <div style={{ minWidth: 0 }}>
+            <h1 className="agm-title">Agendamentos</h1>
+            <p className="agm-subtitle">
+              {loading ? 'Carregando…' : `${total} agendamento${total !== 1 ? 's' : ''} no total`}
+            </p>
+          </div>
         </div>
 
-        <div className="agm-busca-linha">
-          <label className="agm-busca">
-            {IcBuscar}
+        <div className="agm-search-row">
+          <label className="agm-search">
+            <span className="agm-search__icon" aria-hidden="true">{Icons.search}</span>
             <input
-              name="busca_agendamentos"
+              className="agm-search__input"
               type="search"
+              inputMode="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              name="busca_agendamentos"
+              aria-label="Buscar por cliente ou placa"
+              placeholder="Cliente ou placa..."
               value={search}
               onChange={e => onSearchChange(e.target.value)}
-              placeholder="Buscar cliente ou placa"
-              aria-label="Buscar agendamentos por cliente, placa, veículo ou serviço"
-              autoComplete="off"
-              enterKeyHint="search"
             />
+            {search && (
+              <button type="button" className="agm-search__clear" aria-label="Limpar busca" onClick={() => onSearchChange('')}>
+                ×
+              </button>
+            )}
           </label>
-          <button type="button" className="agm-filtros-btn" aria-haspopup="dialog" onClick={() => setFiltrosAbertos(true)}>
-            {IcFiltros}
+          <button
+            type="button"
+            className={`agm-filterbtn${filtros.status !== 'todos' ? ' is-active' : ''}`}
+            aria-haspopup="dialog"
+            onClick={() => setSheetOpen(true)}
+          >
+            {AgendaIcons.filter}
             Filtros
-            {qtdFiltros > 0 && <span className="agm-filtros-btn__contador">{qtdFiltros}</span>}
+            {filtros.status !== 'todos' && <span className="agm-filterbtn__dot" aria-hidden="true" />}
           </button>
         </div>
 
-        {temFiltros && (
-          <div className="agm-ativos" role="group" aria-label="Filtros ativos">
-            {filtros.periodo !== 'todos' && periodo && (
-              <button type="button" className="agm-pilula" onClick={() => onFiltrosChange({ ...filtros, periodo: 'todos' })} aria-label={`Remover filtro de período: ${periodo.label}`}>
-                <span className="agm-pilula__visual">{periodo.label}{IcFechar}</span>
-              </button>
-            )}
-            {filtros.status !== 'todos' && (
-              <button type="button" className="agm-pilula" onClick={() => onFiltrosChange({ ...filtros, status: 'todos' })} aria-label={`Remover filtro de status: ${APPOINTMENT_STATUS_CONFIG[filtros.status].label}`}>
-                <span className="agm-pilula__visual">{APPOINTMENT_STATUS_CONFIG[filtros.status].label}{IcFechar}</span>
-              </button>
-            )}
-            <button type="button" className="agm-pilula agm-pilula--limpar" onClick={limparTudo}>
-              <span className="agm-pilula__visual">Limpar</span>
+        <div className="agm-chips" role="group" aria-label="Período">
+          {PERIOD_OPTS.map(o => (
+            <button
+              key={o.val}
+              type="button"
+              className={`agm-chip-btn${filtros.periodo === o.val ? ' is-active' : ''}`}
+              aria-pressed={filtros.periodo === o.val}
+              onClick={() => setPeriodo(o.val)}
+            >
+              {o.label}
             </button>
-          </div>
-        )}
-
-        {!temFiltros && (
-          <div className="agm-segmentado" role="group" aria-label="Visão da agenda">
-            {VISOES.map(v => (
-              <button key={v.modo} type="button" className="agm-segmentado__item" aria-pressed={viewMode === v.modo} onClick={() => onViewModeChange(v.modo)}>
-                <span className="agm-segmentado__rotulo">{v.rotulo}</span>
-              </button>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
       </header>
 
-      {erro && !loading && (
-        <div className="agm-aviso-wrap">
-          <div className="ag-aviso os-status--recusada" role="alert">
-            <span className="ag-aviso__icone">{IcAlerta}</span>
-            <p className="ag-aviso__texto">{erro}</p>
-          </div>
+      {erro && <div className="agm-error" role="alert">{erro}</div>}
+
+      <MobileStatsRail stats={stats} loading={loading} />
+
+      {/* ── Seletor de visão ─── */}
+      {!searching && (
+      <div className="agm-tabs-wrap">
+        <div className="agm-tabs" role="tablist" aria-label="Visão da agenda">
+          {VIEW_OPTS.map(o => (
+            <button
+              key={o.mode}
+              type="button"
+              role="tab"
+              aria-selected={viewMode === o.mode}
+              className={`agm-tab${viewMode === o.mode ? ' is-active' : ''}`}
+              onClick={() => onViewModeChange(o.mode)}
+            >
+              {o.icon}
+              {o.label}
+            </button>
+          ))}
         </div>
+      </div>
       )}
 
-      <main className="agm-corpo" aria-busy={loading}>
+      {/* ── Conteúdo ─── */}
+      <main className="agm-body">
         {loading ? (
-          <div className="agm-carregando" aria-label="Carregando agendamentos">
-            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} h={88} r={6} />)}
+          <>
+            <Skeleton h={72} r={16} />
+            <Skeleton h={220} r={16} />
+          </>
+        ) : searching ? (
+          <div className="agm-view" key="busca">
+            <p className="agm-subtitle" role="status">
+              {agendamentos.length} resultado{agendamentos.length !== 1 ? 's' : ''} para “{query}”
+            </p>
+            {groups.length === 0 ? (
+              <div className="agm-empty">
+                <p className="agm-empty__title">Nada encontrado</p>
+                <p className="agm-empty__text">Confira o nome do cliente ou a placa, ou limpe os filtros.</p>
+                <button type="button" className="agm-btn agm-btn--ghost" onClick={() => { onSearchChange(''); clearFilters(); }}>
+                  Limpar busca e filtros
+                </button>
+              </div>
+            ) : (
+              groups.map(([iso, list]) => {
+                const d = parseISODate(iso);
+                return (
+                  <section key={iso} className="agm-group">
+                    <h2 className="agm-group__title">{WEEKDAYS_LONG[d.getDay()]}, {d.getDate()} de {MONTHS[d.getMonth()]}</h2>
+                    <ul className="agm-list">
+                      {list.map(ag => (
+                        <li key={ag.id}><MobileAppointmentCard agendamento={ag} onClick={() => onCardClick(ag)} /></li>
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })
+            )}
           </div>
-        ) : temFiltros ? (
-          visiveis.length === 0 ? (
-            <div className="agm-vazio">
-              <span className="agm-vazio__icone">{IcCalendario}</span>
-              <strong>{total > 0 ? 'Nenhum agendamento encontrado' : 'Nenhum agendamento ainda'}</strong>
-              <span>{total > 0 ? 'Ajuste a busca ou os filtros aplicados.' : 'Comece agendando o primeiro serviço da sua oficina.'}</span>
-              <button type="button" className="agm-btn agm-btn--secundario" onClick={limparTudo}>Limpar filtros</button>
-            </div>
-          ) : (
-            <section aria-label="Lista de agendamentos">
-              <ul className="agm-lista">
-                {visiveis.map(ag => (
-                  <li key={ag.id}><MobileAppointmentCard agendamento={ag} mostrarData onClick={() => onCardClick(ag)} /></li>
-                ))}
-              </ul>
-              {restantes > 0 && (
-                <div className="agm-livre">
-                  <button type="button" className="agm-btn agm-btn--secundario agm-btn--bloco" onClick={() => setLimite(l => l + POR_PAGINA)}>
-                    Mostrar mais {Math.min(restantes, POR_PAGINA)}
-                  </button>
-                </div>
-              )}
-            </section>
-          )
         ) : (
-          <div key={viewMode} className="agm-troca">
+          <div key={viewMode} style={{ display: 'contents' }}>
             {viewMode === 'diario' && (
-              <MobileDailyView date={viewDate} agendamentos={agendamentos} onDateChange={onViewDateChange} onCardClick={onCardClick} onNew={onNew} />
+              <MobileDailyView
+                date={viewDate}
+                agendamentos={agendamentos}
+                onDateChange={onViewDateChange}
+                onCardClick={onCardClick}
+                onNew={onNew}
+                hasFilters={hasFilters}
+                onClearFilters={clearFilters}
+              />
             )}
             {viewMode === 'semanal' && (
-              <MobileWeeklyView date={viewDate} agendamentos={agendamentos} onDateChange={onViewDateChange} onCardClick={onCardClick} onDayClick={onDayClick} onNew={onNew} />
+              <MobileWeeklyView
+                date={viewDate}
+                agendamentos={agendamentos}
+                onDateChange={onViewDateChange}
+                onCardClick={onCardClick}
+                onNew={onNew}
+                hasFilters={hasFilters}
+                onClearFilters={clearFilters}
+              />
             )}
             {viewMode === 'mensal' && (
-              <MobileMonthlyView date={viewDate} agendamentos={agendamentos} onDateChange={onViewDateChange} onDayClick={onDayClick} />
+              <MobileMonthlyView
+                date={viewDate}
+                agendamentos={agendamentos}
+                onDateChange={onViewDateChange}
+                onDayClick={onDayClick}
+              />
             )}
           </div>
         )}
       </main>
 
-      {filtrosAbertos && (
-        <AgendamentoFiltrosModal filtros={filtros} onApply={onFiltrosChange} onClose={() => setFiltrosAbertos(false)} />
-      )}
+      {/* ── FAB: ação rápida fixa no canto inferior direito ─── */}
+      <button type="button" className="agm-fab" onClick={handleFab}>
+        {Icons.plus}
+        Novo Agendamento
+      </button>
+
+      <MobileFiltersSheet
+        open={sheetOpen}
+        status={filtros.status}
+        onStatusChange={status => onFiltrosChange({ ...filtros, status })}
+        onClose={closeSheet}
+      />
     </div>
   );
 }
