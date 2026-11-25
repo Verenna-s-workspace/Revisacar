@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
-import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
-import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useClientes } from '../../../hooks/useClientes';
 import { useOrdens } from '../../../hooks/useOrdens';
@@ -194,10 +194,8 @@ export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: Ve
   // ── layout desktop (redesign em ./VeiculosDesktop) ──────────────────────────
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="veiculos" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="veiculos" onNav={onNav} />
+    <>
+      <DesktopShell page="veiculos" onNav={onNav} onNewOS={onNewOS}>
         <VeiculosDesktop
           veiculos={filtered}
           totalVeiculos={veiculos.length}
@@ -220,8 +218,8 @@ export function VeiculosPage({ onNav, isMobile, onNewOS, onNewOSComPrefill }: Ve
           onDelete={v => { setSelected(null); setDeleteTarget(v); }}
           onNovaOS={handleNovaOS}
         />
-      </main>
+      </DesktopShell>
       {modals}
-    </div>
+    </>
   );
 }

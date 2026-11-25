@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge, Skeleton } from './Primitives';
-import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
-import { DesktopTopBar } from '../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from './Navigation';
+import { DesktopShell } from '../../components/DesktopShell';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
 import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
@@ -197,10 +197,8 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
 
   if (!isMobile) {
     return (
-      <div style={{ display: 'flex', minHeight: '100dvh' }}>
-        <Sidebar active="ordens" onNav={onNav} onNewOS={onNewOS} />
-        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-          <DesktopTopBar page="ordens" onNav={onNav} />
+      <>
+        <DesktopShell page="ordens" onNav={onNav} onNewOS={onNewOS}>
           <OrdensDesktop
             ordens={ordens}
             loading={loading}
@@ -214,9 +212,9 @@ export function OrdensPage({ ordens, loading, onNewOS, onLoadOS, onNav, isMobile
             onExcluir={handleDel}
             excluindoId={del}
           />
-        </main>
+        </DesktopShell>
         {modal}
-      </div>
+      </>
     );
   }
 

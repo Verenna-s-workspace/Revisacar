@@ -22,8 +22,8 @@ import { DESTINOS_VISAO_GERAL, DESTINOS_ALERTAS } from '../utils/destaque';
 import type { Destaque, DestinoCard } from '../utils/destaque';
 
 // Components
-import { Sidebar, MobileSafeTop, MobileNav, NAV_ITEMS, TELAS_COM_PRIVACIDADE } from '../features/Dashboard/Navigation';
-import { DesktopTopBar } from '../components/DesktopTopBar';
+import { MobileSafeTop, MobileNav, NAV_ITEMS, TELAS_COM_PRIVACIDADE } from '../features/Dashboard/Navigation';
+import { DesktopShell } from '../components/DesktopShell';
 import { KpiCard, MetaCard, Card, Skeleton, ProgressBar, HeatmapRow } from '../features/Dashboard/Primitives';
 import { Icons, SVC_ICON } from '../features/Dashboard/Icons';
 import { FaturamentoChart } from '../features/Dashboard/FaturamentoChart';
@@ -77,13 +77,9 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
     </div>
   );
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <DesktopTopBar page={page} onNav={onNav} />
-        {content}
-      </main>
-    </div>
+    <DesktopShell page={page} onNav={onNav} onNewOS={onNewOS}>
+      {content}
+    </DesktopShell>
   );
 }
 
@@ -111,16 +107,9 @@ function ShellPage({ page, onNav, isMobile, onNewOS, semCabecalho = false, mobil
     </div>
   );
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active={page} onNav={onNav} onNewOS={onNewOS} />
-      <main style={semCabecalho
-        ? { flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }
-        : { flex: 1, minWidth: 0, overflowY: 'auto' }}
-      >
-        <DesktopTopBar page={page} onNav={onNav} />
-        {semCabecalho ? children : <div style={{ padding: '18px 28px 32px' }}>{children}</div>}
-      </main>
-    </div>
+    <DesktopShell page={page} onNav={onNav} onNewOS={onNewOS} recuo={!semCabecalho}>
+      {children}
+    </DesktopShell>
   );
 }
 
@@ -842,10 +831,8 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   // (o mobile ainda usa os três primeiros e as Ordens recentes), até serem recolocados nas
   // telas de Relatórios / Financeiro / Ordens. O arranjo antigo do desktop está no git.
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh', background: tokens.color.bg }}>
-      <Sidebar active={page} onNav={handleNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page={page} onNav={handleNav} />
+    <>
+      <DesktopShell page={page} onNav={handleNav} onNewOS={onNewOS}>
         <VisaoGeralDesktop
           vg={vg}
           vgLoading={loading}
@@ -860,9 +847,9 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
           onAcaoAlerta={handleAcaoAlerta}
           onIrParaDestino={irParaDestino}
         />
-      </main>
+      </DesktopShell>
       {sel && <OSModal ordem={sel} onClose={() => setSel(null)} onEdit={() => { onLoadOS?.(sel.id); setSel(null); }} />}
-    </div>
+    </>
   );
 }
 

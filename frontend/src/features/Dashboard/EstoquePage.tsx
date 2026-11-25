@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
-import { DesktopTopBar } from '../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from './Navigation';
+import { DesktopShell } from '../../components/DesktopShell';
 import { Card, Skeleton } from './Primitives';
 import { useEstoque } from '../../hooks/useEstoque';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -233,10 +233,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
 
   // Desktop: tela redesenhada em ./Estoque (EstoqueDesktop).
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="estoque" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="estoque" onNav={onNav} />
+    <>
+      <DesktopShell page="estoque" onNav={onNav} onNewOS={onNewOS}>
         <EstoqueDesktop
           itens={itens}
           kits={kits}
@@ -259,8 +257,8 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
           erroAplicarKit={erroAplicarKit}
           disponibilidadeKit={disponibilidadeKit}
         />
-      </main>
+      </DesktopShell>
       {modals}
-    </div>
+    </>
   );
 }

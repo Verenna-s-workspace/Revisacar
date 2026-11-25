@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
-import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
 import type { NavPage } from '../../../types/dashboard';
 import type {
@@ -227,10 +227,8 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
   // Desktop: cabeçalho, busca/filtros e calendário ou lista (./AgendamentosDesktop).
   // A página inteira rola junto (como Estoque, Veículos e Ordens), tanto no calendário quanto na lista.
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="agendamentos" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="agendamentos" onNav={onNav} />
+    <>
+      <DesktopShell page="agendamentos" onNav={onNav} onNewOS={onNewOS}>
         <AgendamentosDesktop
           agendamentos={filtered}
           total={agendamentos.length}
@@ -250,8 +248,8 @@ export function AgendamentosPage({ onNav, isMobile, onNewOS, initialSearch, init
           onCardClick={setSelectedAg}
           onDayClick={handleDayClick}
         />
-      </main>
+      </DesktopShell>
       {modals}
-    </div>
+    </>
   );
 }
