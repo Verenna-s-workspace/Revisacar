@@ -1,29 +1,23 @@
-import { mensagemDoErro } from '../../utils/api_erro';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
 import { StatusBadge, Skeleton, OS_STATUS_TOM, rotuloStatusOS } from './Primitives';
 import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
+import { DesktopShell } from '../../components/DesktopShell';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { useAbrirRegistro } from '../../hooks/useAbrirRegistro';
-import type { AbrirRegistro } from '../../types/busca';
-import { useState, useEffect } from 'react';
-import { tokens } from '../../constants';
-import { Icons } from './Icons';
-import { StatusBadge, Skeleton } from './Primitives';
-import { MobileNav, MobileSafeTop } from './Navigation';
-import { DesktopShell } from '../../components/DesktopShell';
 import { api } from '../../utils/api';
+import { mensagemDoErro } from '../../utils/api_erro';
 import { Input } from '../../components/inputs/input';
 import {
   Button, Modal, ModalBadge, ModalBody, ModalDetail, ModalDetails, ModalFooter, ModalHeader, ModalSection,
 } from '../../components/system';
 import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
+import type { AbrirRegistro } from '../../types/busca';
 import type { OrdemRow, NavPage } from '../../types/dashboard';
 import { OrdensDesktop } from './Ordens/OrdensDesktop';
 import { OrdensMobile } from './Ordens/OrdensMobile';
 import type { FiltroStatus } from './Ordens/ordensUtils';
-
 // ── Date formatter ────────────────────────────────────────────────────────────
 
 function formatDate(isoStr: string) {

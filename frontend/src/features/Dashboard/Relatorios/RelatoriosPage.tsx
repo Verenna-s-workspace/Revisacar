@@ -23,6 +23,7 @@ import { ServicosMaisRealizadosChart } from './ServicosMaisRealizadosChart';
 import { ItensEstoqueMaisMovimentadosChart } from './ItensEstoqueMaisMovimentadosChart';
 import { TopItensEstoqueDestaque } from './TopItensEstoqueDestaque';
 import { MediaDiariaInfo } from './MediaDiariaInfo';
+import { RelatoriosDesktop } from './relatoriosDesktop';
 
 interface RelatoriosPageProps {
   onNav: (p: NavPage) => void;
