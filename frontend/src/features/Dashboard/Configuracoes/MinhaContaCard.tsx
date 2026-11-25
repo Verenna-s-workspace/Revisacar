@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalNotice, ModalSection } from '../../../components/system';
-import { Aviso } from './cfgUi';
+import { Aviso, RodapeAcoes } from './cfgUi';
 import { IcAlerta, IcCheck } from './icones';
 import { Input } from '../../../components/inputs/input';
 import { useAuth } from '../../../context/AuthContext';

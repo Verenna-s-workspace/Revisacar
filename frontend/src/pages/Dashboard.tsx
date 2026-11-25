@@ -90,7 +90,14 @@ function PlaceholderPage({ page, onNav, isMobile, onNewOS }: { page: NavPage; on
 // devolvem o conteúdo interno, sem Sidebar/topbar). Reaproveita a mesma casca
 // da PlaceholderPage, mas com o conteúdo real no lugar do placeholder.
 
-function ShellPage({ page, onNav, isMobile, onNewOS, semCabecalho = false, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; /** Desktop: a tela traz o próprio cabeçalho (sem o "Olá, …" nem o respiro padrão). */ semCabecalho?: boolean; children: React.ReactNode }) {
+function ShellPage({ page, onNav, isMobile, onNewOS, semCabecalho = false, mobileSemRecuo = false, children }: { page: NavPage; onNav: (p: NavPage) => void; isMobile: boolean; onNewOS: () => void; /** Desktop: a tela traz o próprio cabeçalho (sem o "Olá, …" nem o respiro padrão). */ semCabecalho?: boolean; /** Celular: a tela é de borda a borda e traz o próprio topo (incluindo o olhinho da privacidade), como Clientes. */ mobileSemRecuo?: boolean; children: React.ReactNode }) {
+  if (isMobile && mobileSemRecuo) return (
+    <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
+      <MobileSafeTop />
+      {children}
+      <MobileNav active={page} onNav={onNav} onNewOS={onNewOS} />
+    </div>
+  );
   if (isMobile) return (
     <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
       <MobileSafeTop />
@@ -318,7 +325,7 @@ function DashboardConteudo({ onNewOS, onLoadOS, onNewOSComPrefill, onOpenLearnin
   }
   if (page === 'financeiro') {
     return (
-      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} semCabecalho>
+      <ShellPage page={page} onNav={handleNav} isMobile={isMobile} onNewOS={onNewOS} semCabecalho mobileSemRecuo>
         <FinanceiroPage isMobile={isMobile} destaque={destaque} onDestaqueConcluido={concluirDestaque} />
       </ShellPage>
     );

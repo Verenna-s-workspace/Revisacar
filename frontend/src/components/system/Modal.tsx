@@ -87,7 +87,7 @@ export function Modal({ onClose, size = 'lg', onSubmit, closeOnBackdrop = true, 
     if (initialFocusRef?.current) initialFocusRef.current.focus({ preventScroll: true });
     else if (janela && !janela.contains(document.activeElement)) janela.focus({ preventScroll: true });
 
-    const aoTeclar = (e: KeyboardEvent) => {
+    const aoTeclar = (e: globalThis.KeyboardEvent) => {
       if (pilhaDeModais[pilhaDeModais.length - 1] !== eu) return;
       if (e.key === 'Escape') { fecharRef.current(); return; }
       if (e.key !== 'Tab' || !janelaRef.current) return;
