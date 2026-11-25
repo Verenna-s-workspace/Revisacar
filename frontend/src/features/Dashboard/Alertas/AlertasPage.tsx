@@ -1,8 +1,8 @@
 /* --- START OF FILE src/features/Dashboard/Alertas/AlertasPage.tsx --- */
 
 import { tokens } from '../../../constants';
-import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
-import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useAlertas } from '../../../hooks/useAlertas';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import type { AcaoAlerta } from '../../../utils/alertas';
@@ -54,26 +54,22 @@ export function AlertasPage({ onNav, isMobile, onNewOS, onAcao, destaque, onDest
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="alertas" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="alertas" onNav={onNav} />
-        <AlertasDesktop
-          grupos={grupos}
-          alertas={alertas}
-          escondidos={escondidos}
-          loading={loading}
-          erro={erro}
-          avisos={avisos}
-          erroAcao={erroAcao}
-          onLimparErroAcao={limparErroAcao}
-          onRecarregar={recarregar}
-          onAcao={onAcao}
-          onAdiar={adiar}
-          onDispensar={dispensar}
-          onRestaurar={restaurar}
-        />
-      </main>
-    </div>
+    <DesktopShell page="alertas" onNav={onNav} onNewOS={onNewOS}>
+      <AlertasDesktop
+        grupos={grupos}
+        alertas={alertas}
+        escondidos={escondidos}
+        loading={loading}
+        erro={erro}
+        avisos={avisos}
+        erroAcao={erroAcao}
+        onLimparErroAcao={limparErroAcao}
+        onRecarregar={recarregar}
+        onAcao={onAcao}
+        onAdiar={adiar}
+        onDispensar={dispensar}
+        onRestaurar={restaurar}
+      />
+    </DesktopShell>
   );
 }

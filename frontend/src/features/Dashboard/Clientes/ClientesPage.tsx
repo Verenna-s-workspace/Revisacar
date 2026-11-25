@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { tokens } from '../../../constants';
-import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
-import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useClientes } from '../../../hooks/useClientes';
 import { useVeiculos } from '../../../hooks/useVeiculos';
 import { useAgendamentos } from '../../../hooks/useAgendamentos';
@@ -282,10 +282,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
   // ── layout desktop ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active="clientes" onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page="clientes" onNav={onNav} />
+    <>
+      <DesktopShell page="clientes" onNav={onNav} onNewOS={onNewOS}>
         <ClientesDesktop
           clientes={filtered}
           totalClientes={clientes.length}
@@ -305,8 +303,8 @@ export function ClientesPage({ onNav, isMobile, onNewOS, onNewOSComPrefill, onLo
           onSchedule={openAgendar}
           onDelete={c => { setSelected(null); setDeleteTarget(c); }}
         />
-      </main>
+      </DesktopShell>
       {modals}
-    </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
-import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { MobileNav, MobileSafeTop } from '../Navigation';
+import { DesktopShell } from '../../../components/DesktopShell';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
 import type { Destaque } from '../../../utils/destaque';
 import { useRelatorios } from '../../../hooks/useRelatorios';
@@ -104,29 +104,25 @@ export function RelatoriosPage({
   // ── layout desktop / laptop (redesign) ────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active='relatorios' onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page='relatorios' onNav={onNav} />
-        <RelatoriosDesktop
-          carregando={carregando}
-          carregandoEstoque={carregandoEstoque}
-          erro={erro}
-          filtro={filtro}
-          onFiltroChange={setFiltro}
-          intervaloAtual={intervaloAtual}
-          kpis={kpis}
-          serieFaturamento={serieFaturamento}
-          serieOrdens={serieOrdens}
-          servicosMaisRealizados={servicosMaisRealizados}
-          itensEstoqueMovimentados={itensEstoqueMovimentados}
-          mediaDiaria={mediaDiaria}
-          faturamentoOrigem={faturamentoOrigem}
-          temDadosNoPeriodo={temDadosNoPeriodo}
-          onRecarregar={recarregar}
-          onGoToEstoque={onGoToEstoque}
-        />
-      </main>
-    </div>
+    <DesktopShell page='relatorios' onNav={onNav} onNewOS={onNewOS}>
+      <RelatoriosDesktop
+        carregando={carregando}
+        carregandoEstoque={carregandoEstoque}
+        erro={erro}
+        filtro={filtro}
+        onFiltroChange={setFiltro}
+        intervaloAtual={intervaloAtual}
+        kpis={kpis}
+        serieFaturamento={serieFaturamento}
+        serieOrdens={serieOrdens}
+        servicosMaisRealizados={servicosMaisRealizados}
+        itensEstoqueMovimentados={itensEstoqueMovimentados}
+        mediaDiaria={mediaDiaria}
+        faturamentoOrigem={faturamentoOrigem}
+        temDadosNoPeriodo={temDadosNoPeriodo}
+        onRecarregar={recarregar}
+        onGoToEstoque={onGoToEstoque}
+      />
+    </DesktopShell>
   );
 }
