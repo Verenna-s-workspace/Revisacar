@@ -9,11 +9,12 @@ import {
 } from '../utils';
 import { LIM, sanitizarCampoPeca, sanitizarItemAdicional } from '../utils/campos_checklist';
 import { api } from '../utils/api';
+import { mensagemDoErro } from '../utils/api_erro';
 import { comprimirImagem } from '../utils/imagem';
 import { useFotosObrigatorias } from './useFotosObrigatorias';
 import type {
   OSHeader, Cliente, Veiculo, Tecnico, Photo,
-  SaveStatus, ValidationErrors, TabelaPeca,
+  SaveStatus, ValidationErrors, TabelaPeca, AssinaturaEntrada,
 } from '../types';
 
 // ── Initial state ─────────────────────────────────────────────────────────────
@@ -25,7 +26,25 @@ const INITIAL_OS_HEADER = (): OSHeader => ({
   os_date: nowDate(),
   os_time: nowTime(),
   os_km:   '',
+  previsao_entrega: '',
+  previsao_hora: '',
 });
+
+const ASSINATURA_PENDENTE: AssinaturaEntrada = { status: 'pendente', imagem: '', quem: '' };
+
+/** Lê `payload.assinaturas.entrada` de uma OS gravada (linha antiga, sem o campo, = pendente). */
+function lerAssinaturaEntrada(payload: any): AssinaturaEntrada | null {
+  const e = payload?.assinaturas?.entrada;
+  if (!e || typeof e !== 'object') return null;
+  const status = e.status === 'assinada' || e.status === 'adiada' ? e.status : 'pendente';
+  return {
+    status,
+    imagem: status === 'assinada' && typeof e.imagem === 'string' ? e.imagem : '',
+    quem: typeof e.quem === 'string' ? e.quem : '',
+    quando: typeof e.quando === 'string' && e.quando ? e.quando : undefined,
+    por: typeof e.por === 'string' && e.por ? e.por : undefined,
+  };
+}
 
 const INITIAL_CLIENTE: Cliente = { nome: '', doc: '', tel: '', email: '' };
 const INITIAL_VEICULO: Veiculo = {
@@ -35,6 +54,11 @@ const INITIAL_VEICULO: Veiculo = {
 const INITIAL_TECNICO: Tecnico = {
   nome: '', registro: '', data_saida: '', hora_saida: '', km_saida: '', parecer_geral: '',
 };
+
+const safeJson = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+
+/** `manter`: salva sem mexer no status da OS (salvamento automático da Entrada). */
+export interface OpcoesSalvar { manter?: boolean }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
@@ -49,6 +73,8 @@ export function useOrdemServico() {
   const [ordemStatus, setOrdemStatus] = useState<string | null>(null);
   const [savedAt, setSavedAt]       = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('');
+  /** Mensagem real (em português) do último salvamento que falhou; limpa quando um salvamento dá certo. */
+  const [saveError, setSaveError] = useState<string | null>(null);
   // O que o servidor fez com cliente/veículo ao salvar (cadastrou, avisos). Só informativo.
   const [cadastroInfo, setCadastroInfo] = useState<CadastroInfo | null>(null);
   const [errors, setErrors]         = useState<ValidationErrors>({});
@@ -61,6 +87,15 @@ export function useOrdemServico() {
   const [newPhotos, setNewPhotos] = useState<Photo[]>([]);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tecnico,  setTecnico]  = useState<Tecnico>(INITIAL_TECNICO);
+  // Assinatura do cliente no termo de recebimento (última sub-etapa da Entrada). Vai no payload da OS
+  // (`assinaturas.entrada`); o servidor carimba quando/por. `assinaturaTocada`: só enviamos o campo quando
+  // há o que dizer — salvar sem ele nunca apaga o que o servidor já tem.
+  const [assinaturaEntrada, setAssinaturaEntradaBruto] = useState<AssinaturaEntrada>(ASSINATURA_PENDENTE);
+  const assinaturaTocada = useRef(false);
+  const setAssinaturaEntrada = useCallback((a: AssinaturaEntrada) => {
+    assinaturaTocada.current = true;
+    setAssinaturaEntradaBruto(a);
+  }, []);
 
   // 5 fotos obrigatórias da entrada (hodômetro, frente, traseira, laterais): estado compartilhado
   // pelas etapas pro bloqueio valer na tela de fotos, nas abas e no "Próxima etapa".
@@ -285,6 +320,7 @@ export function useOrdemServico() {
   }, []);
 
   const getSigImage = useCallback((): string | null => {
+    if (assinaturaEntrada.status === 'assinada' && assinaturaEntrada.imagem) return assinaturaEntrada.imagem;
     const canvas = sigRef.current;
     if (!canvas) return null;
     const ctx = canvas.getContext('2d');
@@ -292,7 +328,7 @@ export function useOrdemServico() {
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const hasContent = data.some((v, i) => i % 4 === 3 && v > 0);
     return hasContent ? canvas.toDataURL('image/png') : null;
-  }, []);
+  }, [assinaturaEntrada]);
 
   const sigHandlers = {
     onPointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -346,13 +382,25 @@ export function useOrdemServico() {
       itens_adicionais: itensAdicionais,
       troca_set:   Array.from(trocaSet),
       tabela_pecas: tabelaPecas,
+      ...(assinaturaTocada.current || assinaturaEntrada.status !== 'pendente'
+        ? {
+            assinaturas: {
+              entrada: {
+                status: assinaturaEntrada.status,
+                imagem: assinaturaEntrada.status === 'assinada' ? assinaturaEntrada.imagem : '',
+                quem: assinaturaEntrada.status === 'pendente' ? '' : assinaturaEntrada.quem,
+              },
+            },
+          }
+        : {}),
     }),
-    [osHeader, cliente, veiculo, tecnico, selected, checklist, itensAdicionais, trocaSet, tabelaPecas]
+    [osHeader, cliente, veiculo, tecnico, selected, checklist, itensAdicionais, trocaSet, tabelaPecas, assinaturaEntrada]
   );
 
   /** Salva a OS (cria ou atualiza). Devolve true se o servidor aceitou. */
-  const salvarAgora = useCallback(async (): Promise<boolean> => {
+  const salvarAgora = useCallback(async (opts?: OpcoesSalvar): Promise<boolean> => {
     setSaveStatus('saving');
+    setSaveError(null);
     try {
       const isComplete = !!(
         osHeader.os_num  && osHeader.os_date && osHeader.os_time &&
@@ -367,7 +415,9 @@ export function useOrdemServico() {
         fotos_paths:  [],
         // Checklist completo leva ao orçamento — NÃO conclui a OS (ver utils/ordem_status.ts).
         // O servidor só promove rascunho → em_orcamento com as 5 fotos obrigatórias resolvidas.
-        status: isComplete ? 'em_orcamento' : 'rascunho',
+        // `manter` (salvamento automático da Entrada): não promove nem rebaixa a OS — só a ação explícita
+        // "Concluir entrada" (saveOrder sem opções) leva rascunho → em_orcamento.
+        status: opts?.manter ? (ordemStatus ?? 'rascunho') : (isComplete ? 'em_orcamento' : 'rascunho'),
       };
 
       let data;
@@ -378,6 +428,10 @@ export function useOrdemServico() {
         setOrderId(data.id);
       }
       if (typeof data?.status === 'string') setOrdemStatus(data.status);
+
+      // quando/por da assinatura são do servidor: traz de volta o carimbo gravado.
+      const gravada = lerAssinaturaEntrada(typeof data?.payload === 'string' ? safeJson(data.payload) : data?.payload);
+      if (gravada?.quando) setAssinaturaEntradaBruto((prev) => ({ ...prev, quando: gravada.quando, por: gravada.por }));
 
       const vinculo = data?.vinculo;
       if (vinculo && (vinculo.cliente_criado || vinculo.veiculo_criado || vinculo.avisos?.length)) {
@@ -404,18 +458,19 @@ export function useOrdemServico() {
       return true;
     } catch (err) {
       console.error('Erro ao salvar ordem:', err);
+      setSaveError(mensagemDoErro(err, 'Não foi possível salvar a OS. Confira os dados e a internet.'));
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(''), 3000);
       return false;
     }
-  }, [buildPayload, orderId, newPhotos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
+  }, [buildPayload, orderId, ordemStatus, newPhotos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
 
   // Um salvamento por vez: dois ao mesmo tempo (ex.: o auto-salvar da tela de fotos junto com o do
   // "Iniciar Atendimento") criariam duas OS. Quem chega no meio recebe o resultado do que já está em curso.
   const emCurso = useRef<Promise<boolean> | null>(null);
-  const saveOrder = useCallback((): Promise<boolean> => {
+  const saveOrder = useCallback((opts?: OpcoesSalvar): Promise<boolean> => {
     if (emCurso.current) return emCurso.current;
-    const p = salvarAgora().finally(() => { emCurso.current = null; });
+    const p = salvarAgora(opts).finally(() => { emCurso.current = null; });
     emCurso.current = p;
     return p;
   }, [salvarAgora]);
@@ -485,6 +540,9 @@ export function useOrdemServico() {
     setCliente(payload.cliente    || INITIAL_CLIENTE);
     setVeiculo({ ...INITIAL_VEICULO, ...(payload.veiculo || {}) });
     setTecnico(payload.tecnico    || INITIAL_TECNICO);
+    const gravada = lerAssinaturaEntrada(payload);
+    assinaturaTocada.current = !!gravada;
+    setAssinaturaEntradaBruto(gravada ?? ASSINATURA_PENDENTE);
 
     setSelected(new Set(payload.servicos_selecionados || []));
     setChecklist(payload.checklist || initChecklist());
@@ -542,6 +600,8 @@ export function useOrdemServico() {
     setCliente(INITIAL_CLIENTE);
     setVeiculo(INITIAL_VEICULO);
     setTecnico(INITIAL_TECNICO);
+    assinaturaTocada.current = false;
+    setAssinaturaEntradaBruto(ASSINATURA_PENDENTE);
     setSelected(new Set());
     setChecklist(initChecklist());
     setItensAdicionais([]);
@@ -589,6 +649,8 @@ export function useOrdemServico() {
     cliente,  setCliente,
     veiculo,  setVeiculo,
     tecnico,  setTecnico,
+    assinaturaEntrada, setAssinaturaEntrada,
+    saveError,
     photos,   setPhotos,
     newPhotos, setNewPhotos,
     lightbox, setLightbox,

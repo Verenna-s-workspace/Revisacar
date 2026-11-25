@@ -5,6 +5,21 @@ export interface OSHeader {
   os_date: string;
   os_time: string;
   os_km: string;
+  /** Previsão de entrega do veículo ao cliente: data AAAA-MM-DD e hora HH:MM (ambas opcionais). */
+  previsao_entrega?: string;
+  previsao_hora?: string;
+}
+
+/** Assinatura do cliente no termo de recebimento (Entrada). `quando`/`por` são carimbados pelo servidor. */
+export type StatusAssinatura = 'assinada' | 'adiada' | 'pendente';
+export interface AssinaturaEntrada {
+  status: StatusAssinatura;
+  /** Data URL do PNG; só existe quando `status` é "assinada". */
+  imagem: string;
+  /** Quem assinou (nome do cliente). */
+  quem: string;
+  quando?: string;
+  por?: string;
 }
 
 export interface Cliente {

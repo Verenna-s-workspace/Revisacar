@@ -8,7 +8,8 @@ interface TopbarProps {
   saveStatus: SaveStatus;
   savedAt: string | null;
   onReset: () => void;
-  onExportPDF: () => void;
+  /** Sem ele, o botão "Gerar PDF" não aparece (ex.: Entrada da OS). */
+  onExportPDF?: () => void;
   /** Logo → visão geral (sai do checklist). */
   onBackToStart?: () => void;
   /** Botão "Voltar" da barra mobile: volta UMA etapa do checklist atual. */
@@ -164,7 +165,7 @@ export function Topbar({
             <button className={buttonClass()} onClick={onReset}>
               Limpar tudo
             </button>
-            <button className={buttonClass(true)} onClick={onExportPDF}>
+            {onExportPDF && (            <button className={buttonClass(true)} onClick={onExportPDF}>
               <svg
                 width={11}
                 height={11}
@@ -177,7 +178,7 @@ export function Topbar({
                 <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
               </svg>
               Gerar PDF
-            </button>
+            </button>)}
           </div>
         </div>
       </nav>
@@ -210,7 +211,7 @@ export function Topbar({
       backAriaLabel={backAriaLabel}
       end={
         <>
-          <button
+          {onExportPDF && (          <button
             type="button"
             className={buttonClass(true)}
             onClick={onExportPDF}
@@ -219,7 +220,7 @@ export function Topbar({
             {pdfIcon}
             {isMobile ? "PDF" : "Gerar PDF"}
            
-          </button>
+          </button>)}
           <div className="topbar-menu" ref={menuRef}>
             
             <button

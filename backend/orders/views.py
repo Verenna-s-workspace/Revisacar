@@ -27,6 +27,7 @@ from .serializers import (
     validate_pin_format,
 )
 from .rbac import permissoes_do_cargo, FUNCIONARIO_CARGOS
+from . import assinaturas_os
 from . import ordem_status as os_status
 from .auth_store import SupabaseAuthStore
 
@@ -716,6 +717,31 @@ def _vincular_ordem(request, oficina_doc, ordem_id, ordem):
     return os_vinculo.vincular(oficina_doc, ordem_id, ordem, pode_cadastrar=pode_cadastrar)
 
 
+def _assinaturas_da_os(request, ordem, payload_antigo=None):
+    """`assinaturas` a gravar no payload: mescla o que veio validado no que já estava e carimba
+    quando/por no servidor (orders/assinaturas_os.py). None = não há nada para gravar."""
+    if isinstance(payload_antigo, str):
+        try:
+            payload_antigo = json.loads(payload_antigo)
+        except ValueError:
+            payload_antigo = None
+    antigo = payload_antigo.get("assinaturas") if isinstance(payload_antigo, dict) else None
+    return assinaturas_os.aplicar(
+        ordem.get("assinaturas"), antigo,
+        por_nome=str(request.admin.get("nome") or ""), agora=_now(),
+    )
+
+
+def _payload_da_os(serializer, status_final, assinaturas):
+    """Payload da OS = o que o serializer validou (só campos declarados!) + status + assinaturas carimbadas."""
+    payload = {**serializer.data, "status": status_final}
+    if assinaturas is None:
+        payload.pop("assinaturas", None)
+    else:
+        payload["assinaturas"] = assinaturas
+    return payload
+
+
 @api_view(["GET", "POST"])
 @require_auth
 @_ordens_precisam_do_sql
@@ -747,7 +773,7 @@ def ordens_list(request):
     ordem_id = str(uuid.uuid4())
     now = _now()
     status_final = os_status.status_no_salvamento(None, ordem.get("status"))
-    payload = {**serializer.data, "status": status_final}
+    payload = _payload_da_os(serializer, status_final, _assinaturas_da_os(request, ordem))
 
     data = {
         "id": ordem_id,
@@ -792,13 +818,14 @@ def ordem_detail(request, ordem_id):
 
         # Preserva fotos já existentes
         existing = (
-            supabase.table("ordens").select("fotos_paths,status")
+            supabase.table("ordens").select("fotos_paths,status,payload")
             .eq("id", ordem_id).eq("oficina_doc", oficina_doc).execute()
         )
         if not existing.data:
             return Response({"detail": "Não encontrada"}, status=status.HTTP_404_NOT_FOUND)
         existing_paths = existing.data[0].get("fotos_paths") or []
         status_atual = existing.data[0].get("status") or os_status.RASCUNHO
+        payload_antigo = existing.data[0].get("payload")
 
         ordem = serializer.validated_data
         status_final = os_status.status_no_salvamento(status_atual, ordem.get("status"))
@@ -821,7 +848,7 @@ def ordem_detail(request, ordem_id):
             "cliente": ordem["cliente"]["nome"],
             "status": status_final,
             "fotos_paths": existing_paths,
-            "payload": {**serializer.data, "status": status_final},
+            "payload": _payload_da_os(serializer, status_final, _assinaturas_da_os(request, ordem, payload_antigo)),
         }
 
         res = (

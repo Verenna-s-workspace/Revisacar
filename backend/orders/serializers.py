@@ -5,6 +5,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password, check_password
 
+from . import assinaturas_os
 from . import campos_os as campos
 
 # ── Sub-serializers ────────────────────────────────────────────────────────────
@@ -15,6 +16,9 @@ class OSHeaderSerializer(serializers.Serializer):
     os_date = serializers.CharField(default="", allow_blank=True)
     os_time = serializers.CharField(default="", allow_blank=True)
     os_km = serializers.CharField(default="", allow_blank=True)
+    # Previsão de entrega do veículo ao cliente (data AAAA-MM-DD e hora HH:MM, ambas opcionais).
+    previsao_entrega = serializers.CharField(default="", allow_blank=True)
+    previsao_hora = serializers.CharField(default="", allow_blank=True)
 
     # Regras de formato dos campos da OS: orders/campos_os.py (espelho de utils/campos_checklist.ts).
     def validate_os_num(self, value):
@@ -28,6 +32,20 @@ class OSHeaderSerializer(serializers.Serializer):
 
     def validate_os_km(self, value):
         return campos.km(value)
+
+    def validate_previsao_entrega(self, value):
+        return campos.data_iso(value)      # pode ser futura (é uma previsão)
+
+    def validate_previsao_hora(self, value):
+        return campos.hora(value)
+
+    def validate(self, attrs):
+        prev, entrada = attrs.get("previsao_entrega"), attrs.get("os_date")
+        if prev and entrada and prev < entrada:
+            raise serializers.ValidationError({"previsao_entrega": "A previsão não pode ser anterior à data de entrada"})
+        if attrs.get("previsao_hora") and not prev:
+            raise serializers.ValidationError({"previsao_hora": "Informe a data da previsão"})
+        return attrs
 
 
 def _id_opcional(value):
@@ -285,6 +303,31 @@ class TecnicoSerializer(serializers.Serializer):
         return campos.texto_livre(value, campos.PARECER_MAX)
 
 
+class AssinaturaEntradaSerializer(serializers.Serializer):
+    """Assinatura do cliente no termo de recebimento (Entrada). `quando`/`por` NÃO vêm do navegador:
+    o servidor carimba (orders/assinaturas_os.py)."""
+    status = serializers.ChoiceField(choices=assinaturas_os.STATUS_ENTRADA)
+    imagem = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=600_000)
+    quem = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=assinaturas_os.QUEM_MAX)
+
+    def validate_quem(self, value):
+        return campos.nome(value or "")
+
+    def validate(self, attrs):
+        if attrs["status"] == "assinada":
+            imagem = assinaturas_os.normalizar_imagem(attrs.get("imagem"))
+            if not imagem:
+                raise serializers.ValidationError({"imagem": "Falta o desenho da assinatura."})
+            attrs["imagem"] = imagem
+        else:
+            attrs["imagem"] = ""       # adiada/pendente nunca carregam imagem
+        return attrs
+
+
+class AssinaturasSerializer(serializers.Serializer):
+    entrada = AssinaturaEntradaSerializer(required=False, allow_null=True)
+
+
 class TabelaPecaSerializer(serializers.Serializer):
     """Linha da tabela de peças do diagnóstico (inspeção). Todo texto é opcional: a linha manual nasce vazia."""
     id = serializers.CharField(max_length=64)
@@ -340,6 +383,8 @@ class OrdemServicoSerializer(serializers.Serializer):
         child=serializers.CharField(), default=list
     )
     tecnico = TecnicoSerializer(required=False, allow_null=True)
+    # Assinaturas do ciclo da OS (hoje só a da entrada). Ausente = não mexe no que já está gravado.
+    assinaturas = AssinaturasSerializer(required=False, allow_null=True)
     # Só uma sugestão (rascunho/em_orcamento): quem decide é ordem_status.status_no_salvamento.
     status = serializers.CharField(default="rascunho", required=False)
 

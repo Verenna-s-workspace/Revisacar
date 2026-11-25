@@ -1,65 +1,65 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { useOrdemServico } from '../hooks/useOrdemServico';
-import { exportPDF } from '../utils/exportPDF';
 import { Topbar } from '../components/Topbar';
-import { StepTabs } from '../components/StepTabs';
+import { DesktopTopBar } from '../components/DesktopTopBar';
 import { Lightbox, useResponsive } from '../components/ui';
-import { entradaConfig } from '../features/Checklist/configs/initial';
+import { useConfirm } from '../components/system';
+import {
+  CabecalhoOS, GavetaOS, LayoutFaseOS, PainelResumo, RodapeEtapa, StepperFases, SubEtapas,
+} from '../components/os';
+import { EtapaClienteVeiculo } from '../features/Checklist/Entrada/EtapaClienteVeiculo';
+import { EtapaRelato } from '../features/Checklist/Entrada/EtapaRelato';
+import { EtapaFotos } from '../features/Checklist/Entrada/EtapaFotos';
+import { EtapaAssinatura } from '../features/Checklist/Entrada/EtapaAssinatura';
 import { tokens } from '../constants';
 import { api } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import { salvarOverlay } from '../utils/atendimento_utils';
 import type { OSPrefillInput } from '../types/atendimento';
-import { sanitizarPrefill } from '../utils/campos_checklist';
+import { LIM, sanitizarPrefill } from '../utils/campos_checklist';
+import { formatNome } from '../components/inputs/masks';
 import { AvisoCadastro } from '../features/Checklist/Steps/Initial/CadastroExistente';
+import { ETAPA, clienteVeiculoCompleto, etapasDaEntrada, resumoDaEntrada } from '../utils/entrada_os';
+import { eventosDaOS } from '../utils/historico_os';
+import { formatarQuando } from '../utils/fotos_obrigatorias';
 
 interface CheckProps {
-  /** Estado da OS — vive no App e é compartilhado entre as etapas (entrada, diagnóstico, orçamento). */
+  /** Estado da OS — vive no App e é compartilhado entre as fases (entrada, diagnóstico, orçamento). */
   os: ReturnType<typeof useOrdemServico>;
-  /** Pré-preenchimento opcional de cliente/veículo pra uma OS NOVA (ex.: "Iniciar
-   *  Atendimento" a partir de um agendamento, na tela de Atendimento). Não é usado
-   *  pra carregar rascunho existente — isso é feito pelo App (os.loadOrder). */
+  /** Pré-preenchimento opcional de cliente/veículo pra uma OS NOVA (ex.: "Iniciar Atendimento" a partir de
+   *  um agendamento, ou "Fazer OS" a partir de um veículo). Não carrega rascunho existente (isso é do App). */
   prefill?: OSPrefillInput | null;
   onBackToStart?: () => void;
   onNextChecklist?: () => void;
 }
 
-/** Etapa das fotos na entrada (Identificação = 1, Fotos = 2, Encerramento = 3). */
-const FOTO_STEP = 2;
-
+/**
+ * Fase ENTRADA da OS. Sub-etapas (os.step): 1 Cliente e veículo · 2 Relato e avarias · 3 Fotos · 4 Assinatura.
+ * Estrutura compartilhada com as próximas fases em components/os; as regras estão em utils/entrada_os.ts.
+ */
 export default function Check({ os, prefill, onBackToStart, onNextChecklist }: CheckProps) {
-  const { isMobile, isTablet } = useResponsive();
+  const { isDesktop } = useResponsive();
+  const { user } = useAuth();
+  const pedirConfirmacao = useConfirm();
 
-  const currentStep = entradaConfig.find((s) => s.id === os.step);
+  const step = Math.min(Math.max(os.step, 1), 4);
+  const [identificado, setIdentificado] = useState<boolean>(() => !!os.orderId);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+  const [destacarFaltas, setDestacarFaltas] = useState(false);
+  const [concluindo, setConcluindo] = useState(false);
+  const [falhaRascunho, setFalhaRascunho] = useState(false);
 
-  // Chama initSig automaticamente sempre que o step ativo tiver hasSignature
-  useEffect(() => {
-    if (currentStep?.hasSignature) os.initSig();
-  }, [os.step]);
-
-  // Pré-preenchimento vindo da tela de Atendimento (ver Seção 8 do prompt) ou de um veículo.
-  // 3 passos, cada um só dispara depois que o anterior comprovadamente se
-  // efetivou — nenhum toca a lógica interna do checklist, só usa o que o
-  // próprio hook já expõe publicamente (setCliente/setVeiculo/saveOrder/orderId,
-  // os mesmos que o botão "Salvar" do Step 1 já usa):
-  //  1) aplica cliente/veículo uma vez, nunca sobrescreve o que o usuário digitar;
-  //  2) assim que o estado confirmar o prefill, dispara o saveOrder() já existente
-  //     (cria a OS de verdade — mesmo caminho de sempre, só chamado programaticamente);
-  //  3) assim que a OS ganhar um id real, registra iniciadoEm no overlay local e
-  //     tenta vincular o agendamento de origem (melhor esforço, sem travar o fluxo).
-  // Dados de fora passam pelas mesmas regras dos campos (telefone só dígitos, ano com 4 dígitos...).
+  // ── Pré-preenchimento (Atendimento / veículo) — mesma lógica de antes, só com o salvamento "manter" ────────
   const limpo = useMemo(() => (prefill ? sanitizarPrefill(prefill) : null), [prefill]);
   const prefillAplicado = useRef(false);
-  const prefillSalvo = useRef(false);
+  const rascunhoDisparado = useRef(false);   // um só salvamento de criação (dois criariam duas OS)
   const prefillVinculado = useRef(false);
 
-  // `apenasPreencher` (OS aberta a partir de um veículo): só o passo 1 — preenche o formulário e deixa
-  // o mecânico revisar; a OS é criada quando ele salvar. Com cliente vinculado vêm os dados dos dois;
-  // sem cliente, só os do veículo (`clienteNome` vazio não toca no bloco do cliente).
   useEffect(() => {
     if (!prefill || !limpo || prefillAplicado.current) return;
     prefillAplicado.current = true;
     if (limpo.clienteNome) {
-      os.setCliente(prev => ({
+      os.setCliente((prev) => ({
         ...prev,
         nome: limpo.clienteNome,
         ...(limpo.clienteDoc ? { doc: limpo.clienteDoc } : {}),
@@ -67,7 +67,7 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
         ...(limpo.clienteEmail ? { email: limpo.clienteEmail } : {}),
       }));
     }
-    os.setVeiculo(prev => ({
+    os.setVeiculo((prev) => ({
       ...prev,
       modelo: limpo.veiculoModelo,
       placa: limpo.veiculoPlaca,
@@ -76,81 +76,190 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
       ...(limpo.veiculoCombustivel ? { combustivel: limpo.veiculoCombustivel } : {}),
       ...(limpo.veiculoChassi ? { chassi: limpo.veiculoChassi } : {}),
     }));
-  }, [prefill, limpo]);
+    // A OS já nasceu de um veículo/cliente cadastrado: o cabeçalho monta direto.
+    if (limpo.veiculoPlaca && limpo.veiculoModelo) setIdentificado(true);
+  }, [prefill, limpo, os]);
+
+  useEffect(() => { if (os.orderId) setIdentificado(true); }, [os.orderId]);
+
+  // O rascunho é criado ao identificar o veículo (as fotos sobem uma a uma e precisam da OS).
+  const cadastroCompleto = clienteVeiculoCompleto(os.cliente, os.veiculo);
+  const criarRascunho = useCallback(() => {
+    rascunhoDisparado.current = true;
+    setFalhaRascunho(false);
+    void os.saveOrder({ manter: true }).then((ok) => { if (!ok) { setFalhaRascunho(true); rascunhoDisparado.current = false; } });
+  }, [os]);
+  useEffect(() => {
+    if (identificado && cadastroCompleto && !os.orderId && !rascunhoDisparado.current && !falhaRascunho) criarRascunho();
+  }, [identificado, cadastroCompleto, os.orderId, falhaRascunho, criarRascunho]);
 
   useEffect(() => {
-    if (!prefill || !limpo || prefill.apenasPreencher || !prefillAplicado.current || prefillSalvo.current) return;
-    if (os.cliente.nome !== limpo.clienteNome || os.veiculo.placa !== limpo.veiculoPlaca) return;
-    prefillSalvo.current = true;
-    os.saveOrder();
-  }, [prefill, limpo, os.cliente, os.veiculo]);
-
-  useEffect(() => {
-    if (!prefill || prefill.apenasPreencher || !prefillSalvo.current || prefillVinculado.current || !os.orderId) return;
+    if (!prefill || prefill.apenasPreencher || !os.orderId || prefillVinculado.current || !prefillAplicado.current) return;
     prefillVinculado.current = true;
     salvarOverlay(os.orderId, { iniciadoEm: new Date().toISOString() });
-    if (prefill.agendamentoId) {
-      api.atualizarAgendamento(prefill.agendamentoId, { ordemServicoId: os.orderId }).catch(() => {});
-    }
+    if (prefill.agendamentoId) api.atualizarAgendamento(prefill.agendamentoId, { ordemServicoId: os.orderId }).catch(() => {});
   }, [prefill, os.orderId]);
 
-  // ... resto igual
+  // Sugere o técnico logado como responsável pela entrada (uma vez; dá para trocar).
+  const tecnicoSugerido = useRef(false);
+  useEffect(() => {
+    if (!identificado || tecnicoSugerido.current) return;
+    tecnicoSugerido.current = true;
+    if (!os.tecnico.nome.trim() && user?.nome) os.setTecnico((p) => ({ ...p, nome: formatNome(user.nome, LIM.nome).trim() }));
+  }, [identificado, user, os]);
 
-  const handleExportPDF = () => {
-    exportPDF(
-      os.osHeader,
-      os.cliente,
-      os.veiculo,
-      os.tecnico,
-      // Fotos obrigatórias (na ordem fixa, com o nome do item) e depois as adicionais.
-      [...os.fotosObrig.fotosParaPdf, ...os.photos],
-      os.getSigImage(),
-    );
+  // ── Estado de cada sub-etapa / resumo ──────────────────────────────────────
+  const { resumo: fotos, liberado } = os.fotosObrig;
+  const entrada = {
+    identificado, cliente: os.cliente, veiculo: os.veiculo, tecnico: os.tecnico, assinatura: os.assinaturaEntrada,
+    fotos: { resolvidas: fotos.resolvidas, total: fotos.total, liberado },
+  };
+  const etapas = etapasDaEntrada(entrada);
+  const resumo = resumoDaEntrada(etapas, entrada);
+
+  // ── Navegação entre sub-etapas ─────────────────────────────────────────────
+  const irPara = (id: number) => {
+    // Não dá para pular as 5 fotos (nem pelo resumo): volta para a tela de fotos e realça o que falta.
+    if (id > ETAPA.fotos && !liberado) { os.goStep(ETAPA.fotos, step); setDestacarFaltas(true); return; }
+    if (os.orderId) void os.saveOrder({ manter: true });
+    os.goStep(id, step);
+  };
+  useEffect(() => { if (liberado) setDestacarFaltas(false); }, [liberado]);
+
+  const concluir = async () => {
+    if (!resumo.podeConcluir || concluindo) return;
+    setConcluindo(true);
+    const ok = await os.saveOrder();
+    setConcluindo(false);
+    if (ok) onNextChecklist?.();
   };
 
-  const CurrentComponent = currentStep?.component;
-
-  // "Voltar" da barra superior: uma etapa para trás; na primeira, sai para a visão geral.
-  const handleBackStep = () => {
-    if (os.step > 1) os.goStep(os.step - 1, os.step);
-    else onBackToStart?.();
+  const trocarVeiculo = async () => {
+    if (os.orderId) {
+      const ok = await pedirConfirmacao({
+        title: 'Trocar o veículo desta OS?',
+        description: 'Os dados do cliente e do veículo serão limpos para você identificar outro. As fotos já registradas continuam na OS.',
+        confirmLabel: 'Trocar veículo', tone: 'danger',
+      });
+      if (!ok) return;
+    }
+    os.setCliente({ nome: '', doc: '', tel: '', email: '' });
+    os.setVeiculo((p) => ({ ...p, id: undefined, placa: '', modelo: '', ano: '', cor: '', combustivel: '', chassi: '' }));
+    setIdentificado(false);
+    os.goStep(ETAPA.cliente, step);
   };
+
+  const limparOS = async () => {
+    const ok = await pedirConfirmacao({
+      title: 'Limpar toda a OS e começar do zero?', description: 'O que foi preenchido nesta tela será descartado.',
+      confirmLabel: 'Limpar OS', tone: 'danger',
+    });
+    if (!ok) return;
+    os.novaOrdem();
+    setIdentificado(false);
+    rascunhoDisparado.current = false;
+    tecnicoSugerido.current = false;
+  };
+
+  // ── Cabeçalho ──────────────────────────────────────────────────────────────
+  const { osHeader, veiculo, cliente } = os;
+  const [, mm, dd] = (osHeader.os_date || '').split('-');
+  const entradaTxt = osHeader.os_date ? `entrada ${dd}/${mm}${osHeader.os_time ? ` às ${osHeader.os_time}` : ''}` : '';
+  const kmTxt = osHeader.os_km ? `${Number(osHeader.os_km).toLocaleString('pt-BR')} km` : '';
+  const meta = [`OS #${osHeader.os_num}`, cliente.nome, entradaTxt, kmTxt].filter(Boolean).join(' · ');
+  const titulo = [veiculo.modelo, veiculo.ano].filter(Boolean).join(' · ');
+  const eventos = eventosDaOS({ orderId: os.orderId, osHeader, fotos: fotos.itens, assinatura: os.assinaturaEntrada });
+
+  const salvoTxt = os.saveStatus === 'error' ? undefined : os.savedAt ? `Salvo automaticamente às ${os.savedAt}` : undefined;
+  const ultima = step === ETAPA.assinatura;
 
   return (
-    <div style={{
-      fontFamily: tokens.fontSans,
-      background: tokens.color.bg,
-      minHeight: '100dvh',
-      paddingBottom: 'var(--mobile-bottom-nav-h)',
-    }}>
-      <Topbar
-        saveStatus={os.saveStatus}
-        savedAt={os.savedAt}
-        onReset={os.resetAll}
-        onExportPDF={handleExportPDF}
-        onBackToStart={onBackToStart}
-        onBackStep={handleBackStep}
-        backAriaLabel={os.step > 1 ? 'Voltar uma etapa' : 'Voltar para a visão geral'}
-      />
-     
-<StepTabs
-  step={os.step}
-  onGoStep={(n) => {
-    // Não dá para pular as fotos obrigatórias nem pelas abas: volta para a tela de fotos.
-    if (n > FOTO_STEP && !os.fotosObrig.liberado) { os.goStep(FOTO_STEP, os.step); return; }
-    os.goStep(n, os.step);
-  }}
-  steps={entradaConfig}
-/>
+    <div style={{ fontFamily: tokens.fontSans, background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)' }}>
+      {isDesktop ? (
+        <DesktopTopBar
+          page="ordens"
+          onNav={() => onBackToStart?.()}
+          trilha={[
+            { rotulo: 'Operação' },
+            { rotulo: 'Ordens', onClick: onBackToStart },
+            { rotulo: identificado ? `OS #${osHeader.os_num}` : 'Nova OS' },
+          ]}
+        />
+      ) : (
+        <Topbar
+          saveStatus={os.saveStatus} savedAt={os.savedAt} onReset={limparOS} onBackToStart={onBackToStart}
+          onBackStep={() => (step > 1 ? irPara(step - 1) : onBackToStart?.())}
+          backAriaLabel={step > 1 ? 'Voltar uma etapa' : 'Voltar para a visão geral'}
+        />
+      )}
 
-      <AvisoCadastro info={os.cadastroInfo} onFechar={() => os.setCadastroInfo(null)} px={isMobile ? 16 : isTablet ? 24 : 40} />
+      <AvisoCadastro info={os.cadastroInfo} onFechar={() => os.setCadastroInfo(null)} px={isDesktop ? 40 : 16} />
 
-      {CurrentComponent && (
-        <CurrentComponent
-      os={os}
-      onExportPDF={handleExportPDF}
-      onNextChecklist={onNextChecklist}  // ← new
-    />
+      <LayoutFaseOS
+        cabecalho={
+          <CabecalhoOS
+            identificado={identificado} placa={veiculo.placa} titulo={titulo} status={os.ordemStatus} meta={meta}
+            onHistorico={() => setHistoricoAberto(true)}
+            acoesMais={[{ rotulo: 'Limpar OS e recomeçar', perigo: true, onClick: () => void limparOS() }]}
+          />
+        }
+        stepper={<StepperFases atual="entrada" />}
+        subetapas={<SubEtapas etapas={etapas} atual={step} onSelecionar={irPara} rotuloNav="Etapas da Entrada" />}
+        resumo={
+          <PainelResumo
+            titulo="Resumo da entrada" etapas={etapas} atual={step} onSelecionar={irPara}
+            concluidas={resumo.concluidas} total={resumo.total}
+            acao={{ rotulo: 'Concluir entrada e diagnosticar', desabilitada: !resumo.podeConcluir, ocupada: concluindo, onClick: () => void concluir() }}
+            ajuda={resumo.ajuda} salvo={salvoTxt}
+          />
+        }
+      >
+        <main className="osf-card" aria-live="polite">
+          {falhaRascunho && !os.orderId && (
+            <div className="osf-aviso" data-tom="crit" role="alert">
+              {os.saveError ?? 'Não foi possível criar o rascunho da OS.'}
+              <div style={{ marginTop: 10 }}>
+                <button type="button" className="osf-link" onClick={criarRascunho}>Tentar salvar de novo</button>
+              </div>
+            </div>
+          )}
+          {os.saveStatus === 'error' && os.orderId && os.saveError && <div className="osf-aviso" data-tom="crit" role="alert">{os.saveError}</div>}
+
+          {step === ETAPA.cliente && (
+            <EtapaClienteVeiculo os={os} identificado={identificado} onIdentificar={() => setIdentificado(true)} onTrocarVeiculo={() => void trocarVeiculo()} />
+          )}
+          {step === ETAPA.relato && <EtapaRelato os={os} />}
+          {step === ETAPA.fotos && <EtapaFotos os={os} destacarFaltas={destacarFaltas} />}
+          {step === ETAPA.assinatura && <EtapaAssinatura os={os} />}
+
+          <RodapeEtapa
+            onVoltar={() => irPara(step - 1)} voltarDesabilitado={step === 1}
+            onContinuar={ultima ? undefined : () => irPara(step + 1)}
+            continuarRotulo={step === ETAPA.fotos ? 'Continuar para assinatura' : 'Continuar'}
+            continuarDesabilitado={!identificado || (step === ETAPA.cliente && !cadastroCompleto)}
+          />
+        </main>
+      </LayoutFaseOS>
+
+      {historicoAberto && (
+        <GavetaOS titulo="Histórico da OS" onFechar={() => setHistoricoAberto(false)}>
+          {eventos.length === 0 ? (
+            <p className="osf-nota">Ainda não há eventos registrados nesta OS.</p>
+          ) : (
+            <ul className="osf-linha">
+              {eventos.map((e) => (
+                <li key={e.id}>
+                  <span className="osf-linha__ponto" aria-hidden="true" />
+                  <div className="osf-linha__txt">
+                    <span className="osf-linha__t">{e.texto}</span>
+                    <span className="osf-linha__m">{[formatarQuando(e.quando) || (e.quando ?? '').replace('T', ' '), e.por].filter(Boolean).join(' · ')}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="osf-nota">Mostra o que já foi registrado na OS (criação, fotos e assinatura).</p>
+        </GavetaOS>
       )}
 
       <Lightbox src={os.lightbox} onClose={() => os.setLightbox(null)} />

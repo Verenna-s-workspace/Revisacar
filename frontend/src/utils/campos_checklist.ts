@@ -127,6 +127,27 @@ export function validarData(v: string, hoje: string = hojeISO()): string | undef
   return undefined;
 }
 
+/** Previsão de entrega: data AAAA-MM-DD real, de 2000 em diante e NÃO anterior à entrada (pode ser futura). */
+export function validarPrevisaoData(v: string, entrada: string = ''): string | undefined {
+  const t = (v ?? '').trim();
+  if (!t) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return 'Data inválida: confira dia, mês e ano';
+  const [y, m, d] = t.split('-').map(Number);
+  const real = new Date(Date.UTC(y, m - 1, d));
+  if (real.getUTCFullYear() !== y || real.getUTCMonth() !== m - 1 || real.getUTCDate() !== d) return 'Data inválida: confira dia, mês e ano';
+  if (t < DATA_MIN) return 'Data muito antiga';
+  if (entrada && t < entrada) return 'Anterior à data de entrada';
+  return undefined;
+}
+
+/** Hora HH:MM; só vale com a data da previsão. */
+export function validarPrevisaoHora(hora: string, data: string): string | undefined {
+  const t = (hora ?? '').trim();
+  if (!t) return undefined;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) return 'Hora inválida';
+  return (data ?? '').trim() ? undefined : 'Informe a data da previsão';
+}
+
 /** Registro profissional: letras, números, espaço, ponto, barra e hífen (até 20). */
 export function validarRegistro(v: string): string | undefined {
   const t = (v ?? '').trim();
@@ -151,6 +172,8 @@ export function validarFormatosEntrada(osHeader: OSHeader, cliente: Cliente, vei
     ['os_num', validarOsNum(osHeader.os_num)],
     ['os_date', validarData(osHeader.os_date)],
     ['os_km', validarKm(osHeader.os_km)],
+    ['os_previsao', validarPrevisaoData(osHeader.previsao_entrega ?? '', osHeader.os_date)],
+    ['os_previsao_hora', validarPrevisaoHora(osHeader.previsao_hora ?? '', osHeader.previsao_entrega ?? '')],
     ['cli_nome', validarNome(cliente.nome)],
     ['cli_doc', validarDoc(cliente.doc)],
     ['cli_tel', validarTel(cliente.tel)],

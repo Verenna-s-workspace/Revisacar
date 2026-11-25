@@ -703,3 +703,31 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **NÃO validado:** contra o backend/Supabase reais; em aparelho físico (iOS/Android); gesto de deslize por toque real (só renderização); download do CSV no iOS; retirada/desfazer da reserva ponta a ponta.
 
 **Pendências:** o layout antigo do Financeiro (KpiCards, ReservaCard, ContasWidget etc.) ficou sem uso no celular e, fora `ContasListaCompleta`, também no desktop — candidato a limpeza; `nomeDoLancamento/rotuloStatus/classeStatus` duplicam helpers de `FinanceiroDesktop` (unificar depois).
+
+## Checklist de ENTRADA redesenhado por fases (2026-11-24, branch feat/checklist-entrada-redesign, parte de main)
+
+**Pedido:** redesenhar só a fase de Entrada da OS (protótipo "Entrada da OS" + CSS do Figma + print do Diagnóstico), com a base (stepper de fases, sub-etapas, cabeçalho, painel de resumo, gaveta) reutilizável pelas próximas fases. Sem mudar regra de negócio.
+
+**Problema:** dois menus competiam (stepper de processo + abas Resumo/Orçamento/Financeiro/Fotos/Histórico) e a tela parecia um visualizador da OS. A assinatura da Entrada era a do técnico (canvas só para o PDF, nunca enviada ao servidor). "Previsão de entrega" não existia no payload.
+
+**Decisões**
+- Estrutura: stepper de 6 fases → 4 sub-etapas da Entrada (Cliente e veículo · Relato e avarias · Fotos · Assinatura; `os.step` 1–4) → card da etapa (com Voltar/Continuar) + painel fixo "Resumo da entrada". No celular o painel vai abaixo. Histórico virou gaveta (relógio); não há aba de Financeiro.
+- Cabeçalho monta ao identificar o veículo (placa Mercosul pelo `Placa` existente, `StatusOSBadge` com o rótulo atual "Em andamento", linha "OS #… · cliente · entrada · km"); antes: "Nova OS" + placa tracejada. Breadcrumb "Operação / Ordens / Nova OS → OS #n" (`DesktopTopBar` ganhou prop opcional `trilha`).
+- Regras mantidas: Relato e Avarias opcionais; técnico obrigatório para sair de rascunho ("Responsável pela entrada", sugerido pelo usuário logado, acima da assinatura); Etapa 1 pede nome+telefone do cliente e modelo do veículo quando não vem de cadastro; "Concluir entrada" libera com Etapa 1 + 5 fotos resolvidas + responsável (assinatura adiada não bloqueia e fica como pendência no resumo).
+- Rascunho é criado ao identificar o veículo (antes: ao sair da Identificação). Salvamento automático usa `saveOrder({ manter: true })` (não promove nem rebaixa o status); só "Concluir entrada" (`saveOrder()`) promove rascunho → em_orcamento, e o servidor continua exigindo as 5 fotos.
+- Assinatura (sem migração): `payload.assinaturas.entrada = { status: assinada|adiada|pendente, imagem, quem, quando, por }`. `quando`/`por` são carimbados pelo servidor; imagem reencodada (PNG, nunca em branco); adiada/pendente não guardam imagem; salvar sem o campo NÃO apaga o que já está gravado; chaves de outras fases são preservadas. Novo `backend/orders/assinaturas_os.py`.
+- Previsão de entrega (sem migração): `os_header.previsao_entrega` (AAAA-MM-DD) e `previsao_hora` (HH:MM), ambos opcionais; não pode ser anterior à data de entrada; hora exige data. Declarados no `OSHeaderSerializer` (o payload gravado é `serializer.data`: campo não declarado é descartado).
+- Fotos: slots com legenda em todos ("Painel (km)", Frente, Traseira, "Lateral dir.", "Lateral esq."), contador real "x de 5", estados vazio/registrada/"Sem foto", "Não consigo tirar" e "Refazer"; lógica toda em `useFotosObrigatorias`/`CameraCapture`/`PularFotoSheet`. Avançar para Assinatura sem as 5 resolvidas volta para Fotos e realça o que falta.
+- Histórico da OS monta eventos só do que já está registrado (criação, fotos, assinatura); não há log de eventos no servidor.
+- `Topbar` (celular): `onExportPDF` ficou opcional (a Entrada não mostra "Gerar laudo PDF").
+
+**Arquivos**
+- Backend: `orders/assinaturas_os.py` (novo), `orders/serializers.py`, `orders/views.py`, `tests/test_ordens_assinatura_previsao.py` (novo).
+- Front, compartilhado: `components/os/*` (StepperFases, SubEtapas, CabecalhoOS, PainelResumo, GavetaOS, RodapeEtapa, LayoutFaseOS, IconeEtapa, os-fase.css), `utils/os_fases.ts`.
+- Front, Entrada: `pages/InitialChecklist.tsx` (reescrita), `features/Checklist/Entrada/*`, `utils/{entrada_os,historico_os,usar_cadastro}.ts`, `hooks/useOrdemServico.ts` (assinatura, previsão, `saveError`, `saveOrder({manter})`), `types/index.ts`, `utils/campos_checklist.ts`, `components/{DesktopTopBar,Topbar}.tsx`, `styles/desktop-topbar.css`, `App.tsx` (voltar do Diagnóstico cai na sub-etapa 4).
+
+**Validado:** regras de `utils/entrada_os.ts` executadas (8 cenários, transpiladas); lógica pura de `assinaturas_os.aplicar` (6 testes executados com stub do DRF); `py_compile` de serializers/views/testes; `tsc` sem erro de sintaxe nos arquivos novos.
+
+**NÃO validado:** `npx tsc --noEmit` e `npm run build` completos (sem `node_modules`/rede neste ambiente); ESLint; `pytest` e `flake8` (sem Django/DRF/pytest) — os testes de API em `test_ordens_assinatura_previsao.py` NÃO foram executados; contra o Supabase real; no navegador a 390px e em aparelho (câmera, toque da assinatura); fluxo "Fazer OS"/"Iniciar Atendimento" ponta a ponta; reabrir OS antiga (linha sem `assinaturas`) na tela nova.
+
+**Pendências:** `Step1/Step2/Step3` antigos da Entrada (`features/Checklist/Steps/Initial/*`, `configs/initial.tsx`, `StepTabs`) ficaram sem uso — candidato a limpeza depois de validar a tela nova; `PDF` da entrada ainda usa `exportPDF` (não exposto na Entrada); termo de recebimento não entra no PDF; o PDF/laudo não mostra a pendência de assinatura; sem log de eventos no servidor para o Histórico.

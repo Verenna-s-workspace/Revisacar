@@ -44,6 +44,9 @@ body.dark .rv-tb {
 /* ── Breadcrumb ── */
 .rv-tb__crumb { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 14px; line-height: 20px; color: var(--tb-mudo); white-space: nowrap; }
 .rv-tb__crumb-atual { font-size: 13px; line-height: 16px; font-weight: 700; color: var(--tb-texto); }
+.rv-tb__crumb-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.rv-tb__crumb-link:hover { color: var(--tb-texto); text-decoration: underline; }
+.rv-tb__crumb-link:focus-visible { outline: 2px solid var(--tb-texto); outline-offset: 2px; border-radius: 2px; }
 .rv-tb__esp { flex: 1 1 0; min-width: 0; }
 
 /* ── Busca (ainda sem função: só o desenho) ── */
