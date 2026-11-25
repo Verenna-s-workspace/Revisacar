@@ -222,13 +222,14 @@ def ler_cliente(dados, parcial=False):
 
 # ── Consultas ─────────────────────────────────────────────────────────────────
 
-def buscar_por_ids(tabela: str, ids, coluna="id", extra=None):
-    """select * from tabela where coluna in (ids), em lotes. `extra(q)` pode acrescentar filtros."""
+def buscar_por_ids(tabela: str, ids, coluna="id", extra=None, colunas="*"):
+    """select <colunas> from tabela where coluna in (ids), em lotes. `extra(q)` pode acrescentar filtros.
+    `colunas` só é restrito por quem não precisa de fotos (data URLs enormes), como a busca global."""
     ids = [str(i) for i in dict.fromkeys(ids) if i]
     linhas = []
     for i in range(0, len(ids), LOTE_IN):
         lote = ids[i:i + LOTE_IN]
-        q = supabase.table(tabela).select("*").in_(coluna, lote)
+        q = supabase.table(tabela).select(colunas).in_(coluna, lote)
         if extra:
             q = extra(q)
         linhas.extend(q.execute().data or [])

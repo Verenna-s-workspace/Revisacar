@@ -8,7 +8,7 @@ from . import relatorios_views
 from . import visao_geral_views
 from . import agendamentos_views, clientes_views, veiculos_views
 from . import alertas_views, fechamento_views, fotos_obrigatorias, orcamento_link_views, orcamento_views
-from . import oficina_config_views, acesso_equipe_views, conta_views
+from . import oficina_config_views, acesso_equipe_views, conta_views, busca_views
 
 urlpatterns = [
     # Root
@@ -106,6 +106,9 @@ urlpatterns = [
     path("clientes/<str:cliente_id>", clientes_views.cliente_detail),
     path("veiculos", veiculos_views.veiculos_list),
     path("veiculos/<str:veiculo_id>", veiculos_views.veiculo_detail),
+
+    # Busca global da top-bar (⌘K): clientes.ver (clientes e veículos) e ordens.ver (OS), cada grupo só com a permissão
+    path("busca", busca_views.busca_global),
     path("agendamentos", agendamentos_views.agendamentos_list),
     path("agendamentos/<str:agendamento_id>", agendamentos_views.agendamento_detail),
 
