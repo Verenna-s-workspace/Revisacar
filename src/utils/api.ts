@@ -1,0 +1,643 @@
+import { API_BASE } from '../constants';
+import { criarErroDaResposta, erroDeRede } from './api_erro';
+
+// Toda chamada deste módulo usa este `fetch` (ele sombreia o global de propósito): se a rede
+// falhar, em vez do "Failed to fetch" do navegador sobe um erro com texto para o usuário.
+const fetch: typeof globalThis.fetch = (input, init) =>
+  globalThis.fetch(input, init).catch((erro: unknown) => { throw erroDeRede(erro); });
+
+let accessToken = '';
+let refreshToken = '';
+
+// O backend invalida o refresh token a cada renovação. Por isso: (1) uma renovação por vez —
+// várias chamadas com 401 juntas esperam a mesma, senão as que chegam depois usam um token já
+// invalidado e derrubam a sessão; (2) o par novo é gravado (AuthContext), senão recarregar a
+// página volta com o token velho; (3) se o servidor recusar o refresh, a sessão acabou e o app volta
+// ao login. Falha de rede ou erro do servidor (Render acordando) NÃO desloga: o token pode estar bom.
+// (4) outra aba pode ter renovado antes (e invalidado o nosso refresh): aí adota o par que ela gravou.
+let renovacaoEmCurso: Promise<void> | null = null;
+let aoAtualizarTokens: ((access: string, refresh: string) => void) | null = null;
+let aoExpirarSessao: (() => void) | null = null;
+let lerTokensSalvos: (() => { accessToken?: string; refreshToken?: string } | null) | null = null;
+
+const RECUSAS_DO_REFRESH = [400, 401, 403, 404];
+
+const renovarTokens = (): Promise<void> => {
+  if (!renovacaoEmCurso) {
+    const usado = refreshToken;
+    renovacaoEmCurso = (async () => {
+      const salvo = lerTokensSalvos?.();
+      if (salvo?.accessToken && salvo.refreshToken && salvo.refreshToken !== usado) {
+        accessToken = salvo.accessToken;
+        refreshToken = salvo.refreshToken;
+        return;
+      }
+      const res = await fetch(`${API_BASE}/admin/refresh`, {
+        method: 'POST',
+        headers: baseHeaders,
+        body: JSON.stringify({ refreshToken: usado }),
+      });
+      const nova = res.ok ? await res.json().catch(() => null) : null;
+      if (!nova?.accessToken) {
+        if (res.ok || RECUSAS_DO_REFRESH.includes(res.status)) {
+          accessToken = '';
+          refreshToken = '';
+          aoExpirarSessao?.();
+          throw new Error('Sua sessão expirou por segurança. Entre de novo para continuar.');
+        }
+        throw new Error('Não conseguimos manter você conectado agora (falha de conexão ou sistema iniciando). Aguarde alguns instantes e tente de novo; se continuar, saia e entre de novo.');
+      }
+      accessToken = nova.accessToken;
+      refreshToken = nova.refreshToken;
+      aoAtualizarTokens?.(accessToken, refreshToken);
+    })().finally(() => { renovacaoEmCurso = null; });
+  }
+  return renovacaoEmCurso;
+};
+
+const baseHeaders: Record<string, string> = {
+  'Content-Type': 'application/json',
+};
+
+const handleResponse = async (res: Response) => {
+  if (!res.ok) {
+    // O corpo vira texto legível em português (ver api_erro.ts); o JSON original fica em `corpo`.
+    const texto = await res.text().catch(() => '');
+    throw criarErroDaResposta(res.status, texto);
+  }
+  // 204 (DELETE) e outras respostas sem corpo não são JSON válido — tentar
+  // res.json() nelas quebra mesmo quando a chamada deu certo.
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+};
+
+/** Upload (FormData): o navegador precisa montar o Content-Type com o boundary; fixar
+ *  application/json aqui faria o servidor ver um corpo multipart como JSON (sem arquivos). */
+const semContentTypeFixo = (headers: Record<string, string>, init: RequestInit) => {
+  if (typeof FormData !== 'undefined' && init.body instanceof FormData) delete headers['Content-Type'];
+  return headers;
+};
+
+/** Leitura (GET) que cai por falha de rede ("Failed to fetch": servidor do Render acordando,
+ *  conexão oscilando) tenta de novo antes de desistir. Escritas nunca repetem sozinhas,
+ *  pra não gravar duas vezes. */
+const fetchComRetentativa = async (input: RequestInfo, init: RequestInit) => {
+  const leitura = !init.method || init.method.toUpperCase() === 'GET';
+  const tentativas = leitura ? 3 : 1;
+  for (let i = 1; ; i++) {
+    try {
+      return await fetch(input, init);
+    } catch (erro) {
+      if (i >= tentativas || (typeof navigator !== 'undefined' && !navigator.onLine)) throw erro;
+      await new Promise(r => setTimeout(r, 700 * i));
+    }
+  }
+};
+
+const authFetchDireto = async (input: RequestInfo, init: RequestInit = {}) => {
+  const headers = semContentTypeFixo({
+    ...baseHeaders,
+    ...(init.headers as Record<string, string> | undefined),
+  }, init);
+
+  const tokenUsado = accessToken;
+  if (tokenUsado) {
+    headers.Authorization = `Bearer ${tokenUsado}`;
+  }
+
+  const response = await fetchComRetentativa(input, {
+    ...init,
+    headers,
+  });
+
+  if (response.status === 401 && (refreshToken || accessToken !== tokenUsado)) {
+    // Outra chamada pode já ter renovado enquanto esta estava no ar: aí só repete com o token novo.
+    if (accessToken === tokenUsado) await renovarTokens();
+
+    const retryHeaders = semContentTypeFixo({
+      ...baseHeaders,
+      ...(init.headers as Record<string, string> | undefined),
+      Authorization: `Bearer ${accessToken}`
+    }, init);
+
+    const retryResponse = await fetchComRetentativa(input, {
+      ...init,
+      headers: retryHeaders,
+    });
+    return handleResponse(retryResponse);
+  }
+
+  return handleResponse(response);
+};
+
+// Leituras repetidas: o sino do topo e a tela pedem as mesmas listas (/ordens, /estoque,
+// /alertas) juntos, e cada troca de tela repete tudo. Um GET igual em curso é reaproveitado e a
+// resposta vale por alguns segundos; qualquer escrita limpa tudo, pra nunca mostrar dado de antes
+// de uma ação. Erro não fica guardado. Cada chamador recebe uma cópia (ninguém mexe no do outro).
+const VALIDADE_LEITURA_MS = 5000;
+const leituras = new Map<string, { promessa: Promise<unknown>; validaAte?: number }>();
+const copia = <T,>(valor: T): T => (valor == null ? valor : structuredClone(valor));
+
+const authFetch = async (input: RequestInfo, init: RequestInit = {}) => {
+  const metodo = (init.method || 'GET').toUpperCase();
+  if (metodo !== 'GET' || typeof input !== 'string') {
+    try {
+      return await authFetchDireto(input, init);
+    } finally {
+      if (metodo !== 'GET') leituras.clear();
+    }
+  }
+  const guardada = leituras.get(input);
+  if (guardada && (guardada.validaAte === undefined || Date.now() < guardada.validaAte)) {
+    return copia(await guardada.promessa);
+  }
+  const entrada: { promessa: Promise<unknown>; validaAte?: number } = { promessa: authFetchDireto(input, init) };
+  leituras.set(input, entrada);
+  try {
+    const valor = await entrada.promessa;
+    entrada.validaAte = Date.now() + VALIDADE_LEITURA_MS;
+    return copia(valor);
+  } catch (erro) {
+    if (leituras.get(input) === entrada) leituras.delete(input);
+    throw erro;
+  }
+};
+
+/** Baixa um arquivo (PDF) autenticado como Blob; renova o token uma vez se preciso. */
+const authFetchBlob = async (url: string): Promise<Blob> => {
+  const buscar = () => fetch(url, { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  const tokenUsado = accessToken;
+  let res = await buscar();
+  if (res.status === 401 && (refreshToken || accessToken !== tokenUsado)) {
+    if (accessToken === tokenUsado) await renovarTokens();
+    res = await buscar();
+  }
+  if (!res.ok) {
+    const texto = await res.text().catch(() => '');
+    throw criarErroDaResposta(res.status, texto);
+  }
+  return res.blob();
+};
+
+export const api = {
+  setAuthTokens: (access: string, refresh: string) => {
+    accessToken = access;
+    refreshToken = refresh;
+    leituras.clear();   // outra conta não pode ver o que a anterior leu
+  },
+
+  clearAuthTokens: () => {
+    accessToken = '';
+    refreshToken = '';
+    leituras.clear();
+  },
+
+  /** Para "Atualizar": a próxima leitura vai ao servidor mesmo que a última seja recente. */
+  esquecerLeituras: () => leituras.clear(),
+
+  /** AuthContext grava o par renovado, lê o que outra aba gravou e volta ao login quando a sessão acaba. */
+  aoRenovarSessao: (
+    atualizar: (access: string, refresh: string) => void,
+    expirar: () => void,
+    lerSalvos: () => { accessToken?: string; refreshToken?: string } | null,
+  ) => {
+    aoAtualizarTokens = atualizar;
+    aoExpirarSessao = expirar;
+    lerTokensSalvos = lerSalvos;
+  },
+
+  criarOrdem: (payload: unknown) =>
+    authFetch(`${API_BASE}/ordens`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarOrdem: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/ordens/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  /** Muda o status da OS (transições conferidas no servidor: 409 se não for permitida). */
+  definirStatusOrdem: (id: string, status: string) =>
+    authFetch(`${API_BASE}/ordens/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  uploadFotos: (orderId: string, formData: FormData) =>
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos`, {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    }),
+
+  /** Fotos obrigatórias da entrada (5 itens fixos): estado, uma foto por vez e "não consigo tirar". */
+  fotosObrigatorias: (orderId: string) =>
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos-obrigatorias`),
+
+  enviarFotoObrigatoria: (orderId: string, slot: string, arquivo: Blob) => {
+    const formData = new FormData();
+    formData.append('file', arquivo, `${slot}.jpg`);
+    return authFetch(`${API_BASE}/ordens/${orderId}/fotos-obrigatorias/${slot}`, {
+      method: 'PUT',
+      body: formData,
+    });
+  },
+
+  pularFotoObrigatoria: (orderId: string, slot: string, motivo: string) =>
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos-obrigatorias/${slot}/pular`, {
+      method: 'POST',
+      body: JSON.stringify({ motivo }),
+    }),
+
+  deleteFoto: (orderId: string, fotoPath: string) =>
+    authFetch(`${API_BASE}/ordens/${orderId}/fotos/${encodeURIComponent(fotoPath)}`, {
+      method: 'DELETE',
+    }),
+
+  listarOrdens: () => authFetch(`${API_BASE}/ordens`),
+
+  obterOrdem: (id: string) => authFetch(`${API_BASE}/ordens/${id}`),
+
+  deletarOrdem: (id: string) => authFetch(`${API_BASE}/ordens/${id}`, { method: 'DELETE' }),
+
+  // ── Agendamentos ────────────────────────────────────────────────────────────
+
+  listarAgendamentos: () => authFetch(`${API_BASE}/agendamentos`),
+
+  obterAgendamento: (id: string) => authFetch(`${API_BASE}/agendamentos/${id}`),
+
+  criarAgendamento: (payload: unknown) =>
+    authFetch(`${API_BASE}/agendamentos`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarAgendamento: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/agendamentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarAgendamento: (id: string) => authFetch(`${API_BASE}/agendamentos/${id}`, { method: 'DELETE' }),
+
+  // ── Veículos ─────────────────────────────────────────────────────────────────
+
+  listarVeiculos: () => authFetch(`${API_BASE}/veiculos`),
+
+  obterVeiculo: (id: string) => authFetch(`${API_BASE}/veiculos/${id}`),
+
+  criarVeiculo: (payload: unknown) =>
+    authFetch(`${API_BASE}/veiculos`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarVeiculo: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/veiculos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarVeiculo: (id: string) => authFetch(`${API_BASE}/veiculos/${id}`, { method: 'DELETE' }),
+
+  // ── Clientes ─────────────────────────────────────────────────────────────────
+
+  listarClientes: () => authFetch(`${API_BASE}/clientes`),
+
+  obterCliente: (id: string) => authFetch(`${API_BASE}/clientes/${id}`),
+
+  criarCliente: (payload: unknown) =>
+    authFetch(`${API_BASE}/clientes`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarCliente: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/clientes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarCliente: (id: string) => authFetch(`${API_BASE}/clientes/${id}`, { method: 'DELETE' }),
+
+  // ── Catálogo de Serviços ─────────────────────────────────────────────────────
+
+  listarServicos: () => authFetch(`${API_BASE}/servicos`),
+
+  obterServico: (id: string) => authFetch(`${API_BASE}/servicos/${id}`),
+
+  criarServico: (payload: unknown) =>
+    authFetch(`${API_BASE}/servicos`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarServico: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/servicos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarServico: (id: string) => authFetch(`${API_BASE}/servicos/${id}`, { method: 'DELETE' }),
+
+  // ── Estoque ────────────────────────────────
+
+  listarEstoque: () => authFetch(`${API_BASE}/estoque`),
+
+  obterItemEstoque: (id: string) => authFetch(`${API_BASE}/estoque/${id}`),
+
+  criarItemEstoque: (payload: unknown) =>
+    authFetch(`${API_BASE}/estoque`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarItemEstoque: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/estoque/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarItemEstoque: (id: string) => authFetch(`${API_BASE}/estoque/${id}`, { method: 'DELETE' }),
+
+  listarMovimentosEstoque: () => authFetch(`${API_BASE}/estoque/movimentos`),
+
+  // ── Kits de Estoque ────────────────────────
+
+  listarKits: () => authFetch(`${API_BASE}/kits`),
+
+  obterKit: (id: string) => authFetch(`${API_BASE}/kits/${id}`),
+
+  criarKit: (payload: unknown) =>
+    authFetch(`${API_BASE}/kits`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarKit: (id: string, payload: unknown) =>
+    authFetch(`${API_BASE}/kits/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deletarKit: (id: string) => authFetch(`${API_BASE}/kits/${id}`, { method: 'DELETE' }),
+
+  /** Aplica a receita do kit: valida, deduz cada componente e registra as saidas. */
+  aplicarKit: (id: string) => authFetch(`${API_BASE}/kits/${id}/aplicar`, { method: 'POST' }),
+
+  criarAdmin: (payload: unknown) =>
+    fetch(`${API_BASE}/admin/signup`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  loginAdmin: (payload: unknown) =>
+    fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  refreshToken: (refresh: string) =>
+    fetch(`${API_BASE}/admin/refresh`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ refreshToken: refresh }),
+    }).then(handleResponse),
+
+  logout: (refresh: string) =>
+    fetch(`${API_BASE}/admin/logout`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ refreshToken: refresh }),
+    }).then(handleResponse),
+
+  forgotPassword: (payload: { email: string }) =>
+    fetch(`${API_BASE}/admin/forgot-password`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  resetPassword: (payload: { token: string; senha: string }) =>
+    fetch(`${API_BASE}/admin/reset-password`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  // ── Funcionários (RBAC) ─────────────────────────────────────────────────────
+  // Login de funcionário é por PIN (6 dígitos), não senha — ver rbac.py.
+
+  /** Lista pra tela de login em quiosque. Sem token — ninguém logou ainda. */
+  listarFuncionariosPublicos: (oficinaDoc: string) =>
+    fetch(`${API_BASE}/funcionarios/publicos?oficina_doc=${encodeURIComponent(oficinaDoc)}`, {
+      headers: baseHeaders,
+    }).then(handleResponse),
+
+  loginFuncionarioPin: (payload: { funcionario_id: string; pin: string }) =>
+    fetch(`${API_BASE}/funcionarios/login-pin`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify(payload),
+    }).then(handleResponse),
+
+  esqueciPin: (email: string) =>
+    fetch(`${API_BASE}/funcionarios/forgot-pin`, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({ email }),
+    }).then(handleResponse),
+
+  /** Estes 4 exigem 'funcionarios.gerenciar' — o backend reforça isso. */
+  listarFuncionarios: () => authFetch(`${API_BASE}/funcionarios`),
+
+  criarFuncionario: (payload: { nome: string; email: string; pin: string; cargo: string }) =>
+    authFetch(`${API_BASE}/funcionarios/signup`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarFuncionario: (id: string, payload: { cargo?: string; ativo?: boolean; pin?: string }) =>
+    authFetch(`${API_BASE}/funcionarios/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  removerFuncionario: (id: string) =>
+    authFetch(`${API_BASE}/funcionarios/${id}`, { method: 'DELETE' }),
+
+  /** Quem estou logado, e o que posso fazer — pra sincronizar sessão sem decodificar JWT no front. */
+  me: () => authFetch(`${API_BASE}/me`),
+
+  // ── Financeiro ───────────────────────────────────────────────────────────────
+  // GET exige financeiro.ver, POST/PATCH/DELETE exigem financeiro.editar —
+  // o backend reforça isso, aqui é só o cliente HTTP.
+
+  categoriasFinanceiro: () => fetch(`${API_BASE}/financeiro/categorias`, { headers: baseHeaders }).then(handleResponse),
+
+  listarTransacoes: (params?: { de?: string; ate?: string; tipo?: 'entrada' | 'saida'; status?: 'pendente' | 'pago'; semPeriodo?: boolean; tz?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.tz) qs.set('tz', params.tz);
+    if (params?.de) qs.set('de', params.de);
+    if (params?.ate) qs.set('ate', params.ate);
+    if (params?.tipo) qs.set('tipo', params.tipo);
+    if (params?.status) qs.set('status', params.status);
+    if (params?.semPeriodo) qs.set('sem_periodo', '1');
+    const query = qs.toString();
+    return authFetch(`${API_BASE}/financeiro/transacoes${query ? `?${query}` : ''}`);
+  },
+
+  criarTransacao: (payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/financeiro/transacoes`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  atualizarTransacao: (id: string, payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/financeiro/transacoes/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  removerTransacao: (id: string) =>
+    authFetch(`${API_BASE}/financeiro/transacoes/${id}`, { method: 'DELETE' }),
+
+  resumoFinanceiro: (params?: { de?: string; ate?: string; tz?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.tz) qs.set('tz', params.tz);
+    if (params?.de) qs.set('de', params.de);
+    if (params?.ate) qs.set('ate', params.ate);
+    const query = qs.toString();
+    return authFetch(`${API_BASE}/financeiro/resumo${query ? `?${query}` : ''}`);
+  },
+
+  // ── Reserva de caixa ─────────────────────────────────────────────────────────
+  // Ler config/saldo: financeiro.ver. Configurar e retirar: financeiro.reserva (só o dono).
+  obterReservaConfig: () => authFetch(`${API_BASE}/financeiro/reserva/config`),
+
+  salvarReservaConfig: (payload: { ativa: boolean; percentual: number; escopo: string }) =>
+    authFetch(`${API_BASE}/financeiro/reserva/config`, { method: 'PUT', body: JSON.stringify(payload) }),
+
+  obterReserva: () => authFetch(`${API_BASE}/financeiro/reserva`),
+
+  retirarDaReserva: (payload: { valor: number; descricao: string }) =>
+    authFetch(`${API_BASE}/financeiro/reserva/retiradas`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  desfazerRetiradaDaReserva: (id: string) =>
+    authFetch(`${API_BASE}/financeiro/reserva/retiradas/${id}`, { method: 'DELETE' }),
+
+  // ── Orçamento da OS ──────────────────────────────────────────────────────────
+  // Ler: ordens.ver. Criar versão/editar/enviar/aprovar/recusar: ordens.editar.
+  // Custo e margem só vêm pra quem tem financeiro.ver_margem. `tz` = fuso do usuário
+  // (a validade conta em dias desse fuso).
+
+  listarOrcamentos: (ordemId: string, tz?: string) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/orcamentos${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  criarVersaoOrcamento: (ordemId: string) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/orcamentos`, { method: 'POST' }),
+
+  atualizarOrcamento: (id: string, payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/orcamentos/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  enviarOrcamento: (id: string, tz?: string) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/enviar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, { method: 'POST' }),
+
+  aprovarOrcamento: (id: string, payload: { canal?: string; observacao?: string; assinatura?: string | null }, tz?: string) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/aprovar${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /** Resumo da etapa 4: orçamento aprovado, reservas, baixas e lançamentos da OS. */
+  obterFechamento: (ordemId: string) => authFetch(`${API_BASE}/ordens/${ordemId}/fechamento`),
+
+  /** Conclui o serviço e baixa o estoque reservado (409 `estoque_insuficiente` se faltar peça). */
+  concluirOrdem: (ordemId: string, payload: { observacao?: string; ignorarFaltas?: boolean }) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/concluir`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  /** PDF da versão (só preço cobrado). */
+  // Link público do orçamento (Fase 6). Ver: ordens.ver; gerar/renovar/revogar: ordens.editar.
+  obterLinkOrcamento: (id: string) => authFetch(`${API_BASE}/orcamentos/${id}/link`),
+  gerarLinkOrcamento: (id: string, renovar = false) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/link`, { method: 'POST', body: JSON.stringify({ renovar }) }),
+  revogarLinkOrcamento: (id: string) => authFetch(`${API_BASE}/orcamentos/${id}/link`, { method: 'DELETE' }),
+
+  baixarPdfOrcamento: (id: string) => authFetchBlob(`${API_BASE}/orcamentos/${id}/pdf`),
+
+  /** Relatório final da OS (PDF de uma página). Só existe para OS finalizada; antes disso o servidor responde 409. */
+  baixarPdfOsConcluida: (ordemId: string) => authFetchBlob(`${API_BASE}/ordens/${ordemId}/pdf-concluida`),
+
+  recusarOrcamento: (id: string, payload: { motivo?: string }) =>
+    authFetch(`${API_BASE}/orcamentos/${id}/recusar`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  // ── Alertas ──────────────────────────────────────────────────────────────────
+  // Marcar: ordens.editar ou ordens.criar (503 se o script alertas.sql não foi rodado).
+  marcarClienteAvisado: (ordemId: string, avisado: boolean) =>
+    authFetch(`${API_BASE}/ordens/${ordemId}/cliente-avisado`, { method: 'PATCH', body: JSON.stringify({ avisado }) }),
+
+  /** Dados dos alertas de orçamento, OS parada, reserva sem estoque e pagamento (cada bloco só vem pra quem pode ver). */
+  obterAlertas: (tz?: string) => authFetch(`${API_BASE}/alertas${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  // Adiar/dispensar é por usuário (qualquer logado). 503 se alertas.sql não foi rodado.
+  adiarAlerta: (alertaId: string, dias: number) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'PUT', body: JSON.stringify({ modo: 'adiar', dias }) }),
+  dispensarAlerta: (alertaId: string) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'PUT', body: JSON.stringify({ modo: 'dispensar' }) }),
+  restaurarAlerta: (alertaId: string) =>
+    authFetch(`${API_BASE}/alertas/dispensados/${encodeURIComponent(alertaId)}`, { method: 'DELETE' }),
+  /** Apaga só os DISPENSADOS cujo alerta já se resolveu (pra, se voltar, voltar a aparecer). */
+  limparAlertasDispensados: (ids: string[]) =>
+    authFetch(`${API_BASE}/alertas/dispensados/limpar`, { method: 'POST', body: JSON.stringify({ ids }) }),
+
+  // ── Visão Geral ──────────────────────────────────────────────────────────────
+  // Qualquer usuário logado lê; os blocos de dinheiro vêm só para quem pode ver.
+  visaoGeral: (tz?: string) => authFetch(`${API_BASE}/visao-geral${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`),
+
+  // Exige configuracoes.editar. `null` remove a meta.
+  /** Dados da oficina (Configurações). Ler: qualquer usuário logado; salvar: configuracoes.editar. */
+  obterConfigOficina: () => authFetch(`${API_BASE}/oficina/config`),
+
+  salvarConfigOficina: (payload: Record<string, unknown>) =>
+    authFetch(`${API_BASE}/oficina/config`, { method: 'PUT', body: JSON.stringify(payload) }),
+
+  /** Código de acesso da equipe (link /f/<código>). Exige funcionarios.gerenciar. */
+  obterAcessoEquipe: () => authFetch(`${API_BASE}/oficina/acesso-equipe`),
+
+  gerarAcessoEquipe: (renovar = false) =>
+    authFetch(`${API_BASE}/oficina/acesso-equipe`, { method: 'POST', body: JSON.stringify({ renovar }) }),
+
+  desativarAcessoEquipe: () =>
+    authFetch(`${API_BASE}/oficina/acesso-equipe`, { method: 'DELETE' }),
+
+  /** Minha conta (dono ou funcionário, só a própria): trocar o nome de quem está logado. Não é o nome da
+   *  oficina (esse é de /oficina/config). Devolve `{ nome, accessToken }` — o token novo já leva o nome novo. */
+  atualizarMeuNome: (nome: string) =>
+    authFetch(`${API_BASE}/conta`, { method: 'PATCH', body: JSON.stringify({ nome }) }),
+
+  /** Exclui a própria conta. Dono: `{ senha, confirmacao }` (apaga a oficina inteira); funcionário:
+   *  `{ pin, confirmacao }`. `confirmacao` é a palavra EXCLUIR. Senha/PIN errados voltam 403, não 401. */
+  excluirMinhaConta: (corpo: { senha?: string; pin?: string; confirmacao: string }) =>
+    authFetch(`${API_BASE}/conta/excluir`, { method: 'POST', body: JSON.stringify(corpo) }),
+
+  /** Sem login: o aparelho do funcionário troca o código pela oficina. */
+  resolverCodigoOficina: (codigo: string) =>
+    fetch(`${API_BASE}/publico/oficina/${encodeURIComponent(codigo)}`, { headers: baseHeaders }).then(handleResponse),
+
+  definirMetaMensal: (valor: number | null) =>
+    authFetch(`${API_BASE}/visao-geral/meta`, { method: 'PUT', body: JSON.stringify({ valor }) }),
+
+  // ── Relatórios ───────────────────────────────────────────────────────────────
+  // Exige relatorios.ver (dono e gerente). Datas YYYY-MM-DD; o servidor agrega
+  // por dia no fuso `tz` e devolve só os totais/séries (ver RelatorioResposta).
+  relatorios: (params: { de: string; ate: string; deAnterior?: string; ateAnterior?: string; tz?: string }) => {
+    const qs = new URLSearchParams({ de: params.de, ate: params.ate });
+    if (params.deAnterior && params.ateAnterior) {
+      qs.set('de_anterior', params.deAnterior);
+      qs.set('ate_anterior', params.ateAnterior);
+    }
+    if (params.tz) qs.set('tz', params.tz);
+    return authFetch(`${API_BASE}/relatorios?${qs.toString()}`);
+  },
+
+  baixarFoto: (filename: string) => fetch(`${API_BASE}/fotos/${filename}`).then(handleResponse),
+};

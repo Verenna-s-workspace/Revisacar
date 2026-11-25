@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { tokens } from '../../../constants';
+import type { FormEvent } from 'react';
 import { labelCategoria, LABEL_FORMA_PAGAMENTO } from './categoriaLabels';
 import type { Categorias, Transacao } from './types';
 import { mensagemDoErro } from '../../../utils/api_erro';
@@ -7,11 +7,11 @@ import { hojeLocal } from '../../../utils/financeiro_utils';
 import { formatBRL } from '../../../utils/dashboard';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: '0.78rem', fontWeight: 700,
-  color: tokens.color.textSecond, marginBottom: 5,
-};
+import {
+  Button, Modal, ModalBody, ModalChoices, ModalFields, ModalFooter, ModalHeader, ModalHighlight, ModalHighlights,
+  ModalNotice, ModalSection,
+} from '../../../components/system';
+import { Icons } from '../Icons';
 
 /** Meios em que a maquininha (ou o app de pagamento) costuma descontar taxa. */
 const MEIOS_COM_TAXA = new Set(['debito', 'credito', 'pix']);
@@ -49,7 +49,7 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
     setCategoria(lista[0] ?? '');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) {
@@ -85,49 +85,33 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
     }
   };
 
+  const aReceber = Number(taxa) > 0 && Number(valor) > Number(taxa);
+
   return (
-    <div className="sheet-backdrop" style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
-    }}>
-      <div className="sheet-panel" style={{
-        background: tokens.color.card, borderRadius: 16, width: '100%', maxWidth: 480,
-        border: `1px solid ${tokens.color.border}`, boxShadow: 'var(--shadow-lg)',
-        overflow: 'hidden', maxHeight: '90dvh', display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: tokens.color.text }}>{editando ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
-          <button type="button" onClick={onFechar} aria-label="Fechar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: tokens.color.muted, width: 44, height: 44, margin: '-10px -10px -10px 0' }}>×</button>
-        </div>
+    <Modal size="md" onClose={onFechar} onSubmit={handleSubmit} closeOnBackdrop={!salvando}>
+      <ModalHeader
+        icon={Icons.dollar}
+        title={editando ? 'Editar Lançamento' : 'Novo Lançamento'}
+        description={editando ? 'Atualize os dados deste lançamento.' : 'Registre uma entrada ou uma saída do caixa.'}
+      />
 
-        <form onSubmit={handleSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
-          <div>
-            <label style={labelStyle}>TIPO</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" disabled={editando} onClick={() => trocarTipo('entrada')} style={{
-                flex: 1, padding: 12, background: tipo === 'entrada' ? 'var(--color-ok-bg)' : 'transparent',
-                color: tipo === 'entrada' ? 'var(--color-ok)' : tokens.color.textSecond,
-                border: `1px solid ${tipo === 'entrada' ? 'var(--color-ok)' : tokens.color.border}`,
-                borderRadius: 8, fontWeight: 700, cursor: 'pointer',
-              }}>
-                Entrada (+)
-              </button>
-              <button type="button" disabled={editando} onClick={() => trocarTipo('saida')} style={{
-                flex: 1, padding: 12, background: tipo === 'saida' ? 'var(--color-crit-bg)' : 'transparent',
-                color: tipo === 'saida' ? 'var(--color-crit)' : tokens.color.textSecond,
-                border: `1px solid ${tipo === 'saida' ? 'var(--color-crit)' : tokens.color.border}`,
-                borderRadius: 8, fontWeight: 700, cursor: 'pointer',
-              }}>
-                Saída (-)
-              </button>
-            </div>
-          </div>
+      <ModalBody>
+        <ModalHighlights>
+          <ModalHighlight label="Valor" htmlFor="transacao_valor" icon={Icons.dollar} required>
+            <Input name="transacao_valor" type="currency" required placeholder="R$ 0,00" value={valor} onChangeValue={setValor} />
+          </ModalHighlight>
+        </ModalHighlights>
 
+        <ModalSection title="Lançamento">
+          <ModalChoices
+            label={editando ? 'Tipo (não muda depois de criado)' : 'Tipo'}
+            value={tipo}
+            disabled={editando}
+            onChange={trocarTipo}
+            options={[{ value: 'entrada', label: 'Entrada (+)' }, { value: 'saida', label: 'Saída (-)' }]}
+          />
           <Input name="transacao_descricao" label="Descrição" placeholder="Ex: Troca de óleo ou Aluguel" value={descricao} onChangeValue={setDescricao} />
-
-          <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
-            <Input name="transacao_valor" type="currency" label="Valor" required placeholder="R$ 0,00" value={valor} onChangeValue={setValor} />
+          <ModalFields>
             <Select
               name="transacao_categoria"
               label="Categoria"
@@ -135,13 +119,14 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
               onChangeValue={setCategoria}
               options={listaCategorias.map(c => ({ value: c, label: labelCategoria(tipo, c) }))}
             />
-          </div>
+            {tipo === 'entrada' && (
+              <Input name="transacao_cliente" label="Cliente (opcional)" placeholder="Nome do cliente" value={clienteNome} onChangeValue={setClienteNome} />
+            )}
+          </ModalFields>
+        </ModalSection>
 
-          {tipo === 'entrada' && (
-            <Input name="transacao_cliente" label="Cliente (opcional)" placeholder="Nome do cliente" value={clienteNome} onChangeValue={setClienteNome} />
-          )}
-
-          <div className="dashboard-form-grid-2col" style={{ gap: 12 }}>
+        <ModalSection title="Pagamento">
+          <ModalFields>
             <Input name="transacao_data" type="date" label="Data" value={dataCompetencia} onChangeValue={setDataCompetencia} />
             <Select
               name="transacao_forma_pagamento"
@@ -150,10 +135,10 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
               onChangeValue={setFormaPagamento}
               options={categorias.formas_pagamento.map(f => ({ value: f, label: LABEL_FORMA_PAGAMENTO[f] ?? f }))}
             />
-          </div>
+          </ModalFields>
 
           {tipo === 'entrada' && MEIOS_COM_TAXA.has(formaPagamento) && (
-            <div>
+            <>
               <Input
                 name="transacao_taxa"
                 type="currency"
@@ -163,50 +148,31 @@ export function TransacaoModal({ categorias, transacao, onFechar, onSalvar }: Pr
                 value={taxa}
                 onChangeValue={setTaxa}
               />
-              {Number(taxa) > 0 && Number(valor) > Number(taxa) && (
-                <p style={{ margin: '6px 0 0', fontSize: '0.8rem', fontWeight: 700, color: tokens.color.textSecond }}>
-                  Cai na conta: {formatBRL(Number(valor) - Number(taxa))}
-                </p>
-              )}
-            </div>
+              {aReceber && <ModalNotice tone="info">Cai na conta: <strong>{formatBRL(Number(valor) - Number(taxa))}</strong></ModalNotice>}
+            </>
           )}
 
-          <div>
-            <label style={labelStyle}>STATUS</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" onClick={() => setStatusPago(true)} style={{
-                flex: 1, padding: 10, background: statusPago ? tokens.color.surfaceHigh : 'transparent',
-                border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-                fontWeight: 700, fontSize: '0.82rem', color: tokens.color.text, cursor: 'pointer',
-              }}>
-                Já {tipo === 'entrada' ? 'recebido' : 'pago'}
-              </button>
-              <button type="button" onClick={() => setStatusPago(false)} style={{
-                flex: 1, padding: 10, background: !statusPago ? tokens.color.surfaceHigh : 'transparent',
-                border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-                fontWeight: 700, fontSize: '0.82rem', color: tokens.color.text, cursor: 'pointer',
-              }}>
-                Pendente
-              </button>
-            </div>
-          </div>
-
+          <ModalChoices
+            label="Situação"
+            value={statusPago ? 'pago' : 'pendente'}
+            onChange={v => setStatusPago(v === 'pago')}
+            options={[{ value: 'pago', label: `Já ${tipo === 'entrada' ? 'recebido' : 'pago'}` }, { value: 'pendente', label: 'Pendente' }]}
+          />
           {!statusPago && (
             <Input name="transacao_vencimento" type="date" label="Vence em (opcional)" value={dataVencimento} onChangeValue={setDataVencimento} />
           )}
+        </ModalSection>
+      </ModalBody>
 
-          {erro && <p style={{ color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600, margin: 0 }}>{erro}</p>}
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-            <button type="button" onClick={onFechar} style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.textSecond, fontSize: '0.85rem', cursor: 'pointer' }}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={salvando} style={{ padding: '10px 20px', background: 'var(--color-ferrari)', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.7 : 1 }}>
-              {salvando ? 'Salvando…' : editando ? 'Salvar alterações' : 'Registrar Lançamento'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      <ModalFooter
+        hint="* Campos obrigatórios"
+        notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}
+      >
+        <Button variant="ghost" onClick={onFechar} disabled={salvando}>Cancelar</Button>
+        <Button type="submit" variant="primary" loading={salvando}>
+          {salvando ? 'Salvando…' : editando ? 'Salvar alterações' : 'Registrar Lançamento'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

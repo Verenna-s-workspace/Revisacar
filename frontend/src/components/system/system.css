@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
  * Sistema visual — componentes únicos
- * Button · Badge · StatCard · PageHeader · ConfirmDialog
+ * Button · Badge · StatCard · PageHeader  (ConfirmDialog usa o Modal: ver modal.css)
  *
  * Regras (PDF de redesign, página 1):
  *  - uma cor de marca, só na ação principal e no item ativo (um primário por tela)
@@ -123,35 +123,4 @@
 .sys-page-header__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 639px) {
   .sys-page-header__title { font-size: var(--text-lg); }
-}
-
-/* ── ConfirmDialog ───────────────────────────────────────────────────────── */
-.sys-dialog-backdrop {
-  position: fixed; inset: 0;
-  z-index: var(--z-modal);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
-  background: rgba(26, 26, 26, 0.45);
-  animation: fadeIn 0.15s ease;
-}
-.sys-dialog {
-  width: 100%; max-width: 400px;
-  background: var(--color-surface);
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  box-shadow: var(--shadow-lg);
-  animation: scaleIn 0.18s ease;
-}
-.sys-dialog__icon {
-  width: 40px; height: 40px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 14px;
-  background: var(--color-crit-bg); color: var(--color-crit);
-}
-.sys-dialog__icon--neutral { background: var(--color-surface-high); color: var(--color-text); }
-.sys-dialog__title { margin: 0; font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--color-text); line-height: 1.25; }
-.sys-dialog__text { margin: 8px 0 0; font-size: var(--text-sm); color: var(--color-muted); line-height: 1.5; white-space: pre-line; }
-.sys-dialog__actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-@media (max-width: 639px) {
-  .sys-dialog__actions .sys-btn { flex: 1 1 0; }
 }

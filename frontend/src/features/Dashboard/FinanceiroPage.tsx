@@ -22,7 +22,6 @@ import { PERIODO_PADRAO, resolverPeriodo, isoLocal } from '../../utils/financeir
 import type { PeriodoSel } from '../../utils/financeiro_utils';
 import { ConfirmDialog } from '../../components/system/ConfirmDialog';
 import { FinanceiroDesktop } from './Financeiro/FinanceiroDesktop';
-import { FinanceiroMobile } from './Financeiro/FinanceiroMobile';
 import { Valor, GraficoPrivado } from '../../components/Privacidade';
 import { useDestaqueAoChegar } from '../../hooks/useDestaqueAoChegar';
 import type { Destaque } from '../../utils/destaque';
@@ -131,40 +130,36 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
     );
   }
 
-  // Telas redesenhadas: desktop (tabela + painéis) e celular (lista em cartões + abas). As duas recebem os mesmos
-  // dados e ações. No desktop, a lista completa de contas ("Ver todas") segue no layout anterior; no celular a
-  // aba Contas já mostra todas, então `visaoContas` nunca é ligado por lá.
-  if (!visaoContas) {
-    const telaProps = {
-      periodo,
-      de,
-      ate,
-      onPeriodo: setPeriodo,
-      resumo,
-      transacoes,
-      pendentesReceber,
-      pendentesPagar,
-      categorias,
-      carregando,
-      erro: erro || erroAcao || null,
-      onRecarregar: recarregar,
-      reserva,
-      erroReserva,
-      podeEditar,
-      podeVerMargem,
-      podeRetirarReserva,
-      onNovo: () => setModal(null),
-      onEditar: (t: Transacao) => setModal(t),
-      onMarcarPago: handleMarcarPago,
-      onCancelar: setCancelando,
-      onRetirarReserva: retirar,
-      onDesfazerRetirada: desfazerRetirada,
-    };
+  // Desktop: tela redesenhada. A lista completa de contas ("Ver todas") segue no layout anterior.
+  if (!isMobile && !visaoContas) {
     return (
       <>
-        {isMobile
-          ? <FinanceiroMobile {...telaProps} />
-          : <FinanceiroDesktop {...telaProps} onVerTodasContas={setVisaoContas} />}
+        <FinanceiroDesktop
+          periodo={periodo}
+          de={de}
+          ate={ate}
+          onPeriodo={setPeriodo}
+          resumo={resumo}
+          transacoes={transacoes}
+          pendentesReceber={pendentesReceber}
+          pendentesPagar={pendentesPagar}
+          categorias={categorias}
+          carregando={carregando}
+          erro={erro || erroAcao || null}
+          onRecarregar={recarregar}
+          reserva={reserva}
+          erroReserva={erroReserva}
+          podeEditar={podeEditar}
+          podeVerMargem={podeVerMargem}
+          podeRetirarReserva={podeRetirarReserva}
+          onNovo={() => setModal(null)}
+          onEditar={t => setModal(t)}
+          onMarcarPago={handleMarcarPago}
+          onCancelar={setCancelando}
+          onVerTodasContas={setVisaoContas}
+          onRetirarReserva={retirar}
+          onDesfazerRetirada={desfazerRetirada}
+        />
         {modal !== undefined && (
           <TransacaoModal categorias={categorias} transacao={modal ?? undefined} onFechar={() => setModal(undefined)} onSalvar={handleSalvarTransacao} />
         )}
@@ -184,9 +179,7 @@ export function FinanceiroPage({ isMobile, destaque, onDestaqueConcluido }: { is
   }
 
   return (
-    // No celular a casca (ShellPage) não dá recuo ao Financeiro; este layout antigo só aparece aqui no desktop
-    // (lista completa de contas) ou se a janela encolher com ela aberta — daí o recuo próprio.
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: isMobile ? '8px 14px 32px' : '18px 28px 32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: isMobile ? 0 : '18px 28px 32px' }}>
       {/* Header */}
       <div style={{ display: visaoContas ? 'none' : 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
         <div>

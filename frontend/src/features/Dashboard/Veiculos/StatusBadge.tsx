@@ -43,6 +43,14 @@ export const VEICULO_STATUS_CONFIG: Record<VeiculoStatus, VeiculoStatusConfig> =
   },
 };
 
+/** Tom do selo dos modais (ModalBadge) para cada status. */
+export const VEICULO_STATUS_TOM: Record<VeiculoStatus, 'info' | 'attention' | 'error' | 'success'> = {
+  disponivel: 'success',
+  na_oficina: 'attention',
+  aguardando_aprovacao: 'info',
+  pronto_entrega: 'success',
+};
+
 /** Ordem padrão usada em filtros e cards de resumo. */
 export const VEICULO_STATUS_ORDER: VeiculoStatus[] = [
   'na_oficina',

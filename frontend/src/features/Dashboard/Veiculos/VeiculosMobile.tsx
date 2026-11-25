@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { ActionSheet } from '../../../components/system';
 import { Skeleton } from '../Primitives';
 import { Placa } from '../Placa';
 import { VEICULO_STATUS_CONFIG } from './StatusBadge';
@@ -458,86 +458,24 @@ export function VeiculosMobile({
         )}
       </section>
 
-      {/* Bottom Sheet: ações completas do veículo */}
-      {acaoItem &&
-        createPortal(
-          <div className="vem-sheet-backdrop" onClick={() => setAcaoItem(null)}>
-            <div
-              className="vem-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label={`Ações para ${acaoItem.marca} ${acaoItem.modelo}`}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="vem-sheet__grab" aria-hidden="true" />
-              <h2 className="vem-sheet__titulo">{acaoItem.marca} {acaoItem.modelo}</h2>
-              <p className="vem-sheet__sub">
-                {acaoItem.placa} · {acaoItem.proprietario?.nome || 'Sem proprietário'}
-              </p>
-
-              <button
-                type="button"
-                className="vem-sheet__opt"
-                onClick={() => { const v = acaoItem; setAcaoItem(null); onView(v); }}
-              >
-                {IcOlho}
-                Visualizar detalhes
-              </button>
-
-              <button
-                type="button"
-                className="vem-sheet__opt"
-                onClick={() => { const v = acaoItem; setAcaoItem(null); onEdit(v); }}
-              >
-                {IcEditar}
-                Editar veículo
-              </button>
-
-              <button
-                type="button"
-                className="vem-sheet__opt"
-                onClick={() => { const v = acaoItem; setAcaoItem(null); onNovaOS(v); }}
-              >
-                {IcMais}
-                Nova OS
-              </button>
-
-              <button
-                type="button"
-                className="vem-sheet__opt"
-                onClick={() => { const v = acaoItem; setAcaoItem(null); onChangeOwner(v); }}
-              >
-                {IcUsuario}
-                {acaoItem.proprietario ? 'Alterar proprietário' : 'Vincular proprietário'}
-              </button>
-
-              {acaoItem.proprietario && (
-                <button
-                  type="button"
-                  className="vem-sheet__opt"
-                  onClick={() => { const v = acaoItem; setAcaoItem(null); onUnlinkOwner(v); }}
-                >
-                  {IcDesvincular}
-                  Desvincular proprietário
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="vem-sheet__opt vem-sheet__opt--perigo"
-                onClick={() => { const v = acaoItem; setAcaoItem(null); onDelete(v); }}
-              >
-                {IcLixeira}
-                Excluir veículo
-              </button>
-
-              <button type="button" className="vem-sheet__cancel" onClick={() => setAcaoItem(null)}>
-                Cancelar
-              </button>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* Sheet de ações do veículo */}
+      {acaoItem && (
+        <ActionSheet
+          title={`${acaoItem.marca} ${acaoItem.modelo}`}
+          description={`${acaoItem.placa} · ${acaoItem.proprietario?.nome || 'Sem proprietário'}`}
+          onClose={() => setAcaoItem(null)}
+          actions={[
+            { label: 'Visualizar detalhes', icon: IcOlho, onSelect: () => { const v = acaoItem; setAcaoItem(null); onView(v); } },
+            { label: 'Editar veículo', icon: IcEditar, onSelect: () => { const v = acaoItem; setAcaoItem(null); onEdit(v); } },
+            { label: 'Nova OS', icon: IcMais, onSelect: () => { const v = acaoItem; setAcaoItem(null); onNovaOS(v); } },
+            { label: acaoItem.proprietario ? 'Alterar proprietário' : 'Vincular proprietário', icon: IcUsuario, onSelect: () => { const v = acaoItem; setAcaoItem(null); onChangeOwner(v); } },
+            ...(acaoItem.proprietario
+              ? [{ label: 'Desvincular proprietário', icon: IcDesvincular, onSelect: () => { const v = acaoItem; setAcaoItem(null); onUnlinkOwner(v); } }]
+              : []),
+            { label: 'Excluir veículo', icon: IcLixeira, tone: 'danger', onSelect: () => { const v = acaoItem; setAcaoItem(null); onDelete(v); } },
+          ]}
+        />
+      )}
     </div>
   );
 }

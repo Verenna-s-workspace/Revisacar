@@ -10,7 +10,7 @@ import type { NavPage } from '../../types/dashboard';
 import { ServicosDesktop } from './Servicos/ServicosDesktop';
 import { ServicosMobile } from './Servicos/ServicosMobile';
 import { ServicoFormModal } from './Servicos/ServicoFormModal';
-import { DeleteConfirmModal } from './Servicos/DeleteConfirmModal';
+import { ConfirmDeleteDialog } from '../../components/system';
 
 interface ServicosPageProps {
   onNav: (p: NavPage) => void;
@@ -91,8 +91,9 @@ export function ServicosPage({ onNav, isMobile, onNewOS }: ServicosPageProps) {
         />
       )}
       {excluindo && (
-        <DeleteConfirmModal
-          servico={excluindo}
+        <ConfirmDeleteDialog
+          entidade="serviço"
+          nome={excluindo.nome}
           onConfirm={() => executarAcao(() => deleteServico(excluindo.id))}
           onClose={() => setExcluindo(null)}
         />

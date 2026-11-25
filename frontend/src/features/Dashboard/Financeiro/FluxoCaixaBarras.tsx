@@ -27,32 +27,21 @@ function Dica({ active, payload }: TooltipProps<number, string>) {
   );
 }
 
-/** Eixo Y do celular: sem "R$" (a legenda diz que são reais) para caber em ~40px. */
-const EIXO_COMPACTO = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
-
-/**
- * Entradas × saídas por dia/semana/mês. Um eixo só, barras finas com topo arredondado, legenda fora do gráfico.
- * `compacto` (celular): eixo Y estreito sem "R$", altura menor e a legenda avisa que os valores são em reais.
- */
-export function FluxoCaixaBarras({ pontos, compacto = false }: { pontos: PontoFluxo[]; compacto?: boolean }) {
-  const altura = compacto ? 200 : 220;
+/** Entradas × saídas por dia/semana/mês. Um eixo só, barras finas com topo arredondado, legenda fora do gráfico. */
+export function FluxoCaixaBarras({ pontos }: { pontos: PontoFluxo[] }) {
   return (
     <>
       <div className="fin-legenda" aria-hidden="true">
         <span className="fin-legenda__item"><i className="fin-legenda__marca" style={{ background: COR_ENTRADAS }} />Entradas</span>
         <span className="fin-legenda__item"><i className="fin-legenda__marca" style={{ background: COR_SAIDAS }} />Saídas</span>
-        {compacto && <span className="fin-legenda__item" style={{ marginLeft: 'auto' }}>Valores em R$</span>}
       </div>
-      <GraficoPrivado style={{ height: altura }}>
-        <div className="fin-grafico" style={{ height: altura, minHeight: altura }} role="img" aria-label="Gráfico de barras de entradas e saídas no período">
+      <GraficoPrivado style={{ height: 220 }}>
+        <div className="fin-grafico" role="img" aria-label="Gráfico de barras de entradas e saídas no período">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={pontos} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barGap={2} barCategoryGap="28%">
               <CartesianGrid vertical={false} stroke="var(--fin-borda)" strokeDasharray="3 3" />
-              <XAxis dataKey="rotulo" tickLine={false} axisLine={{ stroke: 'var(--fin-borda)' }} tick={{ fontSize: 12, fill: 'var(--fin-mudo)' }} interval="preserveStartEnd" minTickGap={compacto ? 16 : 12} />
-              <YAxis
-                tickLine={false} axisLine={false} width={compacto ? 40 : 76} tick={{ fontSize: 12, fill: 'var(--fin-mudo)' }}
-                tickFormatter={(v: number) => (compacto ? EIXO_COMPACTO : EIXO).format(v).replace(/\s/g, ' ')}
-              />
+              <XAxis dataKey="rotulo" tickLine={false} axisLine={{ stroke: 'var(--fin-borda)' }} tick={{ fontSize: 12, fill: 'var(--fin-mudo)' }} interval="preserveStartEnd" minTickGap={12} />
+              <YAxis tickLine={false} axisLine={false} width={76} tick={{ fontSize: 12, fill: 'var(--fin-mudo)' }} tickFormatter={(v: number) => EIXO.format(v).replace(/\s/g, ' ')} />
               <Tooltip content={<Dica />} cursor={{ fill: 'var(--fin-surface-high)', opacity: 0.6 }} />
               <Bar dataKey="entradas" name="Entradas" fill={COR_ENTRADAS} maxBarSize={18} radius={[4, 4, 0, 0]} />
               <Bar dataKey="saidas" name="Saídas" fill={COR_SAIDAS} maxBarSize={18} radius={[4, 4, 0, 0]} />

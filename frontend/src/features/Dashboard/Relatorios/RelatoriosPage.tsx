@@ -1,14 +1,27 @@
 import { useEffect, useMemo } from 'react';
+import { tokens } from '../../../constants';
+import { Icons } from '../Icons';
 import { Sidebar, MobileNav, MobileSafeTop } from '../Navigation';
 import { DesktopTopBar } from '../../../components/DesktopTopBar';
+import { BotaoPrivacidade, GraficoPrivado } from '../../../components/Privacidade';
 import { useDestaqueAoChegar } from '../../../hooks/useDestaqueAoChegar';
+import { ALVO } from '../../../utils/destaque';
 import type { Destaque } from '../../../utils/destaque';
+import { Card, KpiCard, Skeleton } from '../Primitives';
 import { useRelatorios } from '../../../hooks/useRelatorios';
 import { useEstoque } from '../../../hooks/useEstoque';
+import { formatBRL } from '../../../utils/dashboard';
+import { formatarNumero } from '../../../utils/relatorios';
 import { itensMaisMovimentados } from '../../../utils/estoque_utils';
 import type { NavPage } from '../../../types/dashboard';
-import { RelatoriosDesktop } from './relatoriosDesktop';
-import { RelatoriosMobile } from './relatoriosMobile';
+
+import { PeriodoSelector } from './PeriodoSelector';
+import { FaturamentoComparativoChart } from './FaturamentoComparativoChart';
+import { OrdensComparativoChart } from './OrdensComparativoChart';
+import { ServicosMaisRealizadosChart } from './ServicosMaisRealizadosChart';
+import { ItensEstoqueMaisMovimentadosChart } from './ItensEstoqueMaisMovimentadosChart';
+import { TopItensEstoqueDestaque } from './TopItensEstoqueDestaque';
+import { MediaDiariaInfo } from './MediaDiariaInfo';
 
 interface RelatoriosPageProps {
   onNav: (p: NavPage) => void;
@@ -20,14 +33,7 @@ interface RelatoriosPageProps {
   onDestaqueConcluido?: () => void;
 }
 
-export function RelatoriosPage({
-  onNav,
-  isMobile: mobile,
-  onNewOS,
-  onGoToEstoque,
-  destaque,
-  onDestaqueConcluido,
-}: RelatoriosPageProps) {
+export function RelatoriosPage({ onNav, isMobile: mobile, onNewOS, onGoToEstoque, destaque, onDestaqueConcluido }: RelatoriosPageProps) {
   const {
     carregando,
     erro,
@@ -54,6 +60,15 @@ export function RelatoriosPage({
     [movimentosEstoque, itensEstoque, intervaloAtual]
   );
 
+  const sparkFaturamento = serieFaturamento.map((p) => p.atual ?? 0);
+  const sparkOrdens = serieOrdens.map((p) => p.atual ?? 0);
+  const sparkTicket = serieFaturamento.map((p, i) => {
+    const qtd = serieOrdens[i]?.atual ?? 0;
+    return qtd > 0 ? (p.atual ?? 0) / qtd : 0;
+  });
+
+  const chartHeight = mobile ? 220 : 260;
+
   // Destaque de chegada: espera os dados aparecerem. Se a tela terminou de carregar mas não
   // vai mostrar os blocos (erro / sem dados no período), cancela em vez de pulsar tarde demais.
   const conteudoPronto = !carregando && !erro && temDadosNoPeriodo;
@@ -63,69 +78,252 @@ export function RelatoriosPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destaque, carregando, conteudoPronto]);
 
-  // ── layout mobile (redesign) ──────────────────────────────────────────────
+  // ── conteúdo ────────────────────────────────────────────────────────────────
+
+  const content = (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: tokens.color.bg }}>
+      {/* header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: mobile ? '14px 16px' : '16px 28px',
+          background: 'var(--color-surface)',
+          borderBottom: `1px solid ${tokens.color.border}`,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          gap: 10,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {mobile && (
+            <button
+              onClick={() => onNav('dashboard')} aria-label="Voltar para a Visão Geral" className="dashboard-back-button"
+            >
+              {Icons.chevL}
+            </button>
+          )}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontWeight: 800, fontSize: mobile ? '1.05rem' : '1.3rem', color: tokens.color.text, margin: 0 }}>
+                Relatórios
+              </h2>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: tokens.color.muted, margin: 0 }}>
+              Desempenho, faturamento e operações da oficina.
+            </p>
+          </div>
+        </div>
+        {/* Celular sem top-bar: o olhinho fica aqui. No desktop ele está na top-bar. */}
+        {mobile && <BotaoPrivacidade variante="mobile" />}
+      </div>
+
+      {/* período */}
+      <PeriodoSelector filtro={filtro} intervaloAtual={intervaloAtual} isMobile={mobile} onChange={setFiltro} />
+
+      {/* corpo */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          padding: mobile ? '12px 12px 32px' : '18px 28px 36px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        {erro && !carregando && (
+          <Card style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ color: tokens.color.crit, display: 'flex' }}>{Icons.alert}</span>
+              <span style={{ fontSize: '0.85rem', color: tokens.color.text }}>{erro}</span>
+            </div>
+            <button
+              onClick={recarregar}
+              style={{ padding: '7px 14px', background: tokens.color.ferrari, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+            >
+              Tentar novamente
+            </button>
+          </Card>
+        )}
+
+        {!erro && !carregando && !temDadosNoPeriodo && (
+          <Card style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: tokens.color.ferrariMid, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.color.ferrari }}>
+              {Icons.chart}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: tokens.color.text }}>Nenhum dado neste período</div>
+            <div style={{ fontSize: '0.82rem', color: tokens.color.muted, maxWidth: 320 }}>
+              Ainda não há dados suficientes para gerar relatórios no intervalo selecionado. Tente escolher um período maior.
+            </div>
+          </Card>
+        )}
+
+        {(carregando || (!erro && temDadosNoPeriodo)) && (
+          <>
+            {/* KPIs */}
+            <div style={{ display: 'flex', gap: 14, flexDirection: mobile ? 'column' : 'row' }}>
+              <KpiCard
+                icon={Icons.dollar}
+                title="Faturamento"
+                value={formatBRL(kpis.faturamento.atual)}
+                pct={kpis.faturamento.variacaoPercentual}
+                spark={sparkFaturamento}
+                loading={carregando}
+                comparisonLabel="vs. período anterior"
+                monetario
+                destaqueId={ALVO.relKpiFaturamento}
+              />
+              <KpiCard
+                icon={Icons.orders}
+                title="Ordens de Serviço"
+                value={`${formatarNumero(kpis.ordensServico.atual)} OS`}
+                pct={kpis.ordensServico.variacaoPercentual}
+                spark={sparkOrdens}
+                loading={carregando}
+                comparisonLabel="vs. período anterior"
+                destaqueId={ALVO.relKpiOs}
+              />
+              <KpiCard
+                icon={Icons.chart}
+                title="Ticket Médio"
+                value={formatBRL(kpis.ticketMedio.atual)}
+                pct={kpis.ticketMedio.variacaoPercentual}
+                spark={sparkTicket}
+                loading={carregando}
+                comparisonLabel="vs. período anterior"
+                monetario
+              />
+            </div>
+
+            {mediaDiaria && <MediaDiariaInfo mediaDiaria={mediaDiaria} />}
+
+            {/* gráficos principais */}
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+              <Card style={{ padding: mobile ? '16px' : '20px 24px' }} destaqueId={ALVO.relGraficoFaturamento}>
+                <div className="dashboard-card__header">
+                  <div>
+                    <div className="dashboard-card__header-title">FATURAMENTO</div>
+                    <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
+                      {faturamentoOrigem === 'financeiro'
+                        ? 'Entradas lançadas no Financeiro (exceto canceladas), por período, comparado ao período anterior.'
+                        : 'Valor estimado das OS finalizadas (ainda sem entradas no Financeiro), por período, comparado ao período anterior.'}
+                    </div>
+                  </div>
+                </div>
+                {carregando ? <Skeleton h={chartHeight} r={8} /> : <GraficoPrivado><FaturamentoComparativoChart dados={serieFaturamento} height={chartHeight} /></GraficoPrivado>}
+              </Card>
+
+              <Card style={{ padding: mobile ? '16px' : '20px 24px' }} destaqueId={ALVO.relGraficoOs}>
+                <div className="dashboard-card__header">
+                  <div>
+                    <div className="dashboard-card__header-title">ORDENS DE SERVIÇO</div>
+                    <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
+                      Quantidade de OS abertas por período, comparado ao período anterior.
+                    </div>
+                  </div>
+                </div>
+                {carregando ? <Skeleton h={chartHeight} r={8} /> : <OrdensComparativoChart dados={serieOrdens} height={chartHeight} />}
+              </Card>
+            </div>
+
+            {/* serviços mais realizados */}
+            <Card style={{ padding: mobile ? '16px' : '20px 24px' }} destaqueId={ALVO.relServicosMaisRealizados}>
+              <div className="dashboard-card__header">
+                <div>
+                  <div className="dashboard-card__header-title">SERVIÇOS MAIS REALIZADOS</div>
+                  <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
+                    Serviços mais frequentes entre as OS finalizadas no período (quantidade e % do total).
+                  </div>
+                </div>
+                <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.wrench}</span>
+              </div>
+              {carregando ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} h={26} />
+                  ))}
+                </div>
+              ) : servicosMaisRealizados.length === 0 ? (
+                <div style={{ fontSize: '0.82rem', color: tokens.color.muted, textAlign: 'center', padding: '20px 0' }}>
+                  Nenhum serviço registrado em OS finalizadas neste período.
+                </div>
+              ) : (
+                <ServicosMaisRealizadosChart dados={servicosMaisRealizados} />
+              )}
+            </Card>
+
+            {/* destaque do item de estoque mais movimentado — visão adicional, não substitui o gráfico de barra abaixo */}
+            {!carregando && !carregandoEstoque && itensEstoqueMovimentados.some(i => i.id) && (
+              <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+                <div className="dashboard-card__header">
+                  <div>
+                    <div className="dashboard-card__header-title">Destaques do período</div>
+                    <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
+                      Item de estoque com maior saída, com preço, disponibilidade e acesso direto — toque pra ver no Estoque.
+                    </div>
+                  </div>
+                  <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.dollar}</span>
+                </div>
+                <TopItensEstoqueDestaque
+                  itens={itensEstoqueMovimentados.filter(i => i.id)}
+                  isMobile={mobile}
+                  onVerItem={(nome) => onGoToEstoque?.({ search: nome })}
+                />
+              </Card>
+            )}
+
+            {/* itens de estoque mais movimentados */}
+            <Card style={{ padding: mobile ? '16px' : '20px 24px' }}>
+              <div className="dashboard-card__header">
+                <div>
+                  <div className="dashboard-card__header-title">ITENS DE ESTOQUE MAIS MOVIMENTADOS</div>
+                  <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 2 }}>
+                    Peças com mais saída de estoque no período (quantidade e % do total).
+                  </div>
+                </div>
+                <span style={{ color: tokens.color.muted, display: 'flex' }}>{Icons.box}</span>
+              </div>
+              {carregando || carregandoEstoque ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} h={26} />
+                  ))}
+                </div>
+              ) : itensEstoqueMovimentados.length === 0 ? (
+                <div style={{ fontSize: '0.82rem', color: tokens.color.muted, textAlign: 'center', padding: '20px 0' }}>
+                  Nenhuma movimentação de estoque neste período.
+                </div>
+              ) : (
+                <ItensEstoqueMaisMovimentadosChart dados={itensEstoqueMovimentados} />
+              )}
+            </Card>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // ── layout ──────────────────────────────────────────────────────────────────
 
   if (mobile) {
     return (
-      <div
-        style={{
-          background: 'var(--color-bg)',
-          minHeight: '100dvh',
-          paddingBottom: 'var(--mobile-bottom-nav-h)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+      <div style={{ background: tokens.color.bg, minHeight: '100dvh', paddingBottom: 'var(--mobile-bottom-nav-h)', display: 'flex', flexDirection: 'column' }}>
         <MobileSafeTop />
-        <RelatoriosMobile
-          carregando={carregando}
-          carregandoEstoque={carregandoEstoque}
-          erro={erro}
-          filtro={filtro}
-          onFiltroChange={setFiltro}
-          intervaloAtual={intervaloAtual}
-          kpis={kpis}
-          serieFaturamento={serieFaturamento}
-          serieOrdens={serieOrdens}
-          servicosMaisRealizados={servicosMaisRealizados}
-          itensEstoqueMovimentados={itensEstoqueMovimentados}
-          mediaDiaria={mediaDiaria}
-          faturamentoOrigem={faturamentoOrigem}
-          temDadosNoPeriodo={temDadosNoPeriodo}
-          onRecarregar={recarregar}
-          onGoToEstoque={onGoToEstoque}
-          onVoltar={() => onNav('dashboard')}
-        />
-        <MobileNav active='relatorios' onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
+        {content}
+        <MobileNav active="relatorios" onNav={onNav} onNewOS={onNewOS ?? (() => {})} />
       </div>
     );
   }
 
-  // ── layout desktop / laptop (redesign) ────────────────────────────────────
-
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
-      <Sidebar active='relatorios' onNav={onNav} onNewOS={onNewOS} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <DesktopTopBar page='relatorios' onNav={onNav} />
-        <RelatoriosDesktop
-          carregando={carregando}
-          carregandoEstoque={carregandoEstoque}
-          erro={erro}
-          filtro={filtro}
-          onFiltroChange={setFiltro}
-          intervaloAtual={intervaloAtual}
-          kpis={kpis}
-          serieFaturamento={serieFaturamento}
-          serieOrdens={serieOrdens}
-          servicosMaisRealizados={servicosMaisRealizados}
-          itensEstoqueMovimentados={itensEstoqueMovimentados}
-          mediaDiaria={mediaDiaria}
-          faturamentoOrigem={faturamentoOrigem}
-          temDadosNoPeriodo={temDadosNoPeriodo}
-          onRecarregar={recarregar}
-          onGoToEstoque={onGoToEstoque}
-        />
+      <Sidebar active="relatorios" onNav={onNav} onNewOS={onNewOS} />
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <DesktopTopBar page="relatorios" onNav={onNav} />
+        {content}
       </main>
     </div>
   );

@@ -18,7 +18,6 @@ export function CarroHatchSvg({ className }: { className?: string }) {
       <polygon fill="#A9ACB7" stroke="#A9ACB7" strokeWidth="0.3" strokeLinejoin="round" points="200.1,60.4 192.4,56.8 247.2,88.5 254.9,92.1" />
       <polygon fill="#D3D4DA" stroke="#D3D4DA" strokeWidth="0.3" strokeLinejoin="round" points="192.2,53.7 180,58.5 234.8,90.2 247.1,85.4" />
       <polygon fill="#D3D4DA" stroke="#D3D4DA" strokeWidth="0.3" strokeLinejoin="round" points="180,58.5 165.2,65.8 220,97.4 234.8,90.2" />
-      <polygon fill="#888C97" stroke="#888C97" strokeWidth="0.3" strokeLinejoin="round" points="108.7,156.4 108.9,157 163.7,188.6 163.5,188.1" />
       <polygon fill="#D7D8DE" stroke="#D7D8DE" strokeWidth="0.3" strokeLinejoin="round" points="165.2,65.8 139.8,81.1 194.6,112.7 220,97.4" />
       <polygon fill="#D1D2D8" stroke="#D1D2D8" strokeWidth="0.3" strokeLinejoin="round" points="139.8,81.1 132.8,86.4 187.7,118 194.6,112.7" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="132.8,86.4 127.5,91.3 182.4,123 187.7,118" />
@@ -26,7 +25,6 @@ export function CarroHatchSvg({ className }: { className?: string }) {
       <polygon fill="#707686" stroke="#707686" strokeWidth="0.3" strokeLinejoin="round" points="109.6,122.8 129.9,97.3 174.9,123.3 154.6,148.7" />
       <polygon fill="#A3A6AF" stroke="#A3A6AF" strokeWidth="0.3" strokeLinejoin="round" points="68.7,174.3 67.6,177.4 122.4,209.1 123.5,205.9" />
       <polygon fill="#D1D2D8" stroke="#D1D2D8" strokeWidth="0.3" strokeLinejoin="round" points="102.1,123.1 88,134.2 142.9,165.8 157,154.7" />
-      <polygon fill="#888C97" stroke="#888C97" strokeWidth="0.3" strokeLinejoin="round" points="67.6,169.8 68.7,174.3 123.5,205.9 122.4,201.5" />
       <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="67.9,163.5 67.6,169.8 122.4,201.5 122.8,195.2" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="88,134.2 81.3,140.4 136.1,172 142.9,165.8" />
       <polygon fill="#C4C5CC" stroke="#C4C5CC" strokeWidth="0.3" strokeLinejoin="round" points="81.3,140.4 74.9,147.2 129.7,178.9 136.1,172" />
@@ -70,9 +68,7 @@ export function CarroSedanSvg({ className }: { className?: string }) {
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="131.2,84.2 121.5,93.6 178.2,126.3 187.8,116.9" />
       <polygon fill="#BDBFC6" stroke="#BDBFC6" strokeWidth="0.3" strokeLinejoin="round" points="121.5,93.6 101.9,119.7 158.6,152.4 178.2,126.3" />
       <polygon fill="#707686" stroke="#707686" strokeWidth="0.3" strokeLinejoin="round" points="109,120 124.6,99.1 171.1,126 155.5,146.8" />
-      <polygon fill="#848894" stroke="#848894" strokeWidth="0.3" strokeLinejoin="round" points="67,169.4 68.1,171.9 124.8,204.6 123.7,202.1" />
       <polygon fill="#D1D2D8" stroke="#D1D2D8" strokeWidth="0.3" strokeLinejoin="round" points="101.9,119.7 79.5,136.4 136.1,169.1 158.6,152.4" />
-      <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="66.8,161 67,169.4 123.7,202.1 123.5,193.7" />
       <polygon fill="#B0B3BB" stroke="#B0B3BB" strokeWidth="0.3" strokeLinejoin="round" points="68.1,158.4 66.8,161 123.5,193.7 124.8,191.1" />
       <polygon fill="#9699A4" stroke="#9699A4" strokeWidth="0.3" strokeLinejoin="round" points="68.8,150.2 68.1,158.4 124.8,191.1 125.5,182.9" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="79.5,136.4 72.1,143.6 128.8,176.3 136.1,169.1" />
@@ -119,7 +115,6 @@ export function CarroSuvSvg({ className }: { className?: string }) {
       <polygon fill="#BDBFC6" stroke="#BDBFC6" strokeWidth="0.3" strokeLinejoin="round" points="122.9,94.4 119.2,99.5 177.7,133.3 181.4,128.2" />
       <polygon fill="#707686" stroke="#707686" strokeWidth="0.3" strokeLinejoin="round" points="115.6,123 116.4,121.7 123.5,104.8 171.5,132.5 164.4,149.4 163.6,150.7" />
       <polygon fill="#D7D8DE" stroke="#D7D8DE" strokeWidth="0.3" strokeLinejoin="round" points="109,122.1 85.4,138 143.9,171.8 167.5,155.8" />
-      <polygon fill="#888C97" stroke="#888C97" strokeWidth="0.3" strokeLinejoin="round" points="69.3,172.4 70,174.3 128.5,208.1 127.8,206.2" />
       <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="69.3,168.2 69.3,172.4 127.8,206.2 127.8,202" />
       <polygon fill="#B7B9C1" stroke="#B7B9C1" strokeWidth="0.3" strokeLinejoin="round" points="72,164.1 69.3,168.2 127.8,202 130.5,197.8" />
       <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="72.6,153.4 72,164.1 130.5,197.8 131.1,187.2" />
@@ -171,9 +166,7 @@ export function CarroPicapeSvg({ className }: { className?: string }) {
       <polygon fill="#B7B9C1" stroke="#B7B9C1" strokeWidth="0.3" strokeLinejoin="round" points="114.4,95.2 99.9,118.5 158.4,152.3 172.9,129" />
       <polygon fill="#707686" stroke="#707686" strokeWidth="0.3" strokeLinejoin="round" points="106.6,119.3 118.2,100.6 166.1,128.3 154.6,146.9" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="99.9,118.5 97.7,120.7 156.2,154.4 158.4,152.3" />
-      <polygon fill="#848894" stroke="#848894" strokeWidth="0.3" strokeLinejoin="round" points="66.1,167.4 67.2,169.9 125.7,203.7 124.6,201.2" />
       <polygon fill="#D1D2D8" stroke="#D1D2D8" strokeWidth="0.3" strokeLinejoin="round" points="97.7,120.7 76.3,136.2 134.8,169.9 156.2,154.4" />
-      <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="65.9,159.1 66.1,167.4 124.6,201.2 124.4,192.8" />
       <polygon fill="#B0B3BB" stroke="#B0B3BB" strokeWidth="0.3" strokeLinejoin="round" points="67.2,156.4 65.9,159.1 124.4,192.8 125.7,190.2" />
       <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="67.6,150.1 67.2,156.4 125.7,190.2 126.1,183.9" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="76.3,136.2 71,141.6 129.5,175.3 134.8,169.9" />
@@ -211,9 +204,7 @@ export function CarroVanSvg({ className }: { className?: string }) {
       <polygon fill="#B9BBC4" stroke="#B9BBC4" strokeWidth="0.3" strokeLinejoin="round" points="205.9,49 203.4,48.8 258.2,80.4 260.8,80.7" />
       <polygon fill="#D7D8DE" stroke="#D7D8DE" strokeWidth="0.3" strokeLinejoin="round" points="203.4,48.8 120.9,96.4 175.8,128 258.2,80.4" />
       <polygon fill="#D1D2D8" stroke="#D1D2D8" strokeWidth="0.3" strokeLinejoin="round" points="120.9,96.4 112.9,102.3 167.7,134 175.8,128" />
-      <polygon fill="#848894" stroke="#848894" strokeWidth="0.3" strokeLinejoin="round" points="67.8,181.5 68.5,183.2 123.3,214.9 122.6,213.2" />
       <polygon fill="#C4C5CC" stroke="#C4C5CC" strokeWidth="0.3" strokeLinejoin="round" points="112.9,102.3 109.1,106.4 163.9,138.1 167.7,134" />
-      <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="67.4,175.2 67.8,181.5 122.6,213.2 122.2,206.9" />
       <polygon fill="#BDBFC6" stroke="#BDBFC6" strokeWidth="0.3" strokeLinejoin="round" points="109.1,106.4 105.8,111.3 160.6,142.9 163.9,138.1" />
       <polygon fill="#B7B9C1" stroke="#B7B9C1" strokeWidth="0.3" strokeLinejoin="round" points="105.8,111.3 88.2,141 143.1,172.7 160.6,142.9" />
       <polygon fill="#707686" stroke="#707686" strokeWidth="0.3" strokeLinejoin="round" points="94.9,140.9 109,117.1 153.9,143 139.9,166.9" />
@@ -263,8 +254,6 @@ export function CarroUtilitarioSvg({ className }: { className?: string }) {
       <polygon fill="#BDBFC6" stroke="#BDBFC6" strokeWidth="0.3" strokeLinejoin="round" points="118.4,110 102.1,133.5 155.1,164.1 171.4,140.6" />
       <polygon fill="#707686" stroke="#707686" strokeWidth="0.3" strokeLinejoin="round" points="108.5,133.9 121.5,115.1 165,140.2 152,159" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="102.1,133.5 78.4,154.6 131.4,185.2 155.1,164.1" />
-      <polygon fill="#888C97" stroke="#888C97" strokeWidth="0.3" strokeLinejoin="round" points="66.5,181.5 67.6,186.2 120.6,216.8 119.5,212.2" />
-      <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="66.3,177 66.5,181.5 119.5,212.2 119.3,207.6" />
       <polygon fill="#9DA0AA" stroke="#9DA0AA" strokeWidth="0.3" strokeLinejoin="round" points="69,166.6 66.3,177 119.3,207.6 122,197.2" />
       <polygon fill="#C4C5CC" stroke="#C4C5CC" strokeWidth="0.3" strokeLinejoin="round" points="78.4,154.6 70.7,163.1 123.7,193.7 131.4,185.2" />
       <polygon fill="#B0B3BB" stroke="#B0B3BB" strokeWidth="0.3" strokeLinejoin="round" points="70.7,163.1 69,166.6 122,197.2 123.7,193.7" />
@@ -316,7 +305,6 @@ export function CarroEsportivoSvg({ className }: { className?: string }) {
       <polygon fill="#D1D2D8" stroke="#D1D2D8" strokeWidth="0.3" strokeLinejoin="round" points="100.5,123.6 89.7,131.7 148.2,165.5 159,157.3" />
       <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="63,178.1 63,179.6 121.5,213.4 121.5,211.9" />
       <polygon fill="#B7B9C1" stroke="#B7B9C1" strokeWidth="0.3" strokeLinejoin="round" points="65.6,173.7 63,178.1 121.5,211.9 124.1,207.5" />
-      <polygon fill="#8C8F9B" stroke="#8C8F9B" strokeWidth="0.3" strokeLinejoin="round" points="65.2,169 65.6,173.7 124.1,207.5 123.7,202.8" />
       <polygon fill="#CACCD2" stroke="#CACCD2" strokeWidth="0.3" strokeLinejoin="round" points="89.7,131.7 80,140.4 138.5,174.2 148.2,165.5" />
       <polygon fill="#C4C5CC" stroke="#C4C5CC" strokeWidth="0.3" strokeLinejoin="round" points="80,140.4 72,149.5 130.4,183.3 138.5,174.2" />
       <polygon fill="#90939E" stroke="#90939E" strokeWidth="0.3" strokeLinejoin="round" points="63.2,164.1 63,167.8 121.5,201.5 121.7,197.9" />

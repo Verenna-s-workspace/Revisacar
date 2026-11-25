@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { Skeleton } from '../Primitives';
 import { formatPreco } from '../../../utils/servicos_utils';
 import type { ServicoItem } from '../../../types/servico';
-import { IcBuscar, IcFiltros, IcMais, IcReticencias, IcSetaEsq } from './icones';
+import { ActionSheet } from '../../../components/system';
+import { IcBuscar, IcEditar, IcFiltros, IcLigar, IcLixeira, IcMais, IcReticencias, IcSetaEsq } from './icones';
 import './ServicosMobile.css';
 
 type StatusFiltro = 'todos' | 'ativos' | 'inativos';
@@ -345,67 +346,18 @@ export function ServicosMobile({
           document.body,
         )}
 
-      {/* Bottom Sheet: Ações do serviço */}
-      {acaoItem &&
-        createPortal(
-          <div className="svm-sheet-backdrop" onClick={() => setAcaoItem(null)}>
-            <div
-              className="svm-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label={`Ações para ${acaoItem.nome}`}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="svm-sheet__grab" aria-hidden="true" />
-              <h2 className="svm-sheet__titulo">{acaoItem.nome}</h2>
-
-              <button
-                type="button"
-                className="svm-sheet__opt"
-                onClick={() => {
-                  const alvo = acaoItem;
-                  setAcaoItem(null);
-                  onEditar(alvo);
-                }}
-              >
-                Editar serviço
-              </button>
-
-              <button
-                type="button"
-                className="svm-sheet__opt"
-                onClick={() => {
-                  const id = acaoItem.id;
-                  setAcaoItem(null);
-                  onToggleAtivo(id);
-                }}
-              >
-                {acaoItem.ativo ? 'Desativar serviço' : 'Ativar serviço'}
-              </button>
-
-              <button
-                type="button"
-                className="svm-sheet__opt svm-sheet__opt--perigo"
-                onClick={() => {
-                  const alvo = acaoItem;
-                  setAcaoItem(null);
-                  onExcluir(alvo);
-                }}
-              >
-                Excluir serviço
-              </button>
-
-              <button
-                type="button"
-                className="svm-sheet__cancel"
-                onClick={() => setAcaoItem(null)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* Sheet de ações do serviço */}
+      {acaoItem && (
+        <ActionSheet
+          title={acaoItem.nome}
+          onClose={() => setAcaoItem(null)}
+          actions={[
+            { label: 'Editar serviço', icon: IcEditar, onSelect: () => { const alvo = acaoItem; setAcaoItem(null); onEditar(alvo); } },
+            { label: acaoItem.ativo ? 'Desativar serviço' : 'Ativar serviço', icon: IcLigar, onSelect: () => { const id = acaoItem.id; setAcaoItem(null); onToggleAtivo(id); } },
+            { label: 'Excluir serviço', icon: IcLixeira, tone: 'danger', onSelect: () => { const alvo = acaoItem; setAcaoItem(null); onExcluir(alvo); } },
+          ]}
+        />
+      )}
     </div>
   );
 }

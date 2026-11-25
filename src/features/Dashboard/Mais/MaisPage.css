@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Tela "Mais" (mobile) — central de navegação para as demais áreas do sistema.
+ * Tudo vive sob .mais-page. Fontes do projeto: DM Sans.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.mais-page {
+  --mais-bg: #F7F6F3;
+  --mais-surface: #FFFFFF;
+  --mais-hover: #F5F6F8;
+  --mais-borda: #E2E5EA;
+  --mais-texto: #1A1D22;
+  --mais-texto-2: #4F5661;
+  --mais-mudo: #666E7B;
+  --mais-sutil: #868D98;
+  --mais-perigo: #A50C34;
+  --mais-foco: #3469EC;
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  padding-bottom: 24px;
+  background: var(--mais-bg);
+  color: var(--mais-texto);
+  font-family: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+}
+
+body.dark .mais-page {
+  --mais-bg: var(--color-bg, #09090b);
+  --mais-surface: var(--color-surface, #151518);
+  --mais-hover: rgba(255, 255, 255, 0.05);
+  --mais-borda: rgba(255, 255, 255, 0.1);
+  --mais-texto: #f4f4f5;
+  --mais-texto-2: #d4d4d8;
+  --mais-mudo: #9ca3af;
+  --mais-sutil: #8b8b94;
+  --mais-perigo: #fda4af;
+  --mais-foco: #7aa2ff;
+}
+
+/* ── Topo ────────────────────────────────────────────────────────────────── */
+.mais-topo {
+  display: flex;
+  flex-direction: column;
+  padding: max(14px, env(safe-area-inset-top)) 16px 12px;
+  background: var(--mais-surface);
+  border-bottom: 1px solid var(--mais-borda);
+}
+
+.mais-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--mais-texto);
+}
+
+.mais-subtitulo {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--mais-mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Seções ──────────────────────────────────────────────────────────────── */
+.mais-secao {
+  margin: 0;
+  padding: 20px 16px 8px;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--mais-texto-2);
+}
+
+.mais-grupo {
+  display: flex;
+  flex-direction: column;
+  background: var(--mais-surface);
+  border-top: 1px solid var(--mais-borda);
+  border-bottom: 1px solid var(--mais-borda);
+}
+
+/* ── Linha de acesso ─────────────────────────────────────────────────────── */
+.mais-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px 0 16px;
+  border: 0;
+  border-top: 1px solid var(--mais-borda);
+  background: transparent;
+  color: var(--mais-texto);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.12s ease;
+}
+
+.mais-item:first-child {
+  border-top: 0;
+}
+
+.mais-item:active {
+  background: var(--mais-hover);
+}
+
+.mais-item:focus-visible {
+  outline: 2px solid var(--mais-foco);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mais-item:hover {
+    background: var(--mais-hover);
+  }
+}
+
+.mais-item__icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--mais-texto-2);
+}
+
+.mais-item__icone svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.mais-item__rotulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mais-item__detalhe {
+  flex: none;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--mais-mudo);
+  white-space: nowrap;
+}
+
+.mais-item__seta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--mais-sutil);
+}
+
+.mais-item__seta svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mais-item--perigo,
+.mais-item--perigo .mais-item__icone {
+  color: var(--mais-perigo);
+}
+
+/* ── Nota de rodapé ──────────────────────────────────────────────────────── */
+.mais-nota {
+  margin: 0;
+  padding: 12px 16px 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--mais-mudo);
+}

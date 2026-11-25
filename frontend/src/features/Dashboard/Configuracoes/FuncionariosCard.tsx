@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Button } from '../../../components/system';
-import { Aviso, EstadoMensagem, ModalCfg, RodapeAcoes } from './cfgUi';
+import {
+  Button, Modal, ModalBody, ModalFields, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../../components/system';
+import { Aviso, EstadoMensagem } from './cfgUi';
 import { IcAlerta, IcLixeira, IcMais } from './icones';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
@@ -170,52 +172,67 @@ export function FuncionariosCard() {
       )}
 
       {showModal && (
-        <ModalCfg titulo="Novo funcionário" bloqueado={salvando} onFechar={() => setShowModal(false)}>
-          <form className="cfg-form" onSubmit={handleAdd}>
-            {erroAcao && <Aviso tom="crit">{erroAcao}</Aviso>}
-            <Input
-              name="nome"
-              label="Nome"
-              required
-              autoFocus
-              value={novo.nome}
-              onChangeValue={v => setNovo({ ...novo, nome: v })}
-            />
-            <Input
-              name="email"
-              type="email"
-              label="E-mail de login"
-              required
-              value={novo.email}
-              onChangeValue={v => setNovo({ ...novo, email: v })}
-            />
-            <Input
-              name="pin"
-              type="digits"
-              label="PIN inicial (6 dígitos)"
-              required
-              maxLength={6}
-              placeholder="000000"
-              hint='O funcionário usa esse PIN pra entrar. Ele pode trocar depois em "Esqueci meu PIN".'
-              value={novo.pin}
-              onChangeValue={v => setNovo({ ...novo, pin: v })}
-              style={{ letterSpacing: '0.3em', fontVariantNumeric: 'tabular-nums' }}
-            />
-            <Select
-              name="cargo"
-              label="Cargo"
-              value={novo.cargo}
-              options={CARGO_OPTIONS}
-              onChangeValue={v => setNovo({ ...novo, cargo: v })}
-            />
-            <RodapeAcoes>
-              <Button onClick={() => setShowModal(false)} disabled={salvando}>Cancelar</Button>
-              <Button type="submit" variant="primary" loading={salvando}>
-                {salvando ? 'Salvando…' : 'Cadastrar funcionário'}
-              </Button>
-            </RodapeAcoes>
-          </form>
-        </ModalCfg>
+        <Modal size="md" onClose={() => { if (!salvando) setShowModal(false); }} onSubmit={handleAdd} closeOnBackdrop={!salvando}>
+          <ModalHeader
+            icon={IcMais}
+            title="Novo funcionário"
+            description="Cadastre quem vai acessar o sistema da oficina."
+          />
+
+          <ModalBody>
+            <ModalSection title="Dados do funcionário">
+              <Input
+                name="nome"
+                label="Nome"
+                required
+                autoFocus
+                value={novo.nome}
+                onChangeValue={v => setNovo({ ...novo, nome: v })}
+              />
+              <ModalFields>
+                <Input
+                  name="email"
+                  type="email"
+                  label="E-mail de login"
+                  required
+                  value={novo.email}
+                  onChangeValue={v => setNovo({ ...novo, email: v })}
+                />
+                <Select
+                  name="cargo"
+                  label="Cargo"
+                  value={novo.cargo}
+                  options={CARGO_OPTIONS}
+                  onChangeValue={v => setNovo({ ...novo, cargo: v })}
+                />
+              </ModalFields>
+            </ModalSection>
+
+            <ModalSection title="Acesso" description="O funcionário usa esse PIN para entrar. Ele pode trocar depois em “Esqueci meu PIN”.">
+              <Input
+                name="pin"
+                type="digits"
+                label="PIN inicial (6 dígitos)"
+                required
+                maxLength={6}
+                placeholder="000000"
+                value={novo.pin}
+                onChangeValue={v => setNovo({ ...novo, pin: v })}
+                style={{ letterSpacing: '0.3em', fontVariantNumeric: 'tabular-nums' }}
+              />
+            </ModalSection>
+          </ModalBody>
+
+          <ModalFooter
+            hint="* Campos obrigatórios"
+            notice={erroAcao ? <ModalNotice tone="error" role="alert">{erroAcao}</ModalNotice> : undefined}
+          >
+            <Button variant="ghost" onClick={() => setShowModal(false)} disabled={salvando}>Cancelar</Button>
+            <Button type="submit" variant="primary" loading={salvando}>
+              {salvando ? 'Salvando…' : 'Cadastrar funcionário'}
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

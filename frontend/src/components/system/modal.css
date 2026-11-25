@@ -31,6 +31,7 @@
   --sm-atencao-bg: #FFF8EB;   --sm-atencao-borda: #FDD98A;   --sm-atencao-ponto: #E0860B;   --sm-atencao-texto: #934F09;  /* pendente_aprovacao */
   --sm-erro-bg: #FFF0F3;      --sm-erro-borda: #FFC2CF;      --sm-erro-ponto: #E62753;      --sm-erro-texto: #A50C34;     /* recusada */
   --sm-ok-bg: #EEFBF3;        --sm-ok-borda: #AEE9C5;        --sm-ok-ponto: #1E9C5B;        --sm-ok-texto: #12673D;       /* finalizada */
+  --sm-erro-solido: #9F1239;     /* fundo do botão destrutivo (confirmar exclusão) */
 
   position: fixed;
   inset: 0;
@@ -63,6 +64,7 @@ body.dark .sys-modal-backdrop {
   --sm-atencao-bg: rgba(245, 158, 11, 0.14);  --sm-atencao-borda: rgba(245, 158, 11, 0.3);  --sm-atencao-ponto: #fbbf24; --sm-atencao-texto: #fcd34d;
   --sm-erro-bg: rgba(244, 63, 94, 0.15);      --sm-erro-borda: rgba(244, 63, 94, 0.32);     --sm-erro-ponto: #fb7185;   --sm-erro-texto: #fda4af;
   --sm-ok-bg: rgba(16, 185, 129, 0.15);       --sm-ok-borda: rgba(16, 185, 129, 0.3);       --sm-ok-ponto: #34d399;     --sm-ok-texto: #6ee7b7;
+  --sm-erro-solido: #E11D48;
 }
 
 /* A página atrás não rola com um modal aberto */
@@ -108,6 +110,7 @@ body:has(.sys-modal-backdrop) { overflow: hidden; }
   background: var(--sm-surface-alta); color: var(--sm-texto-2);
 }
 .sys-modal__header-icon svg { width: 20px; height: 20px; stroke-width: 1.75; }
+.sys-modal__header-icon--error { background: var(--sm-erro-bg); border-color: var(--sm-erro-borda); color: var(--sm-erro-texto); }
 .sys-modal__header-text { flex: 1 1 auto; min-width: 0; padding-top: 1px; }
 .sys-modal__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .sys-modal__title {
@@ -133,7 +136,12 @@ body:has(.sys-modal-backdrop) { overflow: hidden; }
   overscroll-behavior: contain;
   padding: 24px;
   background: var(--sm-painel);
+  /* Seções empilhadas diretamente no corpo ganham 16px entre si (mesmo espaço do ModalColumns) */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
+.sys-modal__body > * { flex: none; }
 
 .sys-modal__columns {
   display: grid;
@@ -227,6 +235,18 @@ body:has(.sys-modal-backdrop) { overflow: hidden; }
 .sys-modal__row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--sm-borda); }
 .sys-modal__row:first-child { border-top: 0; padding-top: 0; }
 .sys-modal__row:last-child { padding-bottom: 0; }
+.sys-modal__row--action { padding: 0; }
+.sys-modal__row-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 8px; border: 0; border-radius: 6px;
+  background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.sys-modal__row-btn:hover { background: var(--sm-surface-alta); }
+.sys-modal__row-btn:focus-visible { outline: 2px solid var(--color-accent, #CC1400); outline-offset: -2px; }
+.sys-modal__row-icon {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+  border-radius: 6px; background: var(--sm-surface-alta); color: var(--sm-mudo);
+}
+.sys-modal__row-icon svg { width: 18px; height: 18px; }
 .sys-modal__row-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .sys-modal__row-title { font-size: 14px; line-height: 18px; font-weight: 500; color: var(--sm-texto); overflow-wrap: anywhere; }
 .sys-modal__row-subtitle { font-size: 13px; line-height: 18px; color: var(--sm-mudo); }
@@ -294,12 +314,131 @@ body.dark .sys-modal__switch-input:checked + .sys-modal__switch-track::after { b
 .sys-modal__switch-input:focus-visible + .sys-modal__switch-track { outline: 2px solid var(--color-accent, #CC1400); outline-offset: 2px; }
 .sys-modal__switch-input:disabled + .sys-modal__switch-track { opacity: 0.5; }
 
+/* ── Abas (ModalTabs) ────────────────────────────────────────────────────── */
+.sys-modal__tabs {
+  display: flex; gap: 4px; flex: none; padding: 0 24px; overflow-x: auto; scrollbar-width: none;
+  background: var(--sm-surface); border-bottom: 1px solid var(--sm-borda);
+}
+.sys-modal__tabs::-webkit-scrollbar { display: none; }
+.sys-modal__tab {
+  flex: none; min-height: 44px; padding: 0 12px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent;
+  background: transparent; font: inherit; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--sm-mudo);
+  cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+}
+.sys-modal__tab:hover { color: var(--sm-texto); }
+.sys-modal__tab[aria-selected='true'] { color: var(--sm-texto); border-bottom-color: var(--sm-ativo); }
+.sys-modal__tab:focus-visible { outline: 2px solid var(--color-accent, #CC1400); outline-offset: -2px; }
+@media (max-width: 640px) { .sys-modal__tabs { padding: 0 16px; } }
+
+/* ── Leitura: texto mono, iniciais, grupos ───────────────────────────────── */
+.sys-modal__mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; letter-spacing: 0.04em; }
+.sys-modal__initials { font-size: 36px; line-height: 1; font-weight: 800; color: var(--sm-mudo); }
+.sys-modal__group { display: flex; flex-direction: column; gap: 6px; }
+.sys-modal__group-label { font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-mudo); }
+
+/* ── Foto única (ModalFotoCampo) ─────────────────────────────────────────── */
+.sys-modal__photo {
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: var(--sm-surface-alta); border: 1px solid var(--sm-borda); color: var(--sm-sutil);
+}
+.sys-modal__photo--tile { aspect-ratio: 4 / 3; border-radius: 6px; }
+.sys-modal__photo--avatar { width: 112px; height: 112px; border-radius: 50%; margin: 0 auto; }
+.sys-modal__photo-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sys-modal__photo svg { max-width: 60%; max-height: 60%; }
+.sys-modal__photo-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.sys-modal__photo-btn { position: relative; }
+.sys-modal__photo-btn:focus-within { outline: 2px solid var(--color-accent, #CC1400); outline-offset: 2px; }
+.sys-modal__photo-btn[aria-disabled='true'] { opacity: 0.7; }
+.sys-modal__photo-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: inherit; font-size: 0; }
+.sys-modal__photo-hint { margin: 0; font-size: 12px; line-height: 16px; color: var(--sm-mudo); text-align: center; }
+@media (max-width: 820px) {
+  .sys-modal__photo--tile { aspect-ratio: 16 / 9; max-height: 190px; }
+}
+
+/* ── Item repetível (ModalSubsection) ────────────────────────────────────── */
+.sys-modal__sub {
+  display: flex; flex-direction: column; gap: 16px; padding: 16px;
+  background: var(--sm-painel); border: 1px solid var(--sm-borda); border-radius: 8px;
+}
+.sys-modal__sub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sys-modal__sub-title { margin: 0; font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-texto-2); }
+.sys-modal__sub-remove {
+  border: 0; background: transparent; padding: 4px 8px; margin: -4px -8px; border-radius: 6px; cursor: pointer;
+  font-family: inherit; font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-erro-texto);
+}
+.sys-modal__sub-remove:hover { background: var(--sm-erro-bg); }
+.sys-modal__sub-remove:focus-visible { outline: 2px solid var(--color-accent, #CC1400); outline-offset: 2px; }
+
+/* ── Busca com resultados e linhas de item (kit, receita, componentes) ───── */
+.sys-modal__pick-list {
+  list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto;
+  background: var(--sm-surface); border: 1px solid var(--sm-borda); border-radius: 8px;
+}
+.sys-modal__pick-list li + li { border-top: 1px solid var(--sm-borda); }
+.sys-modal__pick {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 0 12px;
+  border: 0; background: transparent; color: var(--sm-texto); font-family: inherit; font-size: 14px; line-height: 20px; text-align: left; cursor: pointer;
+}
+.sys-modal__pick:hover, .sys-modal__pick:focus-visible { background: var(--sm-surface-alta); outline: none; }
+.sys-modal__pick-meta { flex: none; font-size: 13px; color: var(--sm-mudo); }
+.sys-modal__lines { display: flex; flex-direction: column; gap: 8px; }
+.sys-modal__line {
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 12px;
+  background: var(--sm-painel); border: 1px solid var(--sm-borda); border-radius: 8px;
+}
+.sys-modal__line-name { flex: 1; min-width: 0; font-size: 14px; line-height: 20px; color: var(--sm-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-modal__line-qty { flex: none; width: 88px; }
+.sys-modal__empty { margin: 0; font-size: 14px; line-height: 20px; color: var(--sm-mudo); }
+
+/* ── Escolha única (ModalChoices): chips ─────────────────────────────────── */
+.sys-modal__choice-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sys-modal__choice-label { font-size: 13px; line-height: 16px; font-weight: 700; color: var(--sm-texto); }
+.sys-modal__choices { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.sys-modal__choice {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 0 12px;
+  border: 1px solid var(--sm-borda-forte); border-radius: 6px; background: var(--sm-surface);
+  font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--sm-texto);
+  cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  transition: background 0.13s ease, border-color 0.13s ease;
+}
+.sys-modal__choice:hover { background: var(--sm-surface-alta); }
+.sys-modal__choice[aria-pressed='true'] { background: var(--sm-ativo); border-color: var(--sm-ativo); color: #fff; }
+body.dark .sys-modal__choice[aria-pressed='true'] { color: #151518; }
+.sys-modal__choice:focus-visible { outline: 2px solid var(--color-accent, #CC1400); outline-offset: 2px; }
+.sys-modal__choices--touch .sys-modal__choice { min-height: 48px; padding: 0 16px; }
+.sys-modal__choice:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ── Sheet de ações (ActionSheet): lista de ações num cartão branco ─────── */
+.sys-modal__action-list {
+  list-style: none; margin: 0; padding: 0;
+  background: var(--sm-surface); border: 1px solid var(--sm-borda); border-radius: 8px; overflow: hidden;
+}
+.sys-modal__action-list li + li { border-top: 1px solid var(--sm-borda); }
+.sys-modal__action {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 16px;
+  border: 0; background: transparent; color: var(--sm-texto);
+  font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 500; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.13s ease;
+}
+.sys-modal__action:hover, .sys-modal__action:active { background: var(--sm-surface-alta); }
+.sys-modal__action:focus-visible { outline: 2px solid var(--color-accent, #CC1400); outline-offset: -2px; }
+.sys-modal__action-icon { flex: none; display: inline-flex; color: var(--sm-mudo); }
+.sys-modal__action-icon svg { width: 18px; height: 18px; stroke-width: 1.75; }
+.sys-modal__action--danger, .sys-modal__action--danger .sys-modal__action-icon { color: var(--sm-erro-texto); }
+.sys-modal__action--danger:hover, .sys-modal__action--danger:active { background: var(--sm-erro-bg); }
+
+/* ── Confirmação (ConfirmDialog): texto direto no corpo, sem cartão ──────── */
+.sys-modal__confirm { display: flex; flex-direction: column; gap: 12px; }
+.sys-modal__confirm-text { margin: 0; font-size: 14px; line-height: 20px; color: var(--sm-texto-2); white-space: pre-line; overflow-wrap: anywhere; }
+.sys-modal__confirm-text strong { font-weight: 700; color: var(--sm-texto); }
+
 /* ── Rodapé ──────────────────────────────────────────────────────────────── */
 .sys-modal__footer { flex: none; padding: 16px 24px; background: var(--sm-surface); border-top: 1px solid var(--sm-borda); }
 .sys-modal__footer-notice { margin-bottom: 12px; }
 .sys-modal__footer-row { display: flex; align-items: center; gap: 12px; }
 .sys-modal__footer-hint { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 18px; color: var(--sm-mudo); }
-.sys-modal__actions { flex: none; display: flex; align-items: center; gap: 8px; }
+.sys-modal__actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 
 /* Botões do sistema (Button) com a medida do redesign: 36 · raio 6 · 13/700 */
 .sys-modal .sys-btn { min-height: 36px; padding: 0 16px; border-radius: 6px; font-size: 13px; font-weight: 700; }
@@ -315,6 +454,9 @@ body.dark .sys-modal__switch-input:checked + .sys-modal__switch-track::after { b
 .sys-modal .sys-btn--ghost:not(:disabled):hover { background: var(--sm-surface-alta); }
 .sys-modal .sys-btn--danger { background: transparent; color: var(--sm-erro-texto); border-color: var(--sm-erro-borda); }
 .sys-modal .sys-btn--danger:not(:disabled):hover { background: var(--sm-erro-bg); }
+/* Confirmação destrutiva: a ação que apaga de verdade é sólida (o "danger" comum é só contorno) */
+.sys-modal .sys-btn--danger.sys-btn--solid { background: var(--sm-erro-solido); color: #fff; border-color: transparent; }
+.sys-modal .sys-btn--danger.sys-btn--solid:not(:disabled):hover { background: var(--sm-erro-solido); filter: brightness(0.92); }
 
 /* ── Telas estreitas ─────────────────────────────────────────────────────── */
 @media (max-width: 820px) {
@@ -323,6 +465,8 @@ body.dark .sys-modal__switch-input:checked + .sys-modal__switch-track::after { b
 }
 @media (max-width: 640px) {
   .sys-modal-backdrop { padding: 0; align-items: flex-end; }
+  /* 16px: o iPhone dá zoom na página ao focar um campo com fonte menor */
+  .sys-modal .inp, .sys-modal .inp-textarea, .sys-modal select { font-size: 16px; }
   .sys-modal { max-width: none; max-height: 94dvh; border-radius: 12px 12px 0 0; }
   .sys-modal__header { padding: 16px; }
   .sys-modal__body { padding: 16px; }
@@ -333,7 +477,7 @@ body.dark .sys-modal__switch-input:checked + .sys-modal__switch-track::after { b
   .sys-modal__footer { padding: 12px 16px; }
   .sys-modal__footer-hint { display: none; }
   .sys-modal__actions { flex: 1 1 auto; }
-  .sys-modal__actions .sys-btn { flex: 1 1 0; }
+  .sys-modal__actions .sys-btn { flex: 1 1 104px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

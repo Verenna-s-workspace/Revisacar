@@ -13,7 +13,7 @@ import { ProdutoModal } from './Estoque/ProdutoModal';
 import { ProdutoDetalheModal } from './Estoque/ProdutoDetalheModal';
 import { KitDetalheModal } from './Estoque/KitDetalheModal';
 import { CriarKitModal } from './Estoque/CriarKitModal';
-import { ConfirmDeleteModal } from './Estoque/ConfirmDeleteModal';
+import { ConfirmDeleteDialog } from '../../components/system';
 
 interface EstoquePageProps {
   onNav: (p: NavPage) => void;
@@ -173,9 +173,9 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
         />
       )}
       {excluindoItem && (
-        <ConfirmDeleteModal
+        <ConfirmDeleteDialog
           nome={excluindoItem.nome}
-          entidadeLabel="produto"
+          entidade="produto"
           onConfirm={() => confirmarExclusao(() => excluirItem(excluindoItem.id))}
           onClose={() => setExcluindoItem(null)}
         />
@@ -191,9 +191,9 @@ export function EstoquePage({ onNav, isMobile, onNewOS, initialSearch }: Estoque
         />
       )}
       {excluindoKit && (
-        <ConfirmDeleteModal
+        <ConfirmDeleteDialog
           nome={excluindoKit.nome}
-          entidadeLabel="kit"
+          entidade="kit"
           onConfirm={() => confirmarExclusao(() => excluirKit(excluindoKit.id))}
           onClose={() => setExcluindoKit(null)}
         />

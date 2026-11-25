@@ -1,57 +1,17 @@
 import { mensagemDoErro } from '../../../utils/api_erro';
 import { useRef, useState } from 'react';
-import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
-import { tokens } from '../../../constants';
+import type { ChangeEvent, ReactNode } from 'react';
 import { Icons } from '../Icons';
-import { StatusBadge } from '../Primitives';
+import { OS_STATUS_TOM, rotuloStatusOS } from '../Primitives';
 import { api } from '../../../utils/api';
 import { parseOrdemPayload } from '../../../utils/atendimento_utils';
-import { Select } from '../../../components/inputs/select';
 import { Textarea } from '../../../components/inputs/textarea';
+import {
+  Button, Modal, ModalBadge, ModalBody, ModalChoices, ModalDetail, ModalDetails, ModalFooter, ModalHeader,
+  ModalNotice, ModalSection, ModalSwitch,
+} from '../../../components/system';
 import { BotaoPdfOsConcluida } from '../../Fechamento/BotaoPdfOsConcluida';
 import type { OSAtendimento, OverlayOS, PrioridadeAtendimento } from '../../../types/atendimento';
-
-const FIELD_LABEL: CSSProperties = {
-  display: 'block',
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: tokens.color.muted,
-  marginBottom: 6,
-};
-
-const FIELD_INPUT: CSSProperties = {
-  width: '100%',
-  padding: 10,
-  background: tokens.color.bg,
-  border: `1px solid ${tokens.color.border}`,
-  borderRadius: 8,
-  color: tokens.color.text,
-  fontSize: '0.86rem',
-  fontFamily: tokens.fontSans,
-};
-
-const SECTION_LABEL: CSSProperties = {
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.07em',
-  color: tokens.color.muted,
-  marginBottom: 10,
-};
-
-function Field({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
-  return (
-    <div style={{ padding: '11px 13px', borderRadius: 12, background: tokens.color.surfaceHigh, border: `1px solid ${tokens.color.border}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, color: tokens.color.muted }}>
-        <span style={{ display: 'flex' }}>{icon}</span>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
-      </div>
-      <div style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text, wordBreak: 'break-word' }}>{value || '—'}</div>
-    </div>
-  );
-}
 
 // ── Ditado por voz (Web Speech API) — atalho opcional, sem tipos oficiais no lib.dom ──
 
@@ -103,6 +63,7 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
   const [gravando, setGravando] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [fotoMsg, setFotoMsg] = useState<string | null>(null);
+  const [fotoErro, setFotoErro] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<SpeechRecognitionLike | null>(null);
@@ -162,242 +123,139 @@ export function OSDetalheModal({ ordem, onClose, onContinuarChecklist, onAtualiz
     if (!file) return;
     setEnviandoFoto(true);
     setFotoMsg(null);
+    setFotoErro(false);
     try {
       const formData = new FormData();
       formData.append('files', file, file.name);
       await api.uploadFotos(ordem.id, formData);
       setFotoMsg('Foto enviada.');
     } catch (e) {
+      setFotoErro(true);
       setFotoMsg(mensagemDoErro(e, 'Não foi possível enviar a foto agora. Verifique a internet e tente de novo; se a foto for muito grande, tire outra em resolução menor.'));
     } finally {
       setEnviandoFoto(false);
     }
   };
 
+  const PRIORIDADES: { value: string; label: string }[] = [
+    { value: '', label: 'Nenhuma' },
+    { value: 'vip', label: 'VIP' },
+    { value: 'garantia', label: 'Garantia' },
+  ];
+
+  // Esc, clique fora e o X passam por aqui: o que foi digitado nunca se perde ao fechar.
   return (
-    <div className="dashboard-modal-backdrop" onClick={handleClose}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">{ordem.cliente}</div>
-            <div className="dashboard-modal__subtitle" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              OS #{ordem.os_num}
-              <StatusBadge status={ordem.status} />
-            </div>
-          </div>
-          <button onClick={handleClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>
-            ×
-          </button>
-        </div>
+    <Modal size="lg" onClose={handleClose}>
+      <ModalHeader
+        icon={Icons.orders}
+        title={ordem.cliente}
+        description={`OS #${ordem.os_num}`}
+        meta={
+          <>
+            <ModalBadge tone={OS_STATUS_TOM[ordem.status] ?? 'info'}>{rotuloStatusOS(ordem.status)}</ModalBadge>
+            {ordem.prioridade && <ModalBadge tone="attention">{ordem.prioridade === 'vip' ? 'VIP' : 'Garantia'}</ModalBadge>}
+          </>
+        }
+      />
 
-        <div className="dashboard-modal__body">
-          <div>
-            <label style={FIELD_LABEL}>Prioridade</label>
-            <div style={{ maxWidth: 220 }}>
-              <Select
-                name="os_prioridade"
-                value={ordem.prioridade ?? ''}
-                onChangeValue={handlePrioridade}
-                options={[
-                  { value: '', label: 'Nenhuma' },
-                  { value: 'vip', label: 'VIP' },
-                  { value: 'garantia', label: 'Garantia' },
-                ]}
-              />
-            </div>
-          </div>
+      <ModalBody>
+        <ModalSection icon={Icons.car} title="Identificação">
+          <ModalDetails>
+            <ModalDetail label="Placa" mono>{ordem.placa}</ModalDetail>
+            <ModalDetail label="Modelo">{ordem.modelo}</ModalDetail>
+            <ModalDetail label="Ano">{veiculoPayload.ano}</ModalDetail>
+            <ModalDetail label="Cor">{veiculoPayload.cor}</ModalDetail>
+          </ModalDetails>
+        </ModalSection>
 
-          <div>
-            <div style={SECTION_LABEL}>Identificação</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-              <Field icon={Icons.car} label="Placa" value={ordem.placa} />
-              <Field icon={Icons.car} label="Modelo" value={ordem.modelo} />
-              <Field icon={Icons.cal} label="Ano" value={veiculoPayload.ano} />
-              <Field icon={Icons.box} label="Cor" value={veiculoPayload.cor} />
-            </div>
-          </div>
+        <ModalSection title="Prioridade" description="Salva assim que você escolhe.">
+          <ModalChoices label="Prioridade da OS" value={ordem.prioridade ?? ''} options={PRIORIDADES} onChange={handlePrioridade} />
+        </ModalSection>
 
-          {bloqueada && (
-            <div>
-              <div style={{ ...SECTION_LABEL, color: tokens.color.crit }}>Bloqueado — Aguardando</div>
-              <Textarea
-                name="motivo_bloqueio"
-                value={motivoBloqueio}
-                onChangeValue={setMotivoBloqueio}
-                onBlur={salvarCampos}
-                placeholder="Ex.: aguardando pastilha de freio no fornecedor…"
-                rows={2}
-                style={{ background: tokens.color.critBg, borderColor: tokens.color.critBorder }}
-              />
-            </div>
-          )}
+        {bloqueada && (
+          <ModalSection icon={Icons.alert} title="Bloqueado — aguardando" tone="attention">
+            <Textarea
+              name="motivo_bloqueio"
+              label="Motivo do bloqueio"
+              value={motivoBloqueio}
+              onChangeValue={setMotivoBloqueio}
+              onBlur={salvarCampos}
+              placeholder="Ex.: aguardando pastilha de freio no fornecedor…"
+              rows={2}
+            />
+          </ModalSection>
+        )}
 
-          {!finalizada && (
-            <div>
-              <Textarea
-                name="reclamacao_cliente"
-                label="Reclamação do Cliente"
-                value={reclamacao}
-                onChangeValue={setReclamacao}
-                onBlur={salvarCampos}
-                placeholder="O que o cliente relatou ao trazer o veículo…"
-                rows={2}
-              />
-            </div>
-          )}
+        {!finalizada && (
+          <ModalSection icon={Icons.clipboardCheck} title="Reclamação do cliente">
+            <Textarea
+              name="reclamacao_cliente"
+              label="O que o cliente relatou"
+              value={reclamacao}
+              onChangeValue={setReclamacao}
+              onBlur={salvarCampos}
+              placeholder="O que o cliente relatou ao trazer o veículo…"
+              rows={2}
+            />
+          </ModalSection>
+        )}
 
-          {children}
+        {children}
 
-          {finalizada ? (
-            <div>
-              <div style={SECTION_LABEL}>Pós-atendimento</div>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '13px 14px',
-                  borderRadius: 12,
-                  background: tokens.color.surfaceHigh,
-                  border: `1px solid ${tokens.color.border}`,
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={ordem.clienteAvisado === true}
-                  onChange={e => handleClienteAvisado(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: '0.86rem', fontWeight: 700, color: tokens.color.text }}>Cliente avisado</span>
-              </label>
-            </div>
-          ) : (
-            <>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <label style={{ ...FIELD_LABEL, marginBottom: 0 }}>Observações Internas</label>
-                  {ditadoDisponivel && (
-                    <button
-                      type="button"
-                      onClick={handleDitado}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        padding: '4px 9px',
-                        borderRadius: 7,
-                        border: `1px solid ${gravando ? tokens.color.ferrari : tokens.color.border}`,
-                        background: gravando ? tokens.color.ferrariMid : 'transparent',
-                        color: gravando ? tokens.color.ferrari : tokens.color.muted,
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      🎙️ {gravando ? 'Gravando…' : 'Ditar'}
-                    </button>
-                  )}
-                </div>
-                <Textarea
-                  name="observacoes_internas"
-                  value={observacoes}
-                  onChangeValue={setObservacoes}
-                  onBlur={salvarCampos}
-                  placeholder="Anotações internas da oficina — não aparecem pro cliente."
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFotoSelecionada} style={{ display: 'none' }} />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={enviandoFoto}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 7,
-                    padding: '9px 14px',
-                    borderRadius: 9,
-                    border: `1px solid ${tokens.color.border}`,
-                    background: 'transparent',
-                    color: tokens.color.text,
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: enviandoFoto ? 'default' : 'pointer',
-                    opacity: enviandoFoto ? 0.6 : 1,
-                  }}
-                >
-                  <span style={{ display: 'flex' }}>{Icons.camera}</span>
-                  {enviandoFoto ? 'Enviando…' : 'Nova Evidência'}
-                </button>
-                {fotoMsg && <div style={{ fontSize: '0.75rem', color: tokens.color.muted, marginTop: 6 }}>{fotoMsg}</div>}
-              </div>
-            </>
-          )}
-
-          <div style={{ padding: '10px 14px', background: tokens.color.surface, borderRadius: 8, border: `1px solid ${tokens.color.border}` }}>
-            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.muted, marginBottom: 4 }}>
-              Nota
-            </div>
-            <div style={{ fontSize: '0.78rem', color: tokens.color.textSecond, lineHeight: 1.5 }}>
-              Prioridade, reclamação, observações e "cliente avisado" ficam salvos só neste navegador — ainda não
-              sincronizam entre dispositivos ou pessoas.
-            </div>
-          </div>
-        </div>
-
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${tokens.color.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          {/* Fica sempre visível: antes de a OS ser finalizada o botão avisa o motivo em vez de sumir. */}
-          <BotaoPdfOsConcluida ordemId={ordem.id} osNum={ordem.os_num} status={ordem.status} />
-          {!finalizada && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {bloqueada && (
-              <button
-                onClick={handleDesbloquear}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  padding: '10px 18px',
-                  borderRadius: 10,
-                  border: `1px solid ${tokens.color.border}`,
-                  background: 'transparent',
-                  color: tokens.color.text,
-                  cursor: 'pointer',
-                  fontSize: '0.84rem',
-                  fontWeight: 700,
-                }}
-              >
-                Desbloquear
-              </button>
-            )}
-            <button
-              onClick={handleContinuar}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-                padding: '10px 20px',
-                borderRadius: 10,
-                border: 'none',
-                background: tokens.color.ferrari,
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                boxShadow: tokens.shadow.ferrari,
-              }}
+        {finalizada ? (
+          <ModalSection title="Pós-atendimento">
+            <ModalSwitch
+              label="Cliente avisado"
+              description="Marque quando o cliente já foi avisado de que o veículo está pronto."
+              checked={ordem.clienteAvisado === true}
+              onChange={handleClienteAvisado}
+            />
+          </ModalSection>
+        ) : (
+          <>
+            <ModalSection
+              icon={Icons.edit}
+              title="Observações internas"
+              description="Anotações da oficina — não aparecem para o cliente."
+              aside={ditadoDisponivel
+                ? <Button variant={gravando ? 'primary' : 'secondary'} size="sm" onClick={handleDitado}>{gravando ? 'Gravando…' : 'Ditar'}</Button>
+                : undefined}
             >
-              Continuar Checklist
-              <span style={{ display: 'flex' }}>{Icons.arrow}</span>
-            </button>
-          </div>
-          )}
-        </div>
-      </div>
-    </div>
+              <Textarea
+                name="observacoes_internas"
+                label="Observações"
+                value={observacoes}
+                onChangeValue={setObservacoes}
+                onBlur={salvarCampos}
+                placeholder="Anotações internas da oficina — não aparecem pro cliente."
+                rows={3}
+              />
+            </ModalSection>
+
+            <ModalSection icon={Icons.camera} title="Evidências">
+              <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFotoSelecionada} style={{ display: 'none' }} />
+              <div>
+                <Button variant="secondary" icon={Icons.camera} onClick={() => fileInputRef.current?.click()} loading={enviandoFoto}>
+                  {enviandoFoto ? 'Enviando…' : 'Nova Evidência'}
+                </Button>
+              </div>
+              {fotoMsg && <ModalNotice tone={fotoErro ? 'error' : 'info'} role={fotoErro ? 'alert' : undefined}>{fotoMsg}</ModalNotice>}
+            </ModalSection>
+          </>
+        )}
+
+        <ModalNotice tone="info" title="Nota">
+          Prioridade, reclamação, observações e "cliente avisado" ficam salvos só neste navegador — ainda não
+          sincronizam entre dispositivos ou pessoas.
+        </ModalNotice>
+      </ModalBody>
+
+      {/* Fica sempre visível: antes de a OS ser finalizada o botão avisa o motivo em vez de sumir. */}
+      <ModalFooter hint={<BotaoPdfOsConcluida ordemId={ordem.id} osNum={ordem.os_num} status={ordem.status} />}>
+        <Button variant={finalizada ? 'primary' : 'ghost'} onClick={handleClose}>Fechar</Button>
+        {!finalizada && bloqueada && <Button variant="secondary" onClick={handleDesbloquear}>Desbloquear</Button>}
+        {!finalizada && <Button variant="primary" onClick={handleContinuar}>Continuar Checklist {Icons.arrow}</Button>}
+      </ModalFooter>
+    </Modal>
   );
 }

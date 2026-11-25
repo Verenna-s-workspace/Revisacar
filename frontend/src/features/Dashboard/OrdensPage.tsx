@@ -1,12 +1,15 @@
 import { mensagemDoErro } from '../../utils/api_erro';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { tokens } from '../../constants';
 import { Icons } from './Icons';
-import { StatusBadge, Skeleton } from './Primitives';
+import { StatusBadge, Skeleton, OS_STATUS_TOM, rotuloStatusOS } from './Primitives';
 import { Sidebar, MobileNav, MobileSafeTop } from './Navigation';
 import { DesktopTopBar } from '../../components/DesktopTopBar';
 import { api } from '../../utils/api';
 import { Input } from '../../components/inputs/input';
+import {
+  Button, Modal, ModalBadge, ModalBody, ModalDetail, ModalDetails, ModalFooter, ModalHeader, ModalSection,
+} from '../../components/system';
 import { formatCpfCnpj, formatPhoneBR, formatKm } from '../../components/inputs/masks';
 import type { OrdemRow, NavPage } from '../../types/dashboard';
 import { OrdensDesktop } from './Ordens/OrdensDesktop';
@@ -73,96 +76,64 @@ export function OSModal({ ordem, onClose, onEdit }: OSModalProps) {
   const raw = ordem.payload;
   const pl = typeof raw === 'string' ? (() => { try { return JSON.parse(raw); } catch { return {}; } })() : (raw ?? {});
   const h = pl.os_header ?? {}, cli = pl.cliente ?? {}, vei = pl.veiculo ?? {}, tec = pl.tecnico ?? {};
-
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
-  }, [onClose]);
-
-  const Field = ({ label, val }: { label: string; val: string }) => (
-    <div>
-      <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: tokens.color.subtle }}>{label}</div>
-      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: tokens.color.text, marginTop: 1 }}>{val || '—'}</div>
-    </div>
-  );
-
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ width: 18, height: 2, background: '#CC1400', borderRadius: 1, display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: tokens.color.muted }}>{title}</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>{children}</div>
-    </div>
-  );
+  const dataBR = (iso?: string) => (iso ? iso.split('-').reverse().join('/') : '');
 
   return (
-    <div className="dashboard-modal-backdrop" onClick={onClose}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()}>
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">OS #{ordem.os_num}</div>
-            <div className="dashboard-modal__subtitle">
-              {new Date(ordem.created_at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
-            </div>
-          </div>
-          <div className="dashboard-modal__actions">
-            <StatusBadge status={ordem.status} />
-            <button
-              onClick={onEdit}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, background: '#CC1400', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-            >
-              {Icons.edit} Editar
-            </button>
-            <button
-              onClick={onClose}
-              aria-label="Fechar"
-              className="dashboard-button--close tap-area"
-              style={{ width: 32, height: 32, border: `1px solid ${tokens.color.border}`, borderRadius: 8, background: 'transparent', cursor: 'pointer', color: tokens.color.muted, fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              ×
-            </button>
-          </div>
-        </div>
+    <Modal size="lg" onClose={onClose}>
+      <ModalHeader
+        icon={Icons.orders}
+        title={`OS #${ordem.os_num}`}
+        description={new Date(ordem.created_at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+        meta={<ModalBadge tone={OS_STATUS_TOM[ordem.status] ?? 'info'}>{rotuloStatusOS(ordem.status)}</ModalBadge>}
+      />
 
-        <div className="dashboard-modal__body">
-          <Section title="Identificação">
-            <Field label="Nº OS" val={h.os_num || ordem.os_num} />
-            <Field label="Data" val={h.os_date ? h.os_date.split('-').reverse().join('/') : ''} />
-            <Field label="Hora" val={h.os_time} />
-            <Field label="KM" val={formatKm(h.os_km)} />
-          </Section>
-          <Section title="Cliente">
-            <Field label="Nome" val={cli.nome || ordem.cliente} />
-            <Field label="Documento" val={formatCpfCnpj(cli.doc)} />
-            <Field label="Telefone" val={formatPhoneBR(cli.tel)} />
-            <Field label="E-mail" val={cli.email} />
-          </Section>
-          <Section title="Veículo">
-            <Field label="Placa" val={vei.placa || ordem.placa} />
-            <Field label="Modelo" val={vei.modelo || ordem.modelo} />
-            <Field label="Ano" val={vei.ano} />
-            <Field label="Cor" val={vei.cor} />
-            <Field label="Combustível" val={vei.combustivel} />
-          </Section>
-          {tec.nome && (
-            <Section title="Técnico">
-              <Field label="Nome" val={tec.nome} />
-              <Field label="Registro" val={tec.registro} />
-              <Field label="Data Saída" val={tec.data_saida ? tec.data_saida.split('-').reverse().join('/') : ''} />
-              <Field label="KM Saída" val={formatKm(tec.km_saida)} />
-              {tec.parecer_geral && (
-                <div className="dashboard-modal__remark" style={{ gridColumn: 'span 2' }}>
-                  <div className="dashboard-modal__remark-label">Parecer Geral</div>
-                  <div className="dashboard-modal__remark-text">{tec.parecer_geral}</div>
-                </div>
-              )}
-            </Section>
-          )}
-        </div>
-      </div>
-    </div>
+      <ModalBody>
+        <ModalSection icon={Icons.clipboardCheck} title="Identificação">
+          <ModalDetails>
+            <ModalDetail label="Nº OS">{h.os_num || ordem.os_num}</ModalDetail>
+            <ModalDetail label="Data">{dataBR(h.os_date)}</ModalDetail>
+            <ModalDetail label="Hora">{h.os_time}</ModalDetail>
+            <ModalDetail label="KM">{formatKm(h.os_km)}</ModalDetail>
+          </ModalDetails>
+        </ModalSection>
+
+        <ModalSection icon={Icons.user} title="Cliente">
+          <ModalDetails>
+            <ModalDetail label="Nome">{cli.nome || ordem.cliente}</ModalDetail>
+            <ModalDetail label="Documento" mono>{formatCpfCnpj(cli.doc)}</ModalDetail>
+            <ModalDetail label="Telefone">{formatPhoneBR(cli.tel)}</ModalDetail>
+            <ModalDetail label="E-mail">{cli.email}</ModalDetail>
+          </ModalDetails>
+        </ModalSection>
+
+        <ModalSection icon={Icons.car} title="Veículo">
+          <ModalDetails>
+            <ModalDetail label="Placa" mono>{vei.placa || ordem.placa}</ModalDetail>
+            <ModalDetail label="Modelo">{vei.modelo || ordem.modelo}</ModalDetail>
+            <ModalDetail label="Ano">{vei.ano}</ModalDetail>
+            <ModalDetail label="Cor">{vei.cor}</ModalDetail>
+            <ModalDetail label="Combustível">{vei.combustivel}</ModalDetail>
+          </ModalDetails>
+        </ModalSection>
+
+        {tec.nome && (
+          <ModalSection icon={Icons.wrench} title="Técnico">
+            <ModalDetails>
+              <ModalDetail label="Nome">{tec.nome}</ModalDetail>
+              <ModalDetail label="Registro">{tec.registro}</ModalDetail>
+              <ModalDetail label="Data de saída">{dataBR(tec.data_saida)}</ModalDetail>
+              <ModalDetail label="KM de saída">{formatKm(tec.km_saida)}</ModalDetail>
+              {tec.parecer_geral && <ModalDetail label="Parecer geral" wide>{tec.parecer_geral}</ModalDetail>}
+            </ModalDetails>
+          </ModalSection>
+        )}
+      </ModalBody>
+
+      <ModalFooter>
+        <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        <Button variant="primary" icon={Icons.edit} onClick={onEdit}>Editar</Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 

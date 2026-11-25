@@ -1,0 +1,129 @@
+import { useCallback, useEffect, useState } from 'react';
+import { api } from '../utils/api';
+import { mensagemDeErro } from '../utils/erros';
+import type { Cliente, NovoClienteInput } from '../types/cliente';
+
+function makeId(): string {
+  return `cli-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Fonte de dados dos clientes (CRUD puro). Segue exatamente o mesmo padrão de
+ * `useVeiculos`/`useAgendamentos`: tenta o endpoint `/clientes" primeiro e,
+ * na ausência dele (backend ainda não expõe essa rota), cai para dados de
+ * demonstração — para que a tela funcione de ponta a ponta mesmo antes do
+ * backend implementar a persistência real.
+ *
+ * O cruzamento com Veículos/Agendamentos/Ordens (status derivado, veículos
+ * vinculados, próximo agendamento etc.) NÃO acontece aqui — fica a cargo de
+ * `enrichClientes` (ver `utils/clientes_utils.ts`), chamada pela própria
+ * `ClientesPage` a partir dos hooks já existentes dessas telas.
+ */
+export function useClientes() {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [usingApi, setUsingApi] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Se a API falhar, mostra o erro real (nunca dados fictícios). Uma resposta bem
+  // sucedida, mesmo com lista vazia, é sempre exibida como veio.
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErro(null);
+    try {
+      const data = await api.listarClientes();
+      const lista: Cliente[] = Array.isArray(data) ? data : data?.clientes ?? [];
+      setClientes(lista);
+      setUsingApi(true);
+    } catch (e) {
+      setClientes([]);
+      setUsingApi(false);
+      setErro(mensagemDeErro(e, 'Não foi possível carregar os clientes.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const addCliente = useCallback(async (input: NovoClienteInput) => {
+    const novo: Cliente = {
+      id: makeId(),
+      nome: input.nome,
+      cpfCnpj: input.cpfCnpj,
+      telefone: input.telefone,
+      email: input.email,
+      endereco: input.endereco,
+      fotoPrincipal: input.fotoPrincipal ?? undefined,
+      observacoes: input.observacoes,
+      createdAt: new Date().toISOString(),
+    };
+
+    setClientes(prev => [novo, ...prev]);
+
+    if (usingApi) {
+      try {
+        // O servidor é quem dá o id (uuid) e pode reaproveitar um cadastro arquivado: usa o que ele devolveu.
+        const salvo: Cliente = await api.criarCliente(input);
+        setClientes(prev => [salvo, ...prev.filter(c => c.id !== novo.id && c.id !== salvo.id)]);
+        return salvo;
+      } catch (e) {
+        setClientes(prev => prev.filter(c => c.id !== novo.id));
+        throw new Error(mensagemDeErro(e, 'Não foi possível salvar o cliente. Tente novamente.'));
+      }
+    }
+    return novo;
+  }, [usingApi]);
+
+  const updateCliente = useCallback(async (id: string, patch: Partial<NovoClienteInput>) => {
+    const anterior = clientes.find(c => c.id === id);
+    const { fotoPrincipal, ...resto } = patch;
+    setClientes(prev => prev.map(c => (c.id === id
+      ? {
+        ...c, ...resto,
+        // `null` remove a foto; ausente não mexe
+        ...(fotoPrincipal !== undefined ? { fotoPrincipal: fotoPrincipal ?? undefined } : {}),
+        updatedAt: new Date().toISOString(),
+      }
+      : c)));
+
+    if (usingApi) {
+      try {
+        const salvo: Cliente = await api.atualizarCliente(id, patch);
+        if (salvo?.id) setClientes(prev => prev.map(c => (c.id === id ? salvo : c)));
+      } catch (e) {
+        if (anterior) setClientes(prev => prev.map(c => (c.id === id ? anterior : c)));
+        throw new Error(mensagemDeErro(e, 'Não foi possível atualizar o cliente. Tente novamente.'));
+      }
+    }
+  }, [usingApi, clientes]);
+
+  const deleteCliente = useCallback(async (id: string) => {
+    const anterior = clientes.find(c => c.id === id);
+    setClientes(prev => prev.filter(c => c.id !== id));
+
+    if (usingApi) {
+      try {
+        await api.deletarCliente(id);
+      } catch (e) {
+        if (anterior) setClientes(prev => [anterior, ...prev]);
+        throw new Error(mensagemDeErro(e, 'Não foi possível excluir o cliente. Tente novamente.'));
+      }
+    }
+  }, [usingApi, clientes]);
+
+  return {
+    clientes,
+    loading,
+    usingApi,
+    erro,
+    reload: load,
+    addCliente,
+    updateCliente,
+    deleteCliente,
+  };
+}
+
+export type UseClientesReturn = ReturnType<typeof useClientes>;

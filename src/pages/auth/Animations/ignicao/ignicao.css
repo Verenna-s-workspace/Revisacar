@@ -1,0 +1,249 @@
+/* Animação de ignição (etapa 3 do cadastro). Só transform e opacity são animados (Web Animations). */
+
+.ig-raiz {
+  --ig-w: clamp(150px, 32vmin, 280px); /* largura da estrela central; espelha larguraEstrelaCentral() */
+  --ig-vermelho: #d64c48;
+  --ig-vermelho-fundo: 92, 12, 10; /* tom escuro do mesmo vermelho, usado só em sombras suaves */
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  contain: layout paint style;
+  background-color: #191512;
+  background-image: url('/ignicao/background.jpg');
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  touch-action: none;
+  overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+}
+
+/* will-change só enquanto a animação roda; o componente remove a classe no fim. */
+.ig-raiz.is-moving .ig-estrela,
+.ig-raiz.is-moving .ig-central,
+.ig-raiz.is-moving .ig-halo,
+.ig-raiz.is-moving .ig-preenchimento,
+.ig-raiz.is-moving .ig-profundidade,
+.ig-raiz.is-moving .ig-bloco,
+.ig-raiz.is-moving .ig-logo,
+.ig-raiz.is-moving .ig-eco,
+.ig-raiz.is-moving .ig-nome,
+.ig-raiz.is-moving .ig-frase {
+  will-change: transform, opacity;
+}
+
+.ig-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/*
+ * Ordem de empilhamento explícita (nada depende da ordem no DOM):
+ * halo < estrelas pequenas < estrela central < preenchimento < profundidade < cena.
+ */
+.ig-halo {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--ig-w) * 3.2);
+  height: calc(var(--ig-w) * 3.2);
+  margin: calc(var(--ig-w) * -1.6) 0 0 calc(var(--ig-w) * -1.6);
+  background: radial-gradient(closest-side, rgba(214, 76, 72, 0.34), rgba(214, 76, 72, 0));
+  opacity: 0;
+}
+
+.ig-central,
+.ig-estrela {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+.ig-estrela {
+  z-index: 1;
+  fill: #fff; /* estrelas pequenas: todas brancas */
+}
+.ig-central {
+  z-index: 2; /* sempre acima das estrelas pequenas */
+  fill: var(--ig-vermelho);
+  left: 50%;
+  top: 50%;
+  width: var(--ig-w);
+  height: calc(var(--ig-w) * 1.0404);
+  margin: calc(var(--ig-w) * -0.5202) 0 0 calc(var(--ig-w) * -0.5);
+}
+
+/* Camada sólida que entra em fade no último trecho da expansão: garante nenhum canto escuro. */
+.ig-preenchimento {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background: var(--ig-vermelho);
+  opacity: 0;
+}
+
+/* Profundidade: bordas um pouco mais fundas, centro intacto (gradiente estático, só a opacidade anima). */
+.ig-profundidade {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: radial-gradient(
+    130% 95% at 50% 46%,
+    rgba(var(--ig-vermelho-fundo), 0) 52%,
+    rgba(var(--ig-vermelho-fundo), 0.34) 100%
+  );
+  opacity: 0;
+}
+
+.ig-cena {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  text-align: center;
+  font-family: var(--ig-fonte, var(--font-display, inherit));
+}
+.ig-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: 50% 46%;
+}
+.ig-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.36em;
+  font-size: clamp(30px, 9.4vw, 72px);
+}
+
+/*
+ * Logo: o SVG tem muita margem interna (o desenho ocupa ~40% x 33% do quadrado de 2000 unidades).
+ * A caixa tem o tamanho do desenho; a imagem é posicionada para que só ele apareça, em branco
+ * (o mesmo recurso do painel de auth: filtro estático, nunca animado).
+ */
+.ig-logo-caixa {
+  --ig-lh: 0.98em; /* altura do desenho da logo */
+  position: relative;
+  display: block;
+  flex: none;
+  width: calc(var(--ig-lh) * 1.211);
+  height: var(--ig-lh);
+}
+.ig-logo {
+  position: absolute;
+  left: calc(var(--ig-lh) * -0.936);
+  top: calc(var(--ig-lh) * -1.015);
+  width: calc(var(--ig-lh) * 3.058);
+  height: calc(var(--ig-lh) * 3.058);
+  max-width: none;
+  filter: brightness(0) invert(1);
+  opacity: 0;
+}
+/* Anel de eco: abre uma vez quando a logo encaixa, ecoando a expansão da estrela. */
+.ig-eco {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--ig-lh) * 1.5);
+  height: calc(var(--ig-lh) * 1.5);
+  margin: calc(var(--ig-lh) * -0.75) 0 0 calc(var(--ig-lh) * -0.75);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.ig-nome {
+  display: inline-flex;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  opacity: 0;
+}
+/* Cada letra reserva a largura da letra final (fantasma invisível): o texto não "pula". */
+.ig-letra {
+  position: relative;
+  display: inline-block;
+}
+.ig-fantasma {
+  visibility: hidden;
+}
+.ig-viva {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 62%;
+}
+.ig-txt {
+  display: block;
+}
+/* Símbolos de mecânica: mesmo traço dos ícones do site (24x24, só linha, pontas arredondadas). */
+.ig-glifo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.72em;
+  height: 0.72em;
+  margin: -0.36em 0 0 -0.36em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+/* Modos da letra: v = vazia, b = barra invertida, s = embaralhando símbolos, l = letra final. */
+.ig-viva[data-m='v'] .ig-txt,
+.ig-viva[data-m='s'] .ig-txt {
+  opacity: 0;
+}
+.ig-viva[data-m='s'] .ig-glifo {
+  opacity: 0.95;
+}
+
+.ig-frase {
+  margin: 1.05rem 0 0;
+  max-width: 28ch;
+  font-size: clamp(15px, 4.1vw, 21px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.012em;
+  text-wrap: balance;
+  text-shadow: 0 1px 14px rgba(var(--ig-vermelho-fundo), 0.4);
+  opacity: 0;
+}
+.ig-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Variante reduzida (prefers-reduced-motion): fundo vermelho liso, tudo já posicionado. */
+.ig-raiz--reduzida {
+  background-image: none;
+  background-color: var(--ig-vermelho);
+  opacity: 0;
+}
+.ig-raiz--reduzida .ig-logo,
+.ig-raiz--reduzida .ig-nome,
+.ig-raiz--reduzida .ig-frase {
+  opacity: 1;
+}

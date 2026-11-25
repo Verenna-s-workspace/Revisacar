@@ -73,6 +73,8 @@ type InputProps = {
   /** Passthrough nativo — usado por type="date"/"number" para limitar intervalo. */
   min?: string | number;
   max?: string | number;
+  /** Passo nativo (ex.: 900 = 15 min em type="time"). */
+  step?: string | number;
   /** Regex dos caracteres a REMOVER enquanto digita/cola (ver `FILTRO` em masks.ts). Também colapsa
    * espaços repetidos e respeita `maxLength`. Não vale para os tipos especiais (eles já têm regra própria). */
   filter?: RegExp;
@@ -174,6 +176,7 @@ export function Input({
   datalistOptions,
   min,
   max,
+  step,
   filter,
   validate,
 }: InputProps) {
@@ -296,6 +299,7 @@ export function Input({
       list={datalistOptions ? `${fieldId}-list` : undefined}
       min={min}
       max={max}
+      step={step}
       lang={type === "date" || type === "time" ? "pt-BR" : undefined}
       aria-invalid={!!effectiveError}
       aria-describedby={errorId ?? hintId}

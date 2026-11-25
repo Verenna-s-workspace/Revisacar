@@ -1,0 +1,159 @@
+import { useEffect, useMemo, useRef } from 'react';
+import type { useOrdemServico } from '../hooks/useOrdemServico';
+import { exportPDF } from '../utils/exportPDF';
+import { Topbar } from '../components/Topbar';
+import { StepTabs } from '../components/StepTabs';
+import { Lightbox, useResponsive } from '../components/ui';
+import { entradaConfig } from '../features/Checklist/configs/initial';
+import { tokens } from '../constants';
+import { api } from '../utils/api';
+import { salvarOverlay } from '../utils/atendimento_utils';
+import type { OSPrefillInput } from '../types/atendimento';
+import { sanitizarPrefill } from '../utils/campos_checklist';
+import { AvisoCadastro } from '../features/Checklist/Steps/Initial/CadastroExistente';
+
+interface CheckProps {
+  /** Estado da OS — vive no App e é compartilhado entre as etapas (entrada, diagnóstico, orçamento). */
+  os: ReturnType<typeof useOrdemServico>;
+  /** Pré-preenchimento opcional de cliente/veículo pra uma OS NOVA (ex.: "Iniciar
+   *  Atendimento" a partir de um agendamento, na tela de Atendimento). Não é usado
+   *  pra carregar rascunho existente — isso é feito pelo App (os.loadOrder). */
+  prefill?: OSPrefillInput | null;
+  onBackToStart?: () => void;
+  onNextChecklist?: () => void;
+}
+
+/** Etapa das fotos na entrada (Identificação = 1, Fotos = 2, Encerramento = 3). */
+const FOTO_STEP = 2;
+
+export default function Check({ os, prefill, onBackToStart, onNextChecklist }: CheckProps) {
+  const { isMobile, isTablet } = useResponsive();
+
+  const currentStep = entradaConfig.find((s) => s.id === os.step);
+
+  // Chama initSig automaticamente sempre que o step ativo tiver hasSignature
+  useEffect(() => {
+    if (currentStep?.hasSignature) os.initSig();
+  }, [os.step]);
+
+  // Pré-preenchimento vindo da tela de Atendimento (ver Seção 8 do prompt) ou de um veículo.
+  // 3 passos, cada um só dispara depois que o anterior comprovadamente se
+  // efetivou — nenhum toca a lógica interna do checklist, só usa o que o
+  // próprio hook já expõe publicamente (setCliente/setVeiculo/saveOrder/orderId,
+  // os mesmos que o botão "Salvar" do Step 1 já usa):
+  //  1) aplica cliente/veículo uma vez, nunca sobrescreve o que o usuário digitar;
+  //  2) assim que o estado confirmar o prefill, dispara o saveOrder() já existente
+  //     (cria a OS de verdade — mesmo caminho de sempre, só chamado programaticamente);
+  //  3) assim que a OS ganhar um id real, registra iniciadoEm no overlay local e
+  //     tenta vincular o agendamento de origem (melhor esforço, sem travar o fluxo).
+  // Dados de fora passam pelas mesmas regras dos campos (telefone só dígitos, ano com 4 dígitos...).
+  const limpo = useMemo(() => (prefill ? sanitizarPrefill(prefill) : null), [prefill]);
+  const prefillAplicado = useRef(false);
+  const prefillSalvo = useRef(false);
+  const prefillVinculado = useRef(false);
+
+  // `apenasPreencher` (OS aberta a partir de um veículo): só o passo 1 — preenche o formulário e deixa
+  // o mecânico revisar; a OS é criada quando ele salvar. Com cliente vinculado vêm os dados dos dois;
+  // sem cliente, só os do veículo (`clienteNome` vazio não toca no bloco do cliente).
+  useEffect(() => {
+    if (!prefill || !limpo || prefillAplicado.current) return;
+    prefillAplicado.current = true;
+    if (limpo.clienteNome) {
+      os.setCliente(prev => ({
+        ...prev,
+        nome: limpo.clienteNome,
+        ...(limpo.clienteDoc ? { doc: limpo.clienteDoc } : {}),
+        ...(limpo.clienteTel ? { tel: limpo.clienteTel } : {}),
+        ...(limpo.clienteEmail ? { email: limpo.clienteEmail } : {}),
+      }));
+    }
+    os.setVeiculo(prev => ({
+      ...prev,
+      modelo: limpo.veiculoModelo,
+      placa: limpo.veiculoPlaca,
+      ...(limpo.veiculoAno ? { ano: limpo.veiculoAno } : {}),
+      ...(limpo.veiculoCor ? { cor: limpo.veiculoCor } : {}),
+      ...(limpo.veiculoCombustivel ? { combustivel: limpo.veiculoCombustivel } : {}),
+      ...(limpo.veiculoChassi ? { chassi: limpo.veiculoChassi } : {}),
+    }));
+  }, [prefill, limpo]);
+
+  useEffect(() => {
+    if (!prefill || !limpo || prefill.apenasPreencher || !prefillAplicado.current || prefillSalvo.current) return;
+    if (os.cliente.nome !== limpo.clienteNome || os.veiculo.placa !== limpo.veiculoPlaca) return;
+    prefillSalvo.current = true;
+    os.saveOrder();
+  }, [prefill, limpo, os.cliente, os.veiculo]);
+
+  useEffect(() => {
+    if (!prefill || prefill.apenasPreencher || !prefillSalvo.current || prefillVinculado.current || !os.orderId) return;
+    prefillVinculado.current = true;
+    salvarOverlay(os.orderId, { iniciadoEm: new Date().toISOString() });
+    if (prefill.agendamentoId) {
+      api.atualizarAgendamento(prefill.agendamentoId, { ordemServicoId: os.orderId }).catch(() => {});
+    }
+  }, [prefill, os.orderId]);
+
+  // ... resto igual
+
+  const handleExportPDF = () => {
+    exportPDF(
+      os.osHeader,
+      os.cliente,
+      os.veiculo,
+      os.tecnico,
+      // Fotos obrigatórias (na ordem fixa, com o nome do item) e depois as adicionais.
+      [...os.fotosObrig.fotosParaPdf, ...os.photos],
+      os.getSigImage(),
+    );
+  };
+
+  const CurrentComponent = currentStep?.component;
+
+  // "Voltar" da barra superior: uma etapa para trás; na primeira, sai para a visão geral.
+  const handleBackStep = () => {
+    if (os.step > 1) os.goStep(os.step - 1, os.step);
+    else onBackToStart?.();
+  };
+
+  return (
+    <div style={{
+      fontFamily: tokens.fontSans,
+      background: tokens.color.bg,
+      minHeight: '100dvh',
+      paddingBottom: 'var(--mobile-bottom-nav-h)',
+    }}>
+      <Topbar
+        saveStatus={os.saveStatus}
+        savedAt={os.savedAt}
+        onReset={os.resetAll}
+        onExportPDF={handleExportPDF}
+        onBackToStart={onBackToStart}
+        onBackStep={handleBackStep}
+        backAriaLabel={os.step > 1 ? 'Voltar uma etapa' : 'Voltar para a visão geral'}
+      />
+     
+<StepTabs
+  step={os.step}
+  onGoStep={(n) => {
+    // Não dá para pular as fotos obrigatórias nem pelas abas: volta para a tela de fotos.
+    if (n > FOTO_STEP && !os.fotosObrig.liberado) { os.goStep(FOTO_STEP, os.step); return; }
+    os.goStep(n, os.step);
+  }}
+  steps={entradaConfig}
+/>
+
+      <AvisoCadastro info={os.cadastroInfo} onFechar={() => os.setCadastroInfo(null)} px={isMobile ? 16 : isTablet ? 24 : 40} />
+
+      {CurrentComponent && (
+        <CurrentComponent
+      os={os}
+      onExportPDF={handleExportPDF}
+      onNextChecklist={onNextChecklist}  // ← new
+    />
+      )}
+
+      <Lightbox src={os.lightbox} onClose={() => os.setLightbox(null)} />
+    </div>
+  );
+}

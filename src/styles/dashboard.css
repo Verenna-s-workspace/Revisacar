@@ -1,0 +1,1681 @@
+/* Antes era `* { user-select: none }`: impedia copiar placa, telefone, nº da OS
+ * e, em alguns navegadores, atrapalhava a digitação. Agora só os controles
+ * (que não devem ser selecionados num toque longo) ficam sem seleção. */
+button,
+nav,
+.dashboard-sidebar,
+.dashboard-mobile-topbar,
+.dashboard-mobile-bottom-nav,
+.dashboard-mobile-drawer {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.dashboard-shell,
+.dashboard-mobile-shell,
+.home-shell,
+.start-screen-shell {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.dashboard-mobile-shell {
+  padding-bottom: var(--mobile-bottom-nav-h);
+}
+
+.dashboard-shell {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.dashboard-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  /* Fica parada enquanto o conteúdo rola. Antes era height:auto (esticava
+   * junto com a página e o menu sumia nas listas longas); agora tem a altura
+   * da janela e rola sozinha se não couber (notebook de 768px de altura). */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  box-shadow: 0 0 24px rgba(0,0,0,0.04);
+}
+
+/* Com altura fixa, os blocos não podem encolher: quem não couber rola. */
+.dashboard-sidebar > * { flex-shrink: 0; }
+
+.dashboard-sidebar__wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  opacity: 0.08;
+}
+
+.dashboard-sidebar__brand {
+  padding: 17px 22px 22px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dashboard-sidebar__brand-logo-image {
+  display: block;
+}
+
+.dashboard-sidebar__brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-sidebar__brand-inner {
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  color: var(--color-text);
+  line-height: 1.1;
+  font-weight: 500;
+}
+
+.dashboard-sidebar__brand-inner span {
+  color: #CC1400;
+}
+
+.dashboard-sidebar__brand-subtitle {
+  font-size: 0.65rem;
+  color: var(--color-muted);
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  
+  
+}
+
+.dashboard-sidebar__brand::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 -1px 0;
+  background: radial-gradient(circle at top left, rgba(204,20,0,0.05), transparent 32%);
+  pointer-events: none;
+}
+
+.dashboard-sidebar__brand-logo {
+  width: 52px;
+  height: 52px;
+  border: 1px solid #c3c3c330;
+  border-radius: 16px;
+  background: var(--color-bg-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #CC1400;
+  flex-shrink: 0;
+}
+
+.dashboard-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+
+.dashboard-sidebar-link {
+  width: 100%;
+  border: none;
+  text-align: left;
+  color: var(--color-text-second);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: background 0.18s ease, color 0.18s ease;
+  min-height: 48px;
+}
+
+.dashboard-sidebar-link:hover {
+  background: var(--color-ferrari-mid);
+  color: var(--color-text);
+}
+
+.dashboard-sidebar-link svg {
+  width: 1.7em;
+  height: auto;
+  display: block;
+  fill: transparent;
+  stroke: currentColor;
+  color: var(--color-ferrari);
+}
+.dashboard-sidebar-link:hover svg {
+  color: var(--color-ferrari);
+}
+
+.dashboard-sidebar-link:hover {
+  background: var(--color-ferrari-mid);
+}
+
+.dashboard-sidebar-link--active {
+  background: var(--color-ferrari-mid);
+  color: var(--color-text);
+}
+.dashboard-sidebar-link--active svg {
+  color: var(--color-ferrari);
+}
+
+/* ── Cartão de Identidade ─────────────────────────────────────────────────── */
+
+.dashboard-sidebar__identity {
+  position: relative;
+  margin: 4px 16px 14px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-sidebar__identity-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--color-surface-high);
+  color: var(--color-text-second);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.dashboard-sidebar__identity-label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.dashboard-sidebar__identity-nome {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.dashboard-sidebar__identity-chevron {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.dashboard-sidebar__identity-chevron:hover {
+  background: var(--color-ferrari-mid);
+  color: #CC1400;
+}
+
+.dashboard-sidebar__identity-chevron svg {
+  width: 15px;
+  height: 15px;
+}
+
+.dashboard-sidebar__identity-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 8px;
+  right: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  z-index: 50;
+  padding: 6px;
+}
+
+.dashboard-sidebar__identity-dropdown-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  color: var(--color-text-second);
+}
+
+.dashboard-sidebar__identity-dropdown-item:hover {
+  background: var(--color-bg);
+}
+
+.dashboard-sidebar__identity-dropdown-hint {
+  padding: 8px 10px 4px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  border-top: 1px solid var(--color-border);
+  margin-top: 2px;
+}
+
+/* ── Dock de atalhos (Configurações / Dicas / Catálogo) ──────────────────────── */
+
+.dashboard-sidebar__dock {
+  margin: 0 16px 14px;
+  /* Flex (e não grid de 5 colunas fixas): o RBAC pode esconder itens (ex.: Financeiro);
+     cada botão ocupa uma fatia igual, então o dock continua centralizado e preenchido
+     com 3, 4 ou 5 atalhos. */
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 3px 6px rgba(74, 7, 0, 0.28);
+}
+
+.dashboard-sidebar__dock-item {
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 9px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #CC1400;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dashboard-sidebar__dock-item:hover {
+  background: var(--color-ferrari-mid);
+}
+
+.dashboard-sidebar__dock-item svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Bloco de Alertas ──────────────────────────────────────────────────────── */
+
+.dashboard-sidebar__alertas {
+  margin: 10px 16px 18px;
+  padding: 29px 16px;
+  border-radius: 16px;
+  background: #CC1400;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 6px 16px rgba(204,20,0,0.28);
+}
+
+.dashboard-sidebar__alertas-titulo h1 {
+  display: flex;
+  font-size: 0.84rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.9;
+}
+
+
+.dashboard-sidebar__alertas-numero {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.dashboard-sidebar__alertas-legenda {
+  font-size: 0.74rem;
+  opacity: 0.85;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.dashboard-sidebar__footer {
+  border-top: 1px solid rgba(255,255,255,0.14);
+  padding: 18px 12px 20px;
+}
+
+.dashboard-sidebar__footer-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: none;
+  width: 100%;
+  text-align: left;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.dashboard-sidebar__footer-button:hover {
+  background: rgba(255,255,255,0.18);
+  color: white;
+}
+
+.dashboard-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  font-size: 0.95rem;
+  transition: color var(--transition-base);
+}
+
+.dashboard-button:hover {
+  color: var(--color-text);
+}
+
+.dashboard-button--primary {
+  background: var(--color-ferrari);
+  color: white;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.dashboard-button--primary:hover {
+  background: #b00e00;
+}
+
+.dashboard-button--close {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-button--close:hover {
+  background: var(--color-surface-high);
+  color: var(--color-text);
+}
+
+.dashboard-button--indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-surface-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+}
+
+.dashboard-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Fundo da página não rola por trás de um modal aberto */
+body:has(.dashboard-modal-backdrop) { overflow: hidden; }
+
+.dashboard-modal {
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+}
+
+.dashboard-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  border-radius: 20px 20px 0 0;
+  z-index: 10;
+}
+
+.dashboard-modal__title {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.dashboard-modal__subtitle {
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.dashboard-modal__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-modal__body {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.dashboard-modal__remark {
+  grid-column: span 2;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.dashboard-modal__remark-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-subtle);
+  font-family: var(--font-sans);
+  margin-bottom: 4px;
+}
+
+.dashboard-modal__remark-text {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+}
+
+.dashboard-body {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 18px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dashboard-body__content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dashboard-kpi-row {
+  display: flex;
+  gap: 14px;
+  flex-direction: row;
+}
+
+.dashboard-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 18px;
+}
+
+.dashboard-grid-3 {
+  display: grid;
+  grid-template-columns: 320px 1fr 310px;
+  gap: 18px;
+}
+
+.dashboard-card--padded {
+  padding: 20px 22px;
+}
+
+.dashboard-card--chart {
+  padding: 20px 24px;
+}
+
+.dashboard-skeleton {
+  background: linear-gradient(90deg, var(--color-surface-high), var(--color-border), var(--color-surface-high));
+  animation: skeleton-loading 1.2s ease-in-out infinite;
+}
+
+.dashboard-card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.dashboard-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.dashboard-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 44px;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.dashboard-sparkline__bar {
+  flex: 1;
+  border-radius: 3px;
+}
+
+.dashboard-area-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.dashboard-area-chart__hover-zone {
+  cursor: crosshair;
+}
+
+.dashboard-heatmap-row {
+  display: flex;
+  gap: 4px;
+}
+
+.dashboard-heatmap-row__cell {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.dashboard-progress-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--color-surface-high);
+  overflow: hidden;
+}
+
+.dashboard-progress-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+}
+
+.status-badge {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 3px 10px;
+  border-radius: 99px;
+  display: inline-flex;
+  white-space: nowrap;
+  /* Como item direto da grade da tabela (e de colunas flex) o selo esticava
+   * até a largura da célula: o fundo ficava muito maior que o texto.
+   * fit-content mantém só o tamanho do texto. */
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.status-badge--rascunho { background: #FFF3E0; color: #A33A00; }   /* #E65100 tinha 3,5:1 */
+.status-badge--finalizada { background: #E8F5E9; color: #2E7D32; }
+.status-badge--aguardando { background: #E3F2FD; color: #1565C0; }
+.status-badge--recusada { background: #FDECEA; color: #B71C1C; }
+
+/* Modo escuro: fundos translúcidos + texto claro (os claros ficavam ofuscantes) */
+body.dark .status-badge--rascunho   { background: rgba(245,158,11,0.16); color: #fbbf24; }
+body.dark .status-badge--finalizada { background: rgba(16,185,129,0.16); color: #34d399; }
+body.dark .status-badge--aguardando { background: rgba(59,130,246,0.18); color: #93c5fd; }
+body.dark .status-badge--recusada   { background: rgba(239,68,68,0.16);  color: #fca5a5; }
+
+.dashboard-card__header-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.dashboard-card__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-card__select,
+.dashboard-card__select:focus {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+}
+
+.dashboard-card__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 1.2rem;
+}
+
+/* O texto da ação só aparece no celular/tablet: lá o ícone sozinho não diz o
+ * que o botão faz (Editar? Excluir? Desativar?). No desktop o tooltip basta. */
+.dashboard-card__icon-button-label { display: none; }
+
+@media (max-width: 979px) {
+  .dashboard-card__icon-button {
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-second);
+  }
+  .dashboard-card__icon-button-label { display: inline; }
+}
+
+.dashboard-error-banner {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--color-crit-bg);
+  border: 1px solid var(--color-crit-border);
+  color: var(--color-crit);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 1px 6px rgba(204,20,0,0.08);
+}
+
+.dashboard-error-banner__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-error-banner__title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+}
+
+.dashboard-error-banner__message {
+  margin-top: 6px;
+  font-size: 0.86rem;
+  color: var(--color-text-second);
+  font-family: var(--font-sans);
+}
+
+.dashboard-error-banner__button {
+  border: none;
+  border-radius: 10px;
+  background: var(--color-ferrari);
+  color: white;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  box-shadow: 0 6px 16px rgba(204,20,0,0.18);
+}
+
+.dashboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.dashboard-order-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+}
+
+.dashboard-order-row {
+  /* O fundo do hover/foco encosta na borda do card; 14px é o menor padding
+   * dos contêineres que usam a linha (lista de Ordens no celular). */
+  margin: 0 -14px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.dashboard-order-row:hover {
+  background: var(--color-bg-alt);
+}
+.dashboard-order-row:focus-visible { outline-offset: -2px; }
+
+.dashboard-order-row__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.dashboard-orders-empty {
+  padding: 28px 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-family: var(--font-sans);
+}
+
+.dashboard-topbar { padding: 16px 14px 0; }
+
+.dashboard-topbar__headline {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 2px;
+}
+
+.dashboard-header {
+  padding: 20px 28px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-header__title {
+  font-family: var(--font-sans);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-header__subtitle {
+  color: var(--color-text-second);
+  font-size: 1rem;
+  margin: 4px 0 0;
+}
+
+.dashboard-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard-header__indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-header__badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  background: var(--color-ferrari);
+  color: white;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+}
+
+.dashboard-header__separator {
+  width: 1px;
+  height: 28px;
+  background: var(--color-border);
+}
+
+.dashboard-header__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.dashboard-header__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-surface-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+}
+
+.dashboard-header__name {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dashboard-header__role {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.dashboard-header__chevron {
+  color: var(--color-muted);
+  display: flex;
+}
+
+.dashboard-mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 16px;
+  padding-top: max(4px, env(safe-area-inset-top));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-topbar);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.dashboard-mobile-topbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dashboard-mobile-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dashboard-mobile-topbar__button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 8px;
+  font-size: 1.05rem;
+}
+.dashboard-mobile-topbar__button--end { margin-right: -8px; }
+
+.dashboard-mobile-topbar__logo span {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ── Drawer do menu mobile (aberto pelo hambúrguer) ─────────────────────── */
+
+.dashboard-mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 2000;
+  animation: dashboard-drawer-fade 0.16s ease;
+}
+
+.dashboard-mobile-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(82vw, 300px);
+  background: var(--color-surface);
+  z-index: 2001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 32px rgba(0,0,0,0.18);
+  animation: dashboard-drawer-slide 0.18s ease;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-left: env(safe-area-inset-left);
+}
+
+@keyframes dashboard-drawer-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dashboard-drawer-slide {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.dashboard-mobile-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.dashboard-mobile-drawer__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.dashboard-mobile-drawer__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 2px;
+  flex: 1;
+}
+
+.dashboard-mobile-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  min-height: 48px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  color: var(--color-text-second, var(--color-muted));
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.dashboard-mobile-drawer__link svg {
+  color: var(--color-ferrari);
+  flex-shrink: 0;
+}
+
+.dashboard-mobile-drawer__link:active {
+  background: var(--color-surface-high);
+}
+
+.dashboard-mobile-drawer__link--active {
+  background: rgba(204, 20, 0, 0.08);
+  color: var(--color-ferrari);
+}
+
+.dashboard-mobile-drawer__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 4px;
+}
+
+.dashboard-mobile-drawer__logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-crit);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dashboard-mobile-bottom-nav {
+  --nav-borda: #E2E5EA;
+  --nav-icone: #868D98;
+  --nav-rotulo: #666E7B;
+  --nav-rotulo-ativo: #1A1D22;
+  --nav-ativo: #E01500;
+
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-bottom-nav);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background: var(--color-surface);
+  border-top: 1px solid var(--nav-borda);
+  min-height: var(--mobile-bottom-nav-h);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.dark .dashboard-mobile-bottom-nav {
+  --nav-borda: var(--color-border);
+  --nav-icone: var(--color-subtle);
+  --nav-rotulo: var(--color-muted);
+  --nav-rotulo-ativo: var(--color-text);
+  --nav-ativo: var(--color-accent);
+}
+
+.dashboard-mobile-bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 4px 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--nav-rotulo);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.dashboard-mobile-bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--nav-icone);
+  transition: color 0.15s ease;
+}
+
+.dashboard-mobile-bottom-nav__icon svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.dashboard-mobile-bottom-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-mobile-bottom-nav__item--active {
+  color: var(--nav-rotulo-ativo);
+}
+
+.dashboard-mobile-bottom-nav__item--active .dashboard-mobile-bottom-nav__icon {
+  color: var(--nav-ativo);
+}
+
+.dashboard-mobile-bottom-nav__item:active {
+  background: var(--color-surface-high);
+}
+
+.dashboard-mobile-bottom-nav__item:focus-visible {
+  outline: 2px solid var(--nav-ativo);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-mobile-bottom-nav__item:hover:not(.dashboard-mobile-bottom-nav__item--active) {
+    color: var(--nav-rotulo-ativo);
+  }
+  .dashboard-mobile-bottom-nav__item:hover:not(.dashboard-mobile-bottom-nav__item--active) .dashboard-mobile-bottom-nav__icon {
+    color: var(--color-text-second);
+  }
+}
+.dashboard-layout {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.dashboard-topbar__subhead {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  margin: 0 0 16px;
+}
+
+/* ── Grid de 2 colunas usado nos formulários dos modais — empilha em 1
+   coluna abaixo de 640px. O `gap` de cada formulário continua vindo do
+   style inline (varia um pouco de tela pra tela); só o número de colunas é
+   responsivo aqui. ── */
+.dashboard-form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 639px) {
+  .dashboard-form-grid-2col {
+    grid-template-columns: 1fr;
+  }
+  /* Campos com grid-column:'span 2' inline (pra ocupar a largura toda no
+     desktop) forçam o grid a abrir uma coluna implícita extra quando só
+     existe 1 coluna explícita — sem isso o layout "quebra" de volta pra 2
+     colunas mesmo com grid-template-columns:1fr acima. !important é
+     necessário aqui porque é a única forma de sobrescrever um style inline
+     via media query. */
+  .dashboard-form-grid-2col > * {
+    grid-column: auto !important;
+  }
+}
+
+@media (max-width: 979px) {
+  .dashboard-shell { flex-direction: column; }
+  .dashboard-sidebar { width: 100%; min-width: 0; }
+  .dashboard-body { padding: 16px 14px 32px; }
+  .dashboard-grid-2, .dashboard-grid-3 { grid-template-columns: 1fr; }
+  .dashboard-card--padded, .dashboard-card--chart { padding: 16px; }
+  .dashboard-header { padding: 16px 14px 0; }
+  .dashboard-card__toolbar { flex-wrap: wrap; }
+  .dashboard-sidebar-nav { padding: 0 8px; }
+  .dashboard-sidebar__footer { padding: 12px 8px 0; }
+  .dashboard-error-banner { flex-direction: column; align-items: stretch; }
+}
+
+@media (max-width: 639px) {
+  .dashboard-body { padding: 14px 12px 32px; }
+  .dashboard-card { border-radius: 14px; }
+  .dashboard-sidebar { width: 100%; }
+  .dashboard-kpi-row { flex-direction: column; }
+  .dashboard-card__toolbar { gap: 6px; }
+  .dashboard-button { font-size: 1rem; }
+}
+
+
+/* ── Mobile: modais viram bottom sheet ────────────────────────────────────── */
+@keyframes dashboard-sheet-up {
+  from { transform: translateY(28px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@media (max-width: 639px) {
+  .dashboard-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .dashboard-modal {
+    max-width: none !important;   /* alguns modais definem maxWidth inline */
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: dashboard-sheet-up 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .dashboard-modal__header {
+    padding: 18px 16px 12px;
+    border-radius: 20px 20px 0 0;
+  }
+  /* "alça" do sheet: sinaliza que é uma folha que vem de baixo */
+  .dashboard-modal__header::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: var(--color-border-md);
+  }
+  .dashboard-modal__body { padding: 16px; gap: 18px; }
+}
+
+/* Botões de ícone com 44px no toque */
+@media (pointer: coarse) {
+  .dashboard-button {
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    justify-content: center;
+  }
+  .dashboard-card__select { min-height: var(--tap-min); }
+}
+
+
+/* Ícones do menu mobile sempre com tamanho e traço definidos (Visão Geral e
+ * Ordens de Serviço vinham de SVGs sem dimensões e sumiam dentro do flex).
+ * Sidebar e bottom nav já têm regras próprias e não foram alteradas. */
+.dashboard-mobile-drawer__link svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+}
+
+
+/* Lista de cards do Kanban: os cards NÃO podem encolher.
+ * Numa coluna flex com altura limitada, o padrão (flex-shrink: 1) espremia os
+ * cards uns sobre os outros em vez de gerar rolagem — era o "bug" quando a
+ * coluna recebia muitos itens. */
+.kanban-lista > * { flex-shrink: 0; }
+.kanban-lista {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Visão Geral — grades por faixa de largura
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Celular: indicadores em carrossel com "snap" (o próximo cartão aparece pela
+ * metade, sinalizando que dá pra deslizar). */
+.visao-geral__kpis {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -14px;
+  padding: 0 14px 6px;
+  scroll-padding-left: 14px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.visao-geral__kpi { flex: 0 0 min(82%, 340px); scroll-snap-align: start; min-width: 0; }
+.visao-geral__kpi--unico { flex: 1 1 100%; }
+
+.visao-geral__dupla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+
+/* Tablet (720–979px): tudo cabe lado a lado — carrossel vira grade e os pares
+ * de cartões (Top serviços + Acessos, Ordens + Alertas) dividem a linha. */
+@media (min-width: 720px) {
+  .visao-geral__kpis {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+  .visao-geral__dupla { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+
+/* Desktop: gráfico + Top serviços, e embaixo Resumo / Ordens / Alertas. */
+.visao-geral__grafico {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  gap: 18px;
+}
+.visao-geral__grafico--unico { grid-template-columns: minmax(0, 1fr); }
+
+.visao-geral__rodape {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(260px, 310px);
+  gap: 18px;
+  align-items: start;
+}
+.visao-geral__rodape--sem-financeiro { grid-template-columns: minmax(0, 1fr) minmax(260px, 310px); }
+
+/* Notebook (980–1279px): com a sidebar de 240px sobram ~700px. O gráfico
+ * ganha a linha toda; Resumo e Alertas dividem uma linha e as Ordens
+ * Recentes ficam com a largura inteira embaixo. */
+@media (max-width: 1279px) {
+  .visao-geral__grafico { grid-template-columns: minmax(0, 1fr); }
+  .visao-geral__rodape {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+  }
+  .visao-geral__rodape .visao-geral__ordens { grid-column: 1 / -1; }
+  .visao-geral__rodape--sem-financeiro { grid-template-columns: minmax(0, 1fr) minmax(260px, 300px); }
+  .visao-geral__rodape--sem-financeiro .visao-geral__ordens { grid-column: auto; }
+}
+
+/* Links de texto ("Ver todas", "Editar") com alvo de 44px no toque, sem
+ * mudar o desenho: o padding cresce e a margem negativa compensa. */
+@media (max-width: 979px), (pointer: coarse) {
+  .visao-geral__link {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+    padding: 0 8px !important;
+    margin: -12px -8px;
+  }
+}
+
+
+/* ── Tabela de Ordens (desktop) ──────────────────────────────────────────────
+ * Antes: 90px 1fr 110px 140px 150px 120px 80px ≈ 780px fixos — num notebook
+ * de 1024px a coluna de ações saía do card e o Cliente ficava com ~50px. */
+.ordens-tabela__linha {
+  display: grid;
+  grid-template-columns: 84px minmax(140px, 1.4fr) 100px minmax(110px, 1fr) 156px 90px 78px;
+  gap: 0 10px;
+  align-items: center;
+}
+.ordens-tabela__placa-sub { display: none; }
+
+@media (max-width: 1279px) {
+  /* Sem a coluna Placa: a placa vai pra baixo do nome do cliente. */
+  .ordens-tabela__linha { grid-template-columns: 76px minmax(120px, 1.3fr) minmax(100px, 1fr) 156px 80px 78px; }
+  .ordens-tabela__col-placa { display: none; }
+  .ordens-tabela__placa-sub { display: block; }
+}
+
+/* Voltar (chevron) do cabeçalho das telas no celular: era um ícone de 24px.
+ * 44px de alvo, com margem negativa pra não empurrar o título. */
+.dashboard-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  margin: -10px -6px -10px -12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dashboard-back-button:active { background: var(--color-surface-high); }
+
+/* ── Celular deitado (altura < 500px) ────────────────────────────────────────
+ * Topbar + barra inferior ocupavam 146 de 390px (37% da tela). A barra fica
+ * mais baixa (ícone ao lado do rótulo) e a topbar rola junto com a página —
+ * o menu continua a um gesto, e a navegação principal fica sempre embaixo. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --mobile-bottom-nav-h: calc(49px + env(safe-area-inset-bottom)); }
+  .dashboard-mobile-topbar { position: static; }
+  .dashboard-mobile-bottom-nav__item {
+    flex-direction: row;
+    gap: 6px;
+    min-height: 48px;
+    padding: 0 8px;
+  }
+  .dashboard-mobile-bottom-nav__icon,
+  .dashboard-mobile-bottom-nav__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Celular — densidade (2ª rodada)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Linha horizontal que desliza (filtros, indicadores) sem barra de rolagem
+ * visível: o item cortado na borda já mostra que dá pra arrastar. */
+.faixa-rolavel {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.faixa-rolavel,
+.visao-geral__kpis { scrollbar-width: none; }
+.faixa-rolavel::-webkit-scrollbar,
+.visao-geral__kpis::-webkit-scrollbar { display: none; }
+
+@media (max-width: 639px) {
+  /* Indicadores de Clientes/Veículos/Estoque: 1 linha deslizante em vez de
+   * 2–3 linhas de cartões (~250px) antes do primeiro item da lista. */
+  .stats-faixa {
+    display: flex !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+  }
+  .stats-faixa::-webkit-scrollbar { display: none; }
+  .stats-faixa > * { flex: 0 0 auto; min-width: 148px; max-width: 190px; scroll-snap-align: start; }
+
+  /* Linha de OS: sem o ícone de carro (genérico, igual em todas) sobra
+   * largura pro cliente e o veículo não quebra em 3 linhas. */
+  .dashboard-order-row__icon { display: none !important; }
+
+  /* Cabeçalho de modal: título numa linha; ações descem se não couberem
+   * (antes "OS #252128" quebrava em 2 linhas e a data em 3). */
+  .dashboard-modal__header { flex-wrap: wrap; gap: 10px 12px; }
+  .dashboard-modal__header > :first-child { flex: 1 1 190px; min-width: 0; }
+  .dashboard-modal__actions { flex-wrap: wrap; }
+}
+
+/* Foto do veículo: 16:9 com foto; sem foto, no celular a arte decorativa vira
+ * uma faixa baixa (antes ~185px de nada em cada cartão). */
+.vehicle-card__foto { aspect-ratio: 16 / 9; }
+@media (max-width: 639px) {
+  .vehicle-card__foto--vazia { aspect-ratio: 16 / 5; }
+}
+
+
+/* ══ Modo Privacidade ════════════════════════════════════════════════════════ */
+
+/* Texto só pra leitor de tela */
+.privacidade-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Máscara "R$ ••••••": reserva a largura do valor real (min-width inline). */
+.privacidade-mascara {
+  display: inline-block;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  user-select: none;
+  animation: privacidade-aparece 0.25s ease;
+}
+
+@keyframes privacidade-aparece {
+  from { opacity: 0; filter: blur(3px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* Gráficos: mesmo tamanho, desenho borrado, sem tooltip nem seleção. */
+.privacidade-grafico { position: relative; min-width: 0; }
+.privacidade-grafico__conteudo { transition: filter 0.25s ease, opacity 0.25s ease; }
+.privacidade-blur {
+  filter: blur(9px);
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+.privacidade-grafico__selo {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  color: var(--color-text-second);
+  font-size: 0.75rem; font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: privacidade-aparece 0.25s ease;
+}
+.privacidade-grafico__selo svg { width: 14px; height: 14px; }
+
+/* Sparkline / donut dos cards (sem selo): só borram. */
+.privacidade-blur-suave { transition: filter 0.25s ease, opacity 0.25s ease; }
+
+/* Botão do olho */
+.privacidade-botao { transition: color var(--transition-base), background var(--transition-base); border-radius: 10px; }
+.privacidade-botao--ativo { color: var(--color-ferrari); }
+.privacidade-botao__icone { display: flex; animation: privacidade-icone 0.22s ease; }
+@keyframes privacidade-icone {
+  from { opacity: 0; transform: scale(0.7) rotate(-12deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+/* ══ Cards clicáveis (Visão Geral) ═══════════════════════════════════════════ */
+
+.dashboard-card--clicavel {
+  cursor: pointer;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+/* Elevação só com mouse de verdade: no celular o :hover "gruda" depois do toque. */
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-card--clicavel:hover {
+    transform: translateY(-3px);
+    border-color: rgba(204, 20, 0, 0.3);
+    box-shadow: 0 12px 28px -10px rgba(204, 20, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* Toque / clique: afunda um pouquinho — retorno tátil imediato no celular. */
+.dashboard-card--clicavel:active {
+  transform: scale(0.985);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition-duration: 0.1s;
+}
+
+.dashboard-card--clicavel:focus-visible {
+  outline: 2px solid var(--color-ferrari);
+  outline-offset: 2px;
+}
+
+/* ══ Aura de chegada (destaque temporário) ═══════════════════════════════════ */
+/* 2 pulsos lentos de 2s depois de 0,3s de atraso (rolagem) ≈ 4,3s. O hook
+   tira a classe aos 4,4s (DURACAO_DESTAQUE_MS em utils/destaque.ts). */
+
+[data-destaque-id] { scroll-margin-top: 84px; scroll-margin-bottom: 24px; }
+
+.destaque-aura {
+  animation: destaque-pulso 2s ease-in-out 0.3s 2 both;
+}
+
+/* Mesmo visual do hover dos cards (borda + sombra avermelhada), sem mexer no tamanho. */
+@keyframes destaque-pulso {
+  0%, 100% {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border-color: var(--color-border);
+  }
+  50% {
+    box-shadow: 0 19px 28px -10px rgba(204, 20, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.06);
+    border-color: rgba(204, 20, 0, 0.3);
+  }
+}
+
+/* Quem pede menos movimento: visual do hover fixo (sem pulsar) durante o mesmo tempo. */
+@media (prefers-reduced-motion: reduce) {
+  .destaque-aura {
+    animation: none;
+    box-shadow: 0 12px 28px -10px rgba(204, 20, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.06);
+    border-color: rgba(204, 20, 0, 0.3);
+  }
+  .dashboard-card--clicavel,
+  .privacidade-grafico__conteudo,
+  .privacidade-botao__icone,
+  .privacidade-mascara { transition: none; animation: none; }
+  .dashboard-card--clicavel:hover,
+  .dashboard-card--clicavel:active { transform: none; }
+}
+/* Central de Aprendizado: os ícones de Icons.tsx têm tamanhos próprios (15px e
+   20px). Aqui todos entram numa caixa fixa e o SVG preenche a caixa, então a
+   navegação lateral fica com ícones do mesmo tamanho. */
+.lc-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.lc-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Celular sem top-bar: só o respiro do entalhe / barra de status. */
+.rv-safe-top { flex: none; height: env(safe-area-inset-top, 0px); }

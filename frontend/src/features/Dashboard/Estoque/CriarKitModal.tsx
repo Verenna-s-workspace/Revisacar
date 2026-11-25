@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
-import { tokens } from '../../../constants';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Icons } from '../Icons';
 import { comprimirImagem } from '../../../utils/estoque_utils';
 import { useServicos } from '../../../hooks/useServicos';
 import { Input } from '../../../components/inputs/input';
 import { Select } from '../../../components/inputs/select';
 import { Textarea } from '../../../components/inputs/textarea';
+import {
+  Button, Modal, ModalBody, ModalColumns, ModalFooter, ModalHeader, ModalNotice, ModalSection,
+} from '../../../components/system';
+import { ProdutoFotoCampo } from './ProdutoFotoCampo';
 import type { EstoqueItem, EstoqueKit, EstoqueKitItemReceita, NovoEstoqueKitInput } from '../../../types/estoque';
-
-const BTN_SECUNDARIO = {
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  padding: '7px 14px', background: tokens.color.surfaceHigh, color: tokens.color.textSecond,
-  border: `1px solid ${tokens.color.border}`, borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-} as const;
 
 interface CriarKitModalProps {
   kit?: EstoqueKit;                  // presente = modo edição
@@ -75,7 +72,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
     setReceita(prev => prev.map(r => (r.itemId === itemId ? { ...r, quantidade: Math.max(1, quantidade) } : r)));
   }
 
-  async function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFoto(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setErroFoto(null);
@@ -97,20 +94,28 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
   }
 
   return (
-    <div className="dashboard-modal-backdrop" onClick={onClose}>
-      <div className="dashboard-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
-        <div className="dashboard-modal__header">
-          <div>
-            <div className="dashboard-modal__title">{editando ? 'Editar Kit' : 'Criar Kit'}</div>
-            <div className="dashboard-modal__subtitle">
-              {editando ? 'Atualize a receita e os dados do kit.' : 'Monte um kit a partir de itens já cadastrados no estoque.'}
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: tokens.color.muted }}>×</button>
-        </div>
+    <Modal size="xl" onClose={onClose} onSubmit={handleSubmit}>
+      <ModalHeader
+        icon={Icons.box}
+        title={editando ? 'Editar Kit' : 'Criar Kit'}
+        description={editando ? 'Atualize a receita e os dados do kit.' : 'Monte um kit a partir de itens já cadastrados no estoque.'}
+      />
 
-        <form onSubmit={handleSubmit}>
-          <div className="dashboard-modal__body">
+      <ModalBody>
+        <ModalColumns
+          aside={
+            <ModalSection icon={Icons.camera} title="Foto do kit">
+              <ProdutoFotoCampo
+                foto={fotoDataUrl}
+                comprimindo={comprimindo}
+                erro={erroFoto}
+                onSelecionar={handleFoto}
+                onRemover={() => setFotoDataUrl(undefined)}
+              />
+            </ModalSection>
+          }
+        >
+          <ModalSection icon={Icons.box} title="Informações do kit">
             <Input
               name="kit_nome"
               label="Nome do Kit"
@@ -119,15 +124,7 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
               onChangeValue={setNome}
               placeholder="Ex: Kit Revisão Básica Fiat Uno"
             />
-
-            <Textarea
-              name="kit_descricao"
-              label="Descrição"
-              value={descricao}
-              onChangeValue={setDescricao}
-              rows={2}
-            />
-
+            <Textarea name="kit_descricao" label="Descrição" value={descricao} onChangeValue={setDescricao} rows={2} />
             <Select
               name="kit_servico"
               label="Vincular a um Serviço do Catálogo (opcional)"
@@ -135,133 +132,68 @@ export function CriarKitModal({ kit, itensDisponiveis, onSave, erro, salvando, o
               onChangeValue={v => setServicoId(v || undefined)}
               options={[{ value: '', label: 'Nenhum' }, ...servicos.map(s => ({ value: s.id, label: s.nome }))]}
             />
+          </ModalSection>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>FOTO DO KIT</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div
-                  style={{
-                    width: 72, height: 72, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-                    background: tokens.color.ferrariMid, color: tokens.color.ferrari,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  {fotoDataUrl ? <img src={fotoDataUrl} alt="Prévia" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : Icons.box}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-                  <label style={{ ...BTN_SECUNDARIO, cursor: comprimindo ? 'wait' : 'pointer' }}>
-                    {comprimindo ? 'Processando...' : fotoDataUrl ? 'Trocar foto' : 'Adicionar foto'}
-                    <input type="file" accept="image/*" onChange={handleFoto} disabled={comprimindo} style={{ display: 'none' }} />
-                  </label>
-                  {erroFoto && <span style={{ fontSize: '0.75rem', color: tokens.color.crit }}>{erroFoto}</span>}
-                </div>
-              </div>
-            </div>
+          <ModalSection
+            icon={Icons.clipboardCheck}
+            title="Itens do kit"
+            description="Busque itens já cadastrados no estoque para montar a receita. Obrigatório: ao menos um item."
+            aside={receita.length > 0 ? <span>{receita.length} {receita.length === 1 ? 'item' : 'itens'}</span> : undefined}
+          >
+            <Input
+              name="kit_busca_item"
+              type="search"
+              value={busca}
+              onChangeValue={setBusca}
+              placeholder="Buscar item já cadastrado no estoque..."
+            />
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: tokens.color.textSecond, marginBottom: 5 }}>ITENS DO KIT *</label>
-              <div style={{ position: 'relative' }}>
-                <Input
-                  name="kit_busca_item"
-                  type="search"
-                  value={busca}
-                  onChangeValue={setBusca}
-                  placeholder="Buscar item já cadastrado no estoque..."
-                />
-                {resultadosBusca.length > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                      background: 'var(--color-surface)', border: `1px solid ${tokens.color.border}`, borderRadius: 8,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.14)', zIndex: 20, maxHeight: 190, overflowY: 'auto',
-                    }}
-                  >
-                    {resultadosBusca.map(item => (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => adicionarItem(item)}
-                        style={{
-                          display: 'flex', justifyContent: 'space-between', width: '100%', padding: '9px 12px',
-                          background: 'transparent', border: 'none', borderBottom: `1px solid ${tokens.color.border}`,
-                          cursor: 'pointer', textAlign: 'left', fontSize: '0.82rem', color: tokens.color.text,
-                        }}
-                      >
-                        <span>{item.nome}</span>
-                        <span style={{ color: tokens.color.muted, flexShrink: 0, marginLeft: 8 }}>{item.quantidade} un.</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {resultadosBusca.length > 0 && (
+              <ul className="sys-modal__pick-list">
+                {resultadosBusca.map(item => (
+                  <li key={item.id}>
+                    <button type="button" className="sys-modal__pick" onClick={() => adicionarItem(item)}>
+                      <span>{item.nome}</span>
+                      <span className="sys-modal__pick-meta">{item.quantidade} un.</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-              {receita.length === 0 ? (
-                <div style={{ fontSize: '0.78rem', color: tokens.color.muted, padding: '10px 0 0' }}>
-                  Nenhum item adicionado ainda — busque acima pra montar a receita do kit.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
-                  {receita.map(r => (
-                    <div
-                      key={r.itemId}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: tokens.color.bg, border: `1px solid ${tokens.color.border}`, borderRadius: 8 }}
-                    >
-                      <span style={{ flex: 1, fontSize: '0.82rem', color: tokens.color.text, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {itensPorId.get(r.itemId)?.nome ?? 'Item removido'}
-                      </span>
-                      <div style={{ width: 56 }}>
-                        <Input
-                          name={`kit_qtd_${r.itemId}`}
-                          type="number"
-                          value={String(r.quantidade)}
-                          onChangeValue={v => alterarQuantidade(r.itemId, Number(v) || 1)}
-                          style={{ padding: '6px 8px', textAlign: 'center' }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removerItem(r.itemId)}
-                        title="Remover"
-                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: tokens.color.crit, display: 'flex' }}
-                      >
-                        {Icons.trash}
-                      </button>
+            {receita.length === 0 ? (
+              <p className="sys-modal__empty">Nenhum item adicionado ainda — busque acima para montar a receita do kit.</p>
+            ) : (
+              <div className="sys-modal__lines">
+                {receita.map(r => (
+                  <div key={r.itemId} className="sys-modal__line">
+                    <span className="sys-modal__line-name">{itensPorId.get(r.itemId)?.nome ?? 'Item removido'}</span>
+                    <div className="sys-modal__line-qty">
+                      <Input
+                        name={`kit_qtd_${r.itemId}`}
+                        type="number"
+                        value={String(r.quantidade)}
+                        onChangeValue={v => alterarQuantidade(r.itemId, Number(v) || 1)}
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                    <Button variant="danger" size="sm" onClick={() => removerItem(r.itemId)}>Remover</Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ModalSection>
+        </ModalColumns>
+      </ModalBody>
 
-          {erro && (
-            <div role="alert" style={{ margin: '0 24px 12px', padding: '10px 12px', borderRadius: 8, background: tokens.color.critBg, color: tokens.color.crit, fontSize: '0.8rem', fontWeight: 600 }}>
-              {erro}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: `1px solid ${tokens.color.border}` }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${tokens.color.border}`, borderRadius: 8, color: tokens.color.textSecond, fontSize: '0.85rem', cursor: 'pointer' }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={!nome.trim() || receita.length === 0 || salvando}
-              style={{
-                padding: '10px 20px', borderRadius: 8, border: 'none', fontSize: '0.85rem', fontWeight: 700,
-                background: !nome.trim() || receita.length === 0 ? tokens.color.surfaceHigh : tokens.color.ferrari,
-                color: !nome.trim() || receita.length === 0 ? tokens.color.subtle : 'white',
-                cursor: !nome.trim() || receita.length === 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Criar Kit'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      <ModalFooter
+        hint="* Campos obrigatórios"
+        notice={erro ? <ModalNotice tone="error" role="alert">{erro}</ModalNotice> : undefined}
+      >
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" variant="primary" loading={salvando} disabled={!nome.trim() || receita.length === 0}>
+          {salvando ? 'Salvando…' : editando ? 'Salvar Alterações' : 'Criar Kit'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
