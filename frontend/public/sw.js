@@ -1,13 +1,13 @@
 // v2: a v1 guardava o index.html e servia sempre a versão antiga do app. Mudou o nome → o
 // `activate` abaixo apaga o cache velho em quem já tinha o SW instalado.
-const CACHE_NAME = 'revisacar-cache-v2';
+// v3: o app foi pra /app/ (a raiz virou a landing) e a lista tinha arquivos inexistentes
+// (logo.svg) que faziam o addAll falhar e o SW não instalar.
+const CACHE_NAME = 'revisacar-cache-v3';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
+  '/app/index.html',
   '/manifest.json',
-  '/logo.svg',
-  '/logo_maskable.svg',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fredoka:wght@300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap'
+  '/Logorevisavermelha.svg',
+  '/revisaLogoBG.svg',
 ];
 
 // Install Service Worker
@@ -36,6 +36,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Sem internet: telas do app caem no app guardado; a landing só tem cópia se já foi aberta.
+function paginaOffline(caminho) {
+  return /^\/(app(\/|$)|o\/|f\/|reset-password)/.test(caminho) ? '/app/index.html' : caminho;
+}
+
 // Fetch events interceptor
 self.addEventListener('fetch', (event) => {
   const request = event.request;
@@ -53,7 +58,7 @@ self.addEventListener('fetch', (event) => {
   // prendia o usuário no bundle antigo depois de cada deploy.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html').then((r) => r || Response.error()))
+      fetch(request).catch(() => caches.match(paginaOffline(requestUrl.pathname)).then((r) => r || Response.error()))
     );
     return;
   }

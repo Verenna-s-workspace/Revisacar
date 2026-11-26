@@ -38,8 +38,8 @@ export default function AcessoEquipePage({ codigo, children }: Props) {
           // localStorage bloqueado: o login de funcionário pede o código/CNPJ na própria tela
         }
         pedirAberturaComoFuncionario();
-        // Tira o código da barra de endereço: o painel segue na raiz e o link não fica no histórico.
-        window.history.replaceState(null, '', '/');
+        // Tira o código da barra de endereço: o painel segue em /app/ e o link não fica no histórico.
+        window.history.replaceState(null, '', '/app/');
         setEstado({ fase: 'pronto' });
       })
       .catch((e: unknown) => {
@@ -88,7 +88,7 @@ export default function AcessoEquipePage({ codigo, children }: Props) {
               type="button"
               onClick={() => {
                 pedirAberturaComoFuncionario();
-                window.history.replaceState(null, '', '/');
+                window.history.replaceState(null, '', '/app/');
                 setEstado({ fase: 'pronto' });
               }}
               style={{
