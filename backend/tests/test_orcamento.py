@@ -595,3 +595,25 @@ def test_origens_para_so_lista_quem_pode_chegar_la():
     assert set(st.origens_para(st.APROVADA)) == {st.APROVADA, st.EM_ORCAMENTO, st.PENDENTE_APROVACAO}
     assert st.FINALIZADA not in st.origens_para(st.RECUSADA) and st.EM_EXECUCAO not in st.origens_para(st.RECUSADA)
     assert set(st.ACEITAM_NOVO_ORCAMENTO) <= set(st.TODOS)
+
+
+# ── valor na lista de OS ─────────────────────────────────────────────────────
+
+def _valores(api):
+    return {o["id"]: o["valor_total"] for o in api.get("/ordens").json()}
+
+
+def test_lista_de_os_traz_o_total_do_orcamento_de_cada_uma(dono):
+    sem, rascunho, cara, barata = (_os(dono) for _ in range(4))
+    _rascunho(dono, rascunho, [_peca(preco=999)])
+    _enviado(dono, cara, [_peca(preco=1500)])
+    _enviado(dono, barata, [_servico(preco=90)])
+    v = _valores(dono)
+    assert v == {sem: None, rascunho: None, cara: 1500.0, barata: 90.0}
+
+
+def test_rascunho_novo_nao_troca_o_valor_ja_enviado(dono):
+    oid = _os(dono)
+    _enviado(dono, oid, [_peca(preco=300)])
+    _rascunho(dono, oid, [_peca(preco=700)])
+    assert _valores(dono)[oid] == 300.0
