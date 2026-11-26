@@ -2,7 +2,9 @@ import { Valor } from '../../../components/Privacidade';
 import { formatBRL } from '../../../utils/dashboard';
 import { formatarNumero } from '../../../utils/relatorios';
 import type { ItemEstoqueMovimentado } from '../../../types/estoque';
-import { IcCaixa, IcCaixas } from './relatoriosIcones';
+import { IcCaixa } from './relatoriosIcones';
+import { CaixasEmpilhadasSvg } from '../Estoque/ilustracoes'
+
 
 function FotoOuCaixaEstoque({
   item,
@@ -21,7 +23,7 @@ function FotoOuCaixaEstoque({
   }
   return (
     <div className={classe} aria-hidden='true'>
-      <IcCaixas tamanho={tamanho === 'lg' ? 36 : 20} />
+      <CaixasEmpilhadasSvg/>
     </div>
   );
 }
@@ -54,8 +56,7 @@ export function DestaquesPeriodo({ itens, onVerItem }: DestaquesPeriodoProps) {
           {/* item #1 — destaque grande */}
           <div className='rel-destaque__principal'>
             <span className='rel-destaque__selo'>Mais movimentado</span>
-
-            <div className='rel-destaque__conteudo'>
+<div className='rel-destaque__conteudo'>
               <button
                 type='button'
                 className='rel-destaque__moldura rel-destaque__moldura--lg'
@@ -67,9 +68,12 @@ export function DestaquesPeriodo({ itens, onVerItem }: DestaquesPeriodoProps) {
                 {destaque.fotoDataUrl ? (
                   <img src={destaque.fotoDataUrl} alt={destaque.nome} />
                 ) : (
-                  <IcCaixas tamanho={36} />
+                  <div style={{ width: '60%' }}>
+                    <CaixasEmpilhadasSvg />
+                  </div>
                 )}
               </button>
+              
 
               <div className='rel-destaque__info'>
                 <span className='rel-destaque__cat'>{destaque.categoria || 'Geral'}</span>
