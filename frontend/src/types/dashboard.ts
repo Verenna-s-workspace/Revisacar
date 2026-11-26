@@ -14,9 +14,8 @@ export interface OrdemRow {
   updated_at: string;
   fotos_paths?: string[];
   payload?: any;
-  /** Ainda não existe no backend (OrdemServicoSerializer / tabela ordens no Supabase).
-   *  Quando existir, os relatórios passam a usar o valor real automaticamente
-   *  via valorOS() em utils/relatorios.ts. */
+  /** Total do orçamento que vale hoje, calculado pelo GET /ordens (não é coluna).
+   *  null = OS sem orçamento enviado; a tela mostra "—". */
   valor_total?: number | null;
   /** Cliente já foi avisado de que o serviço terminou (banco; só existe depois do script alertas.sql). */
   cliente_avisado?: boolean;

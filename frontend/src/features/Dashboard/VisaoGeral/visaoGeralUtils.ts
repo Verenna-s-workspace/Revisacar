@@ -1,4 +1,3 @@
-import { valorOS } from '../../../utils/relatorios';
 import { diasDesde } from '../../../utils/atendimento_utils';
 import type { OSAtendimento, ColunasKanban, ItemKanban } from '../../../types/atendimento';
 import type { Agendamento } from '../../../types/agendamento';
@@ -42,11 +41,9 @@ export function contagemPatio(linhas: LinhaPatio[]): Record<FiltroPatio, number>
   return c;
 }
 
-/** Valor da OS para a tabela; null = "—" (orçamento ainda sem valor fechado). */
+/** Valor da OS para a tabela; null = "—" (OS sem orçamento enviado). */
 export function valorDaLinha(o: OSAtendimento): number | null {
-  if (typeof o.valor_total === 'number') return o.valor_total;
-  if (o.status === 'rascunho' || o.status === 'em_orcamento') return null;
-  return valorOS(o);
+  return o.valor_total ?? null;
 }
 
 // ── Textos ───────────────────────────────────────────────────────────────────

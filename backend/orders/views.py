@@ -716,6 +716,31 @@ def _vincular_ordem(request, oficina_doc, ordem_id, ordem):
     return os_vinculo.vincular(oficina_doc, ordem_id, ordem, pode_cadastrar=pode_cadastrar)
 
 
+def _com_valor_total(oficina_doc: str, ordens: list) -> list:
+    """Preenche `valor_total` de cada OS com o total do orçamento que vale hoje:
+    o aprovado; sem aprovado, o enviado; sem os dois, o recusado mais novo.
+    Rascunho não conta. Sem orçamento (ou se a consulta falhar) fica None."""
+    from .estoque_views import _listar_todos  # import tardio: estoque_views importa este módulo
+
+    prioridade = {"aprovado": 3, "enviado": 2, "recusado": 1}
+    try:
+        linhas = _listar_todos(lambda: (
+            supabase.table("orcamentos").select("id,ordem_id,versao,status,total")
+            .eq("oficina_doc", oficina_doc).in_("status", list(prioridade))
+            .order("id")
+        ))
+    except APIError as e:  # ex.: orcamentos.sql não rodado — a lista de OS não pode cair
+        logger.error("Ordens: não foi possível ler os totais dos orçamentos: %s", getattr(e, "message", e))
+        linhas = []
+    escolhido = {}
+    for linha in linhas:
+        chave = (prioridade[linha["status"]], linha["versao"])
+        atual = escolhido.get(linha["ordem_id"])
+        if atual is None or chave > atual[0]:
+            escolhido[linha["ordem_id"]] = (chave, float(linha["total"]))
+    return [{**o, "valor_total": escolhido.get(o["id"], (None, None))[1]} for o in ordens]
+
+
 @api_view(["GET", "POST"])
 @require_auth
 @_ordens_precisam_do_sql
@@ -736,7 +761,7 @@ def ordens_list(request):
         if status_filter:
             query = query.eq("status", status_filter)
         res = query.execute()
-        return Response(res.data)
+        return Response(_com_valor_total(oficina_doc, res.data))
 
     # POST
     serializer = OrdemServicoSerializer(data=request.data)

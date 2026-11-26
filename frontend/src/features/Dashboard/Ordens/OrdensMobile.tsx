@@ -4,7 +4,6 @@ import { Skeleton } from '../Primitives';
 import { Valor } from '../../../components/Privacidade';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { formatBRL } from '../../../utils/dashboard';
-import { valorOS } from '../../../utils/relatorios';
 import type { OrdemRow } from '../../../types/dashboard';
 import { Placa } from '../Placa';
 import { StatusOS } from './StatusOS';
@@ -25,11 +24,9 @@ interface Props {
   excluindoId: string | null;
 }
 
-/** Mesmo critério do desktop: orçamento sem valor fechado mostra "—". */
+/** Mesmo critério do desktop: OS sem orçamento enviado mostra "—". */
 function valorDaLinha(o: OrdemRow): number | null {
-  if (typeof o.valor_total === 'number') return o.valor_total;
-  if (o.status === 'rascunho' || o.status === 'em_orcamento') return null;
-  return valorOS(o);
+  return o.valor_total ?? null;
 }
 
 const POR_PAGINA = 20;
