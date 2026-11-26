@@ -3,7 +3,6 @@ import { Skeleton } from '../Primitives';
 import { Valor } from '../../../components/Privacidade';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { formatBRL } from '../../../utils/dashboard';
-import { valorOS } from '../../../utils/relatorios';
 import type { OrdemRow } from '../../../types/dashboard';
 import { Placa } from '../Placa';
 import { StatusOS } from './StatusOS';
@@ -31,11 +30,9 @@ interface Props {
   excluindoId: string | null;
 }
 
-/** Valor da OS para a tabela; null = mostra "—" (orçamento ainda sem valor fechado). */
+/** Valor da OS para a tabela; null = mostra "—" (OS sem orçamento enviado). */
 function valorDaLinha(o: OrdemRow): number | null {
-  if (typeof o.valor_total === 'number') return o.valor_total;
-  if (o.status === 'rascunho' || o.status === 'em_orcamento') return null;
-  return valorOS(o);
+  return o.valor_total ?? null;
 }
 
 interface MenuAberto { id: string; top: number; right: number }
