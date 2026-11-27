@@ -443,7 +443,7 @@ export function Step4({ os, onNextChecklist }: StepProps) {
             </button>
           );
           const salvarBtn = (
-            <button onClick={saveOrder} style={btnSolid}>
+            <button onClick={() => saveOrder()} style={btnSolid}>
               Salvar
             </button>
           );

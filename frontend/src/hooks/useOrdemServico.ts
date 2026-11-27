@@ -9,6 +9,7 @@ import {
 } from '../utils';
 import { LIM, sanitizarCampoPeca, sanitizarItemAdicional } from '../utils/campos_checklist';
 import { api } from '../utils/api';
+import { mensagemDoErro } from '../utils/api_erro';
 import { comprimirImagem } from '../utils/imagem';
 import { useFotosObrigatorias } from './useFotosObrigatorias';
 import type {
@@ -25,7 +26,10 @@ const INITIAL_OS_HEADER = (): OSHeader => ({
   os_date: nowDate(),
   os_time: nowTime(),
   os_km:   '',
+  previsao_entrega: '',
+  previsao_hora: '',
 });
+
 
 const INITIAL_CLIENTE: Cliente = { nome: '', doc: '', tel: '', email: '' };
 const INITIAL_VEICULO: Veiculo = {
@@ -35,6 +39,9 @@ const INITIAL_VEICULO: Veiculo = {
 const INITIAL_TECNICO: Tecnico = {
   nome: '', registro: '', data_saida: '', hora_saida: '', km_saida: '', parecer_geral: '',
 };
+
+/** `manter`: salva sem mexer no status da OS (salvamento automático da Entrada). */
+export interface OpcoesSalvar { manter?: boolean }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
@@ -49,6 +56,8 @@ export function useOrdemServico() {
   const [ordemStatus, setOrdemStatus] = useState<string | null>(null);
   const [savedAt, setSavedAt]       = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('');
+  /** Mensagem real (em português) do último salvamento que falhou; limpa quando um salvamento dá certo. */
+  const [saveError, setSaveError] = useState<string | null>(null);
   // O que o servidor fez com cliente/veículo ao salvar (cadastrou, avisos). Só informativo.
   const [cadastroInfo, setCadastroInfo] = useState<CadastroInfo | null>(null);
   const [errors, setErrors]         = useState<ValidationErrors>({});
@@ -61,6 +70,9 @@ export function useOrdemServico() {
   const [newPhotos, setNewPhotos] = useState<Photo[]>([]);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [tecnico,  setTecnico]  = useState<Tecnico>(INITIAL_TECNICO);
+  // Assinatura do TÉCNICO responsável pela entrada (AssinaturaPad). Vive só na memória da sessão e serve
+  // apenas para o PDF do checklist inicial: NÃO vai no payload e não é gravada no servidor (como era antes).
+  const [assinaturaTecnico, setAssinaturaTecnico] = useState<string | null>(null);
 
   // 5 fotos obrigatórias da entrada (hodômetro, frente, traseira, laterais): estado compartilhado
   // pelas etapas pro bloqueio valer na tela de fotos, nas abas e no "Próxima etapa".
@@ -351,8 +363,9 @@ export function useOrdemServico() {
   );
 
   /** Salva a OS (cria ou atualiza). Devolve true se o servidor aceitou. */
-  const salvarAgora = useCallback(async (): Promise<boolean> => {
+  const salvarAgora = useCallback(async (opts?: OpcoesSalvar): Promise<boolean> => {
     setSaveStatus('saving');
+    setSaveError(null);
     try {
       const isComplete = !!(
         osHeader.os_num  && osHeader.os_date && osHeader.os_time &&
@@ -367,7 +380,9 @@ export function useOrdemServico() {
         fotos_paths:  [],
         // Checklist completo leva ao orçamento — NÃO conclui a OS (ver utils/ordem_status.ts).
         // O servidor só promove rascunho → em_orcamento com as 5 fotos obrigatórias resolvidas.
-        status: isComplete ? 'em_orcamento' : 'rascunho',
+        // `manter` (salvamento automático da Entrada): não promove nem rebaixa a OS — só a ação explícita
+        // "Concluir entrada" (saveOrder sem opções) leva rascunho → em_orcamento.
+        status: opts?.manter ? (ordemStatus ?? 'rascunho') : (isComplete ? 'em_orcamento' : 'rascunho'),
       };
 
       let data;
@@ -404,18 +419,19 @@ export function useOrdemServico() {
       return true;
     } catch (err) {
       console.error('Erro ao salvar ordem:', err);
+      setSaveError(mensagemDoErro(err, 'Não foi possível salvar a OS. Confira os dados e a internet.'));
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(''), 3000);
       return false;
     }
-  }, [buildPayload, orderId, newPhotos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
+  }, [buildPayload, orderId, ordemStatus, newPhotos, osHeader, cliente, veiculo, tecnico, base64ToBlob]);
 
   // Um salvamento por vez: dois ao mesmo tempo (ex.: o auto-salvar da tela de fotos junto com o do
   // "Iniciar Atendimento") criariam duas OS. Quem chega no meio recebe o resultado do que já está em curso.
   const emCurso = useRef<Promise<boolean> | null>(null);
-  const saveOrder = useCallback((): Promise<boolean> => {
+  const saveOrder = useCallback((opts?: OpcoesSalvar): Promise<boolean> => {
     if (emCurso.current) return emCurso.current;
-    const p = salvarAgora().finally(() => { emCurso.current = null; });
+    const p = salvarAgora(opts).finally(() => { emCurso.current = null; });
     emCurso.current = p;
     return p;
   }, [salvarAgora]);
@@ -485,6 +501,7 @@ export function useOrdemServico() {
     setCliente(payload.cliente    || INITIAL_CLIENTE);
     setVeiculo({ ...INITIAL_VEICULO, ...(payload.veiculo || {}) });
     setTecnico(payload.tecnico    || INITIAL_TECNICO);
+    setAssinaturaTecnico(null);
 
     setSelected(new Set(payload.servicos_selecionados || []));
     setChecklist(payload.checklist || initChecklist());
@@ -542,6 +559,7 @@ export function useOrdemServico() {
     setCliente(INITIAL_CLIENTE);
     setVeiculo(INITIAL_VEICULO);
     setTecnico(INITIAL_TECNICO);
+    setAssinaturaTecnico(null);
     setSelected(new Set());
     setChecklist(initChecklist());
     setItensAdicionais([]);
@@ -589,6 +607,8 @@ export function useOrdemServico() {
     cliente,  setCliente,
     veiculo,  setVeiculo,
     tecnico,  setTecnico,
+    assinaturaTecnico, setAssinaturaTecnico,
+    saveError,
     photos,   setPhotos,
     newPhotos, setNewPhotos,
     lightbox, setLightbox,

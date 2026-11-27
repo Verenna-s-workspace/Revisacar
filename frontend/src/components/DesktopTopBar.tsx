@@ -50,7 +50,10 @@ function iniciaisDe(nome?: string): string {
   return partes[0] ? partes[0].slice(0, 2).toUpperCase() : 'OF';
 }
 
-export function DesktopTopBar({ page, onNav }: { page: NavPage; onNav: (p: NavPage) => void }) {
+/** Item da trilha própria (telas fora da navegação, como a OS): o último é a página atual. Com `onClick` vira botão. */
+export interface ItemTrilha { rotulo: string; onClick?: () => void }
+
+export function DesktopTopBar({ page, onNav, trilha }: { page: NavPage; onNav: (p: NavPage) => void; trilha?: ItemTrilha[] }) {
   const { user, logout } = useAuth();
   const { total } = useAlertasResumo();
   const { abrir: abrirBusca } = useBuscaGlobal();
@@ -75,9 +78,25 @@ export function DesktopTopBar({ page, onNav }: { page: NavPage; onNav: (p: NavPa
   return (
     <header className="rv-tb">
       <nav className="rv-tb__crumb" aria-label="Você está em">
-        <span>{grupo}</span>
-        <span aria-hidden="true">/</span>
-        <span className="rv-tb__crumb-atual" aria-current="page">{tela}</span>
+        {trilha && trilha.length > 0 ? trilha.map((t, i) => {
+          const ultimo = i === trilha.length - 1;
+          return (
+            <span key={`${t.rotulo}-${i}`} style={{ display: 'contents' }}>
+              {ultimo
+                ? <span className="rv-tb__crumb-atual" aria-current="page">{t.rotulo}</span>
+                : t.onClick
+                  ? <button type="button" className="rv-tb__crumb-link" onClick={t.onClick}>{t.rotulo}</button>
+                  : <span>{t.rotulo}</span>}
+              {!ultimo && <span aria-hidden="true">/</span>}
+            </span>
+          );
+        }) : (
+          <>
+            <span>{grupo}</span>
+            <span aria-hidden="true">/</span>
+            <span className="rv-tb__crumb-atual" aria-current="page">{tela}</span>
+          </>
+        )}
       </nav>
 
       <div className="rv-tb__esp" />

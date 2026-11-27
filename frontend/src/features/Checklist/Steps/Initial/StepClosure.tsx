@@ -360,7 +360,7 @@ export function Step3({ os, onExportPDF, onNextChecklist }: StepProps) {
               </svg>
               Voltar
             </button>
-            <button onClick={saveOrder} style={btnSolid}>
+            <button onClick={() => saveOrder()} style={btnSolid}>
               Enviar para o banco de dados
             </button>
              <button

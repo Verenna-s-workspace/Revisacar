@@ -15,6 +15,9 @@ class OSHeaderSerializer(serializers.Serializer):
     os_date = serializers.CharField(default="", allow_blank=True)
     os_time = serializers.CharField(default="", allow_blank=True)
     os_km = serializers.CharField(default="", allow_blank=True)
+    # Previsão de entrega do veículo ao cliente (data AAAA-MM-DD e hora HH:MM, ambas opcionais).
+    previsao_entrega = serializers.CharField(default="", allow_blank=True)
+    previsao_hora = serializers.CharField(default="", allow_blank=True)
 
     # Regras de formato dos campos da OS: orders/campos_os.py (espelho de utils/campos_checklist.ts).
     def validate_os_num(self, value):
@@ -28,6 +31,20 @@ class OSHeaderSerializer(serializers.Serializer):
 
     def validate_os_km(self, value):
         return campos.km(value)
+
+    def validate_previsao_entrega(self, value):
+        return campos.data_iso(value)      # pode ser futura (é uma previsão)
+
+    def validate_previsao_hora(self, value):
+        return campos.hora(value)
+
+    def validate(self, attrs):
+        prev, entrada = attrs.get("previsao_entrega"), attrs.get("os_date")
+        if prev and entrada and prev < entrada:
+            raise serializers.ValidationError({"previsao_entrega": "A previsão não pode ser anterior à data de entrada"})
+        if attrs.get("previsao_hora") and not prev:
+            raise serializers.ValidationError({"previsao_hora": "Informe a data da previsão"})
+        return attrs
 
 
 def _id_opcional(value):

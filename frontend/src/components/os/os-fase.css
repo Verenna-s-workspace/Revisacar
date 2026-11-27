@@ -1,0 +1,227 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Estrutura da OS por fases — compartilhada por Entrada, Diagnóstico, Orçamento…
+ * Stepper de fases · sub-etapas · cabeçalho da OS · painel de resumo · gaveta.
+ * Só tokens (var(--…)); sem Tailwind; mobile 390px primeiro (alvos ≥ 44px, sem rolagem horizontal da página).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.osf {
+  display: flex; flex-direction: column; gap: 20px;
+  width: 100%; max-width: 1320px; margin: 0 auto; box-sizing: border-box;
+  padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+  font-family: var(--font-sans); color: var(--color-text);
+}
+@media (min-width: 980px) { .osf { padding: 28px 32px 48px; gap: 24px; } }
+
+.osf button { font-family: inherit; }
+.osf button:focus-visible, .osf-gaveta button:focus-visible, .osf a:focus-visible {
+  outline: 2px solid var(--color-text); outline-offset: 2px;
+}
+
+/* ── Cabeçalho da OS ─────────────────────────────────────────────────────── */
+.osf-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
+.osf-cab__id { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; min-width: 0; }
+.osf-cab__placa-vazia {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 124px; height: 48px; padding: 0 16px; box-sizing: border-box;
+  border: 2px dashed var(--color-border-high); border-radius: var(--radius-md);
+  font-size: var(--text-sm, 0.8125rem); font-weight: 600; letter-spacing: 0.18em; color: var(--color-muted);
+}
+.osf-cab__txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.osf-cab__linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.osf-cab__titulo { margin: 0; font-size: 1.5rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.osf-cab__meta { font-size: 0.875rem; color: var(--color-text-second); overflow-wrap: anywhere; }
+.osf-cab__acoes { display: flex; gap: 8px; position: relative; }
+@media (min-width: 640px) { .osf-cab__titulo { font-size: 1.75rem; } }
+
+.osf-icbtn {
+  width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-border-md); border-radius: var(--radius-md); cursor: pointer;
+}
+.osf-icbtn:hover { background: var(--color-surface-high); }
+
+.osf-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 220px; padding: 6px;
+  background: var(--color-surface); border: 1px solid var(--color-border-md); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md); display: flex; flex-direction: column;
+}
+.osf-menu button {
+  min-height: 44px; padding: 0 12px; text-align: left; background: none; border: 0; border-radius: var(--radius-md);
+  font-size: 0.875rem; color: var(--color-text); cursor: pointer;
+}
+.osf-menu button:hover { background: var(--color-surface-high); }
+.osf-menu button[data-perigo='true'] { color: var(--color-crit); }
+
+/* ── Stepper de fases ────────────────────────────────────────────────────── */
+.osf-fases { display: flex; align-items: center; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.osf-fase { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 0.8125rem; font-weight: 500; color: var(--color-muted); }
+.osf-fase__btn { display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 4px 0; min-height: 44px; font: inherit; color: inherit; cursor: pointer; }
+.osf-fase__marca {
+  flex: none; width: 26px; height: 26px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1px solid var(--color-border-high); background: var(--color-surface);
+  font-size: 0.75rem; font-weight: 600;
+}
+.osf-fase[data-estado='atual'] { color: var(--color-text); font-weight: 600; }
+.osf-fase[data-estado='atual'] .osf-fase__marca { border: 2px solid var(--color-text); color: var(--color-text); }
+.osf-fase[data-estado='concluida'] { color: var(--color-text); }
+.osf-fase[data-estado='concluida'] .osf-fase__marca { background: var(--color-text); border-color: var(--color-text); color: var(--color-surface); }
+.osf-fase__conector { flex: 1 1 12px; min-width: 8px; height: 1px; background: var(--color-border-md); }
+/* celular: só o rótulo da fase atual; o resto vira marcador numerado */
+@media (max-width: 639px) {
+  .osf-fase:not([data-estado='atual']) .osf-fase__rotulo { display: none; }
+  .osf-fase__conector { min-width: 6px; }
+}
+.osf-fases > li:not(.osf-fase) { flex: 1 1 12px; }
+.osf-fases > li.osf-fase { flex: none; }
+.osf-fases > li.osf-fase__sep { flex: 1 1 12px; min-width: 6px; }
+
+/* ── Sub-etapas ──────────────────────────────────────────────────────────── */
+.osf-sub {
+  display: flex; gap: 0; list-style: none; margin: 0; padding: 0;
+  border-bottom: 1px solid var(--color-border); overflow-x: auto; scrollbar-width: none; max-width: 100%;
+}
+.osf-sub::-webkit-scrollbar { display: none; }
+.osf-sub__btn {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 4px; margin-right: 20px; margin-bottom: -1px;
+  background: none; border: 0; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer;
+  font-size: 0.875rem; font-weight: 500; color: var(--color-text-second);
+}
+@media (min-width: 640px) { .osf-sub__btn { margin-right: 32px; font-size: 0.9375rem; } }
+.osf-sub__btn[aria-current='step'] { border-bottom-color: var(--color-text); color: var(--color-text); font-weight: 600; }
+.osf-sub__btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.osf-ic {
+  flex: none; width: 22px; height: 22px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 1.5px solid currentColor; font-size: 0.75rem; font-weight: 600;
+}
+.osf-ic[data-estado='completa'] { background: var(--color-ok); border-color: var(--color-ok); color: #fff; }
+.osf-ic[data-estado='opcional'] { border-style: dashed; }
+
+/* ── Corpo: card da etapa + painel lateral ───────────────────────────────── */
+.osf-corpo { display: flex; flex-direction: column; gap: 20px; align-items: stretch; }
+@media (min-width: 980px) {
+  .osf-corpo { flex-direction: row; align-items: flex-start; gap: 24px; }
+  .osf-corpo > .osf-card { flex: 1 1 0; min-width: 0; }
+  .osf-corpo > .osf-resumo { flex: 0 0 340px; position: sticky; top: 16px; }
+}
+.osf-card {
+  display: flex; flex-direction: column; gap: 22px; box-sizing: border-box; min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 20px;
+}
+@media (min-width: 640px) { .osf-card { padding: 28px; } }
+.osf-card__titulo { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.osf-card__sub { margin: 0; font-size: 0.9375rem; color: var(--color-text-second); line-height: 1.5; }
+.osf-sec { display: flex; flex-direction: column; gap: 18px; }
+.osf-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 640px) { .osf-grid--2 { grid-template-columns: 1fr 1fr; } .osf-grid--3 { grid-template-columns: repeat(3, 1fr); } }
+.osf-rodape {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
+  border-top: 1px solid var(--color-border); padding-top: 18px;
+}
+.osf-rodape .sys-btn { min-height: 44px; }
+.osf-nota { font-size: 0.8125rem; color: var(--color-muted); line-height: 1.45; margin: 0; }
+.osf-aviso { padding: 12px 14px; border-radius: var(--radius-md); font-size: 0.875rem; line-height: 1.45; border: 1px solid var(--color-border-md); border-left-width: 3px; background: var(--color-surface-high); }
+.osf-aviso[data-tom='crit'] { background: var(--color-crit-bg); border-color: var(--color-crit); }
+.osf-aviso[data-tom='warn'] { background: var(--color-warn-bg); border-color: var(--color-warn); }
+.osf-link { background: none; border: 0; padding: 8px; min-height: 44px; font-size: 0.875rem; font-weight: 600; color: var(--color-text); text-decoration: underline; cursor: pointer; }
+
+/* ── Painel "Resumo da <fase>" ───────────────────────────────────────────── */
+.osf-resumo {
+  display: flex; flex-direction: column; gap: 16px; box-sizing: border-box; min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 20px;
+}
+.osf-resumo__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.osf-resumo__titulo { margin: 0; font-size: 1rem; font-weight: 700; }
+.osf-resumo__cont { font-size: 0.8125rem; color: var(--color-text-second); }
+.osf-resumo__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.osf-resumo__item {
+  width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px; text-align: left; box-sizing: border-box;
+  padding: 8px; background: transparent; border: 0; border-radius: var(--radius-lg); color: var(--color-text); cursor: pointer;
+}
+.osf-resumo__item[aria-current='step'] { background: var(--color-surface-high); }
+.osf-resumo__item:disabled { opacity: 0.5; cursor: not-allowed; }
+.osf-resumo__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.osf-resumo__rot { font-size: 0.9375rem; font-weight: 600; }
+.osf-resumo__det { font-size: 0.8125rem; color: var(--color-text-second); overflow-wrap: anywhere; }
+.osf-resumo__pend { font-size: 0.8125rem; font-weight: 500; color: var(--color-warn); }
+.osf-resumo__sep { height: 1px; background: var(--color-border); }
+.osf-resumo__cta { width: 100%; min-height: 48px; }
+.osf-resumo__ajuda { margin: 0; font-size: 0.8125rem; color: var(--color-text-second); line-height: 1.45; }
+.osf-resumo__salvo { margin: 0; font-size: 0.75rem; color: var(--color-muted); }
+
+/* ── Gaveta (drawer) ─────────────────────────────────────────────────────── */
+.osf-gaveta { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: flex-end; background: rgba(26, 26, 26, 0.4); }
+.osf-gaveta__painel {
+  width: 400px; max-width: 100%; height: 100dvh; box-sizing: border-box; overflow-y: auto;
+  background: var(--color-surface); box-shadow: -8px 0 32px rgba(0, 0, 0, 0.14);
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 18px;
+}
+.osf-gaveta__topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.osf-gaveta__titulo { margin: 0; font-size: 1.125rem; font-weight: 700; }
+.osf-linha { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.osf-linha li { display: flex; gap: 12px; }
+.osf-linha__ponto { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--color-text); margin-top: 6px; }
+.osf-linha__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.osf-linha__t { font-size: 0.9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.osf-linha__m { font-size: 0.8125rem; color: var(--color-text-second); }
+
+/* ── Fotos obrigatórias (grade de slots) ─────────────────────────────────── */
+.osf-barra { height: 6px; border-radius: 3px; background: var(--color-border); overflow: hidden; }
+.osf-barra > div { height: 100%; background: var(--color-ok); transition: width 0.25s ease; }
+.osf-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (min-width: 640px) { .osf-slots { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; } }
+.osf-slot { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.osf-slot__btn {
+  min-height: 120px; width: 100%; box-sizing: border-box; padding: 8px; border-radius: var(--radius-xl); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center;
+  background: var(--color-surface-high); border: 1.5px dashed var(--color-border-high); color: var(--color-text-second);
+  font-size: 0.8125rem; font-weight: 500; overflow: hidden; position: relative;
+}
+.osf-slot__btn[data-estado='foto'] { border: 1.5px solid var(--color-ok-border); background: var(--color-ok-bg); color: var(--color-ok); }
+.osf-slot__btn[data-estado='pulada'] { border: 1.5px solid var(--color-warn-border); background: var(--color-warn-bg); color: var(--color-warn); }
+.osf-slot__btn[data-destaque='true'] { border-color: var(--color-crit); background: var(--color-crit-bg); }
+.osf-slot__btn:disabled { cursor: not-allowed; opacity: 0.6; }
+.osf-slot__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.osf-slot__rotulo { font-size: 0.875rem; font-weight: 600; text-align: center; }
+.osf-slot__dica { font-size: 0.75rem; color: var(--color-muted); text-align: center; line-height: 1.3; }
+.osf-slot__acoes { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.osf-slot__erro { font-size: 0.75rem; color: var(--color-crit); text-align: center; }
+
+/* ── Assinatura ──────────────────────────────────────────────────────────── */
+.osf-ass { min-height: 160px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 12px;
+  border-radius: var(--radius-xl); background: var(--color-surface-high); border: 1.5px dashed var(--color-border-high); text-align: center; }
+.osf-ass[data-estado='assinada'] { border: 1.5px solid var(--color-ok-border); background: var(--color-surface); }
+.osf-ass img { max-width: 100%; max-height: 140px; }
+
+/* ── Escolha do cliente/veículo ──────────────────────────────────────────── */
+.osf-ou { display: flex; align-items: center; gap: 12px; color: var(--color-muted); font-size: 0.8125rem; }
+.osf-ou::before, .osf-ou::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+.osf-opcoes { display: flex; flex-wrap: wrap; gap: 10px; }
+.osf-opcao {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; text-align: left; cursor: pointer;
+  background: var(--color-surface); border: 1px solid var(--color-border-md); border-radius: var(--radius-lg); color: var(--color-text);
+  max-width: 100%; box-sizing: border-box;
+}
+.osf-opcao:hover { background: var(--color-surface-high); }
+.osf-opcao--novo { border-style: dashed; color: var(--color-text-second); font-size: 0.875rem; font-weight: 500; }
+.osf-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--color-surface-high); display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 600; }
+.osf-opcao__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.osf-opcao__n { font-size: 0.9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.osf-opcao__d { font-size: 0.8125rem; color: var(--color-text-second); overflow-wrap: anywhere; }
+.osf-cartao { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--color-surface-high); border-radius: var(--radius-xl); }
+.osf-cartao__id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.osf-busca { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.osf-busca > :first-child { flex: 1 1 200px; min-width: 0; }
+
+@media (prefers-reduced-motion: reduce) { .osf-barra > div { transition: none; } }
+
+/* ── Bloco recolhido ─────────────────────────────────────────────────────── */
+.osf-rec { border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--color-surface); min-width: 0; }
+.osf-rec__btn {
+  width: 100%; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 16px; box-sizing: border-box;
+  background: none; border: 0; border-radius: var(--radius-xl); cursor: pointer; text-align: left; color: var(--color-text);
+}
+.osf-rec__btn:disabled { cursor: default; }
+.osf-rec__t { font-size: 0.9375rem; font-weight: 600; }
+.osf-rec__n { flex: 1; font-size: 0.8125rem; color: var(--color-muted); }
+.osf-rec__btn > svg { margin-left: auto; flex: none; }
+.osf-rec__corpo { padding: 4px 16px 18px; display: flex; flex-direction: column; gap: 16px; }

@@ -738,3 +738,34 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **Validado:** `tsc --noEmit` e `npm run build`; Agenda, Financeiro e Relatórios a 390px (API simulada, listas vazias/erro 503) idênticos pixel a pixel à versão anterior ao merge; filtros e novo agendamento da Agenda e o modal de período abrem sem erro.
 
 **NÃO validado:** nada contra o backend real; telas com dados preenchidos; demais modais no navegador; desktop no navegador; Estoque e Veículos no navegador.
+
+## Checklist de ENTRADA redesenhado por fases (2026-11-24, branch feat/checklist-entrada-redesign, parte de main)
+
+**Pedido:** redesenhar só a fase de Entrada da OS (protótipo "Entrada da OS" + CSS do Figma + print do Diagnóstico), com a base (stepper de fases, sub-etapas, cabeçalho, painel de resumo, gaveta) reutilizável pelas próximas fases. Sem mudar regra de negócio.
+
+**Problema:** dois menus competiam (stepper de processo + abas Resumo/Orçamento/Financeiro/Fotos/Histórico) e a tela parecia um visualizador da OS. "Previsão de entrega" não existia no payload.
+
+**Decisões**
+- Estrutura: stepper de 6 fases → 4 sub-etapas da Entrada (Cliente e veículo · Relato e avarias · Fotos · Responsável e assinatura; `os.step` 1–4) → card da etapa (com Voltar/Continuar) + painel fixo "Resumo da entrada". No celular o painel vai abaixo. Histórico virou gaveta (relógio); não há aba de Financeiro.
+- Cabeçalho monta ao identificar o veículo (placa Mercosul pelo `Placa` existente, `StatusOSBadge` com o rótulo atual "Em andamento", linha "OS #… · cliente · entrada · km"); antes: "Nova OS" + placa tracejada. Breadcrumb "Operação / Ordens / Nova OS → OS #n" (`DesktopTopBar` ganhou prop opcional `trilha`).
+- Regras mantidas: Relato e Avarias opcionais; responsável (técnico) obrigatório para sair de rascunho, sugerido pelo usuário logado; Etapa 1 pede nome+telefone do cliente, modelo e placa do veículo e nº/data/hora da OS (automáticos, editáveis, exigidos pelo servidor); "Concluir entrada" libera com Etapa 1 + 5 fotos resolvidas + responsável. A assinatura NÃO bloqueia.
+- **Assinatura = do TÉCNICO, só para o PDF.** `AssinaturaPad` na sub-etapa 4; a imagem fica em `os.assinaturaTecnico` (memória da sessão), NÃO vai no payload nem é gravada no servidor (como era antes, quando era o canvas `sigRef` do hook). Sem assinatura, o PDF sai com a linha em branco e a tela avisa. A assinatura do cliente não existe na Entrada: será coletada no Fechamento (retirada) e na Aprovação (aceite do orçamento), em prompts futuros.
+- **Reversão (correção desta entrega):** a primeira versão guardava `assinaturas.entrada` (status assinada/adiada/pendente, termo do cliente, "assinar depois", pendência no resumo). Foi removida por inteiro: `backend/orders/assinaturas_os.py`, o campo e os serializers de assinatura, o carimbo em `views.py` (que voltou idêntico à `main`) e os testes correspondentes. Ficou só `previsao_entrega`/`previsao_hora`.
+- PDF da entrada: botão "Gerar PDF da entrada" na sub-etapa 4, no menu "…" do cabeçalho e no `Topbar` do celular (`onExportPDF` voltou a ser obrigatório, como na `main`); usa o `utils/exportPDF` de sempre. "Gerar laudo PDF" (OS concluída) continua fora da Entrada.
+- Campos restaurados (nada recriado no PDF; o `exportPDF` já imprime todos): sub-etapa 1 → bloco recolhido "Dados da OS" (nº, data e hora de entrada), tipo de combustível e chassi (opcionais) além do nível; sub-etapa 4 → Registro/CREA (opcional) e bloco recolhido "Dados de saída" (km, data, hora de saída e parecer geral), com `TODO(Fechamento)` no código: pertencem ao Fechamento e devem ser movidos para lá. Não são pré-preenchidos (a tela antiga mostrava data/hora de agora sem gravar).
+- Rascunho é criado ao identificar o veículo (antes: ao sair da Identificação). Salvamento automático usa `saveOrder({ manter: true })` (não promove nem rebaixa o status); só "Concluir entrada" (`saveOrder()`) promove rascunho → em_orcamento, e o servidor continua exigindo as 5 fotos.
+- Previsão de entrega (sem migração): `os_header.previsao_entrega` (AAAA-MM-DD) e `previsao_hora` (HH:MM), opcionais; não pode ser anterior à data de entrada; hora exige data. Declarados no `OSHeaderSerializer` (o payload gravado é `serializer.data`: campo não declarado é descartado).
+- Fotos: slots com legenda em todos ("Painel (km)", Frente, Traseira, "Lateral dir.", "Lateral esq."), contador real "x de 5", estados vazio/registrada/"Sem foto", "Não consigo tirar" e "Refazer"; lógica toda em `useFotosObrigatorias`/`CameraCapture`/`PularFotoSheet`. Avançar para a sub-etapa 4 sem as 5 resolvidas volta para Fotos e realça o que falta.
+- Histórico da OS monta eventos só do que já está registrado (criação e fotos); não há log de eventos no servidor.
+
+**Arquivos**
+- Backend: `orders/serializers.py` (só a previsão), `tests/test_ordens_previsao.py` (novo).
+- Front, compartilhado: `components/os/*` (StepperFases, SubEtapas, CabecalhoOS, PainelResumo, GavetaOS, RodapeEtapa, LayoutFaseOS, Recolhivel, IconeEtapa, os-fase.css), `utils/os_fases.ts`.
+- Front, Entrada: `pages/InitialChecklist.tsx` (reescrita), `features/Checklist/Entrada/*`, `utils/{entrada_os,historico_os,usar_cadastro}.ts`, `hooks/useOrdemServico.ts` (previsão, `assinaturaTecnico`, `saveError`, `saveOrder({manter})`), `types/index.ts`, `utils/campos_checklist.ts`, `components/DesktopTopBar.tsx`, `styles/desktop-topbar.css`, `App.tsx` (voltar do Diagnóstico cai na sub-etapa 4).
+
+**Validado:** regras de `utils/entrada_os.ts` executadas (relato opcional, assinatura não bloqueia, responsável obrigatório, fotos, cabeçalho da OS, etapas bloqueadas, contador); `py_compile` de serializers/views/testes; `views.py` idêntico ao da `main`; `tsc` sem erro de sintaxe nos arquivos tocados (os demais erros vêm de `@types/react` ausente, não de tipo real).
+
+**Validado após mesclar com a `main` (fb1a2b0, 2026-11-26):** `tsc --noEmit` limpo, `npm run build` ok e `pytest` (167 passaram, 935 pulados). Os 6 `onClick={saveOrder}` dos Steps antigos viraram `onClick={() => saveOrder()}` por causa da nova assinatura `saveOrder(opts?)`. A top-bar manteve a busca global (⌘K) junto com a `trilha`.
+**NÃO validado:** ESLint e `flake8`; contra o Supabase real; no navegador a 390px e em aparelho (câmera, toque da assinatura); fluxo "Fazer OS"/"Iniciar Atendimento" ponta a ponta; abrir o PDF gerado; reabrir OS antiga na tela nova.
+
+**Pendências:** `Step1/Step2/Step3` antigos da Entrada (`features/Checklist/Steps/Initial/*`, `configs/initial.tsx`, `StepTabs`) ficaram sem uso — candidatos a limpeza após validar a tela nova; o PDF da entrada tem só a caixa de assinatura do técnico (não há linha em branco para o cliente assinar à mão — não foi criada) e não imprime a previsão de entrega; mover "Dados de saída" para o Fechamento; sem log de eventos no servidor para o Histórico.

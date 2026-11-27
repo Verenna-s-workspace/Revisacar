@@ -121,7 +121,7 @@ export default function App() {
 
   // "Voltar" na primeira etapa do diagnóstico: cai na última etapa da Entrada (Encerramento).
   const handleBackToEntradaFim = () => {
-    os.goStep(3, 4);
+    os.goStep(4, 5);       // última sub-etapa da Entrada (Assinatura)
     setView('os');
   };
 

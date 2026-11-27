@@ -455,7 +455,7 @@ export function Step3({ os }: StepProps) {
                 Voltar
               </button>
             )}
-            <button onClick={saveOrder} style={btnSolid}>
+            <button onClick={() => saveOrder()} style={btnSolid}>
               Salvar
             </button>
             <button

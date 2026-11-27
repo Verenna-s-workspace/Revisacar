@@ -324,7 +324,7 @@ export function Step1({ os }: StepProps) {
         }
         right={
           <>
-            <button onClick={saveOrder} style={btnGhost}>
+            <button onClick={() => saveOrder()} style={btnGhost}>
               Salvar rascunho
             </button>
             <button onClick={handleNextStep1} style={btnAccent}>

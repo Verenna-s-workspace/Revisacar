@@ -5,6 +5,9 @@ export interface OSHeader {
   os_date: string;
   os_time: string;
   os_km: string;
+  /** Previsão de entrega do veículo ao cliente: data AAAA-MM-DD e hora HH:MM (ambas opcionais). */
+  previsao_entrega?: string;
+  previsao_hora?: string;
 }
 
 export interface Cliente {

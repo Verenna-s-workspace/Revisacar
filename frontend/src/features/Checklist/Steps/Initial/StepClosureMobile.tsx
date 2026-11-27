@@ -224,7 +224,7 @@ export function StepClosureMobile({ os, onExportPDF, onNextChecklist }: StepClos
         </button>
 
         <div className="clm-footer__row">
-          <button type="button" className="clm-btn clm-btn--secondary" onClick={saveOrder}>
+          <button type="button" className="clm-btn clm-btn--secondary" onClick={() => saveOrder()}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7M4 7c0-2 1.5-3 3.5-3h9c2 0 3.5 1 3.5 3M4 7h16m-8 4v6m-3-3l3 3 3-3" />
             </svg>

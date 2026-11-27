@@ -131,7 +131,7 @@ export function Step2({ os }: StepProps) {
               </svg>
               Voltar
             </button>
-            <button onClick={saveOrder} style={btnSolid}>
+            <button onClick={() => saveOrder()} style={btnSolid}>
               Salvar
             </button>
             <button onClick={() => goStep(step + 1, step)} style={btnAccent}>
