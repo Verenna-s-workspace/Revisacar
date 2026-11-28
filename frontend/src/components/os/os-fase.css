@@ -225,3 +225,22 @@
 .osf-rec__n { flex: 1; font-size: 0.8125rem; color: var(--color-muted); }
 .osf-rec__btn > svg { margin-left: auto; flex: none; }
 .osf-rec__corpo { padding: 4px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Corpo com menu lateral (Diagnóstico) ────────────────────────────────── */
+@media (min-width: 980px) {
+  .osf-corpo.osf-corpo--menu {
+    display: grid; align-items: start; gap: 20px 24px;
+    grid-template-columns: minmax(0, 1fr) 288px;
+    grid-template-areas: 'menu menu' 'card painel';
+  }
+  .osf-corpo--menu > .osd-menu { grid-area: menu; }
+  .osf-corpo--menu > .osf-card { grid-area: card; }
+  .osf-corpo--menu > .osf-resumo { grid-area: painel; flex: none; }
+}
+@media (min-width: 1180px) {
+  .osf-corpo.osf-corpo--menu {
+    grid-template-columns: 196px minmax(0, 1fr) 288px;
+    grid-template-areas: 'menu card painel';
+  }
+  .osf-corpo--menu > .osd-menu { position: sticky; top: 16px; }
+}

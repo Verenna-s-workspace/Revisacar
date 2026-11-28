@@ -22,6 +22,7 @@ import { formatNome } from '../components/inputs/masks';
 import { AvisoCadastro } from '../features/Checklist/Steps/Initial/CadastroExistente';
 import { ETAPA, clienteVeiculoCompleto, etapasDaEntrada, resumoDaEntrada } from '../utils/entrada_os';
 import { eventosDaOS } from '../utils/historico_os';
+import { montarCabecalhoOS } from '../utils/cabecalho_os';
 import { formatarQuando } from '../utils/fotos_obrigatorias';
 
 interface CheckProps {
@@ -169,11 +170,7 @@ export default function Check({ os, prefill, onBackToStart, onNextChecklist }: C
 
   // ── Cabeçalho ──────────────────────────────────────────────────────────────
   const { osHeader, veiculo, cliente } = os;
-  const [, mm, dd] = (osHeader.os_date || '').split('-');
-  const entradaTxt = osHeader.os_date ? `entrada ${dd}/${mm}${osHeader.os_time ? ` às ${osHeader.os_time}` : ''}` : '';
-  const kmTxt = osHeader.os_km ? `${Number(osHeader.os_km).toLocaleString('pt-BR')} km` : '';
-  const meta = [`OS #${osHeader.os_num}`, cliente.nome, entradaTxt, kmTxt].filter(Boolean).join(' · ');
-  const titulo = [veiculo.modelo, veiculo.ano].filter(Boolean).join(' · ');
+  const { titulo, meta } = montarCabecalhoOS(osHeader, veiculo, cliente);
   const eventos = eventosDaOS({ orderId: os.orderId, osHeader, fotos: fotos.itens });
 
   const salvoTxt = os.saveStatus === 'error' ? undefined : os.savedAt ? `Salvo automaticamente às ${os.savedAt}` : undefined;

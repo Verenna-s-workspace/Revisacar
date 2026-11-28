@@ -1,0 +1,791 @@
+# TIMELINE — RevisaCar (guia de desenvolvimento, um módulo por vez)
+
+Fluxo: analisar → planejar → backend → banco → APIs → frontend → integração → testes → validação.
+
+## Status dos módulos
+| Módulo | Status |
+|---|---|
+| Estoque | 🟡 Backend + SQL + testes prontos; hooks/telas do frontend ajustados (tsc + build ok). Falta: rodar SQL no Supabase e validar fim-a-fim |
+| Clientes | ⏸️ Pausado a pedido (backend feito na cópia anterior, fora deste repo) |
+| Catálogo (Serviços) | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok). Falta: rodar `servicos.sql`, relogar, validar no navegador |
+| Visão Geral | 🟡 Backend + SQL + testes + frontend prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `visao_geral.sql`, relogar, validar contra o Supabase real |
+| Financeiro | 🟡 Backend + SQL + testes + hook/telas prontos (tsc + build ok, smoke no navegador com API simulada). Falta: rodar `financeiro.sql`, validar contra o Supabase real |
+| Orçamento — Fase 0 (status da OS) | 🟡 Backend + SQL + testes + front prontos (tsc + build ok, 296 testes). Falta: rodar `ordens_status.sql` no Supabase e validar no navegador |
+| Orçamento — Fase 1 (backend) | 🟡 SQL + API + testes prontos (361 testes). Sem frontend ainda (Fase 2). Falta: rodar `orcamentos.sql` (depois de `ordens_oficina.sql` e `ordens_status.sql`) e validar contra o Supabase real |
+| Orçamento — Fase 2 (tela da etapa 3) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: desktop dono/mecânico/atendente, mobile 390px e fluxo entrada→diagnóstico→orçamento). Falta: rodar os SQLs no Supabase e validar contra o backend real |
+| Orçamento — Fase 3 (PDF) | 🟡 Backend + front prontos (385 testes; smoke no navegador com API simulada). Falta: `pip install -r requirements.txt` (reportlab, pillow), rodar `orcamentos.sql` de novo (acrescenta 3 colunas) e validar com o Storage real |
+| Orçamento — Fase 4 (Financeiro + reserva de estoque) | 🟡 SQL + API + front prontos (403 testes; smoke no navegador com API simulada). Falta: rodar `orcamentos.sql` de novo (precisa de `estoque.sql` e `financeiro.sql` antes) e validar contra o Supabase real |
+| Orçamento — Fase 5 (execução e fechamento) | 🟡 SQL + API + front prontos (429 testes; smoke no navegador com API simulada). Falta: rodar `ordens_execucao.sql` (depois de `ordens_status.sql`, `estoque.sql` e `orcamentos.sql`) e validar contra o Supabase real |
+| Alertas (tela dedicada) | 🟡 Frontend pronto (tsc + build ok; smoke no navegador com API simulada: lista, filtros, atalhos, vazio, erro, mobile 390px). 4 tipos: OS bloqueada, estoque baixo, cliente a avisar, quarentena. Sem backend novo. Orçamento/financeiro ficam pra depois (ver seção) |
+| Alertas — cliente avisado no banco + orçamento/financeiro | 🟡 SQL + API + front prontos (474 testes; smoke no navegador com API simulada: 8 tipos, filtros, atalhos, fallback sem script, migração do navegador, mecânico sem financeiro, mobile). Falta: rodar `alertas.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase real |
+| Alertas — adiar/dispensar | 🟡 SQL + API + front prontos (509 testes; smoke no navegador com API simulada: adiar 1/3/7 dias, dispensar, desfazer, voltar a mostrar, persistência, limpeza quando o problema se resolve, 503, mobile). Falta: rodar `alertas.sql` de novo (acrescenta a tabela `alertas_dispensados`) e validar contra o Supabase real |
+| Orçamento — Fase 6A (link público do cliente) | 🟡 SQL + API + front prontos (584 testes; smoke no navegador com API simulada: bloco "Link para o cliente", página pública `/o/<código>` — ver, aprovar, recusar, vencido/aprovado/recusado/substituído, erros 404/410/429/rede, celular 390px — e o grupo de alertas "Clientes que responderam"). Falta: rodar `orcamento_link.sql` (depois de `orcamentos.sql`), garantir que a hospedagem entrega o `index.html` em `/o/*` e validar contra o Supabase real. Conta do cliente (parte B) não iniciada |
+| Entrada — fotos obrigatórias | 🟡 SQL + API + front prontos (647 testes; smoke no navegador 390px com API simulada: 5 itens, "3 de 5", refazer, pular com motivo, bloqueio nas duas etapas, reenvio, modo sem script). Falta: rodar `ordens_fotos.sql` (depois de `ordens_oficina.sql`) e validar contra o Supabase/Storage reais |
+| Cadastro — etapa 2 (dados da oficina) | 🟡 Front pronto (tsc + build ok; smoke no navegador com API de cadastro simulada: desktop e 390px, validação, gravação em Configurações). Só frontend, grava no `localStorage` como a tela de Configurações. Etapa 3 (boas-vindas) não iniciada |
+| Veículos ↔ Clientes (vínculo, fotos, Nova OS) | 🟡 Backend + SQL + testes + front prontos (796 testes; tsc + build ok; smoke no navegador com API simulada, 35 verificações). Falta: rodar `0007_fotos_veiculos.sql` e validar contra o Supabase real |
+| Regras dos campos dos checklists | 🟡 Front + backend + testes prontos (853 testes; tsc + build ok; navegador com API simulada). Falta: validar contra o Supabase real (OS antigas com valor fora do padrão pedem correção ao salvar) |
+| Financeiro — reserva de caixa | 🟡 SQL + API + front + testes prontos (931 testes; tsc + build ok; smoke no navegador com API simulada: 25 verificações, desktop, 390px, dono/gerente, migration ausente). Desligada por padrão. Falta: rodar `0008_reserva_caixa.sql` (depois de `financeiro.sql`) e validar contra o Supabase real |
+| Financeiro — taxa da maquininha | 🟡 SQL + API + front + testes prontos (976 testes; tsc + build ok). Falta: rodar `0009_taxa_maquininha.sql` (depois da 0008) e validar contra o Supabase real; ainda não testado no navegador |
+| Agenda — duração variável | 🟡 Front + testes prontos (980 testes backend; tsc + build ok). Sem migration nem mudança de API: o backend já aceitava `horaFim` livre. A oficina define a duração (30 min–12 h) ao agendar, remarcar, ajustar ("Ajustar horário") e confirmar pedido pendente ("Confirmar pedido"). Início a cada 30 min; conflito checado só no front. Ainda não testado no navegador |
+| Financeiro — "Ver mais" em contas a pagar/receber | 🟡 Só frontend (tsc + build ok; ordenação/limite verificados com dados de exemplo). O widget mostrava só 6 contas e sem ordem de urgência; agora ordena (vencidas primeiro) e, passando de 6, mostra "Ver mais · +N", que abre a tela com todas as contas (resumo total/vencido, filtros Todas/Vencidas/A vencer, busca, marcar como pago e editar). Sem migration nem mudança de API: o backend já devolvia todos os pendentes. Ainda não testado no navegador |
+| Minha conta — trocar o nome e excluir a conta | 🟡 SQL + API + front + testes prontos (1026 testes backend; tsc + build ok; navegador com API simulada, desktop dono e 390px funcionário). Falta: rodar `0010_excluir_conta.sql` no Supabase (depois da 0004 e das demais) e validar contra o Supabase/Storage reais |
+| Veículos, Agendamentos | 🔴 não iniciados |
+| Relatórios | 🟡 Backend + SQL + testes + hook prontos (tsc + build ok). Falta: rodar `ordens_oficina.sql`, relogar, validar no navegador |
+| Travas do frontend (Fase 0) | 🟡 Configs prontas (ESLint, Prettier, alias `@/`, passo no CI), todas as regras como aviso. Falta: instalar as dependências (`npm install -D …`), rodar `npm run lint`, `tsc` e `build`, e commitar o `package-lock.json` |
+| Busca global (⌘K / Ctrl+K) | 🟡 Backend + front + testes prontos (1092 testes; tsc + build ok; paleta exercitada no navegador com API simulada, 44 verificações em Windows/Linux e Mac). Sem migração. Falta: validar contra o Supabase real e conferir à mão a abertura do registro em cada tela |
+
+## Estoque — backend (2026-10-04)
+**Arquivos:** `backend/sql/estoque.sql`, `backend/orders/estoque_views.py`, seção "Estoque" em `serializers.py`, rotas em `urls.py`, `backend/tests/*`, `requirements-dev.txt`.
+
+**Rotas:** `GET/POST /estoque`, `GET /estoque/movimentos[?desde=ISO]`, `GET/PATCH/DELETE /estoque/<id>`, `GET/POST /kits`, `GET/PATCH/DELETE /kits/<id>`, `POST /kits/<id>/aplicar`.
+
+**Decisões**
+- Multi-tenant por `oficina_doc` em toda query; FKs compostas `(oficina_doc, id)` no banco.
+- Operações multi-tabela são funções Postgres via `supabase.rpc` (atomicidade + `FOR UPDATE`): `estoque_ajustar_quantidade`, `estoque_aplicar_kit`, `estoque_salvar_kit`.
+- JSON camelCase; opcionais vazios são omitidos; PATCH mescla com o estado atual; `null` explícito limpa campo opcional.
+- Erros: validação 422; item em kit 409; tabelas ausentes 503 (manda rodar `estoque.sql`); aplicar kit rejeitado = 200 `{ok:false, mensagem}`.
+- RBAC: `estoque.ver` lê; `estoque.editar` (dono/gerente) cria/edita/exclui e **aplica kit** (mecânico/atendente não aplicam — decisão pendente do usuário).
+- `CATEGORIAS_ESTOQUE` (serializers) deve ficar igual a `CATEGORIA_GRUPOS` do frontend.
+
+**Validado:** 63 testes (`cd backend && pip install -r requirements-dev.txt && pytest`) contra Postgres real descartável, incluindo concorrência e isolamento entre oficinas. As views rodam via emulador do supabase-py (`tests/fake_supabase.py`).
+**NÃO validado:** nada contra o Supabase/PostgREST reais (cache de schema, limite de 1000 linhas, chave usada).
+
+## Pendências Estoque
+1. Rodar `backend/sql/estoque.sql` no SQL Editor do Supabase.
+2. Conferir no `supabase.env` se a chave é `service_role` (se for `anon`, RLS pode bloquear; ver bloco comentado no SQL).
+3. ~~Frontend: hooks geram IDs locais~~ FEITO (2026-10-04): `useEstoque` em produção só mostra o que o servidor confirmou (id real, item devolvido, `aplicarKit` usa itens/movimentos da resposta); movimentos recarregados após criar/ajustar. Modo demo (DEV com API fora) mantém a lógica local antiga. Erros do servidor (422/409) aparecem no modal (salvar) ou em aviso na página (excluir). `undefined` em foto/serviço vira `null` no PATCH (senão o backend entende "não mexer"). Falta o mesmo ajuste nos hooks de Clientes.
+4. Decidir RBAC de aplicar kit para mecânico.
+5. Teste manual fim-a-fim com build de produção (`npm run build && npm run preview`), pois em `npm run dev` o fallback demo mascara erros.
+
+## Estoque — frontend (2026-10-04)
+Arquivos: `hooks/useEstoque.ts`, `EstoquePage.tsx`, `Estoque/ProdutoModal.tsx`, `Estoque/CriarKitModal.tsx`, `Estoque/ConfirmDeleteModal.tsx`.
+Validado: `tsc --noEmit` limpo e `vite build` ok. NÃO validado: execução no navegador contra o backend (sem testes de frontend no projeto).
+Obs.: `useEstoque` é chamado também em Relatórios, Serviços e Atendimento — cada um tem seu próprio estado e carrega por conta própria.
+
+## Catálogo de Serviços (2026-10-06) — branch feat/catalogo-servicos (parte de feat/estoque-backend)
+**Arquivos:** `backend/sql/servicos.sql`, `orders/servicos_views.py`, `ServicoSerializer` em serializers.py, rotas em urls.py, permissões em rbac.py, `tests/test_servicos.py`; frontend: `hooks/useServicos.ts`, `utils/api_erro.ts` (helpers compartilhados com useEstoque), `ServicosPage.tsx`, `Servicos/ServicoFormModal.tsx`, `Servicos/DeleteConfirmModal.tsx`.
+**Rotas:** `GET/POST /servicos`, `GET/PATCH/DELETE /servicos/<id>`.
+**Decisões**
+- Tabela `servicos` multi-tenant (`oficina_doc`), preço ≥ 0 (o modal exige > 0), `duracao` e `categoria` texto livre.
+- Novas permissões `servicos.ver` (todos os cargos) e `servicos.editar` (dono e gerente). **Tokens emitidos antes disso não têm as permissões novas: relogar.**
+- Excluir é a função SQL `servicos_excluir`: limpa `estoque_kits.servico_id` (texto, sem FK) da mesma oficina e apaga, na mesma transação. Kit nunca fica apontando pra serviço inexistente.
+- Frontend igual ao Estoque: com a API no ar mostra só o que o servidor confirmou; erros aparecem no modal (salvar) ou em aviso (excluir/ativar). Demo local só em DEV com API fora.
+- Erro 42501 (permissão no banco) vira mensagem clara apontando o supabase.env (também no Estoque).
+**Validado:** 86 testes (pytest) contra Postgres real; `tsc --noEmit` e `vite build` limpos. **Não validado:** navegador contra o Supabase real.
+**Pendências:** rodar `servicos.sql` (depois de `estoque.sql`); relogar; testar criar/editar/ativar/excluir; botões ainda não são escondidos por permissão na UI (a proteção real é o backend).
+
+## Relatórios (2026-10-07) — branch feat/relatorios-backend (parte de feat/catalogo-servicos)
+**O que faltava (diagnóstico)**
+1. `ordens` não tinha `oficina_doc` e `/ordens` não filtrava: toda oficina via as OS de todas (inclusive nos relatórios).
+2. Relatórios baixava todas as OS e calculava no navegador, sem exigir `relatorios.ver`.
+3. Bug: `payload` é `text` no banco e chega como string JSON; `payload.servicos_selecionados` dava `undefined` → "serviços mais realizados" vazio e todo valor caía no ticket fixo (R$ 480). Só funcionava no demo (payload objeto).
+4. Faturamento era estimativa fixa (tabela chumbada no front).
+5. `created_at` das OS era gravado sem fuso (`datetime.now().isoformat()`).
+
+**Arquivos:** `backend/sql/ordens_oficina.sql`, `orders/relatorios_views.py`, ajustes em `orders/views.py` (ordens escopadas por oficina; `_now()` com fuso), rota em `urls.py`, `tests/test_relatorios.py` (+ stubs de `ordens`/`financeiro_transacoes` no conftest, `lt/lte/neq` no emulador), `tzdata` em requirements.txt; frontend: `types/relatorios.ts`, `utils/api.ts` (`api.relatorios`), `utils/relatorios.ts`, `hooks/useRelatorios.ts`, texto do card em `RelatoriosPage.tsx`.
+**Rota:** `GET /relatorios?de&ate[&de_anterior&ate_anterior][&tz]` (permissão `relatorios.ver`: dono e gerente). Devolve `totais` (atual/anterior), `dias` (série esparsa por dia no fuso `tz`), `servicos` (OS finalizadas do período) e `faturamentoOrigem`.
+**Decisões**
+- Faturamento: se a oficina tem ao menos uma entrada não cancelada no Financeiro → soma das entradas por `data_competencia` (mesma conta de `/financeiro/resumo`, pendentes incluídas); senão estimativa por OS finalizada (tabela de preços + ticket R$ 480, espelho do que o front usava). A tela diz qual está em uso.
+- Dia da OS = dia no fuso do navegador (`tz`; padrão America/Sao_Paulo). OS antigas sem fuso são lidas como horário do servidor.
+- `anterior = null` quando não há nenhuma OS no período anterior (a tela esconde a variação).
+- Semana/mês continuam sendo agrupados no front a partir dos dias; presets de período continuam no front.
+- Itens de estoque mais movimentados seguem vindo de `useEstoque` (`GET /estoque/movimentos`), não de `/relatorios`.
+- Todas as rotas de `/ordens` filtram por `oficina_doc`; OS de outra oficina = 404. Se a coluna não existe, 503 mandando rodar `ordens_oficina.sql`.
+**Validado:** 133 testes (pytest) contra Postgres real; `tsc --noEmit` e `vite build` limpos; série do front confere com os totais. **Não validado:** navegador contra o Supabase real.
+**Pendências**
+1. Rodar `backend/sql/ordens_oficina.sql` ANTES de subir o backend novo (sem a coluna, `/ordens` responde 503). Com uma oficina só, as OS antigas são associadas sozinhas; com mais de uma, preencher na mão (exemplo no fim do script) — OS sem oficina deixam de aparecer.
+2. Relogar (tokens antigos não têm permissões novas).
+3. `useDashboard` (Visão Geral) ainda lê `o.payload?.servicos_selecionados` direto: mesmo bug do payload em string (top serviços vazio). Não mexido (fora de Relatórios).
+4. `GET /fotos/<path>` não exige login (já era assim).
+5. App do cliente / `customers`: continua sem `oficina_doc` (ver `customer_app_oficina_doc.sql`, não aplicado).
+
+## Visão Geral (2026-10-09) — branch feat/visao-geral (parte de feat/relatorios-backend)
+**O que estava errado**
+1. Mesmo bug do `payload` em string: Top serviços vazio fora do demo.
+2. Faturamento = nº de OS finalizadas × R$ 480 (contradizia os Relatórios); mês parcial comparado com o mês anterior INTEIRO.
+3. Meta mensal fixa em R$ 20.000, sem onde editar.
+4. Resumo Financeiro: custos e lucro sempre 0; frase "seu lucro aumentou X%" inventada (usava % de receita, `Math.abs`, sempre "aumentou").
+5. Alertas fictícios ("aguardando aprovação" contava rascunhos) — a sidebar já tinha os reais (`useAlertasResumo`).
+6. Mapa de calor: 6 colunas (sem domingo), rótulos "Seg Ter Qua Qux Sáb Dom" (sem Sex, "Qux") → tudo deslocado.
+7. Selects do gráfico (7/30 dias/mês) e do Top serviços não faziam nada.
+8. Mecânico/atendente viam faturamento. Saudação com nome fixo ("Lucas Andrelo"). Eixo Y quebrado (`${v/1000}.000` → "0.48.000"). Falha da API virava zeros silenciosos.
+
+**Arquivos:** `backend/sql/visao_geral.sql`, `orders/visao_geral_views.py`, `MetaMensalSerializer`, rotas em `urls.py`, `tests/test_visao_geral.py` (45), refatoração mínima em `relatorios_views.py` (`_buscar_lancamentos`); frontend: `types/visao_geral.ts`, `utils/visao_geral.ts`, `hooks/useVisaoGeral.ts`, `hooks/useOrdens.ts` (lista de OS; `useDashboard.ts` removido), `pages/Dashboard.tsx`, `Primitives.tsx` (MetaCard editável, heatmap 7 colunas), `FaturamentoChart.tsx`, `utils/dashboard.ts` (HEAT_DAYS), `ClientesPage`/`ClientDetailsModal` (imports), `utils/api.ts`.
+**Rotas:** `GET /visao-geral[?tz]` (qualquer usuário logado), `PUT /visao-geral/meta` (`configuracoes.editar`, `{"valor": n|null}`).
+**Decisões**
+- Blocos de dinheiro só vêm pra quem pode: `faturamento`/`meta`/`serie[].faturamento`/`servicos[].valorEstimado` (relatorios.ver ou financeiro.ver), `financeiro` (financeiro.ver), `financeiro.lucro*` (financeiro.ver_margem). A UI desenha pela presença do bloco; sem dinheiro, o gráfico vira "Ordens por dia" e o Top serviços mostra quantidade.
+- Mês = dia 1 até hoje × MESMO trecho do mês anterior. Faturamento igual ao dos Relatórios (entradas do Financeiro, senão estimativa por OS).
+- Resumo Financeiro = lançamentos do Financeiro no mês (receitas/custos); sem nenhum lançamento mostra "lance no Financeiro" em vez de zeros. Variação do lucro só quando há lucro anterior ≠ 0.
+- Top serviços: OS **finalizadas** dos últimos 30 dias (antes: todas as OS, desde sempre); valor é ESTIMADO (tabela de preços × quantidade; fora da tabela = R$ 200) — cabeçalho "Fat. est.". Ordenação Faturamento/Quantidade funciona. Dia da semana: 0 = segunda.
+- Série de 31 dias (o "Este mês" no dia 31 precisa do dia 1); o front recorta 7/30/mês.
+- Meta por oficina em `admins.meta_mensal` (null = não definida). Sem a coluna a tela segue, só sem meta editável (PUT responde 503 com instrução).
+- Alertas = os da sidebar (`useAlertasResumo`). Sem dados demo na Visão Geral: API fora do ar = erro com "tentar novamente".
+**Validado:** 178 testes (pytest) contra Postgres real; `tsc` e `vite build` limpos; smoke no Chromium com API simulada (dono e mecânico; definir meta envia o valor certo). **Não validado:** contra o Supabase real.
+**Pendências**
+1. Rodar `backend/sql/visao_geral.sql` (depois de `ordens_oficina.sql`); relogar.
+2. Alertas: `useAlertasResumo` é chamado na sidebar e na página (2 buscas de ordens/estoque); dá pra compartilhar depois.
+3. `GET /ordens` ainda devolve TODAS as OS (com payload) pro "Ordens recentes", Ordens e Clientes — paginar é trabalho futuro.
+4. "Gastos estimados" no perfil do cliente ainda usa OS finalizadas × R$ 480 (fora da Visão Geral).
+
+## Financeiro (2026-10-11) — branch feat/financeiro (parte de feat/visao-geral)
+
+**Problemas achados:** (1) a tabela `financeiro_transacoes` não tinha script no repositório (sem índices, travas nem FK); (2) listagem e resumo sem paginação — o Supabase corta em 1000 linhas e os totais ficavam errados; `/resumo` baixava o histórico inteiro da oficina; (3) `de`/`ate` sem validação; "hoje" (período padrão e `vencido`) vinha do relógio do servidor; (4) erros do banco viravam 500 sem explicação; (5) PATCH buscava por id e só depois checava a oficina, devolvia só "Atualizado" e dava 422 em linha antiga com `descricao` nula; voltar para pendente mantinha `data_pagamento`; (6) front: data padrão do lançamento e limites do período usavam `toISOString()` (UTC — depois das 21h no Brasil viravam o dia seguinte), erros genéricos, sem edição de lançamento, resposta antiga podia sobrescrever a nova.
+
+**Arquivos:** `backend/sql/financeiro.sql` (idempotente: cria a tabela ou só completa colunas; CHECKs de tipo/status/valor e FK da oficina como NOT VALID; índices por oficina+competência e pendentes), `orders/financeiro_views.py` (reescrito), limites de tamanho em `FinanceiroTransacaoSerializer`, `tests/test_financeiro.py` (76 testes; conftest roda `financeiro.sql` 2×); frontend: `hooks/useFinanceiro.ts`, `FinanceiroPage.tsx`, `Financeiro/TransacaoModal.tsx` (criar/editar), `utils/financeiro_utils.ts` (`isoLocal`/`hojeLocal`), `utils/api.ts` (`tz`).
+
+**Regras:**
+- Respostas continuam em snake_case (formato que o front já usava). PATCH/POST devolvem a linha completa.
+- `de`+`ate` juntos ou nenhum (aí é o mês atual no fuso `?tz`, padrão America/Sao_Paulo); inválido/invertido/maior que 800 dias → 422. `vencido` = pendente com vencimento antes de "hoje" no fuso do usuário.
+- Pendente nunca guarda `data_pagamento`; marcar pago grava agora; voltar a pendente apaga. Não se cria lançamento já cancelado; cancelado não se edita (409); cancelar é `DELETE` (soft, idempotente). `tipo` não muda.
+- `/resumo`: totais do período por `data_competencia` (pendentes contam como faturamento, igual Relatórios/Visão Geral); `a_receber/a_pagar/vencido_*` são a dívida em aberto agora, sem corte de período; soma em Decimal; lucro/margem só com `financeiro.ver_margem`.
+- Tabela ausente/coluna faltando → 503 mandando rodar `financeiro.sql`; chave sem service_role → 500 apontando o `supabase.env`.
+
+**Pendências / decisões:**
+- Rodar `backend/sql/financeiro.sql` no Supabase (as travas entram NOT VALID; para checar o histórico: `alter table ... validate constraint <nome>`).
+- OS finalizada ainda NÃO gera entrada no Financeiro (`ordem_servico_id` fica vazio). Gerar automático mudaria o faturamento de Relatórios/Visão Geral (regra "tem ≥1 entrada → só entradas") — decisão de produto.
+- `saldo` = recebido − saídas pagas por competência (não por data de pagamento).
+
+## Orçamento — Fase 0: status da OS (2026-10-12) — branch feat/os-status (parte de feat/financeiro)
+
+**Problema:** salvar o checklist completo marcava a OS como `finalizada` (que conta como faturamento antes do serviço existir) e todo salvamento sobrescrevia o status. "Checklist preenchido" e "serviço concluído" eram a mesma coisa.
+
+**Vocabulário** (`backend/orders/ordem_status.py`, espelho em `frontend/src/utils/ordem_status.ts`): `rascunho`, `em_orcamento`, `pendente_aprovacao`, `aprovada`, `em_execucao`, `aguardando`, `finalizada` (= serviço CONCLUÍDO; nome mantido para não quebrar Relatórios/Visão Geral), `recusada`.
+
+**Transições:** rascunho→{em_orcamento, recusada}; em_orcamento→{rascunho, pendente_aprovacao, aprovada, recusada}; pendente_aprovacao→{em_orcamento, aprovada, recusada}; aprovada→{pendente_aprovacao, em_execucao, recusada}; em_execucao→{aguardando, pendente_aprovacao, finalizada}; aguardando→{em_execucao, rascunho, finalizada}; finalizada→∅; recusada→{em_orcamento}.
+
+**Regras**
+- POST/PUT de OS: o front só pode mandar `rascunho`/`em_orcamento` (checklist incompleto/completo) e só enquanto a OS está nessas fases; depois disso o salvamento mantém o status atual. Qualquer outro valor vira `rascunho` (OS nova).
+- `PATCH /ordens/<id>/status` (`ordens.editar`): 400 sem status, 422 desconhecido, 404, 409 transição proibida ou OS alterada por outra pessoa (update otimista `.eq("status", atual)`); mesmo status = 200.
+- Front: Kanban (fila / em execução / bloqueado / concluído hoje; recusada fora), filtros de Ordens (Em andamento / Aguardando / Concluídas / Recusadas), selos de todos os status; `desbloquear` usa o PATCH (o PUT só com `{status}` sempre dava 422).
+
+**Arquivos:** `backend/orders/ordem_status.py`, `views.py`, `serializers.py`, `backend/sql/ordens_status.sql` (default, NULL→rascunho, CHECK `ordens_status_check` NOT VALID, aviso de linhas fora do vocabulário), `tests/test_ordem_status.py` (~40), ajustes em `tests/test_relatorios.py`; front: `utils/ordem_status.ts`, `useOrdemServico`, `useAtendimento`, `api.definirStatusOrdem`, `Primitives`, `atendimento_utils`, `OSKanbanCard`, `OrdensPage`, `dashboard.css`.
+
+**Pendências**
+- Rodar `backend/sql/ordens_status.sql` no Supabase. OS antigas já `finalizada` NÃO são alteradas e seguem contando como concluídas.
+- Próxima: Fase 1 (modelos/backend do orçamento) — só quando for pedido.
+
+## Orçamento — Fase 1: modelo e API (2026-10-12) — branch feat/orcamento (parte de feat/os-status)
+
+**Modelo** (`backend/sql/orcamentos.sql`, idempotente): `orcamentos` = uma linha por VERSÃO da OS (`versao` 1, 2…; status `rascunho → enviado → aprovado | recusado | substituido`; validade em dias, total, dados de aprovação/recusa) e `orcamento_itens` (tipo `peca`/`servico`, descrição, marca, quantidade, `preco_unitario` = o que o cliente paga, `custo_unitario` interno, motivo, `estoque_item_id`/`servico_id` SEM FK — o item guarda um retrato e sobrevive se o cadastro for apagado). FK composta `(oficina_doc, ordem_id)` → `ordens` (exige o `unique (oficina_doc, id)` que o script acrescenta em `ordens`); apagar a OS leva os orçamentos. Índices únicos parciais: no máximo 1 rascunho e 1 orçamento ativo (enviado/aprovado) por OS.
+
+**Funções SQL (atômicas, travam OS e orçamento nesta ordem):** `orcamento_criar_versao`, `orcamento_salvar` (troca a lista de itens inteira + recalcula total), `orcamento_enviar`, `orcamento_aprovar`, `orcamento_recusar`. Os status de OS que aceitam cada operação vêm do backend (`ordem_status.origens_para`, `ACEITAM_NOVO_ORCAMENTO`) — a tabela de transições continua só em Python.
+
+**Rotas** (`orders/orcamento_views.py`, JSON camelCase): `GET/POST /ordens/<id>/orcamentos`, `GET/PATCH /orcamentos/<id>`, `POST /orcamentos/<id>/enviar|aprovar|recusar`. Leitura: `ordens.ver`; escrita: `ordens.editar` (atendente só lê). 422 validação / `sem_itens`; 409 estado (`status_invalido`, `os_status`, `rascunho_existente`, `vencido`); 404 outra oficina ou id ruim; 503 sem o script.
+
+**Regras**
+- Criar versão copia itens (e custo) e validade da mais recente. Não mexe na OS, exceto OS `recusada` → `em_orcamento` ("refazer"). Aceitam: em_orcamento, pendente_aprovacao, aprovada, em_execucao, recusada. Rascunho (checklist incompleto), aguardando e finalizada → 409.
+- Enviar: exige ≥1 item; versões ativas anteriores viram `substituido`; OS → `pendente_aprovacao` (também a partir de aprovada/em_execucao = revisão). Validade = dia do envio no fuso do usuário (`?tz`, padrão America/Sao_Paulo) + `validadeDias` (padrão 7, 1–90).
+- Aprovar (mecânico registra a resposta do cliente: `canal` whatsapp|presencial|telefone|app|outro, `observacao`): só `enviado`; **orçamento vencido NÃO aprova** (refazer = nova versão); OS → `aprovada`. Recusar (`motivo` opcional): de `enviado` ou `aprovado`, exceto se a OS já está em execução; OS → `recusada`.
+- Editar orçamento aprovado = nova versão; a aprovação antiga segue valendo até a nova ser enviada.
+- Custo/margem: `custoUnitario`, `custoTotal`, `margem`, `margemPercentual` só vão pra quem tem `financeiro.ver_margem` (hoje só o dono). Quem edita sem essa permissão não apaga o custo gravado: item com `id` conhecido e sem `custoUnitario` preserva; `null` limpa.
+- Totais: por linha `round(qtd × preço, 2)` (meio pra cima), somados — banco e API calculam igual.
+
+**Pendências / decisões**
+- Rodar `backend/sql/orcamentos.sql` no Supabase (depois de `ordens_oficina.sql`).
+- Fase 4 acrescenta nas funções aprovar/recusar/enviar: lançamento pendente no Financeiro e reserva de estoque (mesma transação). Hoje aprovar NÃO cria entrada no Financeiro nem reserva estoque.
+- A validade padrão é fixa em 7 dias por orçamento (configuração da oficina fica pra depois).
+- Próxima: Fase 2 (tela da etapa 3) — feita, ver abaixo.
+
+## Orçamento — Fase 2: tela da etapa 3 (2026-10-13) — branch feat/orcamento-front (parte de feat/orcamento)
+
+**Correção estrutural descoberta:** as etapas 1 e 2 não compartilhavam estado (cada uma criava seu `useOrdemServico`) e abrir uma OS existente nunca a carregava. Agora há UMA instância no `App` (`os`), passada para Entrada, Diagnóstico e Orçamento. Efeitos: não cria OS duplicada ao ir da etapa 1 para a 2, abrir OS existente carrega os dados, "nova OS" zera tudo (`novaOrdem()`), e o orçamento enxerga o diagnóstico. `saveOrder()` agora devolve `Promise<boolean>`; o botão "Ir para o orçamento" (último passo do diagnóstico) salva e só navega se salvou. O hook também guarda `ordemStatus`.
+
+**Tela** (`features/Orcamento/`: `OrcamentoPage`, `ItensEditor`, `ItensLeitura`, `VersoesLista`, `DecisaoModais`; `hooks/useOrcamento.ts`, `types/orcamento.ts`, `utils/orcamento_utils.ts`, métodos em `utils/api.ts`): cabeçalho com cliente/veículo/status da OS, versão atual (rascunho editável ou leitura), histórico de versões, resumo com total, validade e observações; modais de enviar/aprovar (canal + observação)/recusar (motivo).
+
+**Regras de pré-preenchimento (sugestões, nada é gravado sem o usuário montar):**
+- Peças vêm do diagnóstico (`tabela_pecas` e itens do checklist em atenção/crítico); serviços vêm de sugestões do diagnóstico — **serviços NÃO são preenchidos automaticamente**, só sugeridos.
+- Casamento com Estoque/Catálogo é unidirecional: o nome do item de estoque precisa CONTER o digitado (evita "Vela"/"Óleo" genéricos casarem com peças específicas). Sugestão some quando o diagnóstico já citou o item.
+- Preço padrão da peça = `preco` do Estoque (Estoque não tem custo separado); do serviço = preço do Catálogo. Sugestões via `datalist`; digitar não desvincula, há botão "desvincular".
+- Selo "do diagnóstico" existe só no cliente e some após ir ao servidor (aceito).
+- Custo/margem só aparecem para quem tem `financeiro.ver_margem`; quem edita sem a permissão não envia `custoUnitario` (o backend preserva o gravado).
+- Atendente só lê (sem botão de montar/editar).
+
+**Limitações / pendências**
+- O orçamento ainda não gera lançamento no Financeiro nem reserva estoque (Fase 4); não há PDF (Fase 3).
+- Frontend sem runner de testes: utils puros checados por bundle esbuild + node; UI por smoke Playwright com API simulada (fora do repo).
+- Rodar `ordens_status.sql` e `orcamentos.sql` no Supabase e validar fim a fim.
+- Próxima: Fase 3 (PDF) — feita, ver abaixo.
+
+## Orçamento — Fase 3: PDF (2026-10-13) — branch feat/orcamento-pdf (parte de feat/orcamento-front)
+
+**Gerador** (`orders/orcamento_pdf.py`, reportlab, função pura): cabeçalho (oficina = `admins.nome`, OS, versão, data), status, validade, cliente/veículo (do payload da OS), tabela de itens (descrição, tipo/marca, motivo, qtd, valor un., subtotal), total, observações e bloco de aprovação com a assinatura. **Só o preço cobrado**: quem monta o dict (`_dados_para_pdf`) usa lista branca de campos — custo, margem e vínculos de estoque/catálogo nunca chegam ao gerador (teste confere que o custo não aparece no texto do PDF). Rascunho sai com marca d'água "RASCUNHO".
+
+**Quando é gerado/guardado:** ao ENVIAR (documento enviado ao cliente) e REFEITO ao APROVAR (com aprovação e assinatura). Arquivo em `<ordem_id>/orcamento-vN.pdf` (e `-assinatura.png`) no mesmo bucket das fotos — apagar a OS já apaga junto (teste). Colunas novas em `orcamentos`: `pdf_path`, `pdf_gerado_em`, `assinatura_path` (idempotente em `orcamentos.sql`). Falha no Storage/PDF NÃO desfaz envio nem aprovação: a resposta traz `pdfGerado`/`assinaturaSalva` = false (a tela mostra aviso) e o `GET /pdf` gera na hora e tenta guardar de novo. Rascunho: `GET /pdf` gera pré-visualização sem guardar.
+
+**Rota:** `GET /orcamentos/<id>/pdf` (`ordens.ver`; 404 outra oficina/id ruim; 422 sem itens). `application/pdf`, `Cache-Control: private, no-store`. API de orçamento ganha `pdfDisponivel` e `assinado`.
+
+**Assinatura:** `POST /orcamentos/<id>/aprovar` aceita `assinatura` (data URL PNG do canvas, opcional). Validação: só PNG, ≤400 KB, 20–1600 × 10–800 px; é reencodada (fundo branco, sem metadados); traço em branco = sem assinatura; inválida → 422 e a aprovação NÃO acontece. É a assinatura do CLIENTE, desenhada na tela (sem validade jurídica — fora de escopo).
+
+**Frontend:** `components/AssinaturaPad.tsx` (pointer events, funciona em touch); modal de aprovação ganha o campo de assinatura; botão "Baixar PDF" / "Pré-visualizar PDF" (rascunho salvo) na tela do orçamento; avisos quando o PDF/assinatura não foi guardado.
+
+**Pendências / decisões**
+- Instalar dependências novas (`reportlab`, `pillow`; `pypdf` só nos testes) e rodar `orcamentos.sql` de novo.
+- O PDF de versão `recusado`/`substituido` fica como foi enviado (reflete o estado do envio/aprovação).
+- Não há envio automático do PDF ao cliente (WhatsApp/e-mail) nem link público — Fase 6 (app do cliente) consome pela API.
+- Próxima: Fase 4 — feita, ver abaixo.
+
+## Orçamento — Fase 4: Financeiro + reserva de estoque (2026-10-13) — branch feat/orcamento-financeiro (parte de feat/orcamento-pdf)
+
+Tudo em `backend/sql/orcamentos.sql` (idempotente; agora exige `estoque.sql` e `financeiro.sql` rodados antes) e dentro das MESMAS funções/transações de enviar/aprovar/recusar — não existe estado "aprovou mas o lançamento não foi criado".
+
+**Financeiro** (`financeiro_transacoes` ganha `origem` e `orcamento_id`; índice único parcial: 1 lançamento vivo por OS+categoria de orçamento):
+- **Aprovar** → até 2 lançamentos de ENTRADA `pendente`, ligados à OS (`ordem_servico_id`): categoria `pecas` e `servicos` (cada um com a soma `round(qtd×preço,2)` dos itens do tipo; categoria com total 0 não gera). Competência = dia da aprovação (fuso do usuário), cliente = da OS, descrição "OS-77 · Peças (orçamento v1)". Total do orçamento = soma dos lançamentos (teste).
+- **Revisar** (nova versão de orçamento aprovado) → ao ENVIAR a versão nova, os lançamentos pendentes passam a refletir o novo total (categoria que zerou é cancelada), a OS volta a `pendente_aprovacao`; reaprovar não duplica.
+- **Recusar/cancelar** (também da revisão) → lançamentos pendentes viram `cancelado`. **Lançamento já PAGO nunca é alterado**: vira o aviso `lancamento_pago` (ajuste manual no Financeiro). Apagar a OS faz o mesmo cancelamento.
+- Editar/excluir o lançamento à mão no Financeiro vale até a próxima sincronização (nova versão enviada sobrescreve o valor dos pendentes).
+
+**Estoque** (`estoque_reservas`, única por OS+item; some com a OS ou com o item): só itens ligados ao Estoque (`estoqueItemId`) reservam. Aprovar/enviar revisão REFAZ as reservas da OS a partir do orçamento. **Reservar além do que há não bloqueia** (a peça pode ser comprada): a resposta traz `efeitos.faltas` (reservado × disponível, descontando reservas de outras OS) e a tela avisa. `GET /estoque` traz `reservado` por item (omitido se 0; funciona sem o script). A BAIXA real do estoque é da Fase 5 (conclusão do serviço) — hoje a reserva não altera `quantidade`.
+
+**API:** respostas de enviar/aprovar/recusar trazem `efeitos` (omitido se nada mudou): `financeiro[{categoria, acao: criado|atualizado|cancelado, valor}]`, `reservas`, `liberadas`, `faltas[{itemId, nome, reservado, disponivel}]`, `avisos[{codigo, categoria}]`. `orcamento_enviar` ganhou o parâmetro `p_nome` (o script remove a assinatura antiga da função).
+
+**Frontend:** caixa de resumo na tela do orçamento depois de cada operação (verde; amarela quando há falta de estoque ou lançamento pago); "N reservado" no card do Estoque e no seletor de peças do orçamento.
+
+**Pendências / decisões**
+- Rodar de novo `backend/sql/orcamentos.sql` (e antes `estoque.sql`, `financeiro.sql` se ainda não rodou).
+- Os lançamentos entram como PENDENTES por competência na data da aprovação, então Relatórios/Visão Geral já os contam como faturamento (regra atual: entradas não canceladas). Se for melhor contar só o pago, é ajuste nessas telas — não feito.
+- A tela do Financeiro ainda não marca visualmente "veio de orçamento" (o campo `origem` já vem na API).
+- Próxima: Fase 5 — feita, ver abaixo.
+
+## Orçamento — Fase 5: execução e fechamento (2026-10-14) — branch feat/orcamento-fechamento (parte de feat/orcamento-financeiro)
+
+Novo script `backend/sql/ordens_execucao.sql` (idempotente; exige `ordens_status.sql`, `estoque.sql` e `orcamentos.sql` rodados antes).
+
+**Conclusão atômica** (`ordem_concluir`, via RPC; trava a OS e os itens de estoque): status → `finalizada` e BAIXA do estoque o que a OS reservou (1 movimento de `saida` por item, ligado à OS; reserva liberada). Se reservado > quantidade física, **nada muda** e a API responde 409 `estoque_insuficiente` com `faltas`; com `ignorarFaltas: true` baixa só o que existe (estoque nunca negativo) e informa o que faltou em `baixasFeitas`. Concluir de novo é 409 (não baixa duas vezes). `ordens` ganha `concluida_em`, `concluida_por_nome`, `obs_conclusao`.
+- `POST /ordens/<id>/concluir` `{observacao, ignorarFaltas}` (permissão `ordens.editar`).
+- `PATCH /ordens/<id>/status` com `finalizada` passa pelo MESMO caminho (não há como finalizar sem baixar o estoque).
+- `GET /ordens/<id>/fechamento`: orçamento aprovado, reservas (com `falta`), baixas e, só com `financeiro.ver`, os lançamentos da OS. Custo/margem só com `financeiro.ver_margem`.
+- **Concluir NÃO recebe pagamento**: os lançamentos pendentes continuam pendentes até alguém registrar o recebimento no Financeiro.
+- **Relatórios e Visão Geral usam os valores reais** do orçamento aprovado (serviços e `valorReal`); nome do serviço agrupado é determinístico.
+
+**Frontend:** tela `Fechamento` (etapa 4, opcional): Iniciar execução (aprovada), Pausar/Retomar (em_execucao/aguardando), Concluir serviço com observação e aviso de estoque insuficiente ("Tentar de novo" / "Concluir mesmo assim"); depois de concluída mostra quem/quando, baixas e lançamentos. Botão "Fechamento" na tela do orçamento; OS em execução/aguardando/finalizada abre direto no fechamento. Atendente só consulta.
+
+**Pendências / decisões**
+- Rodar `ordens_execucao.sql` no Supabase (e os anteriores se faltar algum).
+- Não há reabrir OS finalizada nem estorno da baixa (ajuste manual no Estoque).
+- Itens do orçamento sem vínculo com o Estoque não baixam nada (só os ligados via `estoqueItemId`).
+- Fase 6 (cliente aprova pelo link) → ver a seção "Orçamento — Fase 6A" no fim. Conta/app do cliente (parte B) segue pendente.
+
+## Alertas — tela dedicada (2026-10-15) — branch feat/alertas (parte de feat/orcamento-fechamento)
+
+Só frontend; nenhum SQL/endpoint novo. Antes, o sino/bloco da sidebar levavam ao Atendimento (provisório) e o sino do cabeçalho desktop mostrava um "8" fixo.
+
+- **Tela `Alertas`** (`NavPage 'alertas'`, `features/Dashboard/Alertas/AlertasPage.tsx`): alertas agrupados por tipo, com filtro Todos/Urgentes/Atenção, "Atualizar", estado "Tudo em dia" e erro com "Tentar de novo" (falha de API nunca vira "nenhum alerta"). Cada alerta tem um botão de ação (ex.: "Ver no Estoque" já abre o Estoque com a busca no item) e, nos de OS, "Abrir OS". Entrada: sino (desktop e mobile — no mobile agora sempre visível), bloco da sidebar e card "Alertas importantes" do painel (inclusive "Ver todas" e cada linha, que antes não faziam nada).
+- **Regra em um lugar só:** `utils/alertas.ts`. `useAlertas` entrega a lista; `useAlertasResumo` virou só uma contagem por cima dela (sidebar, sino e tela nunca divergem). Buscas simultâneas de ordens/estoque são compartilhadas.
+- **Tipos atuais (mesmas regras de antes):** OS bloqueada (status `aguardando`, com motivo e há quanto tempo), estoque baixo (ativo, mínimo > 0 e quantidade ≤ mínimo), cliente a avisar (finalizada hoje e não avisada) e item em quarentena. Ordem dos grupos = ordem em `FONTES_ALERTA`.
+- **Como incluir um tipo novo (orçamento vencido, lançamento pendente…):** 1) acrescentar o id em `FonteAlertaId`; 2) acrescentar a fonte em `FONTES_ALERTA` (`gerar` devolve `AlertaItem[]` com título, detalhe e `acao`); 3) se precisar de dado novo, pôr o campo em `ContextoAlertas` e buscá-lo em `hooks/useAlertas.ts`. A tela não muda. Candidatos já mapeados: orçamento enviado sem resposta/vencido, peça reservada sem estoque pra concluir, lançamento pendente de OS concluída.
+
+**Pendências / decisões**
+- ~~Os alertas de "cliente a avisar" dependem do overlay local~~ → resolvido na seção abaixo (vai pro banco).
+- Não há "dispensar/adiar" alerta (o `id` de cada alerta já é estável pra isso).
+- A tela de Alertas, como a de Atendimento, não tem o cabeçalho com sino no desktop (só a sidebar).
+
+## Alertas — cliente avisado no banco + alertas de orçamento/financeiro (2026-10-17) — branch feat/alertas-backend
+
+**Passo do usuário:** rodar `backend/sql/alertas.sql` no Supabase SQL Editor (depois de `ordens_oficina.sql`). Sem ele nada quebra: o front mostra um aviso e segue com os 4 alertas locais.
+
+- **Cliente avisado no banco:** `alertas.sql` acrescenta `ordens.cliente_avisado` (bool, default false), `cliente_avisado_em`, `cliente_avisado_por_nome`. `PATCH /ordens/<id>/cliente-avisado` `{avisado: bool}` grava (quem tem `ordens.ver`). Quando a coluna existe, **o banco é a fonte da verdade**; o overlay local (`revisacar:atendimento-overlay`) só vale se o banco não respondeu (script não rodado). Marcações antigas do navegador sobem uma única vez pro banco (sem repetir). "Finalizada hoje" agora usa `concluida_em ?? updated_at` (editar a OS não "refinaliza" mais).
+- **`GET /alertas`** (blocos independentes; o que o usuário não pode ver vem omitido e o que depende de script ausente vem em `indisponiveis`): `orcamentosSemResposta` (orçamento `enviado` vencido por `validade_ate` ou há ≥ 2 dias), `aprovadasParadas` (OS `aprovada` há ≥ 1 dia do aceite, execução não iniciada), `reservasSemEstoque` (por item, reservas somadas > quantidade em estoque, lista as OS), `semPagamento` (entrada pendente de OS `finalizada` há ≥ 1 dia; `vencido` se `data_vencimento` < hoje; **só dono/gerente**, exige `financeiro.ver`).
+- **Front:** 8 fontes em `FONTES_ALERTA` (4 locais + 4 do backend). Severidade do grupo = a do item mais grave; sem pagamento vira urgente com ≥ 7 dias (`DIAS_PAGAMENTO_URGENTE`) ou vencido. Atalhos: Abrir orçamento, Abrir OS, Ver no Financeiro/Estoque/Atendimento. Falha parcial do `/alertas` mostra aviso e mantém os alertas locais.
+- **Testes:** `tests/test_alertas.py` (44), suíte total 474.
+
+**Pendências / decisões**
+- Limiares (2 dias orçamento, 1 dia aprovada/pagamento, 7 dias urgência) são constantes — ajustar se a oficina quiser.
+- Alerta de pagamento só considera lançamentos com `ordem_servico_id`; lançamentos avulsos não entram.
+- O passo 3 (dispensar/adiar) está na seção abaixo. Ideias não pedidas: auto-atualizar, alertas por papel.
+
+## Alertas — adiar e dispensar (2026-10-18) — branch feat/alertas-backend
+
+**Passo do usuário:** rodar `backend/sql/alertas.sql` de novo no Supabase (idempotente; agora também cria `alertas_dispensados`, com RLS ligada e sem policy — só o backend acessa). Sem ele, esconder um alerta responde 503 com essa instrução e o resto da tela segue normal.
+
+- **Por usuário, no banco:** cada um esconde só pra si (o que o gerente dispensa continua aparecendo pro dono). Chave = oficina + usuário (`dono` ou `func:<id>`) + id do alerta (`<fonte>:<id do objeto>`). Vale em qualquer aparelho. Qualquer cargo pode (é preferência do próprio usuário, não precisa de permissão).
+- **Dois jeitos:** *Adiar* (1, 3 ou 7 dias; a API aceita 1–30): some até o prazo e volta sozinho. *Dispensar*: some até a causa se resolver — quando o alerta deixa de existir, a tela apaga o registro (`POST /alertas/dispensados/limpar`), então, se o problema voltar, o alerta reaparece.
+- **Quando NÃO limpa o dispensado:** se o bloco do banco falhou, se o usuário não tem a permissão do bloco (ex.: mecânico e financeiro) ou se o script daquela origem não rodou — `fontesCompletas` em `utils/alertas.ts`. Evita apagar o que foi dispensado por causa de uma falha momentânea.
+- **API:** `GET /alertas` traz `dispensados` (adiados vigentes + dispensados); `PUT /alertas/dispensados/<id>` `{modo:'adiar',dias}` | `{modo:'dispensar'}`; `DELETE` volta a mostrar (204, idempotente); `POST .../limpar {ids}` (até 200; só apaga dispensados). Id validado (`<fonte conhecida>:<id>`). Escrever apaga de passagem os adiados vencidos do usuário.
+- **Tela:** cada alerta tem "Adiar ou dispensar" (abre 1 dia / 3 dias / 7 dias / Dispensar / Cancelar). Depois de esconder, aviso com **Desfazer** por 8 s. Seção "Adiados e dispensados · N" no fim, com "Voltar a mostrar" e "Adiado até dd/mm às hh:mm". O número da sidebar, do sino, do painel e dos filtros já desconta o que está escondido (estado único em `useAlertas`). Esconde na hora e desfaz sozinho se o servidor recusar (mostra o erro).
+- **Testes:** 35 novos em `tests/test_alertas.py` (509 no total); `fake_supabase` ganhou `upsert`.
+
+**Pendências / decisões**
+- Um alerta adiado/dispensado **não volta se piorar** (ex.: estoque baixo que zerou, orçamento que venceu). Dá pra fazer "volta se a severidade subir" depois.
+- Adiar é em dias corridos a partir de agora (não "até amanhã 8h").
+- Dois alertas com o mesmo título (ex.: "Filtro de óleo" em reserva e em estoque baixo) são independentes — esconder um não esconde o outro.
+
+## Orçamento — Fase 6A: link público do cliente (2026-10-18) — branch feat/alertas-backend
+
+O cliente **não precisa de conta nem de app**: a oficina gera um link, manda (copiar ou WhatsApp) e o cliente abre no celular, vê os valores e aprova ou recusa. Parte B (conta/app do cliente) **não foi iniciada**.
+
+**Passos do usuário**
+1. Rodar `backend/sql/orcamento_link.sql` no Supabase SQL Editor, **depois** de `orcamentos.sql` (idempotente; RLS ligada e sem policy — só o backend acessa). Sem ele, o bloco do link na tela do orçamento mostra a instrução (503) e o resto segue normal; o alerta de resposta do cliente fica fora até o script rodar.
+2. **Hospedagem:** o painel não tem roteador; a página pública é montada pelo `main.tsx` quando o caminho é `/o/<código>`. O host precisa devolver o `index.html` para `/o/*` (Vercel: rewrite no `vercel.json`; Netlify: `_redirects`). O repo não tem nenhum desses arquivos e a hospedagem não foi verificada. O `sw.js` já cai no `/index.html` em navegações.
+
+**Como funciona**
+- **Código do link** = `<id>.<HMAC>` derivado do `id` da tabela `orcamento_links` com a `SECRET_KEY` do servidor. **O código não fica no banco** (vazar o banco não dá link nenhum) e a oficina consegue ver o mesmo link de novo. Código malformado ou com assinatura errada é rejeitado **antes de tocar no banco**, com 404 uniforme (não dá pra distinguir "não existe" de "assinatura errada").
+- **Um link ativo por orçamento** (índice único parcial). Só orçamento **enviado** tem link. O link vale 30 dias (`LINK_DIAS`); aprovar só dentro da validade do orçamento. "Gerar link novo" revoga o anterior (o antigo passa a dizer "link substituído", 410); "Desativar" revoga sem criar outro. Orçamento já respondido, vencido ou substituído **continua abrindo, mas só mostra a situação** e não deixa responder de novo.
+- **Oficina** (`ordens.ver` pra ver, `ordens.editar` pra gerar/renovar/desativar): `GET|POST|DELETE /orcamentos/<id>/link`. A tela do orçamento (versão enviada e atual) ganha o bloco **Link para o cliente**: copiar, "Enviar por WhatsApp" (mensagem pronta com nome, veículo e link; só monta o número com DDD brasileiro válido — sem telefone válido o WhatsApp abre pra escolher o contato), quantas vezes o cliente abriu e quando, "Gerar link novo", "Desativar link", "Ver se o cliente abriu". Quando o cliente responde, o bloco mostra "O cliente aprovou/recusou pelo link" e **Atualizar o orçamento**. **Nada é enviado automaticamente.**
+- **Cliente** (sem login; `GET /publico/orcamentos/<código>`, `/pdf`, `POST .../aprovar`, `.../recusar`): só recebe o preço cobrado (**nunca custo, margem, status interno da OS, ids ou scripts**). Aprovar exige **nome (≥ 2 letras) + caixa "Li e aceito"**; guarda data/hora, **IP**, nome e observação. Recusar aceita motivo opcional. Os dois reaproveitam `orcamento_aprovar`/`orcamento_recusar` (mesmos efeitos de Financeiro, reserva de Estoque e status da OS) com trava extra: pelo link **não dá pra recusar um orçamento já aprovado**. Ordem de trava no banco: OS → orçamento → link (sem deadlock). Aprovado pelo link grava `aprovacao_canal = 'link'` (a oficina vê "Aprovado pelo cliente … pelo link do orçamento").
+- **Abuso:** limite por IP (120 req/min; 20 códigos inválidos/10 min; 10 decisões/10 min) e por link (20 decisões/10 min) → 429. IP = último salto do `X-Forwarded-For`. Erros públicos nunca vazam detalhe interno (mensagens amigáveis; 404/410/429/409/422).
+- **Página pública** (`features/OrcamentoPublico/OrcamentoPublicoPage.tsx`): uma coluna, botões ≥ 44 px, campos 16 px (sem zoom no iPhone), sem rolagem horizontal em 390 px; **fora** do `AuthProvider`/`App` (não lê a sessão da oficina nem manda `Authorization`); `noindex` e `referrer: no-referrer`; estados aprovado/recusado/vencido/substituído mostram a situação e escondem os botões; 409/410 ao responder recarrega e mostra a situação real; falha de rede/500 mantém o formulário.
+- **Alertas:** novo grupo **"Clientes que responderam"** (aprovado = informativo, recusado = atenção, com motivo; some depois de 3 dias — `respostaClienteDias`) e os "Orçamentos sem resposta" passam a dizer "link enviado, ainda não aberto" / "link aberto pelo cliente". Bloco `respostasDoCliente` no `GET /alertas` (permissão `ordens.ver`; script ausente vai em `indisponiveis`).
+- **Testes:** `tests/test_orcamento_link.py` (~75: token, rotas da oficina, vazamento na rota pública, decisões, abuso/limites, script ausente, alertas); suíte total **584**. Front: sem runner — checagens de funções puras via esbuild+node e `smoke12.py` no navegador com API simulada (124 verificações) + regressão dos smokes 5–11.
+
+**Pendências / decisões**
+- Aprovação pelo link **não tem assinatura desenhada** (o registro é nome + caixa + data/hora + IP); a oficina ainda pode aprovar com assinatura na tela de sempre.
+- **Limite de requisições é em memória, por processo**: com vários workers cada um conta o seu (e zera no reinício). Pra rigor total, mover pro banco/Redis.
+- A "validade" que o cliente vê usa o dia de hoje em America/Sao_Paulo.
+- O painel da oficina **não atualiza sozinho** quando o cliente responde: vale o alerta (ao abrir/atualizar a tela de Alertas) ou "Ver se o cliente abriu".
+- Link expirado/revogado não é reativável: gerar um novo.
+- Parte B (conta do cliente, histórico de orçamentos no app) não iniciada.
+
+## Auditoria QA (17/10) — itens 1 e 2 do roteiro (2026-10-20) — branch feat/alertas-backend
+
+Base: relatório "Avaliação de Qualidade & Segurança" (só o lado da oficina; o app do cliente ficou de fora). Pendentes do roteiro, nesta ordem: #17 estado de login no banco, #18 isolamento entre oficinas no banco, #21 refresh token em cookie httpOnly, #22 README + testes de front, #23 limpeza.
+
+**#19 — CI roda o pytest.** Novo job `backend-tests` em `.github/workflows/ci.yml` (instala `requirements-dev.txt`, que traz o Postgres descartável dos testes). O lint passou a usar `backend/.flake8`: ele já falhava (292 avisos); corrigidos os reais (imports sem uso, linhas em branco, fim de arquivo) e silenciados os que são estilo/idioma do pytest (`l` como nome de variável, fixtures importadas nos testes, imports no meio de `views.py`/`serializers.py`). **O CI só roda em pull request para `main`** — ele só será exercitado de verdade quando o PR for aberto.
+
+**#20 — configuração de produção** (`DjangoSet/setting.py`):
+- `DEBUG` agora é **falso por padrão** (aceita true/1/yes/on). Para desenvolver, `DEBUG=True` no `supabase.env`.
+- `ALLOWED_HOSTS` é **obrigatório** em produção e não aceita `*` (o servidor nem inicia). O `RENDER_EXTERNAL_HOSTNAME` que o Render injeta é aceito sozinho. Em desenvolvimento sem a variável vale localhost/127.0.0.1/testserver.
+- `SecurityMiddleware` + `XFrameOptionsMiddleware` (nosniff, referrer-policy, COOP, X-Frame-Options DENY). Só em produção: `SECURE_PROXY_SSL_HEADER` (HTTPS do Render), HSTS de 30 dias (`SECURE_HSTS_SECONDS`; subir pra 31536000 depois de confirmar) e `SECURE_SSL_REDIRECT` opcional (desligado: o Render já redireciona).
+- **Antes de subir no Render confira as variáveis:** `DEBUG` (pode ficar sem ou `False`), `DJANGO_SECRET_KEY` (se não existir o deploy não sobe), `ALLOWED_HOSTS`. Atenção: sem `DJANGO_SECRET_KEY` o sistema antes usava uma chave de desenvolvimento pública — que também assina os links de orçamento; defina uma chave nova e secreta.
+- Testes: `tests/test_settings.py` (9). Suíte total: 593.
+
+## Segurança do banco — RLS em todas as tabelas (2026-10-21) — PR #25
+
+Novo script `backend/sql/seguranca_rls.sql` (idempotente; testado num Postgres descartável). Liga o RLS em toda tabela de `public` **sem policies** e tira de `anon`/`authenticated` o acesso a tabelas, sequências e funções (inclusive as de orçamento/estoque, que por padrão ficam executáveis por todos). O `service_role` (backend das duas apps) ignora RLS: nada muda pra elas. Não usa FORCE (o app do cliente conecta como `postgres`, dono). **Pré-requisito:** o `SUPABASE_KEY` do Render ser a chave `service_role` — senão o sistema para. Ligar o RLS por oficina (policies) fica como etapa futura (item #18 da auditoria).
+
+## Entrada — fotos obrigatórias (2026-10-22) — branch feat/fotos-obrigatorias (parte de main)
+
+**Pedido:** na tela de fotos da entrada, 5 fotos obrigatórias fixas (hodômetro com o painel aceso mostrando os avisos, frente, traseira, lateral direita, lateral esquerda) + fotos adicionais livres; não avançar ao diagnóstico sem as 5 resolvidas; saída "Não consigo tirar esta foto" com motivo curto; registrar quem e quando; comprimir antes de enviar; usável com uma mão em 390px.
+
+**Como era:** `ordens.fotos_paths` (lista de caminhos `<ordem_id>/<uuid>.<ext>` no bucket `test-bucket`) sem nenhuma informação de qual foto é, quem tirou ou quando; as fotos só subiam em lote no `saveOrder()`; só a câmera (`CameraCapture`) comprimia; nenhum bloqueio.
+
+**Passo do usuário:** rodar `backend/sql/ordens_fotos.sql` no SQL Editor do Supabase (idempotente, depois de `ordens_oficina.sql`; RLS ligada e sem policy — só o backend acessa). Sem ele nada quebra: a tela avisa, não exige as 5 e as fotos adicionais seguem como antes.
+
+**Banco** (`ordem_fotos`, uma linha por OS+item): `slot` (CHECK nos 5 ids), `situacao` (`foto`|`pulada`), `path` ou `motivo` (CHECK de coerência: foto exige caminho e proíbe motivo; pulada exige motivo de 3–120 caracteres e proíbe caminho), `por_nome`/`por_tipo`/`por_id`/`em`, `refeitas`. FK composta `(oficina_doc, ordem_id)` → `ordens` com `on delete cascade`. As fotos adicionais continuam em `fotos_paths`.
+
+**Rotas** (`orders/fotos_obrigatorias.py`, JSON camelCase): `GET /ordens/<id>/fotos-obrigatorias` (`ordens.ver`) → `itens`, `total`, `resolvidas`, `completo`, `faltam`; `PUT .../<slot>` (multipart, campo `file`, uma foto por vez) e `POST .../<slot>/pular` `{motivo}` (`ordens.editar` OU `ordens.criar`, como o "cliente avisado": o atendente cria OS). Respondem com o `item` alterado + o resumo, pra tela atualizar o "3 de 5" sem outra chamada.
+
+**Regras**
+- Quem e quando vêm do TOKEN e do relógio do servidor, nunca do corpo. Tirar de novo substitui a linha, apaga a foto velha do Storage e soma 1 em `refeitas`; pular um item que tinha foto também a remove. Se o banco recusa depois do upload, o arquivo novo é removido (sem órfão); se falha o upload, nada é gravado (502).
+- Arquivos em `<ordem_id>/obrig-<slot>-<uuid>.<ext>`, na pasta da OS: apagar a OS já limpa tudo. Validação por magic bytes (JPEG/PNG/WebP/HEIC), máx 5 MB.
+- **Bloqueio no servidor:** `PUT /ordens/<id>` com a OS em `rascunho` só sobe para `em_orcamento` com as 5 resolvidas. Faltando, o salvamento NÃO falha: grava tudo, a OS fica em rascunho e a resposta traz `fotos_obrigatorias_pendentes`. OS que já passou da entrada NÃO é cobrada (decisão do usuário: só rascunho). Só dá pra mexer nos itens enquanto a OS é rascunho/em_orcamento (409 `os_status` depois disso; ler continua valendo).
+- Frontend: o bloqueio vale no botão "Encerramento" da tela de fotos, nas abas da entrada e no "Próxima etapa" do encerramento (que também mostra um aviso com atalho "Ir para as fotos").
+
+**Frontend:** `useFotosObrigatorias` (dentro de `useOrdemServico`, estado único), `utils/fotos_obrigatorias.ts` (espelho dos 5 ids/limites do backend — manter igual), `utils/imagem.ts` (compressão), `Steps/Initial/StepPhoto.tsx` reescrito + `FotosObrigatorias/` (`FotoObrigatoriaItem`, `PularFotoSheet`, ícones). Ao chegar nas fotos sem OS, salva o rascunho (um salvamento por vez: `saveOrder` agora reaproveita o que já está em curso, senão dois disparos criariam duas OS). Cada foto sobe na hora; se a internet cair a foto já comprimida fica guardada pra "Tentar enviar de novo". Mantido o `react-webcam` (decisão do usuário: no iOS a câmera nativa devolve a foto sozinha e aqui dá pra tirar em sequência e controlar a qualidade). Compressão: lado maior 1600 px, JPEG 0,75 — vale também pras fotos adicionais. As 5 entram no PDF da OS antes das adicionais, com o nome do item.
+
+**Correções feitas no caminho**
+- `api.ts` fixava `Content-Type: application/json` em todo `authFetch`, inclusive em upload `FormData` (o navegador precisa montar o boundary). Agora ignora o fixo quando o corpo é `FormData`.
+- O `StepWrapper` usa `will-change: transform`, o que prende elementos `position: fixed` ao tamanho da PÁGINA e não da tela. A câmera e a folha do motivo agora renderizam por portal no `<body>`.
+
+**Validado:** 647 testes (pytest, Postgres real descartável; 54 novos em `tests/test_fotos_obrigatorias.py`; o teste de status ganhou as 5 fotos resolvidas, pois a regra mudou de propósito) e lint limpo; `tsc` + `vite build` limpos; funções puras do front (esbuild + node); smoke no Chromium em 390px com API simulada e câmera falsa (fluxo completo, bloqueio por botão e por aba, refazer, motivo por atalho e texto livre, falha de rede + reenvio, 4 de 5, modo sem script, alvos ≥ 44 px, sem rolagem horizontal, câmera/folha dentro da tela). **NÃO validado:** nada contra o Supabase/Storage reais nem em celular de verdade (câmera do iPhone/Android, permissão, EXIF/rotação reais).
+
+**Pendências / decisões**
+- Rodar `ordens_fotos.sql`; testar no celular com o build de produção (`npm run build && npm run preview`).
+- A faixa de abas (`StepTabs`) fica mais larga que 390 px com a aba "Encerramento" ativa (já era assim; não mexido).
+- Lista de itens fixa no código (sem configuração por oficina, como pedido). Se virar configurável, é tabela nova + o espelho do front sai.
+- `GET /fotos/<path>` continua sem login (já anotado) — as 5 fotos usam o mesmo endpoint pra miniatura.
+- Foto escolhida da galeria só existe nas adicionais; as 5 obrigatórias são sempre pela câmera (evita foto antiga fora do registro de confiabilidade).
+- Itens "pulados" não têm prazo nem alerta pra serem refeitos depois; o motivo fica visível na tela de fotos e no registro, mas ainda não aparece no PDF.
+
+## Cadastro — etapa 2: dados da oficina (2026-10-25, branch `feat/cadastro-etapa-2-dados-oficina`)
+O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre sua conta, 2 Cadastre as informações da sua oficina, 3 Seja bem-vindo ao Revisacar. Antes só a 1 existia e `criarAdmin` já autenticava direto. Esta entrega faz a **etapa 2**; a 3 fica pra depois.
+
+**Arquivos:** `pages/auth/OficinaStep.tsx` (novo, formulário), `utils/oficina_config.ts` (novo, validação + gravação), `pages/AuthScreen.tsx`, `pages/AuthPage.tsx`.
+
+**Fluxo:** etapa 1 → `criarAdmin` cria a conta, mas o `AuthScreen` guarda o resultado em vez de chamar `onAuthenticated` → etapa 2 (painel acende o quadrado 2, o 1 vira ✓) → ao continuar, grava os dados e só então chama `onAuthenticated` e cai no dashboard. Campos: nome da oficina, telefone/WhatsApp, endereço, taxa de mão de obra (R$/hora), abre às/fecha às (padrão 08:00–19:00). Todos obrigatórios; fechamento tem que ser depois da abertura (mesma regra de Configurações).
+
+**Onde grava:** no blob `oficina_config` do `localStorage`, o mesmo que a tela de Configurações lê/grava e de onde `horario_funcionamento.ts` lê o horário (a etapa avisa as telas de Agendamento por `notificarHorarioAtualizado`). CNPJ e e-mail vêm da etapa 1, então Configurações já abre com os dados reais e não com os de exemplo (`WORKSHOP_DEFAULTS`).
+
+**Decisões**
+- Sem etapa 2 não há sessão: o login só é efetivado ao concluí-la. O seletor Dono/Funcionário some enquanto a etapa 2 está ativa (trocar de lado desmontaria o formulário e perderia a sessão recém-criada).
+- Sem botão "voltar": a conta já existe.
+
+**Validado:** `tsc` + `vite build` limpos; smoke no Chromium (API de cadastro simulada, desktop 1440 e mobile 390): conta criada sem sessão, quadrado 2 aceso, 4 erros ao tentar continuar vazio, horário inválido recusado, gravação completa em `oficina_config`, sessão só depois da etapa 2, Configurações exibindo nome/CNPJ/e-mail/telefone/endereço/taxa/horário cadastrados, sem erro de JS e sem rolagem horizontal. **NÃO validado:** contra o backend/Supabase reais.
+
+**Pendências / decisões**
+- Os dados ficam só no navegador (como Configurações já fazia): não vão pro banco nem acompanham a conta em outro dispositivo. Levar `oficina_config` pro backend é um passo à parte, e vale pra Configurações inteira.
+- Se a pessoa fechar a aba entre as etapas 1 e 2, a conta existe mas sem dados da oficina: ela entra pelo login normal e Configurações abre com os valores de exemplo até ela preencher.
+- Etapa 3 (boas-vindas): quando existir, `onConcluir` em `AuthScreen.tsx` passa a avançar pra ela (`onProgress('cadastro', 2)`) em vez de autenticar direto (há um TODO no lugar).
+
+## Cabeçalho com o cargo e fim do "modo demonstração" (2026-10-30, branch `feat/cabecalho-cargo-sem-demo`)
+- **Cargo no cabeçalho:** o canto superior direito do painel mostrava "Administrador" para todo mundo. Agora mostra o cargo de quem está logado (Dono, Gerente, Mecânico, Atendente) via `utils/cargo.ts` (`rotuloDoCargo`). Sessões antigas sem `cargo` caem no `tipo` (Dono / Funcionário).
+- **Modo demonstração removido.** Em desenvolvimento, qualquer falha de API (backend local fora do ar, `VITE_API_URL` errada) trocava a tela por dados fictícios e mostrava o selo "dados de demonstração". Agora a falha mostra o erro real, em todos os ambientes. Saíram o fallback dos hooks (Estoque, Financeiro, Relatórios, Serviços, Veículos, Clientes, Agendamentos, Atendimento, Alertas), o selo das 7 telas e os geradores de dados falsos (`buildSeed*`, `agregarOrdensLocal`, ~900 linhas); o `useEstoque` também perdeu os caminhos de escrita locais do modo demo.
+- **Consequência:** sem backend, as telas mostram erro/vazio em vez de dados de exemplo. Pra desenvolver, suba o backend local (o `API_BASE` cai em `http://127.0.0.1:8000`).
+- **Validado:** `tsc` + `vite build` limpos (cópia temporária com os conflitos de merge da `main` resolvidos), "demonstração" ausente do bundle, helper de cargo testado em Node. **NÃO validado:** no navegador contra o backend real.
+- **Não mexido:** nos hooks de Veículos/Clientes/Agendamentos/Serviços o ramo de escrita "sem API" (`usingApi` falso) continua; só deixou de ser alcançado por dados fictícios. A barra lateral e o menu mobile ainda rotulam o nome como "Oficina", inclusive para funcionário.
+## Acesso da equipe — login de funcionário em qualquer aparelho (2026-10-29, branch `feat/acesso-equipe-link`)
+**Problema:** o login de funcionário (nome + PIN) depende do CNPJ da oficina guardado no `localStorage` do aparelho (`revisacarDeviceOficinaDoc`). Funcionário e PIN já ficavam no banco, mas num computador novo ele caía em "Configurar este dispositivo" e tinha que saber o CNPJ de cabeça. E não havia como trocar a oficina pareada: um CNPJ digitado errado prendia o aparelho.
+
+**Entrega**
+- **Código da oficina + link `/f/<código>`.** Migração `0006_codigo_acesso_equipe.sql` (`admins.codigo_acesso`, único). Código de 8 caracteres sem 0/O/1/I/L (≈ 8,5e11 combinações), gerado com `secrets`. Em Configurações, o card "Acesso da equipe" (`AcessoEquipeCard.tsx`, só com `funcionarios.gerenciar`, ou seja, o dono) gera o código, copia código/link, manda por WhatsApp, gera um novo (o antigo para de valer) ou desativa o link.
+- **Backend** (`orders/acesso_equipe_views.py`): `GET/POST/DELETE /oficina/acesso-equipe` (login + `funcionarios.gerenciar`) e `GET /publico/oficina/<código>` (sem login) → `{oficinaDoc, nome}`. Formato inválido é descartado antes de tocar no banco; código errado e desativado respondem o mesmo 404; limite de 30 consultas/min por IP; `Cache-Control: no-store` e `noindex`. Coluna ausente (0006 não rodada) → 503 com mensagem clara.
+- **Frontend:** `/f/<código>` (`features/AcessoEquipe/AcessoEquipePage.tsx`, montada no `main.tsx`) troca o código pela oficina, grava a mesma chave que o login já lia e abre o login no lado do funcionário, já com a lista de nomes. Link inválido/desativado explica e deixa seguir pro login normal.
+- **Tela do funcionário:** o pareamento pede o código da oficina (CNPJ continua como alternativa) e o seletor ganhou "Não é a sua oficina? Trocar". No login do dono entrou "É funcionário? Entre com seu PIN".
+
+**Arquivos:** backend `orders/acesso_equipe_views.py`, `orders/urls.py`, `sql/migrations/0006_codigo_acesso_equipe.sql`, `tests/test_acesso_equipe.py` (21 testes), `tests/conftest.py`. Frontend `utils/acesso_equipe_utils.ts`, `utils/api.ts`, `main.tsx`, `App.tsx`, `pages/AuthPage.tsx`, `pages/AuthScreen.tsx`, `pages/FuncionarioLogin/FuncionarioLoginScreen.tsx`, `features/Dashboard/Configuracoes/AcessoEquipeCard.tsx`, `features/Dashboard/ConfiguracoesPage.tsx`.
+
+**Rodar no Supabase antes de usar:** `backend/sql/migrations/0006_codigo_acesso_equipe.sql` (idempotente).
+
+**Validado:** testes do backend (21 novos, Postgres real descartável; suíte inteira 774 passando); `tsc` e `vite build` limpos numa cópia temporária com os conflitos de merge abaixo resolvidos; funções puras do código/link conferidas em Node. **NÃO validado:** fluxo no navegador contra o backend/Supabase reais (link aberto em outro computador, WhatsApp, cópia pro clipboard).
+
+**Decisões e pendências**
+- O código dá acesso só ao que o CNPJ já dá (nome da oficina e a lista nome/cargo). O PIN segue protegido pelo bloqueio anti-força-bruta. Desativar o link não desfaz aparelhos já configurados nem o pareamento por CNPJ: o que protege o acesso é o PIN, e `ativo=false` no funcionário.
+- Sem QR code por enquanto (exigiria uma dependência nova); copiar link e WhatsApp resolvem. Fácil de somar depois.
+- O host precisa devolver o `index.html` para `/f/*`, como já precisa para `/o/*` (ver Fase 6A). O `vite preview` já faz isso.
+- **`main` com conflitos de merge commitados** (commit `96dfcf2`): `frontend/index.html` (linhas 17–21) e `frontend/src/components/Topbar.tsx` (linhas 199–234) têm `<<<<<<<`/`>>>>>>>`, então `npm run build` falha na `main` hoje. Não mexido nesta entrega (é escolher entre os dois lados); precisa resolver antes do próximo deploy.
+- Falha pré-existente na `main`: `tests/test_estoque_sql.py::test_item_que_esta_numa_receita_nao_pode_ser_apagado`. Não mexido.
+
+## Regras dos campos dos checklists (2026-11-03)
+
+**Problema:** os campos dos checklists (entrada, inspeção, encerramento e orçamento) aceitavam qualquer coisa — ano com letras, km livre, telefone/CPF/e-mail sem padrão, textareas sem limite.
+
+**Como ficou (duas camadas, uma fonte única em cada ponta):**
+- Front: `utils/campos_checklist.ts` (limites `LIM`, validadores, `sanitizarPrefill`) + `components/inputs/masks.ts` (`FILTRO` = regex dos caracteres removidos ao digitar). O `Input` ganhou os tipos `nome`, `ano`, `km`, `chassi` e as props `filter` (regex) e `validate` (formato conferido ao sair do campo). `validateStep1`/`validateStep5` somam formato + obrigatório e bloqueiam "Próximo"/"Gerar PDF".
+- Backend: `orders/campos_os.py` espelha as mesmas regras e é ligado nos serializers da OS (`serializers.py`). Telefone, CPF/CNPJ e km são gravados só com dígitos.
+- Regras: nome (letras, espaço, `'`, `.`, `-`; 2–100), CPF/CNPJ com dígito verificador, telefone BR (DDD + 8/9 dígitos), e-mail (≤120), placa antiga/Mercosul, ano 4 dígitos (1900 … ano+1), chassi VIN 17 (sem I/O/Q), km até 7 dígitos, datas reais (2000 até hoje; saída não anterior à entrada), textareas com limite e contador, tabela de peças (quantidade 1–999, código/marca/modelo com charset e tamanho), item livre do checklist (≤60, sem repetir, ≤50), orçamento (números só com dígito/ponto/vírgula, validade 2 dígitos).
+- Achados corrigidos junto: o backend **descartava** `obs_cliente` (Relato do cliente), `itens_adicionais`, `troca_set` e `tabela_pecas` ao salvar a OS (o front já os lia de volta); a data de saída padrão usava UTC (depois das 21h virava "amanhã"); o nome com hífen/apóstrofo era mutilado pelo `onlyText`.
+- O servidor continua aceitando o Nº da OS no formato antigo (`OS-1`); o formulário só deixa digitar números.
+- Prefill (veículo/agendamento) passa pelas mesmas regras antes de entrar no formulário.
+
+## Veículos ↔ Clientes: vínculo, fotos e "Nova OS" (2026-10-31)
+**Arquivos:** backend `orders/carteira.py`, `orders/clientes_views.py`, `orders/veiculos_views.py`, `sql/migrations/0007_fotos_veiculos.sql`, `tests/test_carteira.py` (+21), `tests/conftest.py`. Frontend `features/Dashboard/Veiculos/OwnerPicker.tsx` (novo), `VehicleFormModal.tsx`, `ChangeOwnerModal.tsx`, `VeiculosPage.tsx`, `features/Dashboard/Clientes/ClientFormModal.tsx`, `ClientesPage.tsx`, `hooks/useVeiculos.ts`, `hooks/useClientes.ts`, `utils/veiculos_utils.ts`, `utils/clientes_utils.ts`, `pages/InitialChecklist.tsx`, `pages/Dashboard.tsx`, `types/*`.
+
+**Vínculo veículo ↔ cliente.** O backend/banco já tinham (`customer_vehicles.customer_id`, `proprietario.clienteId` conferido contra a carteira); faltava a tela: o formulário só aceitava texto e dizia "em breve". Agora `OwnerPicker` (cadastro/edição do veículo e "Alterar proprietário") escolhe um cliente da carteira (manda `clienteId`) ou cadastra um novo (texto, como antes). Na edição, o dono só é reenviado se mudou. A tela de Clientes passa a cruzar veículos pelo `clienteId` (antes só por nome).
+
+**Fotos.** Estavam sendo ignoradas pelo backend (cliente e veículo) e o formulário mandava o arquivo cru. Agora seguem o estoque: comprime no navegador (cliente 480px; veículo 800px/640px), envia data URL, backend valida (jpeg/png/webp/gif ou https, ≤ 700 mil caracteres) e grava. Cliente em `customers.avatar_url` (sem migration; conta do app continua sendo do próprio cliente → 403 se a oficina tentar trocar); veículo em `foto_data_url` + `fotos_adicionais` (máx. 5), migration 0007. `null` limpa; chave ausente não mexe. **Salvar veículo sem foto não depende da 0007.**
+
+**"Nova OS" a partir do veículo.** `veiculoParaPrefill` + `OSPrefillInput.apenasPreencher`: com proprietário preenche cliente (nome, CPF/CNPJ, telefone, e-mail) e veículo (modelo, placa, ano, cor, combustível, chassi); sem proprietário, só o veículo. Só preenche — a OS é criada quando o mecânico salvar (o "Iniciar Atendimento" continua criando na hora, como antes). Não leva a quilometragem cadastrada (o Km da entrada é o do hodômetro de agora).
+
+**Rodar no Supabase antes de usar fotos de veículo:** `backend/sql/migrations/0007_fotos_veiculos.sql` (idempotente).
+
+**Decisões e pendências**
+- Fotos ficam no próprio registro (como o estoque), então `GET /veiculos` e `GET /clientes` devolvem todas. Com a frota crescendo, vale migrar para o Storage (a coluna `foto_principal_path` da 0003 já está reservada para isso).
+- `foto_principal_path` não foi reaproveitada: é caminho de Storage lido pelo app do cliente.
+- ~~`ProdutoModal.tsx` (Estoque) ainda exibe "A foto fica salva só nesta sessão", o que já não é verdade.~~ Resolvido em 2026-11-21: o aviso (que também existia no `CriarKitModal.tsx`) foi removido; o backend já gravava a foto em `estoque_itens`/`estoque_kits.foto_data_url` desde o módulo de Estoque.
+## Auditoria UX/UI e responsividade do painel (2026-10-30, branch `feat/ux-responsivo`)
+**Auditoria:** 11 telas medidas por script e por print no build de produção ligado ao backend do Render, em 390×844, 768×1024, 844×390 (celular deitado), 1024×768 e 1366/1440. O pior caso era o notebook (980–1279 px): larguras fixas pensadas para 1440 px.
+
+**Corrigido**
+- **Visão Geral:** as grades `1fr 420px` e `320px 1fr 310px` viraram classes com `minmax` (`.visao-geral__*` em `dashboard.css`). Abaixo de 1280 px o gráfico ocupa a linha toda, Resumo e Alertas dividem uma linha e Ordens Recentes ocupa a largura inteira. Antes, em 1024 px, o card de Ordens ficava com cerca de 20 px e o seletor de período era cortado. No tablet (≥ 720 px) os KPIs saem do carrossel e ficam em grade de 3, e os cards vão em pares. O mini-gráfico dos KPIs desceu para o lado do valor (passava por cima do título).
+- **Tabela de OS:** as colunas fixas somavam cerca de 780 px, então as ações saíam do card em 1024 px. Agora as colunas são flexíveis, e abaixo de 1280 px a coluna Placa some e a placa aparece sob o cliente. O nº da OS virou `<button>` e as ações têm 34 px com rótulo.
+- **Veículos e Clientes:** os cards usam `auto-fill, minmax(250px)` pelo espaço real (antes eram 4 colunas fixas a partir de 980 px, mesmo com a sidebar). Os rótulos dos indicadores quebram linha em vez de cortar.
+- **Sidebar:** fica parada de verdade. Um `position: relative` inline anulava o `sticky`, e a altura era `auto`. Agora tem `100dvh` com rolagem própria, e o botão "Criar Nova Solicitação" ficou compacto (tinha 56 px de padding vertical). Os ícones do dock ganharam `aria-label`.
+- **Toque (layout compacto ou `pointer: coarse`):** regra única em `index.css` deixa todo botão e `role=button/tab/radio` com no mínimo 44×44 px. Os ícones quadrados que não podem crescer usam `.tap-area` (área estendida pelo `::after`). Campos com 44 px também no tablet. O voltar das telas virou `.dashboard-back-button` (era 24 px). Os links "Ver todas" e "Editar" ganharam alvo de 44 px sem mudar o desenho.
+- **Teclado:** a linha de OS e os itens de alerta da Visão Geral recebem foco e abrem com Enter/Espaço.
+- **Celular deitado (altura < 500 px):** a barra inferior caiu de 93 para 56 px (ícone ao lado do rótulo), e a topbar rola junto com a página. Antes as duas ocupavam 37 % da tela.
+- **Linha de OS no celular:** a margem negativa fixa de −20 px gerava 6 px de rolagem horizontal na tela de Ordens.
+- **Troca de tela:** volta ao topo (a rolagem é da página e a tela nova abria no meio).
+
+**Validado:**
+- `tsc` e `vite build` limpos;
+- no navegador, nas 11 telas em 390, 768 e 1024 px: zero rolagem horizontal e nenhum alvo de toque menor que 44 px (em 390 e 768);
+- prints em 844×390 e 1440 px.
+
+**NÃO validado:**
+- iPhone e Android reais (só emulação de viewport);
+- modais e formulários abertos um a um;
+- leitor de tela.
+
+**Não mexido (pendências):**
+- A casca (Sidebar, MobileTopbar, MobileNav) continua copiada em 12 telas. Vale um `AppShell` único depois do PR #38, que mexe em `Dashboard.tsx`.
+- A cor da marca no código é `#CC1400` (59 valores fixos), e o briefing fala em Coral Red `#FF3231`. Decisão da equipe.
+- Sobraram variáveis de tema escuro sem uso.
+- Configurações e Financeiro não têm o botão "voltar" no celular.
+- Esta branch evita as linhas que o PR #38 altera (imports e topo do `Dashboard.tsx`, `App.tsx`, `main.tsx`, `vite.config.ts`).
+
+**2ª rodada — celular (2026-10-30, mesma branch).** O usuário achou o celular ainda ruim. Revi tela por tela em 360 px (Android pequeno) olhando os prints, não só as medições.
+- **Causa grande:** `styles/ui.css` nunca era importado. O `PanelFooter` das etapas da OS dependia de `.panel-footer` (fixo embaixo, safe-area, "Salvar rascunho" + "Próximo" ocupando a largura), e o rodapé ficava solto no fim da página, com botões pequenos. Agora `components/ui.tsx` importa o arquivo. Ele também vale no desktop, como o código já previa.
+- **Densidade:**
+  - Os indicadores de Clientes, Veículos, Estoque e Agenda viram uma faixa de uma linha que desliza (`.stats-faixa`). Antes eram 2–3 linhas de cartões (cerca de 250 px) antes do primeiro item.
+  - Os filtros da tela de Ordens ficam numa linha deslizante (antes eram 3 linhas).
+  - A linha de OS perdeu o ícone genérico de carro abaixo de 640 px, e o cliente e o veículo não quebram mais em 3 linhas.
+  - Veículo sem foto mostra uma faixa decorativa baixa (16:5) em vez de cerca de 185 px vazios.
+- **Texto:**
+  - O valor dos KPIs não quebra mais "R$" numa linha e o número na outra (fonte com `clamp` e o mini-gráfico encolhe primeiro).
+  - "BLOQUEADOS" não passa mais da coluna no Atendimento.
+  - O cabeçalho dos modais não espreme mais o título: as ações descem de linha.
+  - O carrossel da Visão Geral ficou sem barra de rolagem visível.
+- **Financeiro:** o seletor de período ocupa o espaço que sobra ao lado de "Novo Lançamento".
+- **Erro evitado:** a faixa de filtros, sem `minWidth: 0` dentro de uma coluna com `flex-wrap`, alargava a página inteira para 604 px (o celular daria "zoom out"). Foi corrigido e a varredura agora mede `innerWidth`.
+- **Não mexido:** a Agenda mobile (feita por outro integrante) tem dois botões "+" na tela ("Novo Agendamento" e a nova OS da barra). Vale a equipe decidir.
+## Desempenho — telas lentas no Render (2026-10-30, branch `perf/telas-mais-rapidas`)
+**Medido em produção antes da mudança (conta de teste):** ida e volta até o backend sem banco ≈ 0,47 s; cada consulta ao Supabase ≈ +0,3 s. `/alertas` 3,5 s, `/visao-geral` 2,7 s, `/relatorios` 2,5 s, `/agendamentos` 2,3 s. E o principal: **8 chamadas simultâneas saíam em fila** (0,97 s → 4,75 s, uma atrás da outra), porque o Render roda `gunicorn DjangoSet.wsgi` sem configuração = 1 processo que atende uma requisição por vez. Cada tela dispara 5 a 10 chamadas juntas.
+
+**Entrega**
+- **`backend/gunicorn.conf.py`** (o gunicorn lê sozinho, sem mudar o painel do Render): 2 processos × 8 threads (`gthread`), timeout 60 s, recicla processo a cada ~1000 requisições, log com o tempo de cada chamada (`%(M)sms`). Ajustável por `WEB_CONCURRENCY`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT`. Teste local com um app que demora 0,5 s: 8 chamadas simultâneas de 4,05 s → 0,52 s.
+- **Consultas em paralelo dentro das rotas** (`orders/paralelo.py`, `em_paralelo`/`em_paralelo_cada`): `/alertas` (5 blocos + dispensados juntos), `/visao-geral` (5 consultas juntas), `/relatorios` (2 rodadas em vez de 6 consultas em fila), `/agendamentos` (clientes, mecânicos e OS ligadas juntos). O supabase-py é seguro entre threads (cada consulta monta os próprios cabeçalhos). As entradas do Financeiro passaram a ser buscadas antes de saber se a oficina usa o Financeiro; se não usar, o resultado (e o erro, se a tabela não existir) é ignorado — regra de faturamento igual.
+- **Frontend dividido por tela** (`utils/telaSobDemanda.ts`, `React.lazy`): o pacote inicial caiu de 1.288 KB (335 KB gzip) para 183 KB (60 KB gzip). A tela de login não baixa mais os gráficos; as outras telas são baixadas em segundo plano depois que a Visão Geral aparece (troca de tela continua instantânea) e a troca usa `startTransition` (a tela atual fica à mostra até a próxima chegar). Depois de um deploy, uma aba antiga que peça um arquivo que não existe mais recarrega uma vez. `vite.config.ts`: o `manualChunks` antigo deixava o React dentro do arquivo dos gráficos (563 KB) — agora só o React tem arquivo próprio.
+
+**Validado:** pytest 781 (6 novos em `test_paralelo.py`), flake8, `tsc`, `vite build`; build novo em `localhost:3000` contra o backend de produção, conta de teste: todas as telas abrem (Visão Geral, OS, Atendimento, Agenda, Clientes, Veículos, Estoque, Catálogo, Relatórios, Financeiro, Configurações, Alertas, Dicas, Entrada, Diagnóstico, Orçamento, Fechamento) em ~0,1 s depois de pré-carregadas, sem erro de JS. **NÃO validado:** o ganho do backend em produção (só depois do deploy da `main`).
+
+**Fora do código (decisão da equipe)**
+- **Região:** cada consulta leva ~0,3 s entre o Render e o Supabase. Conferir no painel se o serviço do Render e o projeto do Supabase estão na mesma região; se não, mover o backend para a região mais próxima do Supabase reduz todas as telas.
+- **Servidor dormindo:** no plano gratuito o backend dorme depois de 15 min sem uso e a primeira chamada demora ~1 min. Opções: plano pago, ou um "ping" a cada 10 min (consome as 750 h/mês gratuitas do workspace).
+- Teste instável pré-existente: `test_publico_nao_vaza_custo_margem_nem_dados_internos` procura o texto "61" na página pública e às vezes o código aleatório do link contém "61".
+
+## Cadastro pulava "Sua oficina" + mensagens de erro para o usuário (2026-11-04, branch `fix/cadastro-oficina-e-mensagens-erro`, parte de `main`)
+**Problema 1 — etapa 2 do cadastro sumida.** Na `main` o `OficinaStep.tsx` existia, mas o `AuthScreen.tsx` nunca o renderizava (ainda tinha o TODO da etapa 2): `criarAdmin` ia direto para a animação de boas-vindas e depois para o painel. As branches `feat/cadastro-etapa-2-dados-oficina` e `fix/animacao-apos-etapa-2` nunca chegaram à `main` por inteiro. Agora o fluxo é conta → **Sua oficina** → animação → painel. O áudio da animação é destravado no clique de "Continuar" da etapa 2 (é lá que a animação começa). Os dados vão para `oficina_config` no navegador e `sincronizarOficinaConfig` os sobe ao servidor na primeira abertura do painel (já existia).
+
+**Problema 2 — mensagens de erro de desenvolvedor.** O `handleResponse` jogava o corpo cru da API como `message` e as telas só tiravam as aspas: apareciam `{"doc":["CNPJ inválido"]}`, `Failed to fetch`, HTML de erro 500 e recados como "Rode backend/sql/… no SQL Editor do Supabase". Cadastro com e-mail repetido nem era checado (caía no erro do banco → 500).
+- **Frontend:** `utils/api_erro.ts` ganhou `ApiError` e `criarErroDaResposta`; todo erro de `api.ts` (e falha de rede) sai com `message` em português: usa o texto do servidor quando é legível, tira o nome interno do campo (`doc` → só "CNPJ inválido"), troca as mensagens em inglês do DRF, esconde recado técnico (banco, migration, supabase, SQL, stack trace, HTML) e cai numa frase por status (401, 403, 404, 409, 429, 5xx, sem conexão). `mensagemDoErro`/`corpoDoErro` continuam iguais para os hooks; o corpo original fica em `ApiError.corpo`. Em desenvolvimento o detalhe técnico vai para o `console.warn`, nunca para a tela. `erros.ts` agora só reexporta.
+- **Telas de entrada** (`AuthScreen`, `FuncionarioLoginScreen`, `ResetPasswordScreen`, cadastro de funcionário em Configurações): usam `mensagemDoErro`; o login/cadastro do dono confere antes de enviar (CNPJ com dígito verificador, nome, e-mail, senha de 6+ caracteres e confirmação) e o pareamento do funcionário por CNPJ também recusa CNPJ inválido.
+- **Backend (`views.py`):** cadastro confere **e-mail já cadastrado** além do CNPJ (409 com frase clara) e trata a corrida de dois cadastros iguais (unique 23505 → 409; outra falha → 503 sem detalhe). Login: "Doc ou senha incorretos" → "CNPJ ou senha incorretos". Redefinição de senha, "esqueci o e-mail", e-mail repetido de funcionário, "Parâmetro 'status' obrigatório", fotos sem arquivo e o `Erro ao baixar foto: {e}` (vazava a exceção) agora falam com o usuário; o detalhe técnico fica no log.
+
+**Validado:** pytest 878 (9 novos em `tests/test_cadastro_login_mensagens.py`), `tsc` e `vite build` limpos, e as regras de tradução de erro conferidas com um script Node (corpo JSON, inglês do DRF, recado técnico, HTML 500, rede, compatibilidade com erros antigos). **NÃO validado:** o fluxo no navegador (clicar no cadastro até o painel) nem contra o Supabase real.
+
+**Pendências / decisões**
+- Se a pessoa fechar a aba entre a etapa 1 e a 2, a conta existe sem os dados da oficina (já era assim na entrega original da etapa 2).
+- Mensagens de "tabela/coluna ainda não existe no banco" continuam no backend (e no log) para quem opera o deploy; na tela viram "O servidor está indisponível…".
+- Não criei um handler global de exceção do DRF: mexeria em todas as rotas. O front já trata qualquer 500 sem JSON com uma frase simples.
+
+## Reserva de caixa — percentual de cada pagamento guardado à parte (2026-11-05, branch `feat/reserva-caixa`, parte de `main`)
+**Pedido.** Um cliente da oficina guarda 20% do valor de cada serviço num "caixa de emergência" (só fica guardado). Outras oficinas não fazem isso, ou usam outro percentual: tem que ser opcional por oficina, sem mudar nada para quem não liga. A oficina escolhe também **onde** a reserva incide: só serviços, só peças ou os dois.
+
+**Conceito.** Não é desconto: o cliente paga o mesmo valor e a receita continua inteira (Resumo, Relatórios, Alertas e Visão Geral não mudam). A reserva é uma separação interna, com saldo e histórico próprios, que continua dentro do Saldo do caixa.
+
+**Arquivos:** `backend/sql/migrations/0008_reserva_caixa.sql`, `orders/reserva_views.py`, `ReservaConfigSerializer`/`ReservaRetiradaSerializer` em `serializers.py`, rotas em `urls.py`, permissão `financeiro.reserva` em `rbac.py`, `tests/test_reserva.py`; frontend: `Configuracoes/ReservaCaixaCard.tsx`, `Financeiro/ReservaCard.tsx`, `Financeiro/RetiradaReservaModal.tsx`, `hooks/useReserva.ts`, `utils/reserva_utils.ts`, tipos em `Financeiro/types.ts`, métodos em `api.ts`.
+
+**Rotas:** `GET/PUT /financeiro/reserva/config`, `GET /financeiro/reserva`, `POST /financeiro/reserva/retiradas`, `DELETE /financeiro/reserva/retiradas/<id>`.
+
+**Decisões**
+- **Desligada por padrão.** `admins.reserva_config` (jsonb `{ativa, percentual, escopo}`) nasce vazia: nenhuma oficina muda de comportamento até o dono ligar em Configurações. Escopo: `servicos` | `pecas` | `ambos` (as categorias de entrada `servicos` e `pecas`, as mesmas que o orçamento aprovado já gera separadas por OS). Percentual de 1 a 100 na tela (o servidor aceita casas decimais).
+- **Tabela própria** `financeiro_reservas` (depósitos e retiradas), em vez de um tipo novo em `financeiro_transacoes`: assim nenhuma consulta existente enxerga a reserva e não há risco para quem não usa.
+- **Gatilho no banco** (`reserva_sincronizar`) em vez de código nas rotas: cobre qualquer caminho que marque uma entrada como paga (e o que vier no futuro), na mesma transação do pagamento. Quem não usa a reserva sai nas primeiras linhas do gatilho.
+- **Quando nasce:** a entrada passa a `pago`. Pendente não reserva. Voltou a pendente / cancelada / saiu do escopo → o depósito é cancelado; valor editado → recalculado. Pagamento antigo nunca ganha reserva retroativa (ligar a reserva vale só para os próximos pagamentos).
+- **Snapshot:** o depósito guarda o percentual e o escopo da época; mudar a configuração depois não reescreve o histórico.
+- **Retirada** confere o saldo sob trava por oficina (duas retiradas ao mesmo tempo não estouram; testado com threads). Desfazer marca como cancelada (nunca apaga). A retirada só abate o saldo da reserva — se pagou uma despesa, o dono lança a saída em Novo Lançamento.
+- **RBAC:** ver saldo/config = `financeiro.ver` (dono e gerente); configurar e retirar = `financeiro.reserva` (só dono; ajustável em `rbac.py`).
+- **Sem a migration 0008** o sistema segue normal: as rotas da reserva respondem 503, o Financeiro não mostra o card nem erro, e Configurações avisa que ainda não está disponível.
+- Configuração corrompida no jsonb (percentual inválido, escopo desconhecido) nunca derruba um lançamento financeiro: o gatilho lê de forma defensiva e simplesmente não reserva.
+
+**Validado:** pytest 931 (53 novos em `test_reserva.py`; conferi que os testes falham de verdade quando o gatilho é removido ou vira retroativo), flake8, `tsc`, `vite build`, e navegador (Playwright) com API simulada: oficina sem reserva não vê nada, dono liga/salva/vê no Financeiro, retirar/desfazer, recusa por saldo, gerente só vê, migration ausente, 390px sem rolagem horizontal. **NÃO validado:** nada contra o Supabase/PostgREST reais (gatilho e funções rodaram em Postgres real descartável); a ordem de aplicação (`financeiro.sql` antes da 0008).
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0008_reserva_caixa.sql` no SQL Editor do Supabase (idempotente).
+2. Saldo livre no Resumo (Saldo do caixa − reserva) e a reserva no resumo da OS (`/ordens/<id>/fechamento`): não incluídos para não mexer em rotas que todo mundo usa.
+3. Reserva só sobre mão de obra (sem peças dentro de "serviços") depende de separar mão de obra de serviço no orçamento; hoje o escopo segue as categorias do Financeiro.
+4. Retirada que vira saída automática no caixa (hoje o dono lança a saída à parte).
+5. Se um pagamento já reservado for estornado depois de a reserva ser gasta, o saldo fica negativo e a tela avisa (decisão: não bloquear o estorno).
+
+## Taxa da maquininha nas entradas + reserva de caixa sobre o líquido (2026-11-09, branch `feat/taxa-maquininha`, parte de `main`)
+
+**Problema.** Entrada paga em maquininha (Mercado Pago etc.) sofre uma taxa que o sistema ignorava: saldo, lucro e reserva contavam o valor cheio. A taxa varia por maquininha, por forma de pagamento e por oficina, então não dá para estimar: **o dono informa** (o valor está no extrato da maquininha).
+
+**Arquivos:** `backend/sql/migrations/0009_taxa_maquininha.sql`, `orders/taxa.py` (novo), `serializers.py`, `financeiro_views.py`, `relatorios_views.py`, `visao_geral_views.py`, `tests/test_taxa_maquininha.py`; frontend: `Financeiro/TransacaoModal.tsx`, `Financeiro/KpiCards.tsx`, `Financeiro/types.ts`, `FinanceiroPage.tsx`.
+
+**Decisões**
+- **`valor` continua sendo o bruto** (o que o cliente pagou); nova coluna `taxa` (R$, padrão 0). **Líquido = `valor - taxa`, sempre calculado**, nunca gravado (dois números gravados podem divergir).
+- **Onde cada número aparece:** Faturamento, Relatórios, Visão Geral (receitas) e preço da OS seguem **brutos**. `recebido`, `saldo`, `a_receber` e o fluxo de caixa usam o **líquido**. **Lucro = faturamento − taxas − despesas** (a taxa é custo), no Resumo e na Visão Geral (os dois batem). O Resumo ganhou `taxas`; cada lançamento volta com `taxa` e `valor_liquido`.
+- **Travas:** `taxa >= 0`, `taxa < valor` e só entrada pode ter taxa — na API (422) e no banco (`financeiro_taxa_check`).
+- **Reserva sobre o líquido:** `reserva = (valor − taxa) × percentual`; `financeiro_reservas.base_valor` passa a guardar o líquido. O gatilho também escuta `taxa`, então corrigir a taxa depois recalcula o depósito. Depósitos **já existentes não são reescritos** pela migration: seguem sobre o bruto até a entrada ser editada.
+- **Tela:** no lançamento de entrada com débito, crédito ou pix aparece "Taxa da maquininha (opcional)" com a prévia "Cai na conta". Dá para deixar vazio e preencher depois editando. A lista mostra "líquido" abaixo do valor quando há taxa; o card Faturamento mostra o total de taxas.
+- **Quem não usa nada muda:** o backend só grava `taxa` quando é maior que zero; sem a migration 0009 o Resumo, a Visão Geral e os Relatórios repetem a consulta sem a coluna (`com_taxa`) e seguem como antes. Só salvar uma taxa maior que zero exige a migration (503 explicando).
+
+**Validado:** pytest 976 (25 novos; conferi que os de reserva falham se o gatilho voltar a usar o bruto), flake8, `tsc`, `vite build`. **NÃO validado:** nada contra o Supabase/PostgREST reais, nem a tela no navegador.
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0009_taxa_maquininha.sql` no SQL Editor do Supabase (idempotente; depois da 0008).
+2. Preencher a taxa em **%** (hoje só em R$), tabela de taxas por oficina que sugira o valor, e parcelamento (recebimento em datas diferentes) — ficaram de fora de propósito.
+3. Pendentes e entradas geradas pela OS (orçamento aprovado) nascem sem taxa; o dono edita ao receber.
+4. Resumo da OS (`/ordens/<id>/fechamento`) ainda lista só o bruto de cada lançamento.
+
+## Minha conta: trocar o nome e excluir a conta (2026-11-17, branch `feat/minha-conta-nome-excluir`, parte de `main`)
+
+**Pedido.** Só dava para mudar o nome da oficina; o nome de quem usa a conta (dono e funcionário) não. E não havia como excluir a conta.
+
+**O que entrou**
+- **Trocar o nome** (`PATCH /conta`): vale para dono (`admins.nome`) e funcionário (`funcionarios.nome`), qualquer cargo, sem permissão especial — cada um mexe só na **própria** conta (o alvo vem do token, nunca do corpo). **Não** mexe no nome da oficina (`config_oficina`). Devolve um **token novo** com o nome novo (o nome vai dentro do token e é usado em `criado_por_nome`), e o app atualiza o topo sem sair da sessão. Regras: 2–80 caracteres, espaços repetidos/quebras de linha viram um espaço, sem caracteres de controle. Funcionário desativado/removido recebe 404 (o token ainda vale por minutos).
+- **Excluir a conta** (`POST /conta/excluir`): exige a palavra **EXCLUIR** e a confirmação de identidade — **senha** para o dono, **PIN** para o funcionário. Errar a senha/PIN responde **403** (não 401, para o app não achar que a sessão caiu) e conta no limite de 5 tentativas em 15 min (dono: contador próprio `conta:<CNPJ>`; funcionário: o mesmo do PIN do login).
+  - **Funcionário:** remove só o cadastro e as sessões dele. Agendamentos em que era o mecânico ficam sem mecânico; ordens e lançamentos antigos guardam o nome como texto e continuam.
+  - **Dono: apaga a oficina inteira** (ordens, fotos, orçamentos e links, estoque, serviços, financeiro e reserva de caixa, agenda, convites, carteira, funcionários, sessões e a conta). Tudo no banco numa **transação só** — função `conta_excluir_oficina` (migração **0010**): ou apaga tudo ou nada (uma FK inesperada desfaz tudo e o app responde "nada foi apagado"). Só o `service_role` executa. Arquivos do Storage (`<ordem_id>/...`) saem **depois**, em segundo plano; falha ali só é registrada em log (não desfaz a exclusão).
+  - **Não é apagado:** conta do app do cliente (`customers.origem = 'app'`) e o veículo dela — só some o vínculo com a oficina (`oficina_clientes`) e a marca `oficina_origem_doc` do veículo. Cadastros de balcão (`origem = 'oficina'`) são apagados.
+- **Tela:** card "Minha conta" no fim de Configurações (todos os cargos veem): campo "Seu nome" + "Salvar nome" e zona de perigo com modal de confirmação (texto diferente para dono e funcionário). Ao concluir, sai da sessão e, no dono, apaga a cópia local da oficina (`oficina_config`, overlay do atendimento, aparelho lembrado); o tema fica.
+
+**Arquivos:** `backend/sql/migrations/0010_excluir_conta.sql`, `orders/conta_views.py` (novo), `orders/serializers.py` (`ContaNomeSerializer`), `orders/auth_store.py` (limite de tentativas), `orders/urls.py`, `tests/test_conta.py` (46 testes, Postgres real), `tests/conftest.py` (carrega a 0004/0010 e cria os papéis `anon`/`authenticated`); frontend: `Configuracoes/MinhaContaCard.tsx`, `utils/conta_utils.ts`, `utils/api.ts`, `context/AuthContext.tsx` (`atualizarNome`), `ConfiguracoesPage.tsx`.
+
+**Validado:** pytest 1026, flake8, `tsc`, `vite build`; navegador (Chromium, API simulada): dono no desktop e funcionário a 390px — renomear (espaços limpos, token trocado, topo atualizado), nome inválido bloqueado, modal com botão travado até senha/PIN + EXCLUIR, erro de senha/PIN mantém a sessão, sucesso sai e limpa a cópia local. **NÃO validado:** contra o Supabase/PostgREST/Storage reais (a função SQL foi testada em Postgres local, não no Supabase).
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0010_excluir_conta.sql` no SQL Editor do Supabase (idempotente). Sem ela, excluir a conta do dono responde 503 explicando; **trocar o nome e excluir funcionário funcionam sem a migração**.
+2. Se uma tabela nova passar a referenciar `admins(doc)`, incluí-la na função (senão a exclusão é barrada e desfeita — por desenho, nunca apaga pela metade).
+3. Exclusão "suave" (período para desfazer / exportar os dados antes) e avisar o dono por e-mail ficaram de fora.
+4. O dono pode excluir a conta mesmo com funcionários cadastrados: eles são apagados junto (o modal avisa).
+
+## Cadastro automático de cliente e veículo pelo checklist, sem duplicar (2026-11-18, branch `feat/checklist-cadastro-automatico`, parte de `main`)
+
+**Pedido.** Se no checklist de entrada o cliente ou o veículo ainda não existe no sistema, cadastrar sozinho pelo próprio checklist — sem duplicar. Veículo: a placa. Cliente: nome repete, telefone não é confiável e CPF é opcional, então não havia chave óbvia.
+
+**Regra adotada: só reaproveita por sinal forte; sinal fraco vira sugestão na tela, nunca fusão automática.** Tudo dentro da carteira da própria oficina.
+- **Veículo:** placa normalizada (sem hífen, maiúscula). Existe → reaproveita; senão cadastra. Se a placa está no nome de **outra pessoa** (carro vendido), a OS fica com a pessoa digitada, o dono do veículo **não** muda sozinho e a resposta avisa (trocar o dono é na tela Veículos).
+- **Cliente, nesta ordem:** (1) cadastro escolhido na sugestão da tela (`cliente.id`); (2) CPF/CNPJ; (3) e-mail; (4) dono da placa, se o digitado for compatível (mesmo nome **ou** mesmo telefone); (5) **telefone E nome** iguais (nome sem acento/caixa e sem "da/de/do"; telefone sem máscara, sem 55, com o 9); (6) o vínculo que a OS já tinha (corrigir digitação não cria outra pessoa); (7) nada bateu → cliente de balcão novo.
+- **Telefone sozinho e nome sozinho NÃO juntam cadastros** (família usa o mesmo número; existem homônimos; "João Silva" ≠ "João Silva Neto"). Nesses casos a tela mostra "Já existe um cadastro parecido. É a mesma pessoa?" e a pessoa confirma com um toque ou diz "É outra pessoa".
+- **Permissão:** só cadastra quem tem `clientes.editar` (dono, gerente, atendente). **Mecânico não tem**: a OS dele é salva e ligada ao que já existe, sem criar cadastro; a resposta avisa.
+
+**Marca e ano.** `customer_vehicles` exige `brand` e `year` no banco (compartilhado com o app do cliente) e o checklist não tem "Marca". O texto de "Modelo" vai inteiro para `model` e `brand` fica vazio. **Sem o ano o veículo NÃO é cadastrado** (nada é inventado): o cliente é cadastrado normalmente, a tela avisa "informe o ano" e o veículo entra no salvamento seguinte em que o ano estiver preenchido.
+
+**Corrida (dois salvamentos ao mesmo tempo).** Migração **0011**: índice único parcial `(oficina_origem_doc, plate_norm)` em veículos não excluídos. Se o INSERT cair em 23505, o backend usa o veículo que o outro salvamento acabou de criar. Cliente **não** tem trava no banco (nome+telefone não dá índice único confiável): a janela de corrida existe, mas é estreita; a tela Clientes é a rede de segurança para mesclar manualmente.
+
+**Marcas no cadastro:** cliente e veículo criados levam "Cadastrado automaticamente pelo checklist (OS …)" em `oficina_clientes.observacoes` / `customer_vehicles.notes`, para o dono achar e completar.
+
+**Tela (passo Identificação).** Painéis sob o bloco do cliente e do veículo: sugestões de cadastro existente (cliente: CPF, e-mail, nome+telefone, telefone, nome parecido; veículo: placa já cadastrada, com o dono) com "Usar este cadastro" / "Desfazer"; veículos do cliente escolhido para tocar em vez de digitar a placa; "Cliente novo / Veículo novo: será cadastrado ao salvar" (só para quem pode cadastrar e com a lista carregada). Depois de salvar, banner fechável "Cliente e veículo cadastrados automaticamente". Editar o **nome** para outra pessoa solta o vínculo com o cadastro escolhido; telefone/e-mail/CPF podem ser atualizados sem soltar (o checklist **não altera** o cadastro existente).
+
+**Contrato que mudou:** `os_vinculo.py` deixou de ser "só liga, nunca cria". Três testes de `test_carteira.py` foram atualizados para o novo contrato (um deles mudou de nome). A resposta de `POST/PUT /ordens` ganhou `vinculo` (`customer_id`, `vehicle_id`, `cliente_criado`, `veiculo_criado`, `avisos`).
+
+**Arquivos:** `backend/orders/cadastro_checklist.py` (novo), `os_vinculo.py`, `views.py`, `serializers.py` (`id` opcional em cliente/veículo da OS), `sql/migrations/0011_veiculo_placa_unica_oficina.sql`, `tests/test_cadastro_checklist.py` (41 testes, Postgres real), `tests/conftest.py`, `tests/test_carteira.py`; frontend: `utils/cadastro_existente.ts`, `hooks/useCadastrosExistentes.ts`, `Steps/Initial/CadastroExistente.tsx`, `StepIdentification.tsx`, `hooks/useOrdemServico.ts` (`cadastroInfo`), `pages/InitialChecklist.tsx`, `types/index.ts`.
+
+**Validado:** testes de backend (carteira + cadastro automático: 145; inclui duplicidade, família no mesmo telefone, homônimos, pai/filho, placa de outro dono, mecânico, isolamento entre oficinas, id de outra oficina, corrida), flake8, `vite build`, e a lógica de sugestão do front rodada no Node. **NÃO validado:** a tela no navegador (nem a 390px), nem contra o Supabase/PostgREST reais. O `tsc --noEmit` já falha na `main` por 4 erros em `components/system/Badge.tsx` e `icons.tsx` (`ordem_status` sem `estiloFase`/`infoStatusOS`/`FaseOS`/`IconeFase`); esta branch não acrescenta nenhum.
+
+**Pendências / ideias para depois**
+1. Rodar `backend/sql/migrations/0011_veiculo_placa_unica_oficina.sql` no SQL Editor do Supabase (idempotente). Se houver placa repetida na mesma oficina, ela avisa quais são e **não** cria o índice; resolva na tela Veículos e rode de novo. Sem ela o cadastro automático funciona, só sem a trava do banco.
+2. Decidir se **Ano** passa a ser obrigatório no checklist (hoje opcional): garantiria que todo veículo novo entre na frota. Hoje sem ano o veículo fica de fora.
+3. Tela de **mesclar clientes duplicados** (a rede de segurança para o que escapar).
+4. Mecânico não cadastra por falta de `clientes.editar`; se na prática for ele quem faz o checklist, avaliar uma permissão própria ou liberar cadastro rápido para o cargo.
+5. Os cadastros automáticos ficam sem CPF/endereço (marcados na observação); a OS não preenche marca.
+
+
+## Travas do frontend: ESLint, Prettier e alias `@/` (2026-11-20, branch `chore/travas-lint`, parte de `main`)
+
+**Pedido.** O frontend é mexido por mais de uma pessoa e por IAs em paralelo, e o problema mais comum é duplicação e componentes não reaproveitados. A análise de `src/` (297 arquivos) mostrou que nada barra isso automaticamente: sem ESLint, sem Prettier, sem alias, `noUnusedLocals` desligado. Esta é a Fase 0 do roteiro de reorganização: instalar as travas **sem mudar nenhum comportamento**.
+
+**Decisões**
+- Todas as regras começam como **aviso**: o CI roda `npm run lint`, mas não quebra. Sobem para erro conforme as fases de migração terminam.
+- **Não formatei o código com Prettier.** A configuração entra (aspas simples, `printWidth` 140), mas rodar em tudo reescreveria centenas de arquivos e conflitaria com todas as branches abertas (de pessoas e de IAs). Use `npm run format -- <arquivo>` só em arquivos novos ou que você já vai tocar.
+- **Alias `@/` criado, nenhum import convertido** (são 435 imports com 3 ou mais `../`). Arquivos novos podem usar `@/`; os antigos migram quando forem tocados.
+- `noUnusedLocals` continua `false`; quem acusa variável sem uso é o ESLint (aviso). `forceConsistentCasingInFileNames` ligado explicitamente: o build do Render roda em Linux, e um import com a caixa errada passa em macOS/Windows e quebra no deploy.
+- Plugin `react-hooks` carregado porque o código já tem 7 `eslint-disable-next-line react-hooks/exhaustive-deps` e nunca houve ESLint para checá-los.
+- Dependências **não** foram escritas à mão no `package.json`: o `npm install -D` atualiza `package.json` e `package-lock.json` juntos (o CI usa `npm ci`, que falha se o lock estiver fora de sincronia).
+
+**Arquivos:** `frontend/eslint.config.js`, `frontend/.prettierrc.json`, `frontend/.prettierignore` (novos); `frontend/package.json` (scripts `lint`, `lint:fix`, `format`, `format:check`), `frontend/tsconfig.json` (`paths`, `forceConsistentCasingInFileNames`), `frontend/vite.config.ts` (alias); `.github/workflows/ci.yml` (passo ESLint).
+
+**Validado:** sintaxe de `eslint.config.js`, de `vite.config.ts` (como ESM) e do `ci.yml`; `package.json` e `.prettierrc.json` são JSON válido; a função `comoAviso` (rebaixa erro para aviso, preserva `off` e opções) testada isolada; o patch aplica limpo sobre a `main` (`git apply --check`). **NÃO validado:** ESLint e Prettier **não foram executados** (o ambiente de trabalho não tinha rede para instalar os pacotes), então não se sabe quantos avisos o código gera hoje, nem se a configuração carrega sem erro com as versões que o npm resolver. `tsc` e `vite build` com o `paths` e o alias novos também não rodaram.
+
+**Pendências / ideias para depois**
+1. Rodar `npm install -D …`, `npm run lint`, `npx tsc --noEmit` e `npm run build`, e commitar `package.json` + `package-lock.json`.
+2. Decidir quais regras sobem para erro depois de ver a contagem de avisos.
+3. Fase 1 (remover código morto) com `knip` e `jscpd`; regras de fronteira e bloqueio de `<button>` cru só depois do kit de componentes.
+4. O `package.json` da raiz do repositório declara `typescript ^7.0.2`, enquanto o frontend usa `^5.5.3` (5.9.3 no lock). Não mexi; vale conferir se é intencional.
+
+## Financeiro redesign desktop (2026-11-22, branch `feat/financeiro-redesign-desktop`, parte de `main`)
+
+**Pedido (saJ):** refazer a tela Financeiro (só desktop) a partir do Figma, com filtro de período em modal, filtros dos lançamentos em modal, gráfico de barras de entradas × saídas e rosca de despesas. Sem `position: absolute` na estrutura.
+
+**Decisões**
+- Desktop usa `FinanceiroDesktop` (Grid/Flex, tokens `.fin-page` copiados do Estoque); mobile continua no layout antigo.
+- Período: Este mês, Mês passado, Esta semana, Última semana, Trimestre, Personalizado (máx. 800 dias, igual ao backend). Trimestre = trimestre civil; semana = domingo a sábado; "Última semana" = semana cheia anterior.
+- Filtros dos lançamentos (tipo, status, origem, categoria, forma de pagamento, data, valor) agem sobre os lançamentos já carregados; gráfico e KPIs seguem o período inteiro. "Pendente" = em aberto e no prazo; "Vencido" é calculado, nunca gravado.
+- Gráfico: barras por dia (≤8 dias), semana (≤45) ou mês; entradas pelo líquido. Cores #2F6FDE / #B35C00 validadas com `validate_palette.js`.
+- Reserva compacta; movimentos em modal ("Ver movimentos"). Cancelar lançamento usa `ConfirmDialog`.
+- Exportar = CSV dos lançamentos exibidos (`;`, vírgula decimal, BOM).
+- Sem migração SQL.
+
+**Arquivos:** `utils/financeiro_utils.ts`, `Financeiro/{FinanceiroDesktop,PeriodoModal,FiltrosLancamentosModal,FluxoCaixaBarras,ReservaDesktop,icones}.tsx`, `Financeiro/financeiroDesktop.css`, `FinanceiroPage.tsx`, `pages/Dashboard.tsx`.
+
+**Validado:** `tsc --noEmit`, `npm run build`, eslint sem erros; funções de período/fluxo/filtro/CSV com 26 checagens; captura de tela em 1440px com dados fictícios (tela e os dois modais).
+**NÃO validado:** com API real; modo escuro; telas < 1280px; leitor de tela; download do CSV no Excel; mobile (não alterado, exceto "Últimos 3 meses" mantido via período personalizado).
+
+**Pendências:** meta de faturamento (depende de dados da Visão Geral); agrupar lançamentos por OS; `ContasListaCompleta` e `RetiradaReservaModal` ainda no visual antigo.
+
+## Financeiro mobile (2026-11-23, branch feat/financeiro-mobile, parte de main)
+
+**Pedido:** versão mobile da tela de Financeiro a partir da desktop, usando Clientes Mobile como referência visual/estrutural; adaptação real (não encolher); manter todas as funcionalidades; "Novo lançamento" só com o ícone + preto. Só mobile.
+
+**Decisões**
+- Nova `Financeiro/FinanceiroMobile.tsx` + `FinanceiroMobile.css` (prefixo `finm-`, tokens e padrões do `ClientesMobile.css`). `FinanceiroPage` escolhe Mobile ou Desktop com as mesmas props/ações; modais de Novo/Editar e o ConfirmDialog de cancelar agora valem também no celular (antes `window.confirm`).
+- Hierarquia: topo (título, olhinho da privacidade, +) → chips de período (+ "Personalizado" abre o `PeriodoModal`) → KPIs (Faturamento em destaque, grade 2 colunas; `data-destaque-id` mantidos) → linha da Caixa de reserva (abre folha com retirar/movimentos/desfazer) → abas **Lançamentos · Contas · Gráficos**.
+- Lançamentos: busca + Filtros (`FiltrosLancamentosModal` reaproveitado), pílulas removíveis, Exportar CSV, cartões com deslize (Receber/Pagar, Editar, Cancelar) e folha de detalhes (taxa, líquido, forma, datas, cliente, origem), "Mostrar mais".
+- Contas: A receber / A pagar (totais e vencido), filtros Todas/Vencidas/A vencer, busca, botão Receber/Pagar. Substitui o "Ver todas" no celular (o desktop segue com `ContasListaCompleta`).
+- Gráficos: `FluxoCaixaBarras` ganhou prop opcional `compacto` (padrão intacto) e rosca de despesas com lista.
+- `ShellPage` (Dashboard.tsx) ganhou `mobileSemRecuo`: Financeiro mobile é borda a borda e traz o próprio olhinho.
+- Sem migração SQL, sem mudança de backend.
+
+**Arquivos:** `Financeiro/{FinanceiroMobile.tsx,.css,ReservaMobile.tsx,LancamentoSheet.tsx,lancamentoUtils.ts}`, `FluxoCaixaBarras.tsx`, `FinanceiroPage.tsx`, `pages/Dashboard.tsx`.
+
+**Validado:** `tsc --noEmit`, ESLint (0 erros), `npm run build`; renderizado em Chrome headless a 390px com dados fictícios (abas, folhas, filtros, vazio, erro, escuro, somente leitura, privacidade ligada/desligada): sem erro de JS e sem rolagem horizontal.
+
+**NÃO validado:** contra o backend/Supabase reais; em aparelho físico (iOS/Android); gesto de deslize por toque real (só renderização); download do CSV no iOS; retirada/desfazer da reserva ponta a ponta.
+
+**Pendências:** o layout antigo do Financeiro (KpiCards, ReservaCard, ContasWidget etc.) ficou sem uso no celular e, fora `ContasListaCompleta`, também no desktop — candidato a limpeza; `nomeDoLancamento/rotuloStatus/classeStatus` duplicam helpers de `FinanceiroDesktop` (unificar depois).
+
+## Busca global na top-bar, ⌘K / Ctrl+K (2026-11-25, branch `feat/busca-global`, parte de `refactor/shell-desktop-unico`)
+
+**Pedido (saJ):** a busca da top-bar era só desenho e não funcionava; quer que procure no sistema e que clicar num resultado abra o registro direto.
+
+**Decisões**
+- Primeira versão com **Clientes, Veículos e Ordens de Serviço**. A OS abre o **modal de resumo** (o mesmo da lista de Ordens); cliente e veículo abrem o detalhe da própria tela.
+- `GET /busca?q=` no backend, sem migração: traz só as colunas leves (sem fotos em data URL) e filtra em Python, ignorando acento e caixa. Se a oficina crescer a ponto de pesar, o próximo passo é uma função SQL com `unaccent`/`pg_trgm` (migração 0012).
+- Relevância: código exato (placa/telefone/CPF/nº da OS) > prefixo de código > nome exato > prefixo do nome > trecho; empate vai para o mais novo. Telefone, CPF e placa casam em qualquer formatação (só dígitos/letras).
+- Permissão por grupo, conferida no servidor: `clientes.ver` libera Clientes e Veículos (veículo é dado do cliente, mesma regra de `veiculos_views`); `ordens.ver` libera OS. Sem nenhuma das duas, 403. Cliente arquivado e veículo excluído não aparecem; oficina vem do token.
+- Falha do banco em um grupo não derruba a busca: a resposta traz `indisponiveis` e a paleta avisa.
+- Frontend: botão na top-bar abre a paleta; **o atalho e a paleta vivem no `BuscaGlobalProvider` (Dashboard)**, não na top-bar, que remonta a cada troca de tela. ⌘K no Mac, **Ctrl+K** no Windows/Linux (a tecla Windows/Super é do sistema e não chega à página); o rótulo se adapta. `preventDefault` evita o Ctrl+K do Firefox.
+- Paleta: espera 250 ms, 2+ caracteres, resposta velha nunca sobrescreve a nova, setas/Enter/Esc, foco volta ao campo anterior, ARIA de combobox/listbox.
+- "Abrir direto": o Dashboard guarda `abrirRegistro {tipo, id, nonce}` (mesmo molde de `agendaFocus`/`estoqueFocus`, limpo por `handleNav`); a tela de destino espera a **própria lista** carregar e abre o item pelo id com o hook `useAbrirRegistro`. O pedido é consumido mesmo se o registro não existir mais.
+- O cache de GET de 5 s do `authFetch` vale para a busca; é limpo a cada escrita.
+
+**Arquivos:** `backend/orders/{busca_views.py,carteira.py,urls.py}`, `backend/tests/test_busca.py`; `frontend/src/{components/BuscaGlobal.tsx,components/DesktopTopBar.tsx,context/BuscaGlobalContext.tsx,hooks/useAbrirRegistro.ts,styles/busca-global.css,styles/desktop-topbar.css,types/busca.ts,utils/api.ts,pages/Dashboard.tsx}`, `Dashboard/{OrdensPage,Veiculos/VeiculosPage,Clientes/ClientesPage}.tsx`.
+
+**Rotas:** `GET /busca?q=` (mín. 2 caracteres; máx. 80).
+
+**Validado:** `pytest` completo (1092, 16 novos em `test_busca.py`: acento/caixa, telefone/CPF/e-mail/placa, relevância, limite e total, arquivados, isolamento entre oficinas, permissão por grupo, falha de um grupo); `flake8`; `tsc --noEmit`, `npm run build`, eslint sem erros nos arquivos novos. Paleta no navegador (Chromium) com API simulada: atalho nas duas plataformas, alternar, foco, debounce, teclado, clique, vazio, erro sem texto técnico, corrida de respostas.
+**NÃO validado:** contra o Supabase/PostgREST reais (a leitura usa as mesmas tabelas das telas); a **abertura do registro dentro de Clientes/Veículos/Ordens** (o hook compila e a lógica foi lida, mas o app completo não foi rodado); desempenho com oficina grande; 390px/mobile (a top-bar é só desktop; Ctrl+K funciona em tela larga com teclado); modo escuro; leitor de tela.
+
+**Pendências/ideias:** Agendamentos, Estoque e Serviços na busca; "itens recentes" e "ir para" ao abrir sem texto; ícone de lupa no topo do celular; função SQL com `unaccent` se a lista crescer; realce do trecho que casou.
+
+## Regressão do merge do redesign dos modais (2026-11-25, branch fix/regressao-merge-modal, parte de main)
+
+**Problema:** depois do PR #80 (`feat/modal-redesign`), telas mobile voltaram ao design antigo. Os commits do redesign traziam cópias antigas de arquivos, que sobrescreveram trabalho mais novo sem gerar conflito.
+
+**Arquivos:** 15 restaurados para a versão de `aee2b577` (main antes do PR #80): Agenda mobile (componentes, CSS, ícones, página), Financeiro mobile (página, fluxo de caixa, `pages/Dashboard.tsx`), Relatórios (desktop e mobile, `PeriodoModal`), `estoqueMobile.css` e ícones de veículo. Correções de tipo em `Modal.tsx` e import de `RodapeAcoes` em `MinhaContaCard.tsx`. Imports sem uso removidos de `OrdensPage.tsx`. Sem migração.
+
+**Validado:** `tsc --noEmit` e `npm run build`; Agenda, Financeiro e Relatórios a 390px (API simulada, listas vazias/erro 503) idênticos pixel a pixel à versão anterior ao merge; filtros e novo agendamento da Agenda e o modal de período abrem sem erro.
+
+**NÃO validado:** nada contra o backend real; telas com dados preenchidos; demais modais no navegador; desktop no navegador; Estoque e Veículos no navegador.
+
+## Checklist de ENTRADA redesenhado por fases (2026-11-24, branch feat/checklist-entrada-redesign, parte de main)
+
+**Pedido:** redesenhar só a fase de Entrada da OS (protótipo "Entrada da OS" + CSS do Figma + print do Diagnóstico), com a base (stepper de fases, sub-etapas, cabeçalho, painel de resumo, gaveta) reutilizável pelas próximas fases. Sem mudar regra de negócio.
+
+**Problema:** dois menus competiam (stepper de processo + abas Resumo/Orçamento/Financeiro/Fotos/Histórico) e a tela parecia um visualizador da OS. "Previsão de entrega" não existia no payload.
+
+**Decisões**
+- Estrutura: stepper de 6 fases → 4 sub-etapas da Entrada (Cliente e veículo · Relato e avarias · Fotos · Responsável e assinatura; `os.step` 1–4) → card da etapa (com Voltar/Continuar) + painel fixo "Resumo da entrada". No celular o painel vai abaixo. Histórico virou gaveta (relógio); não há aba de Financeiro.
+- Cabeçalho monta ao identificar o veículo (placa Mercosul pelo `Placa` existente, `StatusOSBadge` com o rótulo atual "Em andamento", linha "OS #… · cliente · entrada · km"); antes: "Nova OS" + placa tracejada. Breadcrumb "Operação / Ordens / Nova OS → OS #n" (`DesktopTopBar` ganhou prop opcional `trilha`).
+- Regras mantidas: Relato e Avarias opcionais; responsável (técnico) obrigatório para sair de rascunho, sugerido pelo usuário logado; Etapa 1 pede nome+telefone do cliente, modelo e placa do veículo e nº/data/hora da OS (automáticos, editáveis, exigidos pelo servidor); "Concluir entrada" libera com Etapa 1 + 5 fotos resolvidas + responsável. A assinatura NÃO bloqueia.
+- **Assinatura = do TÉCNICO, só para o PDF.** `AssinaturaPad` na sub-etapa 4; a imagem fica em `os.assinaturaTecnico` (memória da sessão), NÃO vai no payload nem é gravada no servidor (como era antes, quando era o canvas `sigRef` do hook). Sem assinatura, o PDF sai com a linha em branco e a tela avisa. A assinatura do cliente não existe na Entrada: será coletada no Fechamento (retirada) e na Aprovação (aceite do orçamento), em prompts futuros.
+- **Reversão (correção desta entrega):** a primeira versão guardava `assinaturas.entrada` (status assinada/adiada/pendente, termo do cliente, "assinar depois", pendência no resumo). Foi removida por inteiro: `backend/orders/assinaturas_os.py`, o campo e os serializers de assinatura, o carimbo em `views.py` (que voltou idêntico à `main`) e os testes correspondentes. Ficou só `previsao_entrega`/`previsao_hora`.
+- PDF da entrada: botão "Gerar PDF da entrada" na sub-etapa 4, no menu "…" do cabeçalho e no `Topbar` do celular (`onExportPDF` voltou a ser obrigatório, como na `main`); usa o `utils/exportPDF` de sempre. "Gerar laudo PDF" (OS concluída) continua fora da Entrada.
+- Campos restaurados (nada recriado no PDF; o `exportPDF` já imprime todos): sub-etapa 1 → bloco recolhido "Dados da OS" (nº, data e hora de entrada), tipo de combustível e chassi (opcionais) além do nível; sub-etapa 4 → Registro/CREA (opcional) e bloco recolhido "Dados de saída" (km, data, hora de saída e parecer geral), com `TODO(Fechamento)` no código: pertencem ao Fechamento e devem ser movidos para lá. Não são pré-preenchidos (a tela antiga mostrava data/hora de agora sem gravar).
+- Rascunho é criado ao identificar o veículo (antes: ao sair da Identificação). Salvamento automático usa `saveOrder({ manter: true })` (não promove nem rebaixa o status); só "Concluir entrada" (`saveOrder()`) promove rascunho → em_orcamento, e o servidor continua exigindo as 5 fotos.
+- Previsão de entrega (sem migração): `os_header.previsao_entrega` (AAAA-MM-DD) e `previsao_hora` (HH:MM), opcionais; não pode ser anterior à data de entrada; hora exige data. Declarados no `OSHeaderSerializer` (o payload gravado é `serializer.data`: campo não declarado é descartado).
+- Fotos: slots com legenda em todos ("Painel (km)", Frente, Traseira, "Lateral dir.", "Lateral esq."), contador real "x de 5", estados vazio/registrada/"Sem foto", "Não consigo tirar" e "Refazer"; lógica toda em `useFotosObrigatorias`/`CameraCapture`/`PularFotoSheet`. Avançar para a sub-etapa 4 sem as 5 resolvidas volta para Fotos e realça o que falta.
+- Histórico da OS monta eventos só do que já está registrado (criação e fotos); não há log de eventos no servidor.
+
+**Arquivos**
+- Backend: `orders/serializers.py` (só a previsão), `tests/test_ordens_previsao.py` (novo).
+- Front, compartilhado: `components/os/*` (StepperFases, SubEtapas, CabecalhoOS, PainelResumo, GavetaOS, RodapeEtapa, LayoutFaseOS, Recolhivel, IconeEtapa, os-fase.css), `utils/os_fases.ts`.
+- Front, Entrada: `pages/InitialChecklist.tsx` (reescrita), `features/Checklist/Entrada/*`, `utils/{entrada_os,historico_os,usar_cadastro}.ts`, `hooks/useOrdemServico.ts` (previsão, `assinaturaTecnico`, `saveError`, `saveOrder({manter})`), `types/index.ts`, `utils/campos_checklist.ts`, `components/DesktopTopBar.tsx`, `styles/desktop-topbar.css`, `App.tsx` (voltar do Diagnóstico cai na sub-etapa 4).
+
+**Validado:** regras de `utils/entrada_os.ts` executadas (relato opcional, assinatura não bloqueia, responsável obrigatório, fotos, cabeçalho da OS, etapas bloqueadas, contador); `py_compile` de serializers/views/testes; `views.py` idêntico ao da `main`; `tsc` sem erro de sintaxe nos arquivos tocados (os demais erros vêm de `@types/react` ausente, não de tipo real).
+
+**Validado após mesclar com a `main` (fb1a2b0, 2026-11-26):** `tsc --noEmit` limpo, `npm run build` ok e `pytest` (167 passaram, 935 pulados). Os 6 `onClick={saveOrder}` dos Steps antigos viraram `onClick={() => saveOrder()}` por causa da nova assinatura `saveOrder(opts?)`. A top-bar manteve a busca global (⌘K) junto com a `trilha`.
+**NÃO validado:** ESLint e `flake8`; contra o Supabase real; no navegador a 390px e em aparelho (câmera, toque da assinatura); fluxo "Fazer OS"/"Iniciar Atendimento" ponta a ponta; abrir o PDF gerado; reabrir OS antiga na tela nova.
+
+**Pendências:** `Step1/Step2/Step3` antigos da Entrada (`features/Checklist/Steps/Initial/*`, `configs/initial.tsx`, `StepTabs`) ficaram sem uso — candidatos a limpeza após validar a tela nova; o PDF da entrada tem só a caixa de assinatura do técnico (não há linha em branco para o cliente assinar à mão — não foi criada) e não imprime a previsão de entrega; mover "Dados de saída" para o Fechamento; sem log de eventos no servidor para o Histórico.
+
+## 2026-11-27 — Redesign da fase Diagnóstico (Serviços · Diagnóstico · Peças · Texto)
+
+**O que mudou:** a tela passou para a estrutura da Entrada (`components/os`): cabeçalho, stepper de fases, sub-etapas, painel lateral e gaveta de histórico. Regras e dados continuam no hook `useOrdemServico`; a apresentação é nova.
+- Menu lateral de sistemas (coluna ≥1180px; tira rolável abaixo disso) com contagem por sistema; "+ Adicionar sistema" abre a gaveta "Sistemas da OS" (selecionar/desmarcar um ou todos; "Inspeção Personalizada" continua sendo o grupo de itens digitados).
+- Item de inspeção: 4 status (ícone + texto), Trocar, observação; Crítico abre a observação e destaca a linha; atalhos 1–4 e ↑/↓ no desktop; "Marcar N restantes como OK".
+- Painel "Resumo da inspeção" (OK/Atenção/Crítico/Pendentes, aviso de críticos sem observação, lista "Para trocar") e ação principal por sub-etapa.
+- Tabela de Peças no padrão das tabelas do Estoque (cartões no celular); etapa Texto com prévia somente leitura.
+- Botão "Gerar PDF" removido desta página (`Topbar.onExportPDF` ficou opcional).
+- CSS sem larguras/posições fixas do Figma: flex/grid e container query do card (`.osd-card`).
+
+**Arquivos**
+- Novos: `features/Checklist/Diagnostico/*` (EtapaServicos, EtapaDiagnostico, EtapaPecas, EtapaTexto, ItemInspecao, MenuSistemas, SeletorSistemas, TabelaPecas, PainelInspecao, icones, diagnostico.css), `utils/diagnostico_os.ts`, `utils/cabecalho_os.ts`.
+- Alterados: `pages/InspectionChecklist.tsx` (reescrita), `pages/InitialChecklist.tsx` (usa `montarCabecalhoOS`), `components/os/{LayoutFaseOS,RodapeEtapa}.tsx` + `os-fase.css` (slot `menu`, slot `extra`), `components/Topbar.tsx`.
+- Removidos (sem uso): `features/Checklist/Steps/inspection/*`, `configs/inspection.tsx`.
+
+**Validado:** imports relativos resolvem e não há erro de sintaxe (`tsc` sem `@types/react` neste ambiente; os erros restantes são os mesmos dos arquivos antigos); layout conferido em HTML estático com os CSS reais a 360/390/1050/1280/1440px, sem estouro horizontal.
+**NÃO validado:** `npm run build`, ESLint, comportamento real no app (atalhos, gaveta, autosave ao trocar de sub-etapa, "Limpar OS"), contra o Supabase, aparelho real.
+**Mudanças de comportamento a conferir:** trocar de sub-etapa agora salva com `saveOrder({manter:true})` (como a Entrada); "Limpar OS" pede confirmação em modal e volta à visão geral; Voltar na sub-etapa 1 vai à Entrada.
+**Pendências:** foto por item (câmera do Figma) — exige armazenamento novo; vários sistemas personalizados com nome próprio — exige campo novo no payload.

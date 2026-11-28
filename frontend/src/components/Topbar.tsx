@@ -8,7 +8,8 @@ interface TopbarProps {
   saveStatus: SaveStatus;
   savedAt: string | null;
   onReset: () => void;
-  onExportPDF: () => void;
+  /** Sem esta função o botão "Gerar PDF" não aparece (ex.: Diagnóstico). */
+  onExportPDF?: () => void;
   /** Logo → visão geral (sai do checklist). */
   onBackToStart?: () => void;
   /** Botão "Voltar" da barra mobile: volta UMA etapa do checklist atual. */
@@ -164,20 +165,22 @@ export function Topbar({
             <button className={buttonClass()} onClick={onReset}>
               Limpar tudo
             </button>
-            <button className={buttonClass(true)} onClick={onExportPDF}>
-              <svg
-                width={11}
-                height={11}
-                viewBox="0 0 11 11"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-              >
-                <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
-              </svg>
-              Gerar PDF
-            </button>
+            {onExportPDF && (
+              <button className={buttonClass(true)} onClick={onExportPDF}>
+                <svg
+                  width={11}
+                  height={11}
+                  viewBox="0 0 11 11"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                >
+                  <path d="M5.5 1v6.5M3 5l2.5 2.5L8 5M1 9.5h9" />
+                </svg>
+                Gerar PDF
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -210,16 +213,18 @@ export function Topbar({
       backAriaLabel={backAriaLabel}
       end={
         <>
-          <button
-            type="button"
-            className={buttonClass(true)}
-            onClick={onExportPDF}
-            aria-label="Gerar PDF"
-          >
-            {pdfIcon}
-            {isMobile ? "PDF" : "Gerar PDF"}
-           
-          </button>
+          {onExportPDF && (
+            <button
+              type="button"
+              className={buttonClass(true)}
+              onClick={onExportPDF}
+              aria-label="Gerar PDF"
+            >
+              {pdfIcon}
+              {isMobile ? "PDF" : "Gerar PDF"}
+             
+            </button>
+          )}
           <div className="topbar-menu" ref={menuRef}>
             
             <button

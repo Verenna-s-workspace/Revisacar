@@ -769,3 +769,23 @@ O cadastro do dono tem 3 etapas no painel da marca (`authFlows.ts`): 1 Registre 
 **NÃO validado:** ESLint e `flake8`; contra o Supabase real; no navegador a 390px e em aparelho (câmera, toque da assinatura); fluxo "Fazer OS"/"Iniciar Atendimento" ponta a ponta; abrir o PDF gerado; reabrir OS antiga na tela nova.
 
 **Pendências:** `Step1/Step2/Step3` antigos da Entrada (`features/Checklist/Steps/Initial/*`, `configs/initial.tsx`, `StepTabs`) ficaram sem uso — candidatos a limpeza após validar a tela nova; o PDF da entrada tem só a caixa de assinatura do técnico (não há linha em branco para o cliente assinar à mão — não foi criada) e não imprime a previsão de entrega; mover "Dados de saída" para o Fechamento; sem log de eventos no servidor para o Histórico.
+
+## 2026-11-27 — Redesign da fase Diagnóstico (Serviços · Diagnóstico · Peças · Texto)
+
+**O que mudou:** a tela passou para a estrutura da Entrada (`components/os`): cabeçalho, stepper de fases, sub-etapas, painel lateral e gaveta de histórico. Regras e dados continuam no hook `useOrdemServico`; a apresentação é nova.
+- Menu lateral de sistemas (coluna ≥1180px; tira rolável abaixo disso) com contagem por sistema; "+ Adicionar sistema" abre a gaveta "Sistemas da OS" (selecionar/desmarcar um ou todos; "Inspeção Personalizada" continua sendo o grupo de itens digitados).
+- Item de inspeção: 4 status (ícone + texto), Trocar, observação; Crítico abre a observação e destaca a linha; atalhos 1–4 e ↑/↓ no desktop; "Marcar N restantes como OK".
+- Painel "Resumo da inspeção" (OK/Atenção/Crítico/Pendentes, aviso de críticos sem observação, lista "Para trocar") e ação principal por sub-etapa.
+- Tabela de Peças no padrão das tabelas do Estoque (cartões no celular); etapa Texto com prévia somente leitura.
+- Botão "Gerar PDF" removido desta página (`Topbar.onExportPDF` ficou opcional).
+- CSS sem larguras/posições fixas do Figma: flex/grid e container query do card (`.osd-card`).
+
+**Arquivos**
+- Novos: `features/Checklist/Diagnostico/*` (EtapaServicos, EtapaDiagnostico, EtapaPecas, EtapaTexto, ItemInspecao, MenuSistemas, SeletorSistemas, TabelaPecas, PainelInspecao, icones, diagnostico.css), `utils/diagnostico_os.ts`, `utils/cabecalho_os.ts`.
+- Alterados: `pages/InspectionChecklist.tsx` (reescrita), `pages/InitialChecklist.tsx` (usa `montarCabecalhoOS`), `components/os/{LayoutFaseOS,RodapeEtapa}.tsx` + `os-fase.css` (slot `menu`, slot `extra`), `components/Topbar.tsx`.
+- Removidos (sem uso): `features/Checklist/Steps/inspection/*`, `configs/inspection.tsx`.
+
+**Validado:** imports relativos resolvem e não há erro de sintaxe (`tsc` sem `@types/react` neste ambiente; os erros restantes são os mesmos dos arquivos antigos); layout conferido em HTML estático com os CSS reais a 360/390/1050/1280/1440px, sem estouro horizontal.
+**NÃO validado:** `npm run build`, ESLint, comportamento real no app (atalhos, gaveta, autosave ao trocar de sub-etapa, "Limpar OS"), contra o Supabase, aparelho real.
+**Mudanças de comportamento a conferir:** trocar de sub-etapa agora salva com `saveOrder({manter:true})` (como a Entrada); "Limpar OS" pede confirmação em modal e volta à visão geral; Voltar na sub-etapa 1 vai à Entrada.
+**Pendências:** foto por item (câmera do Figma) — exige armazenamento novo; vários sistemas personalizados com nome próprio — exige campo novo no payload.

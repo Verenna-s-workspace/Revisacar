@@ -1,0 +1,3 @@
+Apagar do repositório (sem uso após o redesign):
+frontend/src/features/Checklist/Steps/inspection/ (Checklist.tsx, StepServices.tsx, StepDiagnostic.tsx, StepServicesParts.tsx, StepCopyPaste.tsx)
+frontend/src/features/Checklist/configs/inspection.tsx

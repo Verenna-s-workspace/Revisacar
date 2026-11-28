@@ -9,16 +9,19 @@ interface LayoutFaseOSProps {
   children: ReactNode;
   /** Painel lateral "Resumo da fase". No celular vai abaixo do conteúdo. */
   resumo: ReactNode;
+  /** Menu lateral opcional (ex.: sistemas do Diagnóstico). Sem ele o layout é o de sempre (card + resumo). */
+  menu?: ReactNode;
 }
 
 /** Esqueleto de toda fase da OS: cabeçalho fixo → stepper → sub-etapas → card + painel lateral. */
-export function LayoutFaseOS({ cabecalho, stepper, subetapas, children, resumo }: LayoutFaseOSProps) {
+export function LayoutFaseOS({ cabecalho, stepper, subetapas, children, resumo, menu }: LayoutFaseOSProps) {
   return (
     <div className="osf">
       {cabecalho}
       {stepper}
       {subetapas}
-      <div className="osf-corpo">
+      <div className={menu ? 'osf-corpo osf-corpo--menu' : 'osf-corpo'}>
+        {menu}
         {children}
         {resumo}
       </div>
